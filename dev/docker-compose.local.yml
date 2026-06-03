@@ -9,7 +9,7 @@ services:
       POSTGRES_PASSWORD: postgres
       # Seed automático no primeiro boot (lido pelo script em db/init)
       # Valor literal para evitar warnings de variável não definida no Windows/Compose
-      SEED_FILE: neon-init.sql
+      SEED_FILE: neon-public-seed.sql
     ports:
       - "5432:5432"
     volumes:
@@ -33,14 +33,14 @@ services:
       PGPASSWORD: ${DB_PASSWORD:-postgres}
       DB_USER: ${DB_USER:-postgres}
       DB_NAME: ${DB_NAME:-praxis}
-      SEED_FILE: ${SEED_FILE:-neon-init.sql}
+      SEED_FILE: ${SEED_FILE:-neon-public-seed.sql}
     volumes:
       - ../db/dump:/seed:ro
     entrypoint: >
       bash -lc '
       SEED="/seed/$${SEED_FILE}";
       if [ ! -f "$$SEED" ]; then
-        echo "Seed: $$SEED não encontrado. Copie o dump para db/dump/$${SEED_FILE} ou defina SEED_FILE=arquivo.sql" >&2; exit 1; fi;
+        echo "Seed: $$SEED não encontrado. Use db/dump/neon-public-seed.sql ou defina SEED_FILE=arquivo.sql" >&2; exit 1; fi;
       echo "Seed: aguardando DB em db:5432...";
       for i in {1..30}; do pg_isready -h db -U $${DB_USER} -d $${DB_NAME} && READY=1 && break || sleep 2; done;
       if [ -z "$$READY" ]; then echo "Seed: DB indisponível" >&2; exit 1; fi;
