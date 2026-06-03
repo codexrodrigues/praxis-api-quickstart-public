@@ -1,0 +1,121 @@
+name: CI (Java)
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'pom.xml'
+      - 'mvnw'
+      - '.mvn/wrapper/**'
+      - 'scripts/**'
+      - 'src/**'
+      - 'docs/**'
+      - 'README.md'
+      - 'Dockerfile'
+      - '.github/workflows/**'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'pom.xml'
+      - 'mvnw'
+      - '.mvn/wrapper/**'
+      - 'scripts/**'
+      - 'src/**'
+      - 'docs/**'
+      - 'README.md'
+      - 'Dockerfile'
+      - '.github/workflows/**'
+
+concurrency:
+  group: ci-java-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      - name: Normalize wrapper properties EOL
+        run: sed -i 's/\r$//' .mvn/wrapper/maven-wrapper.properties
+
+      - name: Make mvnw executable
+        run: chmod +x mvnw
+
+      - name: Validate shell scripts
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash -n scripts/*.sh
+
+      - name: Wait for Praxis starter artifacts on Maven Central
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          read_property() {
+            local property="$1"
+            python3 - "$property" <<'PY'
+          import sys
+          import xml.etree.ElementTree as ET
+
+          property_name = sys.argv[1]
+          namespace = {"m": "http://maven.apache.org/POM/4.0.0"}
+          root = ET.parse("pom.xml").getroot()
+          properties = root.find("m:properties", namespace)
+          value = properties.findtext(f"m:{property_name}", namespaces=namespace) if properties is not None else None
+          if not value:
+              raise SystemExit(f"Could not read property {property_name} from pom.xml")
+          print(value.strip())
+          PY
+          }
+
+          artifact_url() {
+            local artifact="$1"
+            local version="$2"
+            echo "https://repo.maven.apache.org/maven2/io/github/codexrodrigues/${artifact}/${version}/${artifact}-${version}.pom"
+          }
+
+          wait_for_artifact() {
+            local artifact="$1"
+            local version="$2"
+            local url
+            url="$(artifact_url "$artifact" "$version")"
+
+            for attempt in {1..30}; do
+              status="$(curl -L -s -o /dev/null -w '%{http_code}' "$url")"
+              if [ "$status" = "200" ]; then
+                echo "${artifact}:${version} is available on Maven Central."
+                return 0
+              fi
+
+              echo "Waiting for ${artifact}:${version} on Maven Central (${attempt}/30, HTTP ${status})."
+              sleep 60
+            done
+
+            echo "::error::${artifact}:${version} was not found on Maven Central after 30 minutes."
+            return 1
+          }
+
+          wait_for_artifact "praxis-metadata-starter" "$(read_property praxis.core.version)"
+          wait_for_artifact "praxis-config-starter" "$(read_property praxis.config.version)"
+
+      - name: Maven Verify (com testes)
+        run: ./mvnw -B -fae -Dstyle.color=always verify
+
+      # Opcional: publicar relatório de testes no summary
+      - name: Test Summary
+        if: always()
+        run: |
+          echo '### Test Results' >> $GITHUB_STEP_SUMMARY
+          grep -R "<testsuite" -n target/surefire-reports || true

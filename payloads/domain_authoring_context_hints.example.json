@@ -1,0 +1,29 @@
+{
+  "domainCatalog": {
+    "schemaVersion": "praxis.ai.context-hints.domain-catalog/v0.2",
+    "serviceKey": "praxis-service",
+    "resourceKey": "human-resources.folhas-pagamento",
+    "type": "binding",
+    "itemTypes": [
+      "binding"
+    ],
+    "intent": "authoring",
+    "query": "marcar folha como paga",
+    "artifactKind": "workflow-action-policy",
+    "targetLayer": "workflow_action",
+    "recommendedAuthoringFlow": "shared_rule_authoring",
+    "recommendedRuleType": "workflow_action_policy",
+    "limit": 5,
+    "relationships": {
+      "enabled": true,
+      "federated": true,
+      "query": "pagamento folha aprovada mark-paid",
+      "limit": 8
+    },
+    "governance": {
+      "requireEvidence": true,
+      "requireHumanReview": true,
+      "respectAiUsage": true
+    }
+  }
+}

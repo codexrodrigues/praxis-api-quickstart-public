@@ -1,0 +1,214 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://praxis.local/contracts/domain-authoring-context-hints.schema.json",
+  "title": "Praxis Domain Authoring Context Hints",
+  "description": "Quickstart mirror of the config-starter AiDomainCatalogContextHint contract, plus optional direct-authoring extensions, so an LLM can use runtime domain knowledge without reading source code.",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "domainCatalog"
+  ],
+  "properties": {
+    "domainCatalog": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "serviceKey",
+        "resourceKey",
+        "type",
+        "query",
+        "limit"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "type": "string",
+          "const": "praxis.ai.context-hints.domain-catalog/v0.2",
+          "description": "Canonical config-starter schema version for domain catalog context hints."
+        },
+        "serviceKey": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Semantic owner service used to retrieve the domain catalog release."
+        },
+        "contextKey": {
+          "type": "string",
+          "description": "Optional broader context used by runtime-generated candidate hints."
+        },
+        "resourceKey": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Primary domain resource for the authoring task."
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "context",
+            "node",
+            "edge",
+            "binding",
+            "evidence",
+            "governance",
+            "vocabulary",
+            "relationship"
+          ],
+          "description": "Canonical catalog item focus requested for retrieval."
+        },
+        "itemTypes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "context",
+              "node",
+              "edge",
+              "binding",
+              "evidence",
+              "governance",
+              "vocabulary",
+              "relationship"
+            ]
+          },
+          "description": "Optional canonical catalog item filters for retrieval."
+        },
+        "intent": {
+          "type": "string",
+          "enum": [
+            "authoring",
+            "explain",
+            "validate",
+            "ai-access-control"
+          ],
+          "description": "Optional intent for the semantic retrieval."
+        },
+        "nodeType": {
+          "type": "string",
+          "description": "Optional semantic node type when type=node."
+        },
+        "query": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Business query used to retrieve relevant domain context."
+        },
+        "releaseId": {
+          "type": "string",
+          "description": "Optional deterministic release id."
+        },
+        "releaseKey": {
+          "type": "string",
+          "description": "Optional deterministic release key."
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 50,
+          "description": "Maximum number of catalog items requested for retrieval."
+        },
+        "relationships": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "Whether relationship hints should be considered by authoring."
+            },
+            "federated": {
+              "type": "boolean",
+              "description": "Whether relationship lookup may cross resource or service boundaries."
+            },
+            "serviceKey": {
+              "type": "string",
+              "description": "Optional service key for non-federated relationship lookup."
+            },
+            "sourceNodeKey": {
+              "type": "string",
+              "description": "Optional source node key for relationship lookup."
+            },
+            "targetNodeKey": {
+              "type": "string",
+              "description": "Optional target node key for relationship lookup."
+            },
+            "edgeType": {
+              "type": "string",
+              "description": "Optional semantic edge type for relationship lookup."
+            },
+            "query": {
+              "type": "string",
+              "description": "Optional relationship query."
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50,
+              "description": "Maximum number of relationship items requested for retrieval."
+            }
+          }
+        },
+        "artifactKind": {
+          "type": "string",
+          "enum": [
+            "form-rule",
+            "validation-draft",
+            "ui-policy",
+            "dashboard",
+            "workflow-hint",
+            "workflow-action-policy",
+            "approval-policy",
+            "domain-explanation"
+          ],
+          "description": "Quickstart direct-authoring extension. Required by direct authoring callers, optional in runtime-generated retrieval hints."
+        },
+        "targetLayer": {
+          "type": "string",
+          "enum": [
+            "semantic-catalog",
+            "form-config-materialization",
+            "frontend-ui",
+            "backend-service",
+            "shared-rule-layer",
+            "policy-decision-layer",
+            "workflow_action",
+            "approval_policy"
+          ],
+          "description": "Quickstart direct-authoring extension. Layer where an approved draft may be materialized."
+        },
+        "recommendedAuthoringFlow": {
+          "type": "string",
+          "enum": [
+            "shared_rule_authoring",
+            "component_authoring",
+            "ui_composition_authoring"
+          ],
+          "description": "Optional canonical authoring flow that the frontend/agent should prefer before materializing an approved draft."
+        },
+        "recommendedRuleType": {
+          "type": "string",
+          "enum": [
+            "privacy",
+            "compliance",
+            "validation",
+            "selection_eligibility",
+            "workflow_action_policy",
+            "approval_policy"
+          ],
+          "description": "Optional canonical shared-rule type to seed domain-rules simulation when recommendedAuthoringFlow=shared_rule_authoring."
+        },
+        "governance": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "requireEvidence": {
+              "type": "boolean"
+            },
+            "requireHumanReview": {
+              "type": "boolean"
+            },
+            "respectAiUsage": {
+              "type": "boolean"
+            }
+          },
+          "description": "Quickstart direct-authoring extension for governance expectations."
+        }
+      }
+    }
+  }
+}

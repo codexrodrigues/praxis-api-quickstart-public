@@ -1,0 +1,218 @@
+[
+  {
+    "path": "/human-resources/funcionarios",
+    "title": "Heróis & Recrutas",
+    "description": "Gerencie o cadastro de heróis, recrutas e até mesmo os estagiários que só aparecem para o café.",
+    "icon": "groups"
+  },
+  {
+    "path": "/human-resources/cargos",
+    "title": "Patentes & Posições",
+    "description": "Defina os cargos e as patentes. De 'Capitão' a 'Especialista em Desculpas', todos têm seu lugar.",
+    "icon": "work"
+  },
+  {
+    "path": "/human-resources/departamentos",
+    "title": "Divisões & Departamentos",
+    "description": "Organize as equipes em seus devidos departamentos. Sim, o 'Departamento de Piadas Ruins' é oficial.",
+    "icon": "corporate_fare"
+  },
+  {
+    "path": "/human-resources/enderecos",
+    "title": "Bases & Esconderijos",
+    "description": "Cadastre os endereços das bases, esconderijos e daquela lanchonete suspeita na esquina.",
+    "icon": "home"
+  },
+  {
+    "path": "/human-resources/dependentes",
+    "title": "Aliados & Acompanhantes",
+    "description": "Gerencie os dependentes dos heróis. Porque até o mais forte precisa de um plano de saúde familiar.",
+    "icon": "family_restroom"
+  },
+  {
+    "path": "/human-resources/folhas-pagamento",
+    "title": "Tesouros & Recompensas",
+    "description": "Controle os pagamentos. Afinal, salvar o mundo não paga as contas (mas deveria).",
+    "icon": "paid"
+  },
+  {
+    "path": "/human-resources/eventos-folha",
+    "title": "Bônus & Descontos",
+    "description": "Registre bônus por bravura e descontos por 'destruição acidental de propriedade pública'.",
+    "icon": "receipt_long"
+  },
+  {
+    "path": "/human-resources/ferias-afastamentos",
+    "title": "Descanso do Guerreiro",
+    "description": "Agende as férias e licenças. Salvar o universo cansa, sabia?",
+    "icon": "beach_access"
+  },
+  {
+    "path": "/human-resources/habilidades",
+    "title": "Poderes & Talentos",
+    "description": "Liste as habilidades especiais. De 'voar' a 'fazer um café incrível', tudo é válido.",
+    "icon": "star"
+  },
+  {
+    "path": "/human-resources/ameacas",
+    "title": "Vilões & Ameaças",
+    "description": "Mantenha um registro dos vilões e das ameaças. E daquele pombo que encara feio da janela.",
+    "icon": "whatshot"
+  },
+  {
+    "path": "/human-resources/bases",
+    "title": "Fortalezas & QGs",
+    "description": "Gerencie as bases de operações. Garanta que a máquina de café esteja sempre funcionando.",
+    "icon": "fort"
+  },
+  {
+    "path": "/human-resources/equipes",
+    "title": "Esquadrões & Times",
+    "description": "Crie e gerencie os esquadrões. Escolha nomes legais como 'Os Incríveis' ou 'Os Vingativos do Café'.",
+    "icon": "shield"
+  },
+  {
+    "path": "/human-resources/indenizacoes",
+    "title": "Reparos & Compensações",
+    "description": "Registre os custos de danos colaterais. Sim, aquele prédio não se conserta sozinho.",
+    "icon": "construction"
+  },
+  {
+    "path": "/human-resources/incidentes",
+    "title": "Batalhas & Incidentes",
+    "description": "Documente os incidentes e as batalhas. E quem deixou a louça suja na pia da base.",
+    "icon": "report"
+  },
+  {
+    "path": "/human-resources/licencas-operacao",
+    "title": "Licenças para Salvar o Mundo",
+    "description": "Gerencie as licenças de operação. Burocracia existe até para super-heróis.",
+    "icon": "badge"
+  },
+  {
+    "path": "/human-resources/mencoes-midia",
+    "title": "Fama & Imprensa",
+    "description": "Acompanhe as notícias e menções na mídia. Controle de danos e fofocas de celebridades.",
+    "icon": "newspaper"
+  },
+  {
+    "path": "/human-resources/reputacoes",
+    "title": "Reputação & Popularidade",
+    "description": "Monitore a reputação dos heróis. Likes e dislikes do público.",
+    "icon": "trending_up"
+  },
+  {
+    "path": "/human-resources/equipamentos",
+    "title": "Arsenal & Gadgets",
+    "description": "Catalogue os equipamentos, das armaduras de alta tecnologia aos abridores de lata sônicos.",
+    "icon": "build"
+  },
+  {
+    "path": "/human-resources/veiculos",
+    "title": "Frotas & Veículos",
+    "description": "Gerencie a frota de veículos. Do jato invisível ao carro que sempre precisa de uma 'ajudinha' pra pegar.",
+    "icon": "directions_car"
+  },
+  {
+    "path": "/human-resources/equipamento-alocacoes",
+    "title": "Distribuição de Brinquedos",
+    "description": "Controle quem pegou qual gadget. E quem perdeu o manual de instruções.",
+    "icon": "widgets"
+  },
+  {
+    "path": "/human-resources/veiculo-missao-usos",
+    "title": "Registros de Viagem",
+    "description": "Monitore o uso dos veículos em missões. E quem esqueceu de abastecer.",
+    "icon": "map"
+  },
+  {
+    "path": "/human-resources/identidades-secretas",
+    "title": "Alter Egos & Disfarces",
+    "description": "Gerencie as identidades secretas. Óculos e um chapéu ainda contam como um bom disfarce.",
+    "icon": "theater_comedy"
+  },
+  {
+    "path": "/human-resources/historicos-salariais",
+    "title": "Evolução da Recompensa",
+    "description": "Acompanhe os aumentos e as mudanças salariais. Porque bravura merece um bônus.",
+    "icon": "attach_money"
+  },
+  {
+    "path": "/human-resources/historicos-cargos",
+    "title": "Jornada do Herói",
+    "description": "Veja a progressão de carreira. De 'Ajudante' a 'Lenda Viva'.",
+    "icon": "timeline"
+  },
+  {
+    "path": "/human-resources/funcionario-habilidades",
+    "title": "Quem Faz o Quê",
+    "description": "Associe heróis a suas habilidades. E descubra quem é o melhor em abrir potes de picles.",
+    "icon": "assignment_ind"
+  },
+  {
+    "path": "/human-resources/acordos-regulatorios",
+    "title": "Tratados & Burocracia",
+    "description": "Gerencie os acordos com governos e outras entidades. A parte chata de ser herói.",
+    "icon": "gavel"
+  },
+  {
+    "path": "/human-resources/missoes",
+    "title": "Missões & Aventuras",
+    "description": "Planeje e acompanhe as missões. Desde 'Salvar o Mundo' até 'Buscar Café para o Chefe'.",
+    "icon": "explore"
+  },
+  {
+    "path": "/human-resources/base-acessos",
+    "title": "Controle de Acesso",
+    "description": "Quem pode entrar onde. E quem precisa de um crachá de 'visitante'.",
+    "icon": "security"
+  },
+  {
+    "path": "/human-resources/equipe-membros",
+    "title": "Membros do Esquadrão",
+    "description": "Adicione e remova membros das equipes. E decida quem fica com o assento da janela.",
+    "icon": "person_add"
+  },
+  {
+    "path": "/human-resources/sinais-socorro",
+    "title": "Pedidos de Ajuda",
+    "description": "Receba e gerencie os sinais de socorro. Sim, um gato preso na árvore conta.",
+    "icon": "sos"
+  },
+  {
+    "path": "/human-resources/missao-eventos",
+    "title": "Diário de Bordo da Missão",
+    "description": "Registre os eventos importantes de cada missão. Incluindo as pausas para o lanche.",
+    "icon": "event_note"
+  },
+  {
+    "path": "/operations/missao-participantes",
+    "title": "Heróis na Missão",
+    "description": "Liste quem participou de qual missão. E quem ficou de fora para lavar a louça.",
+    "icon": "group_work"
+  },
+  {
+    "path": "/operations/vw-resumo-missoes",
+    "title": "Resumo das Façanhas",
+    "description": "Uma visão geral das missões concluídas. Para se gabar na próxima reunião.",
+    "icon": "summarize"
+  },
+  {
+    "path": "/human-resources/vw-ranking-reputacao",
+    "title": "Ranking da Popularidade",
+    "description": "Quem são os heróis mais populares do momento? Competição amigável, claro.",
+    "icon": "leaderboard"
+  },
+  {
+    "path": "/human-resources/vw-perfil-heroi",
+    "title": "Perfil do Herói",
+    "description": "Uma visão completa do perfil de cada herói. Incluindo a preferência por café.",
+    "icon": "person"
+  },
+  {
+    "path": "/human-resources/vw-indicadores-incidentes",
+    "title": "Estatísticas de Batalha",
+    "description": "Indicadores e métricas sobre os incidentes. Para analisar e melhorar as estratégias.",
+    "icon": "analytics"
+  }
+]

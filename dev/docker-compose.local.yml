@@ -1,0 +1,61 @@
+# Local development only. Not used by Render. In production, use Neon (PostgreSQL 17).
+services:
+  db:
+    image: postgres:17
+    container_name: praxis-postgres
+    environment:
+      POSTGRES_DB: praxis
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      # Seed automático no primeiro boot (lido pelo script em db/init)
+      # Valor literal para evitar warnings de variável não definida no Windows/Compose
+      SEED_FILE: neon-init.sql
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+      - ../db/init:/docker-entrypoint-initdb.d:ro
+      - ../db/dump:/seed:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d praxis"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  db-seed:
+    image: postgres:17
+    container_name: praxis-postgres-seed
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PGPASSWORD: ${DB_PASSWORD:-postgres}
+      DB_USER: ${DB_USER:-postgres}
+      DB_NAME: ${DB_NAME:-praxis}
+      SEED_FILE: ${SEED_FILE:-neon-init.sql}
+    volumes:
+      - ../db/dump:/seed:ro
+    entrypoint: >
+      bash -lc '
+      SEED="/seed/$${SEED_FILE}";
+      if [ ! -f "$$SEED" ]; then
+        echo "Seed: $$SEED não encontrado. Copie o dump para db/dump/$${SEED_FILE} ou defina SEED_FILE=arquivo.sql" >&2; exit 1; fi;
+      echo "Seed: aguardando DB em db:5432...";
+      for i in {1..30}; do pg_isready -h db -U $${DB_USER} -d $${DB_NAME} && READY=1 && break || sleep 2; done;
+      if [ -z "$$READY" ]; then echo "Seed: DB indisponível" >&2; exit 1; fi;
+      echo "Seed: garantindo role neondb_owner...";
+      psql -h db -U $${DB_USER} -d $${DB_NAME} -c "DO \$\$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'neondb_owner') THEN CREATE ROLE neondb_owner; END IF; END \$\$;" >/dev/null;
+      echo "Seed: importando $$SEED em $${DB_NAME}...";
+      case "$$SEED" in
+        *.sql) psql -h db -U $${DB_USER} -d $${DB_NAME} -v ON_ERROR_STOP=1 -f "$$SEED" ;;
+        *.sql.gz) gzip -dc "$$SEED" | psql -h db -U $${DB_USER} -d $${DB_NAME} -v ON_ERROR_STOP=1 ;;
+        *) echo "Seed: extensão não suportada (use .sql ou .sql.gz)" >&2; exit 1 ;;
+      esac;
+      echo "Seed: concluído."'
+    profiles:
+      - seed
+    restart: "no"
+
+volumes:
+  db_data:

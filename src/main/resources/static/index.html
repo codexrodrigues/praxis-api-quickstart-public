@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Praxis — API Quickstart</title>
+  <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg" />
+  <link rel="icon" href="/favicon.ico" sizes="any" />
+  <link rel="icon" type="image/png" sizes="32x32" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAQAAABi6S8dAAAAIUlEQVR42mNgGAWjYBSMglEwCkbB/////38GQwYGAQYAAJ8nB4Lw0w2uAAAAAElFTkSuQmCC" />
+  <link rel="icon" type="image/png" sizes="16x16" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA4AAAAOCAQAAABWESUoAAAAIUlEQVR42mNgGAWjYBSMglEwCkbB/////38GQwYGAQYAAJ8nB4Lw0w2uAAAAAElFTkSuQmCC" />
+  <link rel="apple-touch-icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAALQAAAC0CAQAAAC1tC+FAAAAIUlEQVR42mNgGAWjYBSMglEwCkbB/////38GQwYGAQYAAJ8nB4Lw0w2uAAAAAElFTkSuQmCC" />
+  <link rel="stylesheet" href="/assets/styles.css" />
+  <style>
+    :root {
+      --bg: #0b0f1a;
+      --panel: #111827;
+      --muted: #9aa4b2;
+      --text: #e5e7eb;
+      --accent: #60a5fa;
+      --accent-2: #34d399;
+      --border: #1f2937;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica Neue, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+      background: radial-gradient(1000px 600px at 10% -10%, rgba(96,165,250,.15), transparent),
+                  radial-gradient(1000px 600px at 90% 10%, rgba(52,211,153,.12), transparent),
+                  var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+    }
+    .container { max-width: 1000px; margin: 0 auto; padding: 40px 20px; }
+    .hero { padding: 48px 28px; border: 1px solid var(--border); border-radius: 16px; background: linear-gradient(180deg, rgba(17,24,39,.6), rgba(17,24,39,.85)); box-shadow: 0 10px 30px rgba(0,0,0,.35); }
+    h1 { font-size: 34px; margin: 0 0 12px; letter-spacing: .3px; }
+    .subtitle { color: var(--muted); font-size: 16px; margin: 0 0 12px; }
+    .chip {
+      display: inline-flex; gap: 8px; align-items: center; padding: 6px 10px; border: 1px solid var(--border);
+      color: var(--muted); border-radius: 999px; font-size: 12px; background: #0f172a; margin-right: 8px;
+    }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 18px; margin-top: 22px; }
+    .card { border: 1px solid var(--border); border-radius: 14px; background: var(--panel); padding: 18px; }
+    .card h3 { margin: 0 0 8px; font-size: 18px; }
+    .card p { margin: 0; color: var(--muted); font-size: 14px; }
+    .cta { display: inline-flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--border); color: var(--text); text-decoration: none; background: #0f172a; transition: .15s ease; }
+    .cta:hover { transform: translateY(-1px); border-color: #2b3648; }
+    .row { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 18px; }
+    .muted { color: var(--muted); }
+    .badge { font-weight: 600; color: var(--accent); }
+    .footer { margin-top: 36px; color: var(--muted); font-size: 13px; }
+    .list { margin: 10px 0 0 18px; color: var(--muted); }
+    .list li { margin: 6px 0; }
+    code { background: #0f172a; border: 1px solid var(--border); padding: 2px 6px; border-radius: 6px; }
+    .link { color: var(--accent); text-decoration: none; }
+    .link:hover { text-decoration: underline; }
+  </style>
+  <meta name="description" content="Praxis — Quickstart de API com Spring Boot 3 e suporte a metadata, OpenAPI e integrações. Página pública do projeto e links úteis." />
+  <meta property="og:title" content="Praxis — API Quickstart" />
+  <meta property="og:description" content="Quickstart de API com Spring Boot 3, Praxis Metadata Starter e Swagger UI público." />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="/" />
+</head>
+<body>
+  <div class="container">
+    <section class="hero">
+      <div class="brand">
+        <img src="/assets/praxis-logo.svg" alt="Praxis Logo" />
+        <h1>Praxis — API Quickstart</h1>
+      </div>
+      <p class="subtitle">Base de referência para construir APIs com Spring Boot 3 (Java 21) integradas ao <span class="badge">Praxis Metadata Starter</span>, expondo documentação OpenAPI e UI públicas.</p>
+      <div class="row">
+        <span class="chip">Spring Boot 3</span>
+        <span class="chip">Java 21</span>
+        <span class="chip">OpenAPI + Swagger UI</span>
+        <span class="chip">JPA + PostgreSQL</span>
+      </div>
+      <div class="row" style="margin-top: 16px;">
+        <a class="cta primary" href="/swagger-ui/index.html">Abrir Swagger UI</a>
+        <a class="cta" href="https://github.com/codexrodrigues/praxis-backend-seed-app" target="_blank" rel="noopener">Seed Backend (GitHub)</a>
+        <a class="cta" href="#universo">Conhecer o Universo dos Heróis</a>
+      </div>
+    </section>
+
+    <section class="grid">
+      <div class="card">
+        <h3>O que é o Praxis?</h3>
+        <p>Praxis é uma abordagem orientada a metadados para acelerar o desenvolvimento de backends e experiências de UI. Através de anotações e convenções, geramos contratos OpenAPI mais ricos, <em>schemas</em> direcionados e endpoints utilitários.</p>
+        <ul class="list">
+          <li>UI Schemas para formular rapidamente telas/fluxos.</li>
+          <li>Filtros tipados e endpoints de <code>options</code> para selects/autocomplete.</li>
+          <li>Enriquecimento de documentação e padronização de padrões REST.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Sobre este Quickstart</h3>
+        <p>Este projeto demonstra uma API com entidades e filtros exemplo (HR), plugada no Starter de Metadata, pronta para deploy em plataformas como Render.</p>
+        <ul class="list">
+          <li>Perfis <code>dev</code> e <code>prod</code>.</li>
+          <li><code>server.port</code> a partir da env <code>PORT</code>.</li>
+          <li>Swagger UI público; APIs protegidas com cookie de sessão (JWT).</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Como começar</h3>
+        <p>Construa localmente e abra a documentação interativa.</p>
+        <ul class="list">
+          <li>Build: <code>./mvnw -B -DskipTests package</code></li>
+          <li>Rodar: <code>java -jar target/praxis-api-quickstart-2.0.0-rc.9.jar</code></li>
+          <li>Docs: <a class="link" href="/swagger-ui/index.html">/swagger-ui/index.html</a></li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Roadmap</h3>
+        <p>Integrações e exemplos adicionais.</p>
+        <ul class="list">
+          <li>Seed Backend: <a class="link" href="https://github.com/codexrodrigues/praxis-backend-seed-app" target="_blank" rel="noopener">repositório</a></li>
+          <li>Angular Quickstart: <span class="muted">em breve</span></li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="universo" class="grid" style="margin-top: 28px;">
+      <div class="card" style="grid-column: 1 / -1;">
+        <h3>🦸‍♂️ Universo dos Heróis</h3>
+        <p class="muted">Domínio temático usado para demonstrar CRUDs, relacionamentos e regras de negócio em um contexto lúdico. Plataforma: Spring Boot 3 (Java 21) + PostgreSQL 17.</p>
+        <p class="muted">Este domínio fornece dados e endpoints para demonstrar o ecossistema Praxis (Metadata Starter + UI). Veja detalhes no README e no documento de banco.</p>
+        <div class="row">
+          <a class="cta" target="_blank" rel="noopener" href="https://github.com/codexrodrigues/praxis-api-quickstart/blob/main/docs/DEMO-DATABASE.md">Banco de Demonstração</a>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>🧍‍♂️ Recursos Humanos</h3>
+        <p>Funcionários (heróis), cargos, departamentos, histórico salarial, endereços e dependentes.</p>
+      </div>
+      <div class="card">
+        <h3>🧠 Habilidades &amp; Identidades</h3>
+        <p>Poderes, vínculos funcionário↔habilidade e identidades secretas (codinomes).</p>
+      </div>
+      <div class="card">
+        <h3>🏰 Bases &amp; Equipes</h3>
+        <p>Bases operacionais, equipes (liga/vingadores) e níveis de acesso por base.</p>
+      </div>
+      <div class="card">
+        <h3>🛰️ Missões &amp; Ameaças</h3>
+        <p>Ameaças globais, missões, participantes e eventos ocorridos.</p>
+      </div>
+      <div class="card">
+        <h3>🛠️ Logística &amp; Tecnologia</h3>
+        <p>Equipamentos, veículos e alocações durante missões.</p>
+      </div>
+      <div class="card">
+        <h3>⚖️ Compliance &amp; Incidentes</h3>
+        <p>Acordos, licenças de operação, incidentes e indenizações.</p>
+      </div>
+      <div class="card">
+        <h3>🗞️ Comunicação &amp; Mídia</h3>
+        <p>Sinais de socorro, reputação pública e menções na imprensa.</p>
+      </div>
+    </section>
+
+    <p class="footer">Dúvidas ou sugestões? Abra uma issue no repositório ou contribua com um PR. ❤️</p>
+  </div>
+</body>
+</html>

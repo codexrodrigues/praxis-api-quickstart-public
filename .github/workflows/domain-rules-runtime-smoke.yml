@@ -1,0 +1,88 @@
+name: Domain Rules Runtime Smoke
+
+on:
+  workflow_dispatch:
+    inputs:
+      backend_url:
+        description: Runtime base URL to validate
+        required: true
+        default: https://praxis-api-quickstart.onrender.com
+      tenant_id:
+        description: Tenant header
+        required: true
+        default: default
+      environment:
+        description: Environment header
+        required: true
+        default: dev
+      smoke_run_id:
+        description: Optional deterministic suffix for persisted smoke records
+        required: false
+        default: ''
+      require_simulation:
+        description: Simulation gate mode (auto, true or false)
+        required: false
+        default: auto
+      require_publication:
+        description: Publication gate mode (auto, true or false)
+        required: false
+        default: auto
+      require_backend_validation:
+        description: Backend validation gate mode (auto, true or false)
+        required: false
+        default: auto
+      require_workflow_action:
+        description: Workflow action gate mode (auto, true or false)
+        required: false
+        default: auto
+      require_approval_policy:
+        description: Approval policy gate mode (auto, true or false)
+        required: false
+        default: auto
+      require_timeline:
+        description: Governed timeline gate mode (auto, true or false)
+        required: false
+        default: auto
+
+concurrency:
+  group: domain-rules-runtime-smoke-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  runtime-smoke:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      BACKEND_URL: ${{ inputs.backend_url || 'https://praxis-api-quickstart.onrender.com' }}
+      TENANT_ID: ${{ inputs.tenant_id || 'default' }}
+      ENVIRONMENT: ${{ inputs.environment || 'dev' }}
+      SMOKE_RUN_ID: ${{ inputs.smoke_run_id }}
+      REQUIRE_SIMULATION: ${{ inputs.require_simulation || 'auto' }}
+      REQUIRE_PUBLICATION: ${{ inputs.require_publication || 'auto' }}
+      REQUIRE_BACKEND_VALIDATION: ${{ inputs.require_backend_validation || 'auto' }}
+      REQUIRE_WORKFLOW_ACTION: ${{ inputs.require_workflow_action || 'auto' }}
+      REQUIRE_APPROVAL_POLICY: ${{ inputs.require_approval_policy || 'auto' }}
+      REQUIRE_TIMELINE: ${{ inputs.require_timeline || 'auto' }}
+      PRACTICE_TEMP_PASSWORD: ${{ secrets.PRACTICE_TEMP_PASSWORD }}
+      ORIGIN: https://praxisui-dev.web.app
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Install runtime smoke dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! command -v jq >/dev/null 2>&1; then
+            sudo apt-get update
+            sudo apt-get install -y jq
+          fi
+
+      - name: Validate smoke script syntax
+        shell: bash
+        run: bash -n scripts/verify-domain-rules-runtime.sh
+
+      - name: Run shared domain rule runtime smoke
+        shell: bash
+        run: scripts/verify-domain-rules-runtime.sh

@@ -1,0 +1,30 @@
+/* Pequenos aprimoramentos visuais para a home pública */
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+.brand img {
+  height: 40px;
+  width: auto;
+  border-radius: 8px;
+  box-shadow: 0 6px 20px rgba(0,0,0,.35);
+}
+.cta.primary {
+  border-color: #1f2a40;
+  background: linear-gradient(135deg, rgba(96,165,250,.18), rgba(52,211,153,.18));
+}
+.cta.primary:hover {
+  transform: translateY(-1px);
+  border-color: #2b3648;
+}
+.hero h1 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+@media (max-width: 520px) {
+  .brand img { height: 32px; }
+}
+

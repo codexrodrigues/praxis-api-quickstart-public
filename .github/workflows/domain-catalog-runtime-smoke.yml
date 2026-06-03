@@ -1,0 +1,85 @@
+name: Domain Catalog Runtime Smoke
+
+on:
+  workflow_dispatch:
+    inputs:
+      backend_url:
+        description: Runtime base URL to validate
+        required: true
+        default: https://praxis-api-quickstart.onrender.com
+      tenant_id:
+        description: Tenant header
+        required: true
+        default: default
+      environment:
+        description: Environment header
+        required: true
+        default: dev
+      resource_keys:
+        description: Resource keys used by context and ingest resilience smokes
+        required: true
+        default: human-resources.funcionarios operations.missoes
+      run_ingest_resilience:
+        description: Run idempotent ingest resilience smoke
+        required: true
+        default: 'true'
+      max_idempotent_ingest_ms:
+        description: Maximum elapsed time for the repeated stable ingest
+        required: true
+        default: '10000'
+  schedule:
+    - cron: '17 9 * * *'
+
+concurrency:
+  group: domain-catalog-runtime-smoke-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  runtime-smoke:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      BACKEND_URL: ${{ inputs.backend_url || 'https://praxis-api-quickstart.onrender.com' }}
+      TENANT_ID: ${{ inputs.tenant_id || 'default' }}
+      ENVIRONMENT: ${{ inputs.environment || 'dev' }}
+      ORIGIN: https://praxisui-dev.web.app
+      RESOURCE_KEYS: ${{ inputs.resource_keys || 'human-resources.funcionarios operations.missoes' }}
+      RUN_INGEST_RESILIENCE: ${{ inputs.run_ingest_resilience || 'true' }}
+      MAX_IDEMPOTENT_INGEST_MS: ${{ inputs.max_idempotent_ingest_ms || '10000' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Install runtime smoke dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! command -v jq >/dev/null 2>&1; then
+            sudo apt-get update
+            sudo apt-get install -y jq
+          fi
+
+      - name: Validate smoke script syntax
+        shell: bash
+        run: |
+          bash -n scripts/verify-domain-catalog-context.sh
+          bash -n scripts/verify-domain-catalog-ingest-resilience.sh
+          bash -n scripts/verify-domain-catalog-authoring-runtime.sh
+
+      - name: Verify persisted domain catalog context
+        shell: bash
+        run: scripts/verify-domain-catalog-context.sh
+
+      - name: Run idempotent ingest resilience smoke
+        shell: bash
+        run: |
+          if [[ "${RUN_INGEST_RESILIENCE}" != "true" ]]; then
+            echo "Skipping ingest resilience smoke."
+            exit 0
+          fi
+          scripts/verify-domain-catalog-ingest-resilience.sh
+
+      - name: Run domain catalog runtime authoring smoke
+        shell: bash
+        run: scripts/verify-domain-catalog-authoring-runtime.sh
