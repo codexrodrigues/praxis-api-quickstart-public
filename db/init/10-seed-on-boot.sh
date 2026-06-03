@@ -6,7 +6,7 @@ set -eu
 #  - 20-import-dump.sql   (importa /seed/neon-public-seed.sql)
 # Este script apenas evita rodar lógica duplicada.
 
-if [ -f "/docker-entrypoint-initdb.d/20-import-dump.sql" ] || [ -f "/docker-entrypoint-initdb.d/20-neon-init.sql" ]; then
+if [ -f "/docker-entrypoint-initdb.d/20-import-dump.sql" ]; then
   echo "Init/seed: import será tratado por 20-*.sql; pulando."
   exit 0
 fi
