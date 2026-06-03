@@ -1,101 +1,99 @@
-# 🦸‍♂️ Banco de Demonstração – Universo dos Heróis
+# Banco de Demonstracao - Universo dos Herois
 
-Este projeto demonstra o uso do Spring Boot 3 (Java 21) integrado a um banco PostgreSQL 17, utilizando um domínio temático inspirado em super‑heróis para exemplificar CRUDs, relacionamentos e regras de negócio. O objetivo é fornecer uma base rica de dados e endpoints REST para uso com as bibliotecas do ecossistema Praxis — incluindo o `praxis-metadata-starter` e, no front, o Praxis UI.
+Este projeto demonstra o uso do Spring Boot 3 (Java 21) integrado a um banco PostgreSQL 17, utilizando um dominio tematico inspirado em herois para exemplificar CRUDs, relacionamentos e regras de negocio. O objetivo e fornecer uma base rica de dados e endpoints REST para uso com as bibliotecas do ecossistema Praxis, incluindo o `praxis-metadata-starter` e, no front, o Praxis UI.
 
 - Backend: Spring Boot 3.x, Spring Data JPA/Hibernate
-- Banco: PostgreSQL 17 (compatível com serviços como Neon)
-- Contratos: OpenAPI 3.1 + extensão x‑ui (gerada pelo Starter)
+- Banco: PostgreSQL 17
+- Contratos: OpenAPI 3.1 + extensao x-ui gerada pelo starter
 
-## 🧩 Domínio e propósito
+## Dominio e proposito
 
-O domínio modela uma organização global de heróis, contendo cadastros, missões, bases operacionais, acordos internacionais e relatórios de desempenho. Cada entidade foi pensada para cobrir casos comuns de aplicações corporativas (relacionamentos 1‑N e N‑N, enums, filtros ricos).
+O dominio modela uma organizacao global de herois, contendo cadastros, missoes, bases operacionais, acordos internacionais e relatorios de desempenho. Cada entidade foi pensada para cobrir casos comuns de aplicacoes corporativas: relacionamentos 1-N e N-N, enums e filtros ricos.
 
-### Módulos principais
+### Modulos principais
 
-| Módulo                  | Finalidade                                                                 | Principais tabelas                                                                                             |
-|-------------------------|-----------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------|
-| Recursos Humanos        | Cadastro e gestão de heróis (funcionários), cargos, departamentos, histórico | `funcionarios`, `cargos`, `departamentos`, `historicos_salariais`, `enderecos`, `dependentes`                  |
-| Habilidades & Identidades | Define poderes, origens e codinomes                                         | `habilidades`, `funcionario_habilidades`, `identidades_secretas`                                               |
-| Bases & Equipes        | Bases de operação, equipes, níveis de acesso                                 | `bases`, `equipes`, `equipe_membros`, `base_acessos`                                                           |
-| Missões & Ameaças      | Ameaças globais, missões, participantes e eventos                             | `ameacas`, `missoes`, `missao_participantes`, `missao_eventos`                                                 |
-| Logística & Tecnologia | Equipamentos, veículos e alocações                                           | `equipamentos`, `veiculos`, `equipamento_alocacoes`, `veiculo_missao_usos`                                     |
-| Compliance & Incidentes| Acordos, licenças, incidentes e indenizações                                  | `acordos_regulatorios`, `licencas_operacao`, `incidentes`, `indenizacoes`                                      |
-| Comunicação & Mídia    | Sinais de socorro, reputação e menções na imprensa                            | `sinais_socorro`, `reputacoes`, `mencoes_midia`                                                                |
+| Modulo | Finalidade | Principais tabelas |
+| --- | --- | --- |
+| Recursos Humanos | Cadastro e gestao de herois, funcionarios, cargos, departamentos e historico | `funcionarios`, `cargos`, `departamentos`, `historicos_salariais`, `enderecos`, `dependentes` |
+| Habilidades & Identidades | Define habilidades, origens e codinomes | `habilidades`, `funcionario_habilidades`, `identidades_secretas` |
+| Bases & Equipes | Bases de operacao, equipes e niveis de acesso | `bases`, `equipes`, `equipe_membros`, `base_acessos` |
+| Missoes & Ameacas | Ameacas globais, missoes, participantes e eventos | `ameacas`, `missoes`, `missao_participantes`, `missao_eventos` |
+| Logistica & Tecnologia | Equipamentos, veiculos e alocacoes | `equipamentos`, `veiculos`, `equipamento_alocacoes`, `veiculo_missao_usos` |
+| Compliance & Incidentes | Acordos, licencas, incidentes e indenizacoes | `acordos_regulatorios`, `licencas_operacao`, `incidentes`, `indenizacoes` |
+| Comunicacao & Midia | Sinais de socorro, reputacao e mencoes na imprensa | `sinais_socorro`, `reputacoes`, `mencoes_midia` |
 
-Observação: neste Quickstart, os recursos estão sob o prefixo único ` /api/human-resources/... ` por praticidade, mesmo cobrindo múltiplos “módulos” temáticos.
+Observacao: neste Quickstart, os recursos estao separados por dominio de rota, como `/api/human-resources/...`, `/api/operations/...`, `/api/assets/...`, `/api/risk-intelligence/...` e `/api/demo/...`.
 
-## 🌐 Endpoints REST
+## Endpoints REST
 
-Padrão de rotas por recurso (RESTful):
+Padrao de rotas por recurso:
 
-- GET    `/{grupo}/{recurso}`        → lista ou filtro paginado
-- GET    `/{grupo}/{recurso}/{id}`   → detalhe
-- POST   `/{grupo}/{recurso}`        → criação
-- PUT    `/{grupo}/{recurso}/{id}`   → atualização
-- DELETE `/{grupo}/{recurso}/{id}`   → exclusão
+- GET `/{grupo}/{recurso}` - lista ou filtro paginado
+- GET `/{grupo}/{recurso}/{id}` - detalhe
+- POST `/{grupo}/{recurso}` - criacao
+- PUT `/{grupo}/{recurso}/{id}` - atualizacao
+- DELETE `/{grupo}/{recurso}/{id}` - exclusao
 
-Além disso, endpoints utilitários fornecidos pelo Starter integram com o Praxis UI para geração dinâmica de telas:
+Endpoints utilitarios fornecidos pelo starter integram com o Praxis UI para geracao dinamica de telas:
 
-- POST `{recurso}/filter` — pesquisa paginada (DTO completo)
-- POST `{recurso}/options/filter` — opções leves `{id,label}` por filtro (combos/autocomplete)
-- GET  `{recurso}/options/by-ids` — reidrata opções por IDs, preservando a ordem
-- GET  `/schemas/filtered` — JSON Schema enriquecido para a operação alvo (request/response)
+- POST `{recurso}/filter` - pesquisa paginada com DTO completo
+- POST `{recurso}/options/filter` - opcoes leves `{id,label}` por filtro
+- GET `{recurso}/options/by-ids` - reidrata opcoes por IDs, preservando a ordem
+- GET `/schemas/filtered` - JSON Schema enriquecido para a operacao alvo
 
-## 🧠 Estrutura de demonstração para o Praxis
+## Estrutura de demonstracao para o Praxis
 
-- Metadados ricos via `@UISchema` e Bean Validation (tipos, validações, hints, labels)
-- Geração automática de telas no Praxis UI (tabela/formulário) com base no contrato
-- Suporte a dashboards e relatórios (vistas agregadas/materalizadas)
-- Contratos versionáveis e com ETag para cache eficiente
+- Metadados ricos via `@UISchema` e Bean Validation
+- Geracao automatica de telas no Praxis UI com base no contrato
+- Suporte a dashboards e relatorios com views agregadas
+- Contratos versionaveis e com ETag para cache eficiente
 
-## 🧰 Tecnologias principais
+## Tecnologias principais
 
 - Spring Boot 3.x (Java 21), Spring Data JPA / Hibernate
-- PostgreSQL 17 (Neon ou compatível)
+- PostgreSQL 17
 - OpenAPI 3.1 + Praxis Metadata Starter
-- Praxis UI (Angular, 20+) — Quickstart em breve
+- Praxis UI (Angular, 20+)
 
-## 🗂️ Views e indicadores
+## Views e indicadores
 
-| View                  | Descrição                                                                                  |
-|-----------------------|----------------------------------------------------------------------------------------------|
-| `vw_perfil_heroi`     | Perfil do herói (cargo, equipe, habilidades, reputação)                                      |
-| `vw_resumo_missoes`   | Resumo de missões com contagem de eventos e participantes                                     |
-| `vw_ranking_reputacao`| Ranking de reputação pública e governamental                                                 |
-| `vw_indicadores_incidentes` | Indicadores financeiros e de severidade de incidentes                                  |
+| View | Descricao |
+| --- | --- |
+| `vw_perfil_heroi` | Perfil do heroi, incluindo cargo, equipe, habilidades e reputacao |
+| `vw_resumo_missoes` | Resumo de missoes com contagem de eventos e participantes |
+| `vw_ranking_reputacao` | Ranking de reputacao publica e governamental |
+| `vw_indicadores_incidentes` | Indicadores financeiros e de severidade de incidentes |
 
-As views são mapeadas como entidades somente‑leitura (ou DTOs), servindo de base para dashboards e relatórios.
+As views sao mapeadas como entidades somente leitura ou DTOs, servindo de base para dashboards e relatorios.
 
-## 📈 Cenários de demonstração
+## Cenarios de demonstracao
 
-- CRUD completo: habilidades, equipes, missões
-- Relacionamentos complexos: equipes com membros; missões com participantes e eventos
-- Dashboards: incidentes e indenizações agregadas por severidade
-- ABAC/RLS (conceitual): níveis de acesso a bases e licenças de operação
+- CRUD completo: habilidades, equipes e missoes
+- Relacionamentos complexos: equipes com membros; missoes com participantes e eventos
+- Dashboards: incidentes e indenizacoes agregadas por severidade
+- ABAC/RLS conceitual: niveis de acesso a bases e licencas de operacao
 
-## 📖 Exemplos no Praxis UI (conceituais)
+## Exemplos no Praxis UI
 
 - Tabela: `<praxis-table resourcePath="/api/human-resources/funcionarios" />`
 - CRUD inferido: `<praxis-crud [metadata]="{ component: 'praxis-crud', resource: { path: '/api/human-resources/indenizacoes', idField: 'id' }, actions: [{ action: 'create' }, { action: 'view' }, { action: 'edit' }, { action: 'delete' }] }" />`
 - Dashboard: `<praxis-dashboard resourcePath="/api/risk-intelligence/vw-indicadores-incidentes" />`
 
-## 🔌 Integração com o Praxis Metadata Starter
+## Integracao com o Praxis Metadata Starter
 
 O backend publica automaticamente:
 
-- `/schemas/filtered` — JSON Schema enriquecido com metadados UI (x‑ui)
-- `/filter` — busca paginada por DTO de filtro tipado
-- `/options` — opções remotas para selects/autocomplete
+- `/schemas/filtered` - JSON Schema enriquecido com metadados UI (`x-ui`)
+- `/filter` - busca paginada por DTO de filtro tipado
+- `/options` - opcoes remotas para selects/autocomplete
 
-Esses contratos são consumidos pelo Praxis UI, que gera interfaces dinâmicas declarativamente.
+Esses contratos sao consumidos pelo Praxis UI, que gera interfaces dinamicas declarativamente.
 
 No baseline atual do runtime oficial:
 
 - `/schemas/filtered` continua sendo a fonte estrutural de schema
-- `capabilities.operations` governa a semântica canônica de `create`, `view`, `edit` e `delete`
+- `capabilities.operations` governa a semantica canonica de `create`, `view`, `edit` e `delete`
 - `_links` entram como camada operacional/contextual
-- `DELETE /batch` e workflow actions destrutivas não substituem o `delete` canônico item-level do recurso
+- `DELETE /batch` e workflow actions destrutivas nao substituem o `delete` canonico item-level do recurso
 
----
-
-Para uma visão ampla do ecossistema e como este Quickstart se encaixa, consulte o README principal.
+Para uma visao ampla do ecossistema e como este Quickstart se encaixa, consulte o README principal.

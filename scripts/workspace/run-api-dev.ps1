@@ -1,13 +1,14 @@
 <#
 .SYNOPSIS
-  Arranca o JAR do quickstart em perfil dev, com datasource via env (Neon / Postgres remoto).
+  Arranca o JAR do quickstart em perfil dev, com datasource via env.
 
 .DESCRIPTION
-  1) Opcional: carrega `praxis-api-quickstart/.env.dev` (gitignored) — linhas KEY=VAL, # comentario.
+  1) Opcional: carrega `praxis-api-quickstart/.env.dev` (gitignored) - linhas KEY=VAL, # comentario.
   2) Garante SPRING_PROFILES_ACTIVE=dev se nao estiver definido.
   3) Executa o JAR em `target/praxis-api-quickstart-*.jar` (exclui *-sources*).
 
-  Neon: no dashboard, copia a connection string. JDBC tipico:
+  PostgreSQL gerenciado: copie a connection string e converta para JDBC quando necessario.
+  JDBC tipico:
     jdbc:postgresql://<host>/<dbname>?sslmode=require
   Nao use `channel_binding=require` no JDBC (driver nao suporta).
 

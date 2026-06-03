@@ -183,7 +183,7 @@ Em `auto`, o smoke cria/publica uma regra de validacao para
 comando mutavel de pedido se a publication ja tiver derivado
 `resource_validation_policy`; se a versao publicada do starter ainda nao fizer
 essa derivacao, o script registra warning e evita escrever pedido de teste no
-Neon. Com `praxis-config-starter:0.1.0-rc.33`, a derivacao automatica de
+managed PostgreSQL. Com `praxis-config-starter:0.1.0-rc.33`, a derivacao automatica de
 `backend_validation` esta publicada com `source_hash` derivado por digest
 estavel. Quando o gate chega ao comando mutavel de pedido, o smoke autentica
 em `/auth/login` com `ADMIN_PASSWORD` ou `PRACTICE_TEMP_PASSWORD`, preservando a

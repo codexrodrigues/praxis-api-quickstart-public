@@ -1,4 +1,4 @@
-# Local development only. Not used by Render. In production, use Neon (PostgreSQL 17).
+# Local development only. Not used by Render.
 services:
   db:
     image: postgres:17
@@ -7,9 +7,9 @@ services:
       POSTGRES_DB: praxis
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-      # Seed automático no primeiro boot (lido pelo script em db/init)
-      # Valor literal para evitar warnings de variável não definida no Windows/Compose
-      SEED_FILE: neon-public-seed.sql
+      # Seed automatico no primeiro boot (lido pelo script em db/init)
+      # Valor literal para evitar warnings de variavel nao definida no Windows/Compose
+      SEED_FILE: public-demo-seed.sql
     ports:
       - "5432:5432"
     volumes:
@@ -33,26 +33,26 @@ services:
       PGPASSWORD: ${DB_PASSWORD:-postgres}
       DB_USER: ${DB_USER:-postgres}
       DB_NAME: ${DB_NAME:-praxis}
-      SEED_FILE: ${SEED_FILE:-neon-public-seed.sql}
+      SEED_FILE: ${SEED_FILE:-public-demo-seed.sql}
     volumes:
       - ../db/dump:/seed:ro
     entrypoint: >
       bash -lc '
       SEED="/seed/$${SEED_FILE}";
       if [ ! -f "$$SEED" ]; then
-        echo "Seed: $$SEED não encontrado. Use db/dump/neon-public-seed.sql ou defina SEED_FILE=arquivo.sql" >&2; exit 1; fi;
+        echo "Seed: $$SEED nao encontrado. Use db/dump/public-demo-seed.sql ou defina SEED_FILE=arquivo.sql" >&2; exit 1; fi;
       echo "Seed: aguardando DB em db:5432...";
       for i in {1..30}; do pg_isready -h db -U $${DB_USER} -d $${DB_NAME} && READY=1 && break || sleep 2; done;
-      if [ -z "$$READY" ]; then echo "Seed: DB indisponível" >&2; exit 1; fi;
-      echo "Seed: garantindo role neondb_owner...";
-      psql -h db -U $${DB_USER} -d $${DB_NAME} -c "DO \$\$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'neondb_owner') THEN CREATE ROLE neondb_owner; END IF; END \$\$;" >/dev/null;
+      if [ -z "$$READY" ]; then echo "Seed: DB indisponivel" >&2; exit 1; fi;
+      echo "Seed: garantindo role praxis_demo_owner...";
+      psql -h db -U $${DB_USER} -d $${DB_NAME} -c "DO \$\$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'praxis_demo_owner') THEN CREATE ROLE praxis_demo_owner; END IF; END \$\$;" >/dev/null;
       echo "Seed: importando $$SEED em $${DB_NAME}...";
       case "$$SEED" in
         *.sql) psql -h db -U $${DB_USER} -d $${DB_NAME} -v ON_ERROR_STOP=1 -f "$$SEED" ;;
         *.sql.gz) gzip -dc "$$SEED" | psql -h db -U $${DB_USER} -d $${DB_NAME} -v ON_ERROR_STOP=1 ;;
-        *) echo "Seed: extensão não suportada (use .sql ou .sql.gz)" >&2; exit 1 ;;
+        *) echo "Seed: extensao nao suportada (use .sql ou .sql.gz)" >&2; exit 1 ;;
       esac;
-      echo "Seed: concluído."'
+      echo "Seed: concluido."'
     profiles:
       - seed
     restart: "no"

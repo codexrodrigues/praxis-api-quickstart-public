@@ -14,7 +14,7 @@ locally.
   publication and opt-in vector-ranked candidate retrieval.
 - `praxis-api-quickstart/main` contains the strict runtime smoke gate
   `REQUIRE_PROJECT_KNOWLEDGE_VECTOR_RETRIEVAL=true`.
-- The vector path has been proved locally with Neon-backed persistence and
+- The vector path has been proved locally with managed PostgreSQL-backed persistence and
   `PgVectorStore`.
 - No Maven Central publication, npm publication or GitHub Actions run has been
   used for this checkpoint.
@@ -104,7 +104,7 @@ On 2026-05-02, the local vector-enabled proof passed:
   authoring retrieval, derived index publication and metadata passed locally.
 - `praxis-config-starter` installed into the local Maven repository.
 - this quickstart packaged against the local starter without Maven Central.
-- a local quickstart started on `http://localhost:8099` with Neon-backed
+- a local quickstart started on `http://localhost:8099` with managed PostgreSQL-backed
   persistence and `PgVectorStore` initialized.
 - revert proof confirmed vector document count `1` after `add_evidence` and
   `0` after revert.

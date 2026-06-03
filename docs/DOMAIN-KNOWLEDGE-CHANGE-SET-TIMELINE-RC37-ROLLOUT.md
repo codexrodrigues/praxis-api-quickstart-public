@@ -48,7 +48,7 @@ new Maven coordinate:
 - Quickstart PR CI passed in run `25199824379`.
 - Quickstart main CI passed in run `25199903432`.
 - A local quickstart packaged with the locally installed starter passed the
-  Neon-backed strict smoke:
+  managed PostgreSQL-backed strict smoke:
 
 ```bash
 BASE_URL=http://localhost:8099 TENANT_ID=desenv ENVIRONMENT=local \
@@ -90,7 +90,7 @@ These items are already complete:
 3. Starter main CI passed.
 4. Quickstart smoke support merged.
 5. Quickstart PR CI and main CI passed.
-6. Local Neon strict smoke passed against a quickstart packaged with the local
+6. Local managed PostgreSQL strict smoke passed against a quickstart packaged with the local
    starter.
 
 ## Completed Publication Path
@@ -144,7 +144,7 @@ against the published artifact:
   `praxis-config-starter:0.1.0-rc.37` from Maven Central.
 - The build reported `111` tests, `0` failures, `0` errors and `9` skipped.
 - A local quickstart packaged from this source line was started on
-  `http://localhost:8099` with Neon-backed persistence and Domain Knowledge
+  `http://localhost:8099` with managed PostgreSQL-backed persistence and Domain Knowledge
   projection enabled.
 - `BASE_URL=http://localhost:8099 TENANT_ID=desenv ENVIRONMENT=local REQUIRE_CHANGE_SET_TIMELINE=true tools/local-e2e/run-domain-knowledge-change-set-local.sh`
   passed.
@@ -164,7 +164,7 @@ Actions:
 - `mvn -q -DskipTests install` passed in `praxis-config-starter`.
 - `mvn -q clean package -DskipTests -Dpraxis.config.version=0.1.0-rc.5`
   passed in this quickstart.
-- A local quickstart was started on `http://localhost:8099` with Neon-backed
+- A local quickstart was started on `http://localhost:8099` with managed PostgreSQL-backed
   persistence and Domain Knowledge projection enabled.
 - `BACKEND_URL=http://localhost:8099 TENANT_ID=desenv ENVIRONMENT=local REQUIRE_CHANGE_SET_TIMELINE=true REQUIRE_EVIDENCE_REVERT=true REQUIRE_PROJECT_KNOWLEDGE_RETRIEVAL=true AUTHORING_STREAM_MAX_TIME=180 scripts/verify-domain-knowledge-change-set-runtime.sh`
   passed.

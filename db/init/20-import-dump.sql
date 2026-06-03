@@ -1,3 +1,3 @@
-\echo 'Init/sql: importing /seed/neon-public-seed.sql (if present)'
+\echo 'Init/sql: importing /seed/public-demo-seed.sql (if present)'
 \set ON_ERROR_STOP on
-\ir /seed/neon-public-seed.sql
+\ir /seed/public-demo-seed.sql

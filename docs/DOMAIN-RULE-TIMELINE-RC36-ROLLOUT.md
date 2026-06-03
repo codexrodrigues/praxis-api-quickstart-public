@@ -8,12 +8,12 @@ This quickstart is the operational reference host for Praxis semantic decisions 
 
 - `pom.xml` now consumes `praxis.config.version=0.1.0-rc.36`.
 - Timeline v1 and v2 are included in the published `praxis-config-starter:0.1.0-rc.36` artifact.
-- Local quickstart + Neon proof has already passed against the unreleased starter with:
+- Local quickstart + managed PostgreSQL proof has already passed against the unreleased starter with:
   - `BACKEND_URL=http://localhost:8088 REQUIRE_TIMELINE=true scripts/verify-domain-rules-runtime.sh`
 - That proof returned:
   - `eventCount=10` for the governed `form_config` path, including `intake.received`, `simulation.requested`, `simulation.completed`, approval and materialization events.
   - `eventCount=9` for the published `option_source` path, including publication and materialization events.
-- On 2026-04-28, the local-first RC proof was re-run against Neon with strict gates:
+- On 2026-04-28, the local-first RC proof was re-run against managed PostgreSQL with strict gates:
   - `REQUIRE_SIMULATION=true`
   - `REQUIRE_PUBLICATION=true`
   - `REQUIRE_BACKEND_VALIDATION=true`
@@ -27,7 +27,7 @@ This quickstart is the operational reference host for Praxis semantic decisions 
   - governed timelines returned events for `form_config`, `option_source`, `backend_validation`, `workflow_action` and `approval_policy`.
 - The same local validation pass also proved the LLM authoring context path with OpenAI and `REQUIRE_GOVERNED_CONTEXT=true`, returning `resolutionStatus=resolved` and `policyProfile=compliance_review`.
 - `scripts/verify-domain-federation-runtime.sh` was corrected to verify active persisted release artifacts by canonical `contextKey` and `relationshipType`, without text-query filters that hid valid relationships/contracts.
-- The corrected federation smoke passed locally against Neon, including candidate release, audit read, persisted validation report, activation and active context reads for operations and HR.
+- The corrected federation smoke passed locally against managed PostgreSQL, including candidate release, audit read, persisted validation report, activation and active context reads for operations and HR.
 - On 2026-04-28, a local browser cockpit E2E against quickstart `rc.35` proved create, simulate, approve and activate through the governed buttons, but also exposed two post-`rc.35` release blockers that must be included in the same `rc.36` starter cut:
   - the timeline endpoint is unavailable in the published `rc.35` dependency, so the cockpit must treat timeline as derived observability until the quickstart consumes `rc.36`;
   - shared-rule authoring prompts with an explicit `/api/{context}/{resource}` path must preserve that resource path during intent resolution, instead of being re-grounded by looser domain words in the prompt.
@@ -36,7 +36,7 @@ This quickstart is the operational reference host for Praxis semantic decisions 
   - `DomainAuthoringContextHintsContractTest` passed in this quickstart.
   - `praxis-ui-angular` page-builder focal spec passed with `59 SUCCESS`, and `ng build praxis-page-builder` passed.
   - `scripts/workspace/check-v0-readiness.sh` passed with all tracked repos on clean `main`, no open PRs and ports `4003/8088` free.
-  - `scripts/workspace/run-local-readiness-lane.sh domain-rules-timeline-runtime` passed against quickstart packaged with local `praxis-config-starter:0.1.0-rc.5`, proving timeline `eventCount=10` for `form_config`, `eventCount=9` for `option_source`, publication runtime lookup enforcement and Neon-backed persistence.
+  - `scripts/workspace/run-local-readiness-lane.sh domain-rules-timeline-runtime` passed against quickstart packaged with local `praxis-config-starter:0.1.0-rc.5`, proving timeline `eventCount=10` for `form_config`, `eventCount=9` for `option_source`, publication runtime lookup enforcement and managed PostgreSQL-backed persistence.
   - `scripts/workspace/run-local-readiness-lane.sh shared-rule-timeline-cockpit` passed, proving the governed timeline rendered in the Angular cockpit with managed local services.
 - No Maven/npm publication and no GitHub Actions were used during implementation. The single phase-close remote gate later passed, then the single Maven Central release published `0.1.0-rc.36`.
 
@@ -110,7 +110,7 @@ Expected explicit resource-path evidence:
 On 2026-04-29, after publishing and resolving `praxis-config-starter:0.1.0-rc.36`, this quickstart was validated locally against the published artifact:
 
 - `./mvnw -B verify` passed with `111` tests, `0` failures, `0` errors and `9` skipped.
-- `BACKEND_URL=http://localhost:8088 TENANT_ID=desenv ENVIRONMENT=local scripts/workspace/run-local-readiness-lane.sh domain-rules-timeline-runtime` passed against the canonical local quickstart starter, Neon-backed persistence and `REQUIRE_TIMELINE=true`.
+- `BACKEND_URL=http://localhost:8088 TENANT_ID=desenv ENVIRONMENT=local scripts/workspace/run-local-readiness-lane.sh domain-rules-timeline-runtime` passed against the canonical local quickstart starter, managed PostgreSQL-backed persistence and `REQUIRE_TIMELINE=true`.
 - The runtime lane returned governed timeline evidence with `eventCount=10` for the `form_config` path and `eventCount=9` for the `option_source` path.
 - The same runtime lane proved the publication path, option-source lookup enforcement and safe timeline publication behavior without redefining the canonical rule semantics in the quickstart.
 

@@ -99,7 +99,7 @@ graph TD
   subgraph Backend
     seed["Praxis Backend Seed App\n(repositorio de inicio)"]
     quickstart["Praxis API Quickstart\n(este repositorio)"]
-    db[(Neon - PostgreSQL 17)]
+    db[(PostgreSQL 17)]
   end
 
   subgraph Frontend
@@ -147,7 +147,7 @@ sequenceDiagram
   participant DOCS as OpenAPI Docs (/v3/api-docs)
   participant SC as Schemas (/schemas/filtered)
   participant API as API Resources (/api/**)
-  participant DB as Neon (PostgreSQL 17)
+  participant DB as PostgreSQL 17
 
   UI->>SC: GET /schemas/filtered?path=...&operation=...&schemaType=...
   Note right of UI: If-None-Match: "<etag>" (revalidacao)
@@ -166,7 +166,7 @@ sequenceDiagram
 - Propriedades: `src/main/resources/application.properties` (base), `src/main/resources/application-dev.properties`, `src/main/resources/application-prod.properties`.
 - Pagina publica: `src/main/resources/static/index.html` e assets em `src/main/resources/static/assets/`.
 
-Projeto Spring Boot com `praxis-metadata-starter` + `praxis-config-starter`, pronto para consumir variaveis de ambiente e conectar em PostgreSQL (Neon), com perfis `dev` e `prod`.
+Projeto Spring Boot com `praxis-metadata-starter` + `praxis-config-starter`, pronto para consumir variaveis de ambiente e conectar em PostgreSQL local ou gerenciado, com perfis `dev` e `prod`.
 
 ## Dependencias chave
 - `io.github.codexrodrigues:praxis-metadata-starter` - auto-configuracao, `/schemas/filtered` e enriquecimento OpenAPI x-ui.
@@ -183,7 +183,7 @@ Projeto Spring Boot com `praxis-metadata-starter` + `praxis-config-starter`, pro
 
 Variaveis por perfil:
 - Dev:
-  - `SPRING_DATASOURCE_URL` (use `jdbc:postgresql://localhost:5432/neondb?sslmode=disable`)
+  - `SPRING_DATASOURCE_URL` (use `jdbc:postgresql://localhost:5432/praxis_demo?sslmode=disable`)
   - `SPRING_DATASOURCE_USERNAME` (padrao: `postgres`)
   - `SPRING_DATASOURCE_PASSWORD` (padrao: `postgres`)
   - `DB_POOL_SIZE` (opcional)
@@ -199,29 +199,29 @@ Arquivos de exemplo para preenchimento:
 - `.env.dev.example`
 - `.env.prod.example`
 
-## Neon: converter DSN em JDBC
+## PostgreSQL gerenciado (opcional)
 DSN fornecida pelo provedor (nao comitar segredos nem host de ambiente real):
 ```
-postgresql://<db-user>:<db-password>@<neon-host>/<db-name>?sslmode=require&channel_binding=require
+postgresql://<db-user>:<db-password>@<db-host>/<db-name>?sslmode=require&channel_binding=require
 ```
 JDBC correspondente para `SPRING_DATASOURCE_URL`/`CONFIG_DATASOURCE_URL` (remova `channel_binding` - o driver JDBC nao utiliza):
 ```
-jdbc:postgresql://<neon-host>/<db-name>?sslmode=require
+jdbc:postgresql://<db-host>/<db-name>?sslmode=require
 ```
 Vars:
 ```
-SPRING_DATASOURCE_URL=jdbc:postgresql://<neon-host>/<db-name>?sslmode=require
+SPRING_DATASOURCE_URL=jdbc:postgresql://<db-host>/<db-name>?sslmode=require
 SPRING_DATASOURCE_USERNAME=<db-user>
 SPRING_DATASOURCE_PASSWORD=<db-password>
 ```
 
 ### Flyway (incluindo migrations do Config Starter)
 - As migrations do `praxis-config-starter` vivem em `classpath:db/migration` (ex.: V5 `ui_user_config` para customizacoes de UI).
-- Para rodar direto no Neon com essas migrations:
+- Para rodar em um PostgreSQL gerenciado com essas migrations:
 ```bash
 ./mvnw -DskipTests \
   -Dflyway.locations=classpath:db/migration \
-  -Dflyway.url="jdbc:postgresql://<neon-host>/<db-name>?sslmode=require" \
+  -Dflyway.url="jdbc:postgresql://<db-host>/<db-name>?sslmode=require" \
   -Dflyway.user="<db-user>" \
   -Dflyway.password="<db-password>" \
   flyway:migrate
@@ -229,7 +229,7 @@ SPRING_DATASOURCE_PASSWORD=<db-password>
 - Notas rapidas (humanos e IA):
   - `flyway.locations=classpath:db/migration` garante que todas as versoes do starter sejam aplicadas (incluindo V5).
   - A nova API de user-config usa ETag/If-Match; mantenha cabecalhos no cliente para evitar sobrescritas.
-  - Apos V5, o schema no Neon inclui `ui_user_config` (persistencia transacional de customizacoes por tenant/usuario/ambiente).
+  - Apos V5, o schema no banco gerenciado inclui `ui_user_config` (persistencia transacional de customizacoes por tenant/usuario/ambiente).
 
 #### Domain Knowledge Layer V18
 
@@ -901,17 +901,17 @@ Credenciais padrao do compose:
 - user: postgres
 - password: postgres
 
-2) Importar o seed pblico
+2) Importar o seed publico
 - Import automatico (primeiro start):
-  - O repositorio ja inclui `db/dump/neon-public-seed.sql`, um snapshot publico do dataset demo usado no Neon.
+  - O repositorio ja inclui `db/dump/public-demo-seed.sql`, um snapshot publico do dataset demo usado pelo quickstart.
   - No primeiro boot, a imagem Postgres executa os arquivos de `db/init/`:
-    - `05-ensure-roles.sql` - cria roles do dump (ex.: `neondb_owner`, `praxis_service_user`, `neon_superuser`, `cloud_admin`).
-    - `20-import-dump.sql` - importa o arquivo `/seed/neon-public-seed.sql` via `\ir`.
+    - `05-ensure-roles.sql` - cria roles do dump (ex.: `praxis_demo_owner`, `praxis_service_user`, `praxis_demo_superuser`, `cloud_admin`).
+    - `20-import-dump.sql` - importa o arquivo `/seed/public-demo-seed.sql` via `\ir`.
   - Comandos:
 ```
 docker compose -f dev/docker-compose.local.yml up -d db
 ```
-- Import a qualquer momento (profile de seed): por padrao usa `neon-public-seed.sql`; para outro dump, use `SEED_FILE=<arquivo.sql>`:
+- Import a qualquer momento (profile de seed): por padrao usa `public-demo-seed.sql`; para outro dump, use `SEED_FILE=<arquivo.sql>`:
 ```
 docker compose -f dev/docker-compose.local.yml --profile seed up -d db db-seed
 # ou, para um arquivo com nome diferente:
@@ -919,14 +919,14 @@ SEED_FILE=meu-dump.sql docker compose -f dev/docker-compose.local.yml --profile 
 ```
 - Opcao C - Import manual (qualquer momento):
 ```
-bash scripts/db-import.sh db/dump/neon-public-seed.sql
+bash scripts/db-import.sh db/dump/public-demo-seed.sql
 ```
 
 3) Apontar a aplicacao para o banco local (dev)
 - Via env (exemplo):
 ```
 SPRING_PROFILES_ACTIVE=dev \
-SPRING_DATASOURCE_URL=jdbc:postgresql://localhost:5432/neondb?sslmode=disable \
+SPRING_DATASOURCE_URL=jdbc:postgresql://localhost:5432/praxis_demo?sslmode=disable \
 SPRING_DATASOURCE_USERNAME=postgres \
 SPRING_DATASOURCE_PASSWORD=postgres \
 ./mvnw -B -DskipTests spring-boot:run
@@ -936,21 +936,21 @@ SPRING_DATASOURCE_PASSWORD=postgres \
 Observacoes
 - Se ja existir volume de dados (`db_data`), os scripts em `db/init` nao rodam novamente (comportamento padrao do Postgres). Para reimportar, use o profile `seed` ou resete o volume.
 - Para "resetar" e importar do zero: `docker compose -f dev/docker-compose.local.yml down -v && docker compose -f dev/docker-compose.local.yml up -d db` (cuidado - destroi os dados locais).
-- O seed publico usa `CREATE DATABASE neondb`; o compose cria a base padrao `praxis` (POSTGRES_DB), mas o dump cria e usa `neondb`. A aplicacao em `dev` aponta para `neondb` por padrao.
+- O seed publico usa `CREATE DATABASE praxis_demo`; o compose cria a base padrao `praxis` (POSTGRES_DB), mas o dump cria e usa `praxis_demo`. A aplicacao em `dev` aponta para `praxis_demo` por padrao.
 
 ### Solucao de Problemas (Docker/Seed)
 - Warnings no Windows/Compose (variaveis nao definidas, `version` obsoleto): sao inofensivos. A chave `version:` foi removida e o entrypoint do `db-seed` foi escapado para reduzir a verbosidade.
 - Erro de mount Read-Only: nao monte um arquivo diretamente em `/docker-entrypoint-initdb.d` quando ja monta `db/init` como diretorio. Use o `/seed` + `20-import-dump.sql` (ja configurado).
-- Erros no primeiro boot com `DO $$` ou roles ausentes: o fluxo foi movido para SQL puro em `05-ensure-roles.sql` (sem shell). Esse arquivo cria as roles do dump (`neondb_owner`, `praxis_service_user`, `neon_superuser`, `cloud_admin`).
-- "Importou mas a API retorna []": verifique se a aplicacao esta conectando em `neondb` (e nao em `praxis`). Em `dev`, defina:
+- Erros no primeiro boot com `DO $$` ou roles ausentes: o fluxo foi movido para SQL puro em `05-ensure-roles.sql` (sem shell). Esse arquivo cria as roles do dump (`praxis_demo_owner`, `praxis_service_user`, `praxis_demo_superuser`, `cloud_admin`).
+- "Importou mas a API retorna []": verifique se a aplicacao esta conectando em `praxis_demo` (e nao em `praxis`). Em `dev`, defina:
   - `SPRING_PROFILES_ACTIVE=dev`
-  - `SPRING_DATASOURCE_URL=jdbc:postgresql://localhost:5432/neondb?sslmode=disable`
+  - `SPRING_DATASOURCE_URL=jdbc:postgresql://localhost:5432/praxis_demo?sslmode=disable`
   - `SPRING_DATASOURCE_USERNAME=postgres`
   - `SPRING_DATASOURCE_PASSWORD=postgres`
 - Validar dados: dentro do container, rode:
 ```
-docker exec -it praxis-postgres psql -U postgres -d neondb -c "SELECT COUNT(*) FROM public.vw_resumo_missoes;"
-docker exec -it praxis-postgres psql -U postgres -d neondb -c "SELECT missao_id,titulo,prioridade,status FROM public.vw_resumo_missoes LIMIT 5;"
+docker exec -it praxis-postgres psql -U postgres -d praxis_demo -c "SELECT COUNT(*) FROM public.vw_resumo_missoes;"
+docker exec -it praxis-postgres psql -U postgres -d praxis_demo -c "SELECT missao_id,titulo,prioridade,status FROM public.vw_resumo_missoes LIMIT 5;"
 ```
 
 ## Higiene de commits (o que commitar)
