@@ -11,10 +11,9 @@ import org.praxisplatform.uischema.extension.annotation.UISchema;
 
 @Schema(
         name = "EquipamentoDTO",
-        description = "Item de arsenal ou gadget (designacao, tipo, resistencia, custodia, status). "
-                + "Payload de borda; nao e criterio de filtro. OpenAPI 3.1 e x-ui (demo).")
+        description = "Item operacional do inventario, como equipamento, traje ou ferramenta, com classificacao tatica, resistencia, custodiante e status de disponibilidade.")
 public class EquipamentoDTO {
-    @Schema(description = "Identificador interno (PK) deste registo no servico; referencia o recurso em URLs e relacionamentos.")
+    @Schema(description = "Identificador do equipamento no inventario; referencia o recurso em URLs, alocacoes de custodia e relacionamentos operacionais.")
     private Integer id;
 
     @NotBlank
@@ -35,9 +34,9 @@ public class EquipamentoDTO {
             description = "Indice de protecao ou integridade (escala de dominio; 0 = baseline).")
     private Integer resistencia;
 
-    @UISchema(label = "Proprietário", controlType = FieldControlType.SELECT,
+    @UISchema(label = "Proprietário", controlType = FieldControlType.ENTITY_LOOKUP,
             valueField = "id", displayField = "label",
-            endpoint = com.example.praxis.apiquickstart.constants.ApiPaths.HumanResources.FUNCIONARIOS + "/options/filter",
+            endpoint = com.example.praxis.apiquickstart.constants.ApiPaths.HumanResources.FUNCIONARIOS_EMPLOYEE_LOOKUP_OPTIONS,
             tableHidden = true, icon = "inventory_2")
     @Schema(
             description = "FK; colaborador com custodia formal (proprietarioId).")

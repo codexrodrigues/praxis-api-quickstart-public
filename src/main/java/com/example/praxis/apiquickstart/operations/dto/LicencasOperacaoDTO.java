@@ -13,34 +13,34 @@ import java.time.LocalDate;
 @Schema(
         name = "LicencasOperacaoDTO",
         description = "Alvara ou licenca operacional (acordo, heroi ou equipe, classe, janela de vigencia). "
-                + "Payload de borda; nao e criterio de filtro. OpenAPI 3.1 e x-ui (demo).")
+                + "Materializa a autorizacao concedida por acordo regulatorio a um colaborador, equipe ou ambos.")
 public class LicencasOperacaoDTO {
     @Schema(description = "Identificador interno (PK) deste registo no servico; referencia o recurso em URLs e relacionamentos.")
     private Integer id;
 
     @NotNull
-    @UISchema(label = "Acordo Regulatório", controlType = FieldControlType.SELECT,
+    @UISchema(label = "Acordo Regulatório", controlType = FieldControlType.ENTITY_LOOKUP,
             valueField = "id", displayField = "label",
-        endpoint = com.example.praxis.apiquickstart.constants.ApiPaths.Operations.ACORDOS_REGULATORIOS + "/options/filter", required = true,
+        endpoint = com.example.praxis.apiquickstart.constants.ApiPaths.Operations.ACORDOS_REGULATORIOS_AGREEMENT_LOOKUP_OPTIONS, required = true,
             tableHidden = true, icon = "gavel")
     @Schema(
-            description = "FK; norma/ tratado que outorga a licenca (acordoId).")
+            description = "Acordo regulatorio que fundamenta e outorga a licenca operacional.")
     private Integer acordoId;
 
-    @UISchema(label = "Funcionário", controlType = FieldControlType.SELECT,
+    @UISchema(label = "Funcionário", controlType = FieldControlType.ENTITY_LOOKUP,
             valueField = "id", displayField = "label",
-            endpoint = com.example.praxis.apiquickstart.constants.ApiPaths.HumanResources.FUNCIONARIOS + "/options/filter",
+            endpoint = com.example.praxis.apiquickstart.constants.ApiPaths.HumanResources.FUNCIONARIOS_EMPLOYEE_LOOKUP_OPTIONS,
             tableHidden = true, icon = "badge")
     @Schema(
-            description = "FK; colaborador titular quando a licenca e pessoal (funcionarioId).")
+            description = "Colaborador titular quando a licenca operacional e pessoal.")
     private Integer funcionarioId;
 
-    @UISchema(label = "Equipe", controlType = FieldControlType.SELECT,
+    @UISchema(label = "Equipe", controlType = FieldControlType.ENTITY_LOOKUP,
             valueField = "id", displayField = "label",
-        endpoint = com.example.praxis.apiquickstart.constants.ApiPaths.Operations.EQUIPES + "/options/filter",
+        endpoint = com.example.praxis.apiquickstart.constants.ApiPaths.Operations.EQUIPES_TEAM_LOOKUP_OPTIONS,
             tableHidden = true, icon = "groups")
     @Schema(
-            description = "FK; unidade tactica licenciada; alternativa ou complemento ao colaborador (equipeId).")
+            description = "Equipe tatica licenciada, como alternativa ou complemento a um titular individual.")
     private Integer equipeId;
 
     @UISchema(label = "Acordo Regulatório", readOnly = true, formHidden = true, icon = "gavel")
@@ -69,7 +69,7 @@ public class LicencasOperacaoDTO {
 
     @UISchema(label = "Válido Até", type = FieldDataType.DATE, controlType = FieldControlType.DATE_PICKER, icon = "event")
     @Schema(
-            description = "Fim de vigencia; nulo se renovacao em curso/ vitalicia para demo.")
+            description = "Fim de vigencia da licenca; nulo indica autorizacao sem termino registrado ou em renovacao.")
     private LocalDate validoAte;
 
     public Integer getId() { return id; }

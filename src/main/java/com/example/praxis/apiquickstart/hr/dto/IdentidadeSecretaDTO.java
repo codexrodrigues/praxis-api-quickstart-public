@@ -20,16 +20,16 @@ import org.praxisplatform.uischema.annotation.DomainGovernanceKind;
  */
 @Schema(
         name = "IdentidadeSecretaDTO",
-        description = "Perfil de codinome e universo ficticio do colaborador no demo (parodia de alter ego), ligado 1-1 ao funcionario. "
+        description = "Perfil de codinome e persona publica do colaborador, ligado 1-1 ao funcionario. "
                 + "Distingue a persona publica (midia, missoes) do nome civil; combinar com governanca de privacidade e APIs que mascaram dados sensiveis.")
 public class IdentidadeSecretaDTO {
     @Schema(description = "Chave do registo de identidade secreta. Cada heroi possui no maximo um bloco; usado em URLs e em telas de perfil *operativo*.", example = "1")
     private Integer id;
 
     @NotNull
-    @UISchema(label = "Funcionário", controlType = FieldControlType.SELECT,
+    @UISchema(label = "Funcionário", controlType = FieldControlType.ENTITY_LOOKUP,
             valueField = "id", displayField = "label",
-            endpoint = com.example.praxis.apiquickstart.constants.ApiPaths.HumanResources.FUNCIONARIOS + "/options/filter", required = true,
+            endpoint = com.example.praxis.apiquickstart.constants.ApiPaths.HumanResources.FUNCIONARIOS_EMPLOYEE_LOOKUP_OPTIONS, required = true,
             tableHidden = true, helpText = "Colaborador associado ao perfil heroico.", icon = "badge")
     @Schema(
             description = "Colaborador dono do alter ego: identificador do `Funcionario` a quem o codinome e o universo se aplicam.",
@@ -65,7 +65,7 @@ public class IdentidadeSecretaDTO {
     @Size(max = 120)
     @UISchema(label = "Universo", controlType = FieldControlType.INPUT, required = true, maxLength = 120, helpText = "Universo narrativo de origem (ex: Terra-1).", icon = "public")
     @Schema(
-            description = "Ficcao de origem (linha do tempo, editorial, linha) para contextualizar o personagem; livre, mas indexavel em catalogo narrativo (demo).",
+            description = "Universo ou linha de origem usado para contextualizar a persona publica; livre, mas indexavel em catalogo narrativo e analitico.",
             example = "Terra-616")
     private String universo;
 

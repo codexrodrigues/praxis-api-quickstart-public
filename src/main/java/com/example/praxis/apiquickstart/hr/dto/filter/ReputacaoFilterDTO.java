@@ -18,55 +18,55 @@ import java.util.List;
 @Schema(
         name = "ReputacaoFilterDTO",
         description = "Criterios de busca na linha de snapshot de Reputacao (nao e o score persistido a editar so com filtro). "
-                + "Afinidade por funcionario, faixas de score e frescor; GenericFilter / POST /filter (demo).")
+                + "Permite analisar percepcao publica e governamental por colaborador, faixa de score e recencia do snapshot.")
 public class ReputacaoFilterDTO implements GenericFilterDTO {
-    @UISchema(label = "Herói", type = FieldDataType.NUMBER, controlType = FieldControlType.ASYNC_SELECT, order = 10,
+    @UISchema(label = "Herói", type = FieldDataType.NUMBER, controlType = FieldControlType.INLINE_ENTITY_LOOKUP, order = 10,
             valueField = "id", displayField = "label",
-            endpoint = ApiPaths.HumanResources.FUNCIONARIOS + "/options/filter", helpText = "Filtrar a reputação de um colaborador.", icon = "badge")
+            endpoint = ApiPaths.HumanResources.FUNCIONARIOS_EMPLOYEE_LOOKUP_OPTIONS, helpText = "Filtrar a reputação de um colaborador.", icon = "badge")
     @Filterable(operation = Filterable.FilterOperation.EQUAL, relation = "funcionario.id")
     @Schema(
-            description = "Apenas reputacao de um colaborador; EQUAL (FK) (demo).")
+            description = "Colaborador cuja reputacao consolidada deve ser analisada.")
     private Integer funcionarioId;
 
     @UISchema(label = "Score de Mídia", type = FieldDataType.NUMBER, controlType = FieldControlType.RANGE_SLIDER, order = 20, helpText = "Buscar por faixa de aprovação pública.", icon = "campaign")
     @Filterable(operation = Filterable.FilterOperation.BETWEEN, relation = "scorePublico")
     @Schema(
-            description = "Faixa de indice de midia/ visibilidade; BETWEEN (demo).")
+            description = "Faixa de percepcao publica ou midiática atribuida ao colaborador no snapshot de reputacao.")
     private List<Integer> scorePublicoBetween;
 
     @UISchema(label = "Score Governamental", type = FieldDataType.NUMBER, controlType = FieldControlType.RANGE_SLIDER, order = 30, helpText = "Buscar por faixa de alinhamento governamental.", icon = "gavel")
     @Filterable(operation = Filterable.FilterOperation.BETWEEN, relation = "scoreGovernamental")
     @Schema(
-            description = "Faixa de alinhamento governamental; BETWEEN (demo).")
+            description = "Faixa de avaliacao governamental usada para medir confianca institucional ou restricoes regulatórias.")
     private List<Integer> scoreGovernamentalBetween;
 
     @UISchema(label = "Período de Atualização", type = FieldDataType.DATE, controlType = FieldControlType.DATE_TIME_RANGE, order = 40, helpText = "Filtrar por intervalo de data de atualização.", icon = "event")
     @Filterable(operation = Filterable.FilterOperation.BETWEEN, relation = "atualizadoEm")
     @Schema(
-            description = "Frescor do snapshot (ultima recomputacao); BETWEEN em OffsetDateTime (demo).")
+            description = "Janela de atualizacao do snapshot de reputacao, usada para separar leituras recentes de historicas.")
     private List<OffsetDateTime> atualizadoEmBetween;
 
-    @UISchema(label = "Atualizado em (Na Data)", type = FieldDataType.DATE, controlType = FieldControlType.DATE_PICKER, order = 50, helpText = "Buscar por data de atualização específica.", icon = "event")
+    @UISchema(label = "Atualizado em", type = FieldDataType.DATE, controlType = FieldControlType.DATE_PICKER, order = 50, helpText = "Busca reputações atualizadas em uma data específica.", icon = "event")
     @Filterable(operation = Filterable.FilterOperation.ON_DATE, relation = "atualizadoEm")
     @Schema(
-            description = "Mudancas cujo timestamp cai neste dia civil; ON_DATE (zona/ trunc depende de backend) (demo).")
+            description = "Dia civil em que o snapshot de reputacao foi atualizado.")
     private LocalDate atualizadoEmOn;
 
     @UISchema(
-            label = "Atualizado em (Periodo Relativo)",
+            label = "Período rápido de atualização",
             controlType = FieldControlType.INLINE_RELATIVE_PERIOD,
             order = 60,
             extraProperties = {
                     @ExtensionProperty(name = "relativePeriodOptions", value = QuickstartRelativePeriodUiOptions.DEFAULT_OPTIONS_JSON)
-            }, helpText = "Filtrar usando períodos de atualização pré-definidos.", icon = "event")
+            }, helpText = "Aplica atalhos de tempo para encontrar snapshots recentes ou de um período predefinido.", icon = "event")
     @Schema(
-            description = "Preset de periodo (ex.: este mes) serializado; interpretacao conforme opcoes em extraProperties/ UI (demo).")
+            description = "Atalho de periodo relativo aplicado a data de atualizacao do snapshot de reputacao.")
     private String atualizadoEmPreset;
 
-    @UISchema(label = "Atualizado em (Últimos N dias)", type = FieldDataType.NUMBER, controlType = FieldControlType.INPUT, order = 65, helpText = "Buscar pontuações atualizadas nos últimos N dias.", icon = "event")
+    @UISchema(label = "Atualizado nos últimos dias", type = FieldDataType.NUMBER, controlType = FieldControlType.INPUT, order = 65, helpText = "Informe quantos dias recentes devem ser considerados na busca.", icon = "event")
     @Filterable(operation = Filterable.FilterOperation.IN_LAST_DAYS, relation = "atualizadoEm")
     @Schema(
-            description = "Recencia: atualizado nos ultimos N dias; IN_LAST_DAYS (GenericFilter) (demo).")
+            description = "Janela relativa para localizar snapshots de reputacao atualizados nos ultimos N dias.")
     private Integer atualizadoEmLastDays;
 
     public Integer getFuncionarioId() { return funcionarioId; }

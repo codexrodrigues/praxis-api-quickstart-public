@@ -13,7 +13,7 @@ import java.time.LocalDate;
 @Schema(
         name = "RenewLicencasOperacaoDTO",
         description = "Corpo de renovacao de licenca: nova classe e janela de vigencia (acao de domínio, nao filtro). "
-                + "OpenAPI 3.1 e x-ui (demo).")
+                + "Materializa a revisao de autorizacao operacional sem criar uma nova licenca independente.")
 public class RenewLicencasOperacaoDTO {
 
     @NotNull

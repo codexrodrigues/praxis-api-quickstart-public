@@ -13,18 +13,18 @@ import java.time.OffsetDateTime;
 @Schema(
         name = "MissaoEventoDTO",
         description = "Diario de bordo: marco da missao (timestamp, categoria, narrativa). "
-                + "Payload de borda; nao e criterio de filtro. OpenAPI 3.1 e x-ui (demo).")
+                + "Registra acontecimentos da linha do tempo operacional para auditoria, debriefing e acompanhamento tatico.")
 public class MissaoEventoDTO {
     @Schema(description = "Identificador interno (PK) deste registo no servico; referencia o recurso em URLs e relacionamentos.")
     private Integer id;
 
     @NotNull
-    @UISchema(label = "Missão", controlType = FieldControlType.SELECT, required = true,
+    @UISchema(label = "Missão", controlType = FieldControlType.ENTITY_LOOKUP, required = true,
             valueField = "id", displayField = "label",
-        endpoint = com.example.praxis.apiquickstart.constants.ApiPaths.Operations.MISSOES + "/options/filter",
+        endpoint = com.example.praxis.apiquickstart.constants.ApiPaths.Operations.MISSOES_MISSION_LOOKUP_OPTIONS,
             tableHidden = true, icon = "flag")
     @Schema(
-            description = "FK; operacao associada (missaoId).")
+            description = "Missao operacional a que o evento da linha do tempo pertence.")
     private Integer missaoId;
 
     @UISchema(label = "Missão", readOnly = true, formHidden = true, icon = "flag")

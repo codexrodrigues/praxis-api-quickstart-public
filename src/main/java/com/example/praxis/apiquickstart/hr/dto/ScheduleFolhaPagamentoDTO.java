@@ -12,7 +12,7 @@ import java.time.LocalDate;
 @Schema(
         name = "ScheduleFolhaPagamentoDTO",
         description = "Payload de agendamento de pagamento: define a data-alvo (LocalDate) em que a folha ou o lote de liquidacao deve ser executado. "
-                + "Usado em actions que movem a folha para estado agendado ou reprogramam credito; nao e a competencia contabil, e a data operacional (demo).")
+                + "Usado em actions que movem a folha para estado agendado ou reprogramam credito; nao representa a competencia contabil, mas a data operacional de liquidacao.")
 public class ScheduleFolhaPagamentoDTO {
 
     @NotNull

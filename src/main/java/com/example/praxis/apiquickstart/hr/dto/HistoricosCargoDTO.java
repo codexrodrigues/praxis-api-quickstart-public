@@ -18,7 +18,7 @@ import java.time.LocalDate;
 @Schema(
         name = "HistoricosCargoDTO",
         description = "Movimentacao de cargo (funcao) do colaborador no tempo: o papel organizacional, distinto do salario em HistoricoSalarialDTO. "
-                + "Cada registo liga o funcionario a um cargo do catalogo e vigencia; compoem a trilha de carreira (demo).")
+                + "Cada registo liga o funcionario a um cargo do catalogo e vigencia; compoe a trilha de carreira.")
 public class HistoricosCargoDTO {
     @Schema(
             description = "Chave do periodo de lotacao nesse cargo. Historico e uma sequencia de intervalos; solapamentos devem ser evitados na operacao (regra fora do DTO).",
@@ -26,8 +26,9 @@ public class HistoricosCargoDTO {
     private Integer id;
 
     @NotNull
-    @UISchema(label = "Funcionário", controlType = FieldControlType.SELECT, required = true, icon = "badge",
-            endpoint = com.example.praxis.apiquickstart.constants.ApiPaths.HumanResources.FUNCIONARIOS,
+    @UISchema(label = "Funcionário", controlType = FieldControlType.ENTITY_LOOKUP, required = true, icon = "badge",
+            valueField = "id", displayField = "label",
+            endpoint = com.example.praxis.apiquickstart.constants.ApiPaths.HumanResources.FUNCIONARIOS_EMPLOYEE_LOOKUP_OPTIONS,
             tableHidden = true, helpText = "Colaborador promovido ou transferido.")
     @Schema(
             description = "Colaborador cuja carreira (cargo) se esta a registar; FK ao recurso de funcionario.",
@@ -36,7 +37,7 @@ public class HistoricosCargoDTO {
 
     @NotNull
     @UISchema(label = "Cargo", controlType = FieldControlType.SELECT, required = true, icon = "work",
-            endpoint = com.example.praxis.apiquickstart.constants.ApiPaths.HumanResources.CARGOS,
+            endpoint = com.example.praxis.apiquickstart.constants.ApiPaths.HumanResources.CARGOS_JOB_ROLE_LOOKUP_OPTIONS,
             tableHidden = true, helpText = "Novo cargo assumido.")
     @Schema(
             description = "Referencia a CargoDTO (catalogo de funcoes, nivel, faixa salarial de referencia). Define o titulo/funcao nesse periodo.",
@@ -54,7 +55,7 @@ public class HistoricosCargoDTO {
     @NotNull
     @UISchema(label = "Data Início", type = FieldDataType.DATE, controlType = FieldControlType.DATE_PICKER, required = true, helpText = "Primeiro dia de exercício no cargo.", icon = "event")
     @Schema(
-            description = "Inicio (inclusive) do exercicio deste cargo pelo colaborador: transferencias, promocoes e reestruturacoes entram com nova data e novo cargo (demo).",
+            description = "Inicio (inclusive) do exercicio deste cargo pelo colaborador: transferencias, promocoes e reestruturacoes entram com nova data e novo cargo.",
             example = "2022-03-15")
     private LocalDate dataInicio;
 
@@ -67,7 +68,7 @@ public class HistoricosCargoDTO {
     @Size(max = 2000)
     @UISchema(label = "Observações", controlType = FieldControlType.TEXTAREA, maxLength = 2000, helpText = "Notas sobre a transição ou alocação.", icon = "notes")
     @Schema(
-            description = "Notas de RH (substituicao, comissao temporaria, detalhe de alocacao) complementares ao motivo de alteracao salarial, se existir; livre, auditavel em sentido lato (demo).",
+            description = "Notas de RH (substituicao, comissao temporaria, detalhe de alocacao) complementares ao motivo de alteracao salarial, se existir; texto livre para auditoria administrativa.",
             example = "Interino durante reforma de cargo superior")
     private String observacoes;
 

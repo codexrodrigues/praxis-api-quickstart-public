@@ -18,86 +18,98 @@ import java.util.List;
 @Schema(
         name = "VwIndicadoresIncidenteFilterDTO",
         description = "Criterios de busca sobre a vista VwIndicadoresIncidente (nao e o incidente nem a indenizacao a editar). "
-                + "Filtra agregados de dano, cobertura e tempo; distinto de IncidenteFilterDTO. GenericFilter / POST /filter (demo Risk).")
+                + "Filtra agregados de dano, cobertura e tempo sem substituir o cadastro transacional de incidentes.")
 public class VwIndicadoresIncidenteFilterDTO implements GenericFilterDTO {
-    @UISchema(type = FieldDataType.NUMBER, controlType = FieldControlType.ASYNC_SELECT, order = 10,
+    @UISchema(label = "Incidente", type = FieldDataType.NUMBER, controlType = FieldControlType.INLINE_ENTITY_LOOKUP, order = 10,
             valueField = "id", displayField = "label",
-        endpoint = ApiPaths.Operations.INCIDENTES + "/options/filter", icon = "report_problem")
+        endpoint = ApiPaths.Operations.INCIDENTES_INCIDENT_LOOKUP_OPTIONS,
+            helpText = "Foca os indicadores agregados de um incidente específico.", icon = "report_problem")
     @Filterable(operation = Filterable.FilterOperation.EQUAL)
     @Schema(
-            description = "Foco num unico incidente; EQUAL (FK) (demo).")
+            description = "Identificador do incidente transacional que ancora o indicador materializado.")
     private Integer incidenteId;
 
-    @UISchema(controlType = FieldControlType.INPUT, maxLength = 200, order = 20, icon = "flag")
+    @UISchema(label = "Missão relacionada", controlType = FieldControlType.INPUT, maxLength = 200, order = 20,
+            helpText = "Busca pelo texto da missão associada ao incidente.", icon = "flag")
     @Filterable(operation = Filterable.FilterOperation.LIKE)
     @Schema(
-            description = "Pesquisa em missao associada (texto na vista); LIKE (demo).")
+            description = "Trecho do titulo ou referencia da missao associada ao incidente, pesquisado no texto desnormalizado da vista.")
     private String missao;
 
-    @UISchema(controlType = FieldControlType.INPUT, maxLength = 2000, order = 30, icon = "description")
+    @UISchema(label = "Descrição do incidente", controlType = FieldControlType.INPUT, maxLength = 2000, order = 30,
+            helpText = "Busca por palavras-chave na descrição resumida do incidente.", icon = "description")
     @Filterable(operation = Filterable.FilterOperation.LIKE)
     @Schema(
-            description = "Fragmento de descricao do painel; LIKE (demo).")
+            description = "Trecho da narrativa curta do incidente exibida no painel; permite localizar indicadores por contexto operacional resumido.")
     private String descricao;
 
-    @UISchema(controlType = FieldControlType.INPUT, maxLength = 200, order = 40, icon = "location_on")
+    @UISchema(label = "Local do incidente", controlType = FieldControlType.INPUT, maxLength = 200, order = 40,
+            helpText = "Filtra pelo local ou região onde o incidente ocorreu.", icon = "location_on")
     @Filterable(operation = Filterable.FilterOperation.LIKE)
     @Schema(
-            description = "Local do fato; LIKE (demo).")
+            description = "Trecho do local ou cenario do fato usado para recortes geograficos e busca operacional.")
     private String local;
 
-    @UISchema(controlType = FieldControlType.ASYNC_SELECT, maxLength = 50, order = 50,
+    @UISchema(label = "Severidade", controlType = FieldControlType.ASYNC_SELECT, maxLength = 50, order = 50,
             valueField = "id", displayField = "label",
-        endpoint = ApiPaths.RiskIntelligence.VW_INDICADORES_INCIDENTES + "/option-sources/severidade/options/filter", icon = "emergency")
+        endpoint = ApiPaths.RiskIntelligence.VW_INDICADORES_INCIDENTES + "/option-sources/severidade/options/filter",
+            helpText = "Seleciona a gravidade operacional registrada no indicador.", icon = "emergency")
     @Filterable(operation = Filterable.FilterOperation.EQUAL)
     @Schema(
-            description = "Severidade catalogada; EQUAL via option-source (demo).")
+            description = "Classe de severidade catalogada para triagem, priorizacao e agrupamento dos indicadores.")
     private String severidade;
 
-    @UISchema(type = FieldDataType.NUMBER, controlType = FieldControlType.RANGE_SLIDER, order = 60,
+    @UISchema(label = "Faixa de danos civis", type = FieldDataType.NUMBER, controlType = FieldControlType.RANGE_SLIDER, order = 60,
+            helpText = "Filtra incidentes por estimativa monetária de danos a terceiros.",
             numericFormat = NumericFormat.CURRENCY, numericStep = "0.01", icon = "calendar_today")
     @Filterable(operation = Filterable.FilterOperation.BETWEEN, relation = "danosCivis")
     @Schema(
-            description = "Faixa de estimativa de danos a terceiros; BETWEEN (demo).")
+            description = "Faixa de estimativa financeira de danos civis ou a infraestrutura atribuida ao incidente.")
     private List<BigDecimal> danosCivisBetween;
 
-    @UISchema(type = FieldDataType.NUMBER, controlType = FieldControlType.RANGE_SLIDER, order = 70,
+    @UISchema(label = "Total de indenizações", type = FieldDataType.NUMBER, controlType = FieldControlType.RANGE_SLIDER, order = 70,
+            helpText = "Filtra pelo volume total de indenizações associadas ao incidente.",
             numericFormat = NumericFormat.CURRENCY, numericStep = "0.01", icon = "stacked_bar_chart")
     @Filterable(operation = Filterable.FilterOperation.BETWEEN, relation = "totalIndenizacoes")
     @Schema(
-            description = "Faixa de soma de indenizacoes; BETWEEN (demo).")
+            description = "Faixa do total agregado de indenizacoes vinculadas ao incidente.")
     private List<BigDecimal> totalIndenizacoesBetween;
 
-    @UISchema(type = FieldDataType.NUMBER, controlType = FieldControlType.RANGE_SLIDER, order = 80,
+    @UISchema(label = "Total pago", type = FieldDataType.NUMBER, controlType = FieldControlType.RANGE_SLIDER, order = 80,
+            helpText = "Filtra pela faixa já liquidada em indenizações.",
             numericFormat = NumericFormat.CURRENCY, numericStep = "0.01", icon = "payments")
     @Filterable(operation = Filterable.FilterOperation.BETWEEN, relation = "totalPago")
     @Schema(
-            description = "Faixa de valor ja pago; BETWEEN (tesouraria) (demo).")
+            description = "Faixa do valor agregado ja liquidado, usada para reconciliacao financeira e acompanhamento de cobertura.")
     private List<BigDecimal> totalPagoBetween;
 
-    @UISchema(type = FieldDataType.NUMBER, controlType = FieldControlType.RANGE_SLIDER, order = 90,
+    @UISchema(label = "Total pendente", type = FieldDataType.NUMBER, controlType = FieldControlType.RANGE_SLIDER, order = 90,
+            helpText = "Filtra pela faixa ainda pendente de pagamento.",
             numericFormat = NumericFormat.CURRENCY, numericStep = "0.01", icon = "payments")
     @Filterable(operation = Filterable.FilterOperation.BETWEEN, relation = "totalPendente")
     @Schema(
-            description = "Faixa de saldo pendente; BETWEEN (demo).")
+            description = "Faixa do saldo agregado ainda pendente de pagamento ou cobertura.")
     private List<BigDecimal> totalPendenteBetween;
 
-    @UISchema(type = FieldDataType.DATE, controlType = FieldControlType.DATE_TIME_RANGE, order = 100, icon = "event")
+    @UISchema(label = "Período do incidente", type = FieldDataType.DATE, controlType = FieldControlType.DATE_TIME_RANGE, order = 100,
+            helpText = "Filtra por intervalo de data e hora em que o incidente ocorreu.", icon = "event")
     @Filterable(operation = Filterable.FilterOperation.BETWEEN, relation = "ocorridoEm")
     @Schema(
-            description = "Janela temporal do ocorrido; BETWEEN em OffsetDateTime (demo).")
+            description = "Janela temporal do incidente, com offset, para recortes de linha do tempo e correlacao com missoes.")
     private List<OffsetDateTime> ocorridoEmBetween;
 
-    @UISchema(label = "Ocorrido em (Na Data)", type = FieldDataType.DATE, controlType = FieldControlType.DATE_PICKER, order = 110, icon = "event")
+    @UISchema(label = "Ocorrido em", type = FieldDataType.DATE, controlType = FieldControlType.DATE_PICKER, order = 110,
+            helpText = "Mostra incidentes ocorridos em uma data específica.", icon = "event")
     @Filterable(operation = Filterable.FilterOperation.ON_DATE, relation = "ocorridoEm")
     @Schema(
-            description = "Incidentes cujo instante cai neste dia civil; ON_DATE (demo).")
+            description = "Dia civil usado para localizar incidentes ocorridos nessa data, independente do horario exato.")
     private LocalDate ocorridoEmOn;
 
-    @UISchema(label = "Ocorrido em (Ultimos N dias)", type = FieldDataType.NUMBER, controlType = FieldControlType.INPUT, order = 120, icon = "event")
+    @UISchema(label = "Ocorrido nos últimos dias", type = FieldDataType.NUMBER, controlType = FieldControlType.INPUT, order = 120,
+            helpText = "Informe quantos dias recentes devem ser considerados na busca.", icon = "event")
     @Filterable(operation = Filterable.FilterOperation.IN_LAST_DAYS, relation = "ocorridoEm")
     @Schema(
-            description = "Recencia: ocorridos nos ultimos N dias; IN_LAST_DAYS (demo).")
+            description = "Janela relativa de recencia para localizar incidentes ocorridos nos ultimos N dias.")
     private Integer ocorridoEmLastDays;
 
     public Integer getIncidenteId() { return incidenteId; }

@@ -10,7 +10,7 @@ import org.praxisplatform.uischema.extension.annotation.UISchema;
 @Schema(
         name = "EquipeDTO",
         description = "Unidade tactica (nome, sigla, base de apoio, status de escalonamento). "
-                + "Payload de borda; nao e criterio de filtro. OpenAPI 3.1 e x-ui (demo).")
+                + "Representa o agrupamento operacional usado para composicao de missoes, disponibilidade de resposta e planejamento de cobertura por base.")
 public class EquipeDTO {
     @Schema(description = "Identificador interno (PK) deste registo no servico; referencia o recurso em URLs e relacionamentos.")
     private Integer id;
@@ -28,15 +28,15 @@ public class EquipeDTO {
             description = "Abreviatura de comunicacoes (ex. ALFA-1).")
     private String sigla;
 
-    @UISchema(label = "Base Principal", controlType = FieldControlType.SELECT,
+    @UISchema(label = "Base Principal", controlType = FieldControlType.ENTITY_LOOKUP,
             valueField = "id", displayField = "label",
-        endpoint = com.example.praxis.apiquickstart.constants.ApiPaths.Operations.BASES + "/options/filter",
-            tableHidden = true, icon = "toggle_on")
+        endpoint = com.example.praxis.apiquickstart.constants.ApiPaths.Operations.BASES_BASE_LOOKUP_OPTIONS,
+            tableHidden = true, icon = "location_on")
     @Schema(
             description = "FK; instalacao de origem/ logistica (basePrincipalId).")
     private Integer basePrincipalId;
 
-    @UISchema(label = "Base Principal", readOnly = true, formHidden = true, icon = "toggle_on")
+    @UISchema(label = "Base Principal", readOnly = true, formHidden = true, icon = "location_on")
     @Schema(
             description = "Nome da base denormalizado para tabela (read model).")
     private String basePrincipalNome;

@@ -14,7 +14,7 @@ import java.time.OffsetDateTime;
 @Schema(
         name = "RescheduleMissaoDTO",
         description = "Corpo de reagendamento: novo teatro, janela prevista e objetivo tatico atualizado. "
-                + "OpenAPI 3.1 e x-ui (demo).")
+                + "Ajusta planejamento de execucao e logistica sem registrar inicio, conclusao ou falha da missao.")
 public class RescheduleMissaoDTO {
 
     @NotBlank

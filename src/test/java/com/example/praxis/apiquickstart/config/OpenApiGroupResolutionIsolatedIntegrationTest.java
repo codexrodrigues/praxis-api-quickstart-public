@@ -9,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import com.example.praxis.apiquickstart.ApiQuickstartApplication;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.BeforeEach;
 import java.util.List;
 import java.util.Map;
 import org.praxisplatform.config.service.DomainCatalogSchemaValidationService;
@@ -20,6 +21,7 @@ import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.ai.vectorstore.VectorStore;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 
 @SpringBootTest(
         classes = ApiQuickstartApplication.class,
@@ -69,6 +71,14 @@ class OpenApiGroupResolutionIsolatedIntegrationTest {
     @MockBean(name = "ragVectorStore")
     private VectorStore ragVectorStore;
 
+    @BeforeEach
+    void configureStableSchemaClientTimeouts() {
+        SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
+        requestFactory.setConnectTimeout(30_000);
+        requestFactory.setReadTimeout(30_000);
+        restTemplate.getRestTemplate().setRequestFactory(requestFactory);
+    }
+
     @Test
     void shouldResolveDedicatedCrudGroupAndServeRequestSchema() {
         String path = "/api/human-resources/funcionarios";
@@ -110,6 +120,7 @@ class OpenApiGroupResolutionIsolatedIntegrationTest {
         assertHasNoProperty(filteredSchemaResponse.getBody(), "cargoIdsIn");
         assertHasNoProperty(filteredSchemaResponse.getBody(), "departamentoIdsIn");
         assertHasXUi(filteredSchemaResponse.getBody());
+        assertDomainSpecificCommandDescription("human-resources.funcionarios create", filteredSchemaResponse.getBody());
 
         ResponseEntity<Map> filterSchemaResponse = restTemplate.getForEntity(
                 "/schemas/filtered?path={path}&operation=post&schemaType=request",
@@ -129,6 +140,214 @@ class OpenApiGroupResolutionIsolatedIntegrationTest {
         assertHasNoProperty(filterSchemaResponse.getBody(), "dataNascimentoOn");
         assertHasNoProperty(filterSchemaResponse.getBody(), "dataAdmissaoOn");
         assertHasXUi(filterSchemaResponse.getBody());
+    }
+
+    @Test
+    void shouldPublishDomainSpecificDescriptionsForCriticalCommandSchemas() {
+        List<String> commandSchemaPaths = List.of(
+                "/api/human-resources/cargos",
+                "/api/human-resources/departamentos",
+                "/api/human-resources/dependentes",
+                "/api/human-resources/enderecos",
+                "/api/human-resources/eventos-folha",
+                "/api/human-resources/ferias-afastamentos",
+                "/api/human-resources/funcionario-habilidades",
+                "/api/human-resources/funcionarios",
+                "/api/human-resources/folhas-pagamento",
+                "/api/human-resources/habilidades",
+                "/api/human-resources/historicos-cargos",
+                "/api/human-resources/historicos-salariais",
+                "/api/human-resources/identidades-secretas",
+                "/api/human-resources/indenizacoes",
+                "/api/human-resources/mencoes-midia",
+                "/api/human-resources/reputacoes",
+                "/api/operations/acordos-regulatorios",
+                "/api/operations/base-acessos",
+                "/api/operations/bases",
+                "/api/operations/equipe-membros",
+                "/api/operations/equipes",
+                "/api/operations/incidentes",
+                "/api/operations/licencas-operacao",
+                "/api/operations/missao-eventos",
+                "/api/operations/missao-participantes",
+                "/api/operations/missoes",
+                "/api/operations/sinais-socorro",
+                "/api/assets/equipamentos",
+                "/api/assets/equipamento-alocacoes",
+                "/api/assets/veiculos",
+                "/api/assets/veiculo-missao-usos",
+                "/api/risk-intelligence/ameacas",
+                "/api/procurement/companies",
+                "/api/procurement/contracts",
+                "/api/procurement/products",
+                "/api/procurement/suppliers",
+                "/api/procurement/purchase-orders"
+        );
+
+        for (String path : commandSchemaPaths) {
+            ResponseEntity<Map> createSchemaResponse = restTemplate.getForEntity(
+                    "/schemas/filtered?path={path}&operation=post&schemaType=request",
+                    Map.class,
+                    path
+            );
+            assertEquals(HttpStatus.OK, createSchemaResponse.getStatusCode(), path);
+            assertDomainSpecificCommandDescription(path + " create", createSchemaResponse.getBody());
+
+            ResponseEntity<Map> updateSchemaResponse = restTemplate.getForEntity(
+                    "/schemas/filtered?path={path}&operation=put&schemaType=request",
+                    Map.class,
+                    path + "/{id}"
+            );
+            assertEquals(HttpStatus.OK, updateSchemaResponse.getStatusCode(), path);
+            assertDomainSpecificCommandDescription(path + " update", updateSchemaResponse.getBody());
+        }
+    }
+
+    @Test
+    void shouldPublishDomainSpecificDescriptionsForCriticalActionSchemas() {
+        List<String> actionSchemaPaths = List.of(
+                "/api/human-resources/eventos-folha/actions/bulk-approve",
+                "/api/human-resources/folhas-pagamento/{id}/actions/mark-paid",
+                "/api/operations/missoes/{id}/actions/start",
+                "/api/operations/acordos-regulatorios/{id}/actions/suspend",
+                "/api/operations/base-acessos/{id}/actions/activate"
+        );
+
+        for (String path : actionSchemaPaths) {
+            for (String schemaType : List.of("request", "response")) {
+                ResponseEntity<Map> schemaResponse = restTemplate.getForEntity(
+                        "/schemas/filtered?path={path}&operation=post&schemaType={schemaType}",
+                        Map.class,
+                        path,
+                        schemaType
+                );
+                assertEquals(HttpStatus.OK, schemaResponse.getStatusCode(), path + " " + schemaType);
+                assertDomainSpecificActionDescription(path + " " + schemaType, schemaResponse.getBody());
+            }
+        }
+    }
+
+    @Test
+    void shouldPublishDomainSpecificDescriptionsForCriticalPatchActionSchemas() {
+        List<String> patchActionSchemaPaths = List.of(
+                "/api/operations/acordos-regulatorios/{id}/review",
+                "/api/operations/base-acessos/{id}/review-access",
+                "/api/operations/bases/{id}/ops-context",
+                "/api/operations/licencas-operacao/{id}/renew",
+                "/api/operations/missoes/{id}/reschedule",
+                "/api/operations/missoes/{id}/team-plan"
+        );
+
+        for (String path : patchActionSchemaPaths) {
+            ResponseEntity<Map> schemaResponse = restTemplate.getForEntity(
+                    "/schemas/filtered?path={path}&operation=patch&schemaType=request",
+                    Map.class,
+                    path
+            );
+            assertEquals(HttpStatus.OK, schemaResponse.getStatusCode(), path);
+            assertDomainSpecificActionDescription(path + " request", schemaResponse.getBody());
+        }
+    }
+
+    @Test
+    void shouldPublishDomainSpecificDescriptionsForCriticalFilterSchemas() {
+        List<String> filterSchemaPaths = List.of(
+                "/api/assets/equipamentos/filter",
+                "/api/assets/equipamento-alocacoes/filter",
+                "/api/assets/veiculos/filter",
+                "/api/assets/veiculo-missao-usos/filter",
+                "/api/risk-intelligence/ameacas/filter",
+                "/api/risk-intelligence/vw-indicadores-incidentes/filter",
+                "/api/human-resources/funcionarios/filter",
+                "/api/human-resources/cargos/filter",
+                "/api/human-resources/departamentos/filter",
+                "/api/human-resources/dependentes/filter",
+                "/api/human-resources/enderecos/filter",
+                "/api/human-resources/eventos-folha/filter",
+                "/api/human-resources/ferias-afastamentos/filter",
+                "/api/human-resources/folhas-pagamento/filter",
+                "/api/human-resources/habilidades/filter",
+                "/api/human-resources/historicos-salariais/filter",
+                "/api/human-resources/reputacoes/filter",
+                "/api/human-resources/mencoes-midia/filter",
+                "/api/human-resources/identidades-secretas/filter",
+                "/api/human-resources/funcionario-habilidades/filter",
+                "/api/human-resources/historicos-cargos/filter",
+                "/api/human-resources/indenizacoes/filter",
+                "/api/human-resources/vw-analytics-folha-pagamento/filter",
+                "/api/human-resources/vw-perfil-heroi/filter",
+                "/api/human-resources/vw-ranking-reputacao/filter",
+                "/api/operations/incidentes/filter",
+                "/api/operations/missoes/filter",
+                "/api/operations/missao-eventos/filter",
+                "/api/operations/missao-participantes/filter",
+                "/api/operations/licencas-operacao/filter",
+                "/api/operations/base-acessos/filter",
+                "/api/operations/equipes/filter",
+                "/api/operations/acordos-regulatorios/filter",
+                "/api/operations/bases/filter",
+                "/api/operations/equipe-membros/filter",
+                "/api/operations/sinais-socorro/filter",
+                "/api/operations/vw-resumo-missoes/filter",
+                "/api/procurement/companies/filter",
+                "/api/procurement/contracts/filter",
+                "/api/procurement/products/filter",
+                "/api/procurement/purchase-orders/filter",
+                "/api/procurement/suppliers/filter"
+        );
+
+        for (String path : filterSchemaPaths) {
+            ResponseEntity<Map> schemaResponse = restTemplate.getForEntity(
+                    "/schemas/filtered?path={path}&operation=post&schemaType=request",
+                    Map.class,
+                    path
+            );
+            assertEquals(HttpStatus.OK, schemaResponse.getStatusCode(), path);
+            assertDomainSpecificFilterDescription(path, schemaResponse.getBody());
+        }
+    }
+
+    @Test
+    void shouldPublishDomainSpecificDescriptionsForCriticalReadSchemas() {
+        List<String> readSchemaPaths = List.of(
+                "/api/human-resources/cargos/{id}",
+                "/api/human-resources/departamentos/{id}",
+                "/api/human-resources/dependentes/{id}",
+                "/api/human-resources/enderecos/{id}",
+                "/api/human-resources/eventos-folha/{id}",
+                "/api/human-resources/ferias-afastamentos/{id}",
+                "/api/human-resources/funcionario-habilidades/{id}",
+                "/api/human-resources/habilidades/{id}",
+                "/api/human-resources/historicos-cargos/{id}",
+                "/api/human-resources/historicos-salariais/{id}",
+                "/api/human-resources/identidades-secretas/{id}",
+                "/api/human-resources/indenizacoes/{id}",
+                "/api/human-resources/mencoes-midia/{id}",
+                "/api/human-resources/reputacoes/{id}",
+                "/api/human-resources/vw-analytics-folha-pagamento/{id}",
+                "/api/human-resources/vw-perfil-heroi/{id}",
+                "/api/human-resources/vw-ranking-reputacao/{id}",
+                "/api/operations/bases/{id}",
+                "/api/operations/base-acessos/{id}",
+                "/api/operations/equipes/{id}",
+                "/api/operations/equipe-membros/{id}",
+                "/api/operations/incidentes/{id}",
+                "/api/operations/licencas-operacao/{id}",
+                "/api/operations/missao-eventos/{id}",
+                "/api/operations/missao-participantes/{id}",
+                "/api/operations/sinais-socorro/{id}",
+                "/api/operations/vw-resumo-missoes/{id}"
+        );
+
+        for (String path : readSchemaPaths) {
+            ResponseEntity<Map> schemaResponse = restTemplate.getForEntity(
+                    "/schemas/filtered?path={path}&operation=get&schemaType=response",
+                    Map.class,
+                    path
+            );
+            assertEquals(HttpStatus.OK, schemaResponse.getStatusCode(), path);
+            assertDomainSpecificReadDescription(path, schemaResponse.getBody());
+        }
     }
 
     @Test
@@ -461,6 +680,63 @@ class OpenApiGroupResolutionIsolatedIntegrationTest {
         Object xUi = body.get("x-ui");
         assertTrue(xUi instanceof Map<?, ?>);
         assertTrue(((Map<String, Object>) xUi).containsKey("resource"));
+    }
+
+    private void assertDomainSpecificCommandDescription(String schemaName, Map body) {
+        assertNotNull(body, schemaName);
+        Object descriptionObj = body.get("description");
+        assertTrue(descriptionObj instanceof String, schemaName + " must publish a schema description");
+        String description = ((String) descriptionObj).toLowerCase();
+        assertFalse(description.isBlank(), schemaName);
+        assertNoSyntheticDescriptionFragments(schemaName, body);
+    }
+
+    private void assertDomainSpecificActionDescription(String schemaName, Map body) {
+        assertNotNull(body, schemaName);
+        Object descriptionObj = body.get("description");
+        assertTrue(descriptionObj instanceof String, schemaName + " must publish a schema description");
+        assertFalse(((String) descriptionObj).isBlank(), schemaName);
+        assertNoSyntheticDescriptionFragments(schemaName, body);
+    }
+
+    private void assertDomainSpecificFilterDescription(String schemaName, Map body) {
+        assertNotNull(body, schemaName);
+        Object descriptionObj = body.get("description");
+        assertTrue(descriptionObj instanceof String, schemaName + " must publish a schema description");
+        assertFalse(((String) descriptionObj).isBlank(), schemaName);
+        assertNoSyntheticDescriptionFragments(schemaName, body);
+    }
+
+    private void assertDomainSpecificReadDescription(String schemaName, Map body) {
+        assertNotNull(body, schemaName);
+        Object descriptionObj = body.get("description");
+        assertTrue(descriptionObj instanceof String, schemaName + " must publish a schema description");
+        assertFalse(((String) descriptionObj).isBlank(), schemaName);
+        assertNoSyntheticDescriptionFragments(schemaName, body);
+    }
+
+    @SuppressWarnings("unchecked")
+    private void assertNoSyntheticDescriptionFragments(String schemaName, Object node) {
+        if (node instanceof Map<?, ?> map) {
+            Object descriptionObj = map.get("description");
+            if (descriptionObj instanceof String descriptionValue) {
+                String description = descriptionValue.toLowerCase();
+                assertFalse(description.contains("corpo de criacao"), schemaName);
+                assertFalse(description.contains("corpo de atualizacao"), schemaName);
+                assertFalse(description.contains("corpo minimo para transicoes"), schemaName);
+                assertFalse(description.contains("requisicao de transicao de workflow"), schemaName);
+                assertFalse(description.contains("genericfilter"), schemaName);
+                assertFalse(description.contains("openapi 3.1"), schemaName);
+                assertFalse(description.contains("(demo)"), schemaName);
+            }
+            for (Object value : map.values()) {
+                assertNoSyntheticDescriptionFragments(schemaName, value);
+            }
+        } else if (node instanceof List<?> list) {
+            for (Object value : list) {
+                assertNoSyntheticDescriptionFragments(schemaName, value);
+            }
+        }
     }
 
     @SuppressWarnings("unchecked")

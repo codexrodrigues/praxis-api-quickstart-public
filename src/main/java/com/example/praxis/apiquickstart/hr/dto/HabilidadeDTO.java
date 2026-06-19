@@ -16,7 +16,7 @@ import org.praxisplatform.uischema.extension.annotation.UISchema;
  */
 @Schema(
         name = "HabilidadeDTO",
-        description = "Entrada do catalogo de competencias do universo demo: cada registo pode ser associada a varios colaboradores (N-N). "
+        description = "Entrada do catalogo de competencias: cada registo pode ser associado a varios colaboradores (N-N). "
                 + "A categoria e o nivel de poder classificam a habilidade para filtros, missao e governanca de perfil.")
 public class HabilidadeDTO {
     @Schema(
@@ -40,13 +40,13 @@ public class HabilidadeDTO {
     @Size(max = 2000)
     @UISchema(label = "Descrição", controlType = FieldControlType.TEXTAREA, maxLength = 2000, helpText = "Detalhes sobre o efeito e contexto de uso.", icon = "description")
     @Schema(
-            description = "Narrativa livre do efeito, limitacoes e contexto de uso no demo; nao define sozinha a governanca (ver também missao e UI).")
+            description = "Narrativa livre do efeito, limitacoes e contexto de uso; nao define sozinha a governanca operacional, que depende de missao, perfil e politica.")
     private String descricao;
 
     @Min(0)
     @UISchema(label = "Nível de Poder", type = FieldDataType.NUMBER, helpText = "Grau de impacto (escala interna).", icon = "bolt")
     @Schema(
-            description = "Escala interna 0+ de potencia relativa (demo) para priorizar requisitos de missao e comparar candidatos; nao e salario nem antiguidade.",
+            description = "Escala interna 0+ de potencia relativa para priorizar requisitos de missao e comparar candidatos; nao e salario nem antiguidade.",
             example = "7")
     private Integer nivelPoder;
 

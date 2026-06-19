@@ -13,10 +13,9 @@ import java.math.BigDecimal;
 
 @Schema(
         name = "AmeacaDTO",
-        description = "Ameaca catalogada no risk intelligence (identidade, classe, teatro, severidade, recompensa). "
-                + "Payload de borda de escrita/leitura; nao e criterio de filtro. OpenAPI 3.1 e x-ui (demo).")
+        description = "Registro mestre de uma ameaca acompanhada pela inteligencia de risco, reunindo identidade operacional, classe, teatro principal, nivel de perigo, status e recompensa.")
 public class AmeacaDTO {
-    @Schema(description = "Identificador interno (PK) deste registo no servico; referencia o recurso em URLs e relacionamentos.")
+    @Schema(description = "Identificador da ameaca no catalogo de risco; referencia o recurso em URLs, missoes relacionadas e relacionamentos semanticos.")
     private Integer id;
 
     @NotBlank

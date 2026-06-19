@@ -193,10 +193,63 @@ class FuncionarioEntityLookupIntegrationTest {
         assertFalse(byIds.get(0).path("extra").path("selectable").asBoolean());
     }
 
+    @Test
+    void shouldReuseEmployeeEntityLookupAcrossHumanResourcesRelationships() throws Exception {
+        assertEmployeeLookup(ApiPaths.HumanResources.DEPARTAMENTOS, "responsavelId", "entityLookup");
+        assertEmployeeLookup(ApiPaths.HumanResources.DEPENDENTES, "funcionarioId", "entityLookup");
+        assertEmployeeLookup(ApiPaths.HumanResources.ENDERECOS, "funcionarioId", "entityLookup");
+        assertEmployeeLookup(ApiPaths.HumanResources.FERIAS_AFASTAMENTOS, "funcionarioId", "entityLookup");
+        assertEmployeeLookup(ApiPaths.HumanResources.FOLHAS_PAGAMENTO, "funcionarioId", "entityLookup");
+        assertEmployeeLookup(ApiPaths.HumanResources.FUNCIONARIO_HABILIDADES, "funcionarioId", "entityLookup");
+        assertEmployeeLookup(ApiPaths.HumanResources.HISTORICOS_SALARIAIS, "funcionarioId", "entityLookup");
+        assertEmployeeLookup(ApiPaths.HumanResources.HISTORICOS_CARGOS, "funcionarioId", "entityLookup");
+        assertEmployeeLookup(ApiPaths.HumanResources.IDENTIDADES_SECRETAS, "funcionarioId", "entityLookup");
+        assertEmployeeLookup(ApiPaths.HumanResources.MENCOES_MIDIA, "funcionarioId", "entityLookup");
+        assertEmployeeLookup(ApiPaths.HumanResources.REPUTACOES, "funcionarioId", "entityLookup");
+
+        assertEmployeeLookup(ApiPaths.HumanResources.DEPARTAMENTOS + "/filter", "responsavelId", "inlineEntityLookup");
+        assertEmployeeLookup(ApiPaths.HumanResources.DEPENDENTES + "/filter", "funcionarioId", "inlineEntityLookup");
+        assertEmployeeLookup(ApiPaths.HumanResources.ENDERECOS + "/filter", "funcionarioId", "inlineEntityLookup");
+        assertEmployeeLookup(ApiPaths.HumanResources.FERIAS_AFASTAMENTOS + "/filter", "funcionarioId", "inlineEntityLookup");
+        assertEmployeeLookup(ApiPaths.HumanResources.FOLHAS_PAGAMENTO + "/filter", "funcionarioId", "inlineEntityLookup");
+        assertEmployeeLookup(ApiPaths.HumanResources.FUNCIONARIO_HABILIDADES + "/filter", "funcionarioId", "inlineEntityLookup");
+        assertEmployeeLookup(ApiPaths.HumanResources.HISTORICOS_SALARIAIS + "/filter", "funcionarioId", "inlineEntityLookup");
+        assertEmployeeLookup(ApiPaths.HumanResources.HISTORICOS_CARGOS + "/filter", "funcionarioId", "inlineEntityLookup");
+        assertEmployeeLookup(ApiPaths.HumanResources.IDENTIDADES_SECRETAS + "/filter", "funcionarioId", "inlineEntityLookup");
+        assertEmployeeLookup(ApiPaths.HumanResources.MENCOES_MIDIA + "/filter", "funcionarioId", "inlineEntityLookup");
+        assertEmployeeLookup(ApiPaths.HumanResources.REPUTACOES + "/filter", "funcionarioId", "inlineEntityLookup");
+        assertEmployeeLookup(ApiPaths.HumanResources.VW_ANALYTICS_FOLHA_PAGAMENTO + "/filter", "funcionarioIdsIn", "inlineEntityLookup");
+        assertEmployeeLookup(ApiPaths.HumanResources.VW_PERFIL_HEROI + "/filter", "funcionarioId", "inlineEntityLookup");
+        assertEmployeeLookup(ApiPaths.HumanResources.VW_PERFIL_HEROI + "/filter", "funcionarioIdsIn", "inlineEntityLookup");
+        assertEmployeeLookup(ApiPaths.HumanResources.VW_RANKING_REPUTACAO + "/filter", "funcionarioId", "inlineEntityLookup");
+        assertEmployeeLookup(ApiPaths.HumanResources.VW_RANKING_REPUTACAO + "/filter", "funcionarioIdsIn", "inlineEntityLookup");
+    }
+
     private JsonNode body(ResponseEntity<String> response) throws Exception {
         assertEquals(HttpStatus.OK, response.getStatusCode(), response.getBody());
         assertNotNull(response.getBody());
         return objectMapper.readTree(response.getBody());
+    }
+
+    private void assertEmployeeLookup(String path, String fieldName, String expectedControlType) throws Exception {
+        JsonNode schema = body(restTemplate.getForEntity(
+                "/schemas/filtered?path={path}&operation=post&schemaType=request",
+                String.class,
+                path
+        ));
+
+        JsonNode fieldUi = schema.path("properties").path(fieldName).path("x-ui");
+        JsonNode optionSource = fieldUi.path("optionSource");
+        assertEquals(expectedControlType, fieldUi.path("controlType").asText(), path + "#" + fieldName);
+        assertEquals(ApiPaths.HumanResources.FUNCIONARIOS_EMPLOYEE_LOOKUP_OPTIONS, fieldUi.path("endpoint").asText(), path + "#" + fieldName);
+        assertEquals("employee", optionSource.path("key").asText(), path + "#" + fieldName);
+        assertEquals("RESOURCE_ENTITY", optionSource.path("type").asText(), path + "#" + fieldName);
+        assertEquals(ApiPaths.HumanResources.FUNCIONARIOS, optionSource.path("resourcePath").asText(), path + "#" + fieldName);
+        assertEquals("employee", optionSource.path("entityKey").asText(), path + "#" + fieldName);
+        assertEquals("id", optionSource.path("valuePropertyPath").asText(), path + "#" + fieldName);
+        assertEquals("nomeCompleto", optionSource.path("labelPropertyPath").asText(), path + "#" + fieldName);
+        assertTrue(optionSource.path("capabilities").path("filter").asBoolean(), path + "#" + fieldName);
+        assertTrue(optionSource.path("capabilities").path("byIds").asBoolean(), path + "#" + fieldName);
     }
 
     private HttpEntity<String> authorizedJson(String json) {

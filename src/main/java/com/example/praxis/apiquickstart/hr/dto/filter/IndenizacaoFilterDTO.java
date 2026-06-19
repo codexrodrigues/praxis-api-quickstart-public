@@ -15,40 +15,40 @@ import java.util.List;
 
 @Schema(
         name = "IndenizacaoFilterDTO",
-        description = "Criterios de busca de cobertura indenizatoria/ sinistros (nao e o lancamento ajustavel so com filtro). "
-                + "Cruza com Operacoes (Incidente); GenericFilter / POST /filter (demo).")
+        description = "Criterios de busca de indenizacoes e coberturas vinculadas a incidentes operacionais. "
+                + "Apoia acompanhamento financeiro por incidente, status de pagamento, valor, seguradora e protocolo de sinistro.")
 public class IndenizacaoFilterDTO implements GenericFilterDTO {
-    @UISchema(label = "Incidente", type = FieldDataType.NUMBER, controlType = FieldControlType.ASYNC_SELECT, order = 10,
+    @UISchema(label = "Incidente", type = FieldDataType.NUMBER, controlType = FieldControlType.INLINE_ENTITY_LOOKUP, order = 10,
             valueField = "id", displayField = "label",
-        endpoint = ApiPaths.Operations.INCIDENTES + "/options/filter", helpText = "Filtrar indenizações associadas a um incidente.", icon = "report_problem")
+        endpoint = ApiPaths.Operations.INCIDENTES_INCIDENT_LOOKUP_OPTIONS, helpText = "Filtrar indenizações associadas a um incidente.", icon = "report_problem")
     @Filterable(operation = Filterable.FilterOperation.EQUAL, relation = "incidente.id")
     @Schema(
-            description = "Apenas parcelas de um dado incidente; EQUAL (FK) (demo).")
+            description = "Incidente operacional que originou a indenizacao ou processo de cobertura.")
     private Integer incidenteId;
 
     @UISchema(label = "Status de Pagamento", type = FieldDataType.BOOLEAN, controlType = FieldControlType.CHECKBOX, order = 20, helpText = "Filtrar por status de pagamento (paga ou pendente).", icon = "payments")
     @Filterable(operation = Filterable.FilterOperation.EQUAL)
     @Schema(
-            description = "Somente pagas ou a pagar; EQUAL na flag pago (tesouraria) (demo).")
+            description = "Situacao de liquidacao financeira que separa indenizacoes pagas de valores ainda pendentes.")
     private Boolean pago;
 
     @UISchema(label = "Faixa de Valor", type = FieldDataType.NUMBER, controlType = FieldControlType.PRICE_RANGE, order = 30,
             numericFormat = NumericFormat.CURRENCY, numericStep = "0.01", helpText = "Buscar indenizações por faixa de valor.", icon = "payments")
     @Filterable(operation = Filterable.FilterOperation.BETWEEN, relation = "valor")
     @Schema(
-            description = "Faixa de valor acordado; BETWEEN na moeda (demo).")
+            description = "Faixa de valor acordado ou provisionado para a indenizacao.")
     private List<BigDecimal> valorBetween;
 
     @UISchema(label = "Seguradora", controlType = FieldControlType.INPUT, maxLength = 200, order = 40, helpText = "Buscar por nome da seguradora responsável.", icon = "filter_list")
     @Filterable(operation = Filterable.FilterOperation.LIKE)
     @Schema(
-            description = "Seguradora/ TPA; LIKE em nome (demo).")
+            description = "Trecho do nome da seguradora, administradora ou terceiro responsavel pela cobertura.")
     private String seguradora;
 
     @UISchema(label = "Nº do Processo", controlType = FieldControlType.INPUT, maxLength = 100, order = 50, helpText = "Filtrar pelo número do processo ou sinistro.", icon = "fingerprint")
     @Filterable(operation = Filterable.FilterOperation.LIKE)
     @Schema(
-            description = "Protocolo de processo/ sinistro; LIKE (demo).")
+            description = "Trecho do numero de processo, protocolo ou sinistro usado para rastrear a cobertura.")
     private String processoNum;
 
     public Integer getIncidenteId() { return incidenteId; }

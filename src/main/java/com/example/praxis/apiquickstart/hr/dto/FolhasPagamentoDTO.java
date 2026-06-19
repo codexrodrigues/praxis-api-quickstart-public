@@ -97,9 +97,9 @@ public class FolhasPagamentoDTO {
     private LocalDate dataPagamento;
 
     @NotNull
-    @UISchema(label = "Funcionário", controlType = FieldControlType.SELECT, group = "Relacionamentos", order = 10, icon = "badge",
+    @UISchema(label = "Funcionário", controlType = FieldControlType.ENTITY_LOOKUP, group = "Relacionamentos", order = 10, icon = "badge",
             valueField = "id", displayField = "label",
-            endpoint = com.example.praxis.apiquickstart.constants.ApiPaths.HumanResources.FUNCIONARIOS + "/options/filter",
+            endpoint = com.example.praxis.apiquickstart.constants.ApiPaths.HumanResources.FUNCIONARIOS_EMPLOYEE_LOOKUP_OPTIONS,
             helpText = "Colaborador titular desta folha.")
     @Schema(
         description = "Chave do colaborador a quem a folha se refere; liga a cadastro de funcionario do mesmo tenant."

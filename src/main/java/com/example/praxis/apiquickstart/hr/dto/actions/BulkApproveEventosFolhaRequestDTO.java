@@ -18,7 +18,7 @@ import java.util.List;
 @Schema(
         name = "BulkApproveEventosFolhaRequestDTO",
         description = "Selecao de eventos de folha a aprovar numa unica acao. "
-                + "A semantica (aprovar) vem do endpoint; aqui so os ids; ordem nao implica prioridade de processamento (demo, dependente da implementacao).")
+                + "A semantica de aprovacao vem do endpoint; este payload delimita quais eventos entram no lote e a ordem nao implica prioridade de processamento.")
 public class BulkApproveEventosFolhaRequestDTO {
 
     @NotEmpty

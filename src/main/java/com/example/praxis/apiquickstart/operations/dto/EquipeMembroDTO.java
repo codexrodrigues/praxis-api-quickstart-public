@@ -13,24 +13,24 @@ import java.time.LocalDate;
 @Schema(
         name = "EquipeMembroDTO",
         description = "Nomeacao de colaborador a equipe (papel, vigencia de entrada e saida). "
-                + "Payload de borda; nao e criterio de filtro. OpenAPI 3.1 e x-ui (demo).")
+                + "Materializa a composicao historica da equipe e suporta escala, disponibilidade e leitura de responsabilidade operacional.")
 public class EquipeMembroDTO {
     @Schema(description = "Identificador interno (PK) deste registo no servico; referencia o recurso em URLs e relacionamentos.")
     private Integer id;
 
     @NotNull
-    @UISchema(label = "Equipe", controlType = FieldControlType.SELECT, group = "Relacionamentos", order = 10,
+    @UISchema(label = "Equipe", controlType = FieldControlType.ENTITY_LOOKUP, group = "Relacionamentos", order = 10,
             valueField = "id", displayField = "label",
-        endpoint = com.example.praxis.apiquickstart.constants.ApiPaths.Operations.EQUIPES + "/options/filter",
+        endpoint = com.example.praxis.apiquickstart.constants.ApiPaths.Operations.EQUIPES_TEAM_LOOKUP_OPTIONS,
             tableHidden = true, icon = "groups")
     @Schema(
             description = "FK; unidade tactica (equipeId).")
     private Integer equipeId;
 
     @NotNull
-    @UISchema(label = "Funcionário", controlType = FieldControlType.SELECT, group = "Relacionamentos", order = 20,
+    @UISchema(label = "Funcionário", controlType = FieldControlType.ENTITY_LOOKUP, group = "Relacionamentos", order = 20,
             valueField = "id", displayField = "label",
-            endpoint = com.example.praxis.apiquickstart.constants.ApiPaths.HumanResources.FUNCIONARIOS + "/options/filter",
+            endpoint = com.example.praxis.apiquickstart.constants.ApiPaths.HumanResources.FUNCIONARIOS_EMPLOYEE_LOOKUP_OPTIONS,
             tableHidden = true, icon = "badge")
     @Schema(
             description = "FK; colaborador alocado (funcionarioId).")

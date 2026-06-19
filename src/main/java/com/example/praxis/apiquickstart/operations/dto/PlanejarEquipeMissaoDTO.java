@@ -11,7 +11,7 @@ import java.util.List;
 @Schema(
         name = "PlanejarEquipeMissaoDTO",
         description = "Plano de alocacao de equipe a uma missao: lista de participantes e papeis; "
-                + "nao e entidade CRUD, somente corpo de acao de planejamento. OpenAPI 3.1 e x-ui (demo).")
+                + "representa uma acao de planejamento que substitui a composicao proposta sem alterar diretamente o ciclo de vida da missao.")
 public class PlanejarEquipeMissaoDTO {
 
     @Valid

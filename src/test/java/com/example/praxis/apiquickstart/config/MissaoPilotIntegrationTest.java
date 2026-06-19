@@ -224,6 +224,10 @@ class MissaoPilotIntegrationTest {
                 insert into public.ameacas (id, nome, classe, planeta, nivel, status, recompensa)
                 values (1, 'Omega Swarm', 'INVASAO', 'Terra', 9, 'EM_OBSERVACAO', 500000.00)
                 """);
+        jdbcTemplate.update("""
+                insert into public.ameacas (id, nome, classe, planeta, nivel, status, recompensa)
+                values (2, 'Captured Syndicate', 'ORGANIZACAO', 'Marte', 6, 'CAPTURADO', 125000.00)
+                """);
 
         jdbcTemplate.update("""
                 insert into public.missoes (id, titulo, objetivo, prioridade, status, local, ameaca_id, inicio_prev, fim_prev, inicio_real, fim_real)
@@ -291,6 +295,142 @@ class MissaoPilotIntegrationTest {
                         TIMESTAMP WITH TIME ZONE '2026-04-02 10:30:00+00:00',
                         TIMESTAMP WITH TIME ZONE '2026-04-02 11:00:00+00:00')
                 """);
+    }
+
+    @Test
+    void shouldExposeThreatResourceEntityLookupForMissionSchemas() throws Exception {
+        JsonNode schema = body(restTemplate.getForEntity(
+                "/schemas/filtered?path=/api/operations/missoes&operation=post&schemaType=request",
+                String.class
+        ));
+
+        JsonNode ameacaUi = schema.path("properties").path("ameacaId").path("x-ui");
+        JsonNode optionSource = ameacaUi.path("optionSource");
+        assertEquals("entityLookup", ameacaUi.path("controlType").asText());
+        assertEquals("/api/risk-intelligence/ameacas/option-sources/threat/options/filter",
+                ameacaUi.path("endpoint").asText());
+        assertEquals("threat", optionSource.path("key").asText());
+        assertEquals("RESOURCE_ENTITY", optionSource.path("type").asText());
+        assertEquals("/api/risk-intelligence/ameacas", optionSource.path("resourcePath").asText());
+        assertEquals("threat", optionSource.path("entityKey").asText());
+        assertEquals("status", optionSource.path("statusPropertyPath").asText());
+        assertEquals("classe", optionSource.path("descriptionPropertyPaths").get(0).asText());
+        assertEquals("nome", optionSource.path("searchPropertyPaths").get(0).asText());
+        assertTrue(optionSource.path("capabilities").path("filter").asBoolean());
+        assertTrue(optionSource.path("capabilities").path("byIds").asBoolean());
+        assertTrue(optionSource.path("selectionPolicy").path("allowRetainInvalidExistingValue").asBoolean());
+        assertEquals("status", optionSource.path("selectionPolicy").path("statusPropertyPath").asText());
+
+        JsonNode threats = body(restTemplate.postForEntity(
+                "/api/risk-intelligence/ameacas/option-sources/threat/options/filter?search=Omega",
+                authorizedJson("{}"),
+                String.class
+        ));
+        assertEquals(1, threats.path("content").size());
+        JsonNode omega = threats.path("content").get(0);
+        assertEquals(1, omega.path("id").asInt());
+        assertEquals("Omega Swarm", omega.path("label").asText());
+        assertEquals("INVASAO - Terra - 9", omega.path("extra").path("description").asText());
+        assertEquals("EM_OBSERVACAO", omega.path("extra").path("status").asText());
+        assertTrue(omega.path("extra").path("selectable").asBoolean());
+
+        JsonNode blockedThreat = objectMapper.readTree(restTemplate.getForObject(
+                "/api/risk-intelligence/ameacas/option-sources/threat/options/by-ids?ids=2",
+                String.class
+        ));
+        assertEquals("Captured Syndicate", blockedThreat.get(0).path("label").asText());
+        assertEquals("CAPTURADO", blockedThreat.get(0).path("extra").path("status").asText());
+        assertFalse(blockedThreat.get(0).path("extra").path("selectable").asBoolean());
+    }
+
+    @Test
+    void shouldExposeMissionResourceEntityLookupForOperationalConsumers() throws Exception {
+        JsonNode participanteSchema = body(restTemplate.getForEntity(
+                "/schemas/filtered?path=/api/operations/missao-participantes&operation=post&schemaType=request",
+                String.class
+        ));
+
+        JsonNode missaoUi = participanteSchema.path("properties").path("missaoId").path("x-ui");
+        JsonNode optionSource = missaoUi.path("optionSource");
+        assertEquals("entityLookup", missaoUi.path("controlType").asText());
+        assertEquals("/api/operations/missoes/option-sources/mission/options/filter",
+                missaoUi.path("endpoint").asText());
+        assertEquals("mission", optionSource.path("key").asText());
+        assertEquals("RESOURCE_ENTITY", optionSource.path("type").asText());
+        assertEquals("/api/operations/missoes", optionSource.path("resourcePath").asText());
+        assertTrue(optionSource.path("filterField").isMissingNode() || optionSource.path("filterField").isNull());
+        assertEquals("mission", optionSource.path("entityKey").asText());
+        assertEquals("titulo", optionSource.path("labelPropertyPath").asText());
+        assertEquals("status", optionSource.path("statusPropertyPath").asText());
+        assertEquals("prioridade", optionSource.path("descriptionPropertyPaths").get(0).asText());
+        assertEquals("local", optionSource.path("descriptionPropertyPaths").get(1).asText());
+        assertEquals("titulo", optionSource.path("searchPropertyPaths").get(0).asText());
+        assertTrue(optionSource.path("capabilities").path("filter").asBoolean());
+        assertTrue(optionSource.path("capabilities").path("byIds").asBoolean());
+        assertTrue(optionSource.path("selectionPolicy").path("allowedStatuses").toString().contains("PLANEJADA"));
+        assertTrue(optionSource.path("selectionPolicy").path("blockedStatuses").toString().contains("CONCLUIDA"));
+
+        JsonNode participanteFilterSchema = body(restTemplate.getForEntity(
+                "/schemas/filtered?path=/api/operations/missao-participantes/filter&operation=post&schemaType=request",
+                String.class
+        ));
+        assertEquals("inlineEntityLookup",
+                participanteFilterSchema.path("properties").path("missaoId").path("x-ui").path("controlType").asText());
+        assertEquals("mission",
+                participanteFilterSchema.path("properties").path("missaoId").path("x-ui").path("optionSource").path("key").asText());
+        assertEquals("inlineEntityLookup",
+                participanteFilterSchema.path("properties").path("funcionarioId").path("x-ui").path("controlType").asText());
+        assertEquals("employee",
+                participanteFilterSchema.path("properties").path("funcionarioId").path("x-ui").path("optionSource").path("key").asText());
+        assertEquals("/api/human-resources/funcionarios",
+                participanteFilterSchema.path("properties").path("funcionarioId").path("x-ui").path("optionSource").path("resourcePath").asText());
+
+        JsonNode incidenteSchema = body(restTemplate.getForEntity(
+                "/schemas/filtered?path=/api/operations/incidentes&operation=post&schemaType=request",
+                String.class
+        ));
+        assertEquals("entityLookup",
+                incidenteSchema.path("properties").path("missaoId").path("x-ui").path("controlType").asText());
+
+        JsonNode resumoFilterSchema = body(restTemplate.getForEntity(
+                "/schemas/filtered?path=/api/operations/vw-resumo-missoes/filter&operation=post&schemaType=request",
+                String.class
+        ));
+        assertEquals("inlineEntityLookup",
+                resumoFilterSchema.path("properties").path("missaoId").path("x-ui").path("controlType").asText());
+        assertEquals("mission",
+                resumoFilterSchema.path("properties").path("missaoIdsIn").path("x-ui").path("optionSource").path("key").asText());
+
+        JsonNode usageSchema = body(restTemplate.getForEntity(
+                "/schemas/filtered?path=/api/assets/veiculo-missao-usos&operation=post&schemaType=request",
+                String.class
+        ));
+        assertEquals("entityLookup",
+                usageSchema.path("properties").path("missaoId").path("x-ui").path("controlType").asText());
+
+        JsonNode missions = body(restTemplate.postForEntity(
+                "/api/operations/missoes/option-sources/mission/options/filter?search=Atlantic",
+                authorizedJson("{}"),
+                String.class
+        ));
+        assertEquals(1, missions.path("content").size());
+        JsonNode atlantic = missions.path("content").get(0);
+        assertEquals(1, atlantic.path("id").asInt());
+        assertEquals("Atlantic Shield", atlantic.path("label").asText());
+        assertEquals("CRITICA - Atlantis", atlantic.path("extra").path("description").asText());
+        assertEquals("PLANEJADA", atlantic.path("extra").path("status").asText());
+        assertTrue(atlantic.path("extra").path("selectable").asBoolean());
+
+        JsonNode selectedMissions = objectMapper.readTree(restTemplate.getForObject(
+                "/api/operations/missoes/option-sources/mission/options/by-ids?ids=1&ids=4",
+                String.class
+        ));
+        assertEquals(2, selectedMissions.size());
+        assertEquals("Atlantic Shield", selectedMissions.get(0).path("label").asText());
+        assertTrue(selectedMissions.get(0).path("extra").path("selectable").asBoolean());
+        assertEquals("Frozen Wall", selectedMissions.get(1).path("label").asText());
+        assertEquals("CONCLUIDA", selectedMissions.get(1).path("extra").path("status").asText());
+        assertFalse(selectedMissions.get(1).path("extra").path("selectable").asBoolean());
     }
 
     @Test
@@ -641,7 +781,7 @@ class MissaoPilotIntegrationTest {
     }
 
     private JsonNode body(ResponseEntity<String> response) throws Exception {
-        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(HttpStatus.OK, response.getStatusCode(), response.getBody());
         assertNotNull(response.getBody());
         return objectMapper.readTree(response.getBody());
     }

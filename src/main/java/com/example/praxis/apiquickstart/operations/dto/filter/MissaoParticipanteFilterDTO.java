@@ -13,41 +13,46 @@ import org.praxisplatform.uischema.filter.dto.GenericFilterDTO;
 
 @Schema(
         name = "MissaoParticipanteFilterDTO",
-        description = "Criterios de busca na escala missao x heroi (papel, lider, resultado); nao e a alocacao a editar so com filtrar. "
-                + "GenericFilter / POST /filter (demo).")
+        description = "Criterios de busca na escala de participantes de missoes. "
+                + "Relaciona missao, colaborador, papel operacional, lideranca e resultado individual.")
 public class MissaoParticipanteFilterDTO implements GenericFilterDTO {
-    @UISchema(type = FieldDataType.NUMBER, controlType = FieldControlType.ASYNC_SELECT, order = 10,
+    @UISchema(label = "Missão", type = FieldDataType.NUMBER, controlType = FieldControlType.INLINE_ENTITY_LOOKUP, order = 10,
             valueField = "id", displayField = "label",
-        endpoint = ApiPaths.Operations.MISSOES + "/options/filter", icon = "flag")
+        endpoint = ApiPaths.Operations.MISSOES_MISSION_LOOKUP_OPTIONS,
+            helpText = "Mostra participantes escalados em uma missão específica.", icon = "flag")
     @Filterable(operation = Filterable.FilterOperation.EQUAL, relation = "missao.id")
     @Schema(
-            description = "Apenas escalados nesta missao; EQUAL (FK) (demo).")
+            description = "Missao cuja composicao de participantes deve ser consultada.")
     private Integer missaoId;
 
-    @UISchema(type = FieldDataType.NUMBER, controlType = FieldControlType.ENTITY_LOOKUP, order = 20,
+    @UISchema(label = "Participante", type = FieldDataType.NUMBER, controlType = FieldControlType.INLINE_ENTITY_LOOKUP, order = 20,
             valueField = "id", displayField = "label",
-            endpoint = ApiPaths.HumanResources.FUNCIONARIOS_EMPLOYEE_LOOKUP_OPTIONS, icon = "badge")
+            endpoint = ApiPaths.HumanResources.FUNCIONARIOS_EMPLOYEE_LOOKUP_OPTIONS,
+            helpText = "Filtra missões atribuídas a um colaborador ou herói.", icon = "badge")
     @Filterable(operation = Filterable.FilterOperation.EQUAL, relation = "funcionario.id")
     @Schema(
-            description = "Todas as missoes de um colaborador; EQUAL (FK) (demo).")
+            description = "Colaborador ou heroi cuja participacao em missoes deve ser localizada.")
     private Integer funcionarioId;
 
-    @UISchema(controlType = FieldControlType.SELECT, order = 30, icon = "filter_list")
+    @UISchema(label = "Papel na missão", controlType = FieldControlType.SELECT, order = 30,
+            helpText = "Seleciona a função exercida pelo participante na missão.", icon = "filter_list")
     @Filterable(operation = Filterable.FilterOperation.EQUAL)
     @Schema(
-            description = "Papel unico; EQUAL PapelMissao (lider, suporte, etc.) (demo).")
+            description = "Funcao exercida pelo participante dentro da missao.")
     private PapelMissao papel;
 
-    @UISchema(type = FieldDataType.BOOLEAN, controlType = FieldControlType.TOGGLE, order = 40, icon = "toggle_on")
+    @UISchema(label = "Participante principal", type = FieldDataType.BOOLEAN, controlType = FieldControlType.TOGGLE, order = 40,
+            helpText = "Diferencia líderes ou referências principais dos demais participantes.", icon = "toggle_on")
     @Filterable(operation = Filterable.FilterOperation.EQUAL)
     @Schema(
-            description = "Se e referencia/ lider de pelotao; EQUAL boolean (demo).")
+            description = "Indicador de participante principal ou referencia de lideranca dentro da missao.")
     private Boolean principal;
 
-    @UISchema(controlType = FieldControlType.SELECT, order = 50, icon = "filter_list")
+    @UISchema(label = "Resultado individual", controlType = FieldControlType.SELECT, order = 50,
+            helpText = "Filtra pelo desfecho registrado para o participante na missão.", icon = "filter_list")
     @Filterable(operation = Filterable.FilterOperation.EQUAL)
     @Schema(
-            description = "Resultado pessoal no encerramento; EQUAL ResultadoMissao (demo).")
+            description = "Desfecho individual registrado para o participante ao final da missao.")
     private ResultadoMissao resultado;
 
     public Integer getMissaoId() { return missaoId; }

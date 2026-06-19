@@ -16,56 +16,64 @@ import java.util.List;
 @Schema(
         name = "VeiculoFilterDTO",
         description = "Criterios de busca na frota (veiculos de missao); nao e o ativo a editar so com filtrar. "
-                + "Suporta multiplos tipos/ status; GenericFilter / POST /filter (demo).")
+                + "Usado para localizar veiculos por designacao, tipo, responsavel, capacidade e disponibilidade operacional.")
 public class VeiculoFilterDTO implements GenericFilterDTO {
-    @UISchema(controlType = FieldControlType.INPUT, maxLength = 200, order = 10, icon = "filter_list")
+    @UISchema(label = "Nome do veículo", controlType = FieldControlType.INPUT, maxLength = 200, order = 10,
+            helpText = "Digite parte do nome ou designação do veículo.", icon = "filter_list")
     @Filterable(operation = Filterable.FilterOperation.LIKE)
     @Schema(
-            description = "Nome ou designacao (ex.: Jato-7); LIKE (demo).")
+            description = "Trecho do nome, matricula ou designacao operacional do veiculo.")
     private String nome;
 
-    @UISchema(controlType = FieldControlType.SELECT, order = 20, icon = "category")
+    @UISchema(label = "Tipo de veículo", controlType = FieldControlType.SELECT, order = 20,
+            helpText = "Filtra por um único tipo de veículo.", icon = "category")
     @Filterable(operation = Filterable.FilterOperation.EQUAL)
     @Schema(
-            description = "Um tipo; EQUAL VeiculoTipo (aereo, terrestre, etc.) (demo).")
+            description = "Tipo de plataforma do veiculo, como aereo, terrestre ou outro valor do catalogo VeiculoTipo.")
     private VeiculoTipo tipo;
 
-    @UISchema(type = FieldDataType.NUMBER, controlType = FieldControlType.ASYNC_SELECT, order = 30,
+    @UISchema(label = "Responsável", type = FieldDataType.NUMBER, controlType = FieldControlType.INLINE_ENTITY_LOOKUP, order = 30,
             valueField = "id", displayField = "label",
-            endpoint = ApiPaths.HumanResources.FUNCIONARIOS + "/options/filter", icon = "filter_list")
+            endpoint = ApiPaths.HumanResources.FUNCIONARIOS_EMPLOYEE_LOOKUP_OPTIONS,
+            helpText = "Selecione o colaborador responsável pela frota ou veículo.", icon = "badge")
     @Filterable(operation = Filterable.FilterOperation.EQUAL, relation = "proprietario.id")
     @Schema(
-            description = "Frota vinculada a um colaborador/ proprietario; EQUAL (FK) (demo).")
+            description = "Colaborador responsavel pela custodia ou gestao operacional do veiculo.")
     private Integer proprietarioId;
 
-    @UISchema(controlType = FieldControlType.SELECT, order = 40, icon = "toggle_on")
+    @UISchema(label = "Status do veículo", controlType = FieldControlType.SELECT, order = 40,
+            helpText = "Filtra por um único estado operacional do veículo.", icon = "toggle_on")
     @Filterable(operation = Filterable.FilterOperation.EQUAL)
     @Schema(
-            description = "Situacao mecanica/ operacional unica; EQUAL VeiculoStatus (demo).")
+            description = "Status mecanico ou operacional que indica se o veiculo pode ser escalado para missao.")
     private VeiculoStatus status;
 
-    @UISchema(type = FieldDataType.NUMBER, controlType = FieldControlType.RANGE_SLIDER, order = 50, icon = "location_city")
+    @UISchema(label = "Capacidade", type = FieldDataType.NUMBER, controlType = FieldControlType.RANGE_SLIDER, order = 50,
+            helpText = "Defina uma faixa de capacidade nominal para passageiros, tripulação ou carga.", icon = "location_city")
     @Filterable(operation = Filterable.FilterOperation.BETWEEN, relation = "capacidade")
     @Schema(
-            description = "Passageiros ou carga nominal; BETWEEN (demo).")
+            description = "Faixa de capacidade nominal do veículo para passageiros, tripulação ou carga.")
     private List<Integer> capacidadeBetween;
 
-    @UISchema(label = "Tipos (Incluir)", controlType = FieldControlType.SELECT, order = 60, icon = "category")
-    @Filterable(operation = Filterable.FilterOperation.IN)
+    @UISchema(label = "Mostrar tipos", controlType = FieldControlType.SELECT, order = 60,
+            helpText = "Mostra apenas veículos dos tipos selecionados.", icon = "category")
+    @Filterable(operation = Filterable.FilterOperation.IN, relation = "tipo")
     @Schema(
-            description = "Uniao de tipos; operacao IN (demo).")
+            description = "Conjunto de tipos de veículo que devem aparecer no resultado da busca.")
     private List<VeiculoTipo> tiposIn;
 
-    @UISchema(label = "Status (Incluir)", controlType = FieldControlType.SELECT, order = 70, icon = "toggle_on")
-    @Filterable(operation = Filterable.FilterOperation.IN)
+    @UISchema(label = "Mostrar status", controlType = FieldControlType.SELECT, order = 70,
+            helpText = "Mostra apenas veículos nos status selecionados.", icon = "toggle_on")
+    @Filterable(operation = Filterable.FilterOperation.IN, relation = "status")
     @Schema(
-            description = "Uniao de estados; operacao IN (demo).")
+            description = "Conjunto de estados operacionais que devem aparecer no resultado da busca.")
     private List<VeiculoStatus> statusIn;
 
-    @UISchema(label = "Status (Excluir)", controlType = FieldControlType.SELECT, order = 80, icon = "toggle_on")
-    @Filterable(operation = Filterable.FilterOperation.NOT_IN)
+    @UISchema(label = "Ocultar status", controlType = FieldControlType.SELECT, order = 80,
+            helpText = "Remove do resultado os veículos nos status selecionados.", icon = "toggle_off")
+    @Filterable(operation = Filterable.FilterOperation.NOT_IN, relation = "status")
     @Schema(
-            description = "Excluir estados; NOT_IN (demo).")
+            description = "Conjunto de estados operacionais que devem ser removidos do resultado da busca.")
     private List<VeiculoStatus> statusNotIn;
 
     public String getNome() { return nome; }

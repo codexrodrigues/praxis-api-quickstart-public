@@ -1,5 +1,6 @@
 package com.example.praxis.apiquickstart.procurement.dto.filter;
 
+import com.example.praxis.apiquickstart.constants.ApiPaths;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import lombok.Getter;
@@ -14,29 +15,36 @@ import org.praxisplatform.uischema.filter.dto.GenericFilterDTO;
 @Schema(
         name = "ProcurementProductFilterDTO",
         description = "Criterios de busca no catalogo de produtos/ itens de contrato (sku, servico); nao e o item a persistir so por filtrar. "
-                + "GenericFilter / POST /filter (demo).")
+                + "Usado para localizar itens por empresa, contrato, denominacao e elegibilidade para requisicao.")
 public class ProcurementProductFilterDTO implements GenericFilterDTO {
-    @UISchema(controlType = FieldControlType.ENTITY_LOOKUP, order = 10, icon = "business")
+    @UISchema(label = "Empresa", controlType = FieldControlType.INLINE_ENTITY_LOOKUP, order = 10,
+            endpoint = ApiPaths.Procurement.COMPANIES_COMPANY_LOOKUP_OPTIONS, valueField = "id", displayField = "label",
+            helpText = "Filtra itens do catálogo por empresa compradora.", icon = "business")
     @Filterable(operation = Filterable.FilterOperation.EQUAL)
     @Schema(
-            description = "Escopo por empresa; EQUAL companyId (demo).")
+            description = "Empresa compradora proprietaria ou escopo do item de catalogo.")
     private Integer companyId;
 
-    @UISchema(controlType = FieldControlType.ENTITY_LOOKUP, order = 20, icon = "contract")
+    @UISchema(label = "Contrato", controlType = FieldControlType.INLINE_ENTITY_LOOKUP, order = 20,
+            endpoint = ApiPaths.Procurement.CONTRACTS_CONTRACT_LOOKUP_OPTIONS, valueField = "id", displayField = "label",
+            dependentField = "companyId", resetOnDependentChange = true,
+            helpText = "Mostra produtos ou serviços associados a um contrato específico.", icon = "contract")
     @Filterable(operation = Filterable.FilterOperation.EQUAL)
     @Schema(
-            description = "Itens de um contrato; EQUAL contractId (demo).")
+            description = "Contrato que rege disponibilidade, preco e condicoes do item.")
     private Integer contractId;
 
-    @UISchema(controlType = FieldControlType.INPUT, order = 30, icon = "filter_list")
+    @UISchema(label = "Produto ou serviço", controlType = FieldControlType.INPUT, order = 30,
+            helpText = "Busca por nome comercial, técnico ou SKU do item.", icon = "inventory_2")
     @Filterable(operation = Filterable.FilterOperation.LIKE)
     @Schema(
-            description = "Denominacao comercial ou tecnica; LIKE (demo).")
+            description = "Trecho do nome comercial, denominacao tecnica ou SKU do produto ou servico.")
     private String name;
 
-    @UISchema(controlType = FieldControlType.SELECT, order = 40, icon = "toggle_on")
+    @UISchema(label = "Status do item", controlType = FieldControlType.SELECT, order = 40,
+            helpText = "Filtra itens ativos, inativos ou descontinuados.", icon = "toggle_on")
     @Filterable(operation = Filterable.FilterOperation.EQUAL)
     @Schema(
-            description = "Ativo/ inativo/ descontinuado; EQUAL status (demo).")
+            description = "Status de elegibilidade do item, como ativo, inativo, bloqueado ou descontinuado.")
     private String status;
 }

@@ -31,7 +31,7 @@ public class ProcurementSupplierService extends AbstractQuickstartCrudService<Pr
 
     private static final OptionSourceRegistry OPTION_SOURCES = OptionSourceRegistry.builder()
             .add(ProcurementSupplier.class, new OptionSourceDescriptor(
-                    "supplier",
+                    ApiPaths.Procurement.SUPPLIERS_SUPPLIER_LOOKUP_SOURCE,
                     OptionSourceType.RESOURCE_ENTITY,
                     ApiPaths.Procurement.SUPPLIERS,
                     "supplierId",
@@ -42,7 +42,7 @@ public class ProcurementSupplierService extends AbstractQuickstartCrudService<Pr
                     DEPENDENCIES,
                     lookupPolicy(),
                     new EntityLookupDescriptor(
-                            "supplier",
+                            ApiPaths.Procurement.SUPPLIERS_SUPPLIER_LOOKUP_SOURCE,
                             "code",
                             List.of("documentNumber", "homologationStatus", "riskLevel"),
                             "status",
@@ -75,7 +75,7 @@ public class ProcurementSupplierService extends AbstractQuickstartCrudService<Pr
 
     @Override
     public OptionSourceRegistry getOptionSourceRegistry() {
-        return optionSourcePolicyResolver.resolveAppliedSelectionPolicy("supplier")
+        return optionSourcePolicyResolver.resolveAppliedSelectionPolicy(ApiPaths.Procurement.SUPPLIERS_SUPPLIER_LOOKUP_SOURCE)
                 .map(ProcurementSupplierService::optionSourcesWithSelectionPolicy)
                 .orElse(OPTION_SOURCES);
     }
@@ -93,7 +93,7 @@ public class ProcurementSupplierService extends AbstractQuickstartCrudService<Pr
     private static OptionSourceRegistry optionSourcesWithSelectionPolicy(LookupSelectionPolicy selectionPolicy) {
         return OptionSourceRegistry.builder()
                 .add(ProcurementSupplier.class, new OptionSourceDescriptor(
-                        "supplier",
+                        ApiPaths.Procurement.SUPPLIERS_SUPPLIER_LOOKUP_SOURCE,
                         OptionSourceType.RESOURCE_ENTITY,
                         ApiPaths.Procurement.SUPPLIERS,
                         "supplierId",
@@ -104,7 +104,7 @@ public class ProcurementSupplierService extends AbstractQuickstartCrudService<Pr
                         DEPENDENCIES,
                         lookupPolicy(),
                         new EntityLookupDescriptor(
-                                "supplier",
+                                ApiPaths.Procurement.SUPPLIERS_SUPPLIER_LOOKUP_SOURCE,
                                 "code",
                                 List.of("documentNumber", "homologationStatus", "riskLevel"),
                                 "status",

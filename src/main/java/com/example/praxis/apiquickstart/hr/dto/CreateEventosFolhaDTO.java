@@ -14,7 +14,7 @@ import java.math.BigDecimal;
 
 @Schema(
         name = "CreateEventosFolhaDTO",
-        description = "Corpo de criacao no modulo Recursos humanos; campos do POST. OpenAPI 3.1 (demo).")
+        description = "Comando para lancar uma rubrica ou evento financeiro em folha de pagamento, vinculando descricao, tipo, valor absoluto e competencia de folha para conciliacao e aprovacao.")
 public class CreateEventosFolhaDTO {
 
     @NotBlank
@@ -41,12 +41,12 @@ public class CreateEventosFolhaDTO {
     @NotNull
     @UISchema(
             label = "Folha de Pagamento",
-            controlType = FieldControlType.SELECT,
+            controlType = FieldControlType.ENTITY_LOOKUP,
             group = "Relacionamentos",
             order = 10,
             valueField = "id",
             displayField = "label",
-            endpoint = com.example.praxis.apiquickstart.constants.ApiPaths.HumanResources.FOLHAS_PAGAMENTO + "/options/filter",
+            endpoint = com.example.praxis.apiquickstart.constants.ApiPaths.HumanResources.FOLHAS_PAGAMENTO_PAYROLL_LOOKUP_OPTIONS,
             tableHidden = true,
             helpText = "Folha Ã  qual o evento pertence.",
             icon = "receipt_long"

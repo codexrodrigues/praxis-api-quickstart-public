@@ -1,6 +1,7 @@
 package com.example.praxis.apiquickstart.config;
 
 import com.example.praxis.apiquickstart.ApiQuickstartApplication;
+import com.example.praxis.apiquickstart.constants.ApiPaths;
 import com.example.praxis.apiquickstart.security.JwtTokenService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -185,30 +186,30 @@ class ProcurementEntityLookupPilotIntegrationTest {
         JsonNode schema = body(restTemplate.getForEntity(
                 "/schemas/filtered?path={path}&operation=post&schemaType=request",
                 String.class,
-                "/api/procurement/purchase-orders"
+                ApiPaths.Procurement.PURCHASE_ORDERS
         ));
 
         JsonNode supplierLookup = schema.path("properties").path("supplierId").path("x-ui").path("optionSource");
         assertEquals("entityLookup", schema.path("properties").path("supplierId").path("x-ui").path("controlType").asText());
-        assertEquals("/api/procurement/companies",
+        assertEquals(ApiPaths.Procurement.COMPANIES,
                 schema.path("properties").path("companyId").path("x-ui").path("optionSource").path("resourcePath").asText());
-        assertEquals("supplier", supplierLookup.path("key").asText());
+        assertEquals(ApiPaths.Procurement.SUPPLIERS_SUPPLIER_LOOKUP_SOURCE, supplierLookup.path("key").asText());
         assertEquals("RESOURCE_ENTITY", supplierLookup.path("type").asText());
-        assertEquals("/api/procurement/suppliers", supplierLookup.path("resourcePath").asText());
-        assertEquals("supplier", supplierLookup.path("entityKey").asText());
+        assertEquals(ApiPaths.Procurement.SUPPLIERS, supplierLookup.path("resourcePath").asText());
+        assertEquals(ApiPaths.Procurement.SUPPLIERS_SUPPLIER_LOOKUP_SOURCE, supplierLookup.path("entityKey").asText());
         assertEquals("code", supplierLookup.path("codePropertyPath").asText());
         assertEquals("status", supplierLookup.path("statusPropertyPath").asText());
         assertEquals("companyId", supplierLookup.path("dependsOn").get(0).asText());
         assertEquals("companyId", supplierLookup.path("dependencyFilterMap").path("companyId").asText());
         assertTrue(supplierLookup.path("capabilities").path("byIds").asBoolean());
         assertTrue(supplierLookup.path("selectionPolicy").path("allowRetainInvalidExistingValue").asBoolean());
-        assertEquals("/api/procurement/contracts",
+        assertEquals(ApiPaths.Procurement.CONTRACTS,
                 schema.path("properties").path("contractId").path("x-ui").path("optionSource").path("resourcePath").asText());
-        assertEquals("/api/procurement/products",
+        assertEquals(ApiPaths.Procurement.PRODUCTS,
                 schema.path("properties").path("productId").path("x-ui").path("optionSource").path("resourcePath").asText());
 
         JsonNode suppliers = body(restTemplate.postForEntity(
-                "/api/procurement/suppliers/option-sources/supplier/options/filter?search=ACME",
+                ApiPaths.Procurement.SUPPLIERS_SUPPLIER_LOOKUP_OPTIONS + "?search=ACME",
                 authorizedJson("""
                         {
                           "companyId": 1
@@ -233,7 +234,7 @@ class ProcurementEntityLookupPilotIntegrationTest {
         assertEquals("Fornecedor bloqueado para novos pedidos", blockedSupplier.get(0).path("extra").path("disabledReason").asText());
 
         JsonNode contracts = body(restTemplate.postForEntity(
-                "/api/procurement/contracts/option-sources/contract/options/filter?search=CTR",
+                ApiPaths.Procurement.CONTRACTS_CONTRACT_LOOKUP_OPTIONS + "?search=CTR",
                 authorizedJson("""
                         {
                           "companyId": 1,
@@ -251,6 +252,83 @@ class ProcurementEntityLookupPilotIntegrationTest {
         assertFalse(expiredContract.path("extra").path("selectable").asBoolean());
     }
 
+    @Test
+    void shouldExposeProcurementEntityLookupMetadataAcrossFormsAndFilters() throws Exception {
+        assertProcurementLookup(
+                ApiPaths.Procurement.SUPPLIERS,
+                "companyId",
+                "entityLookup",
+                ApiPaths.Procurement.COMPANIES_COMPANY_LOOKUP_OPTIONS,
+                ApiPaths.Procurement.COMPANIES_COMPANY_LOOKUP_SOURCE,
+                ApiPaths.Procurement.COMPANIES
+        );
+        assertProcurementLookup(
+                ApiPaths.Procurement.CONTRACTS,
+                "companyId",
+                "entityLookup",
+                ApiPaths.Procurement.COMPANIES_COMPANY_LOOKUP_OPTIONS,
+                ApiPaths.Procurement.COMPANIES_COMPANY_LOOKUP_SOURCE,
+                ApiPaths.Procurement.COMPANIES
+        );
+        assertProcurementLookup(
+                ApiPaths.Procurement.CONTRACTS,
+                "supplierId",
+                "entityLookup",
+                ApiPaths.Procurement.SUPPLIERS_SUPPLIER_LOOKUP_OPTIONS,
+                ApiPaths.Procurement.SUPPLIERS_SUPPLIER_LOOKUP_SOURCE,
+                ApiPaths.Procurement.SUPPLIERS
+        );
+        assertProcurementLookup(
+                ApiPaths.Procurement.PRODUCTS,
+                "companyId",
+                "entityLookup",
+                ApiPaths.Procurement.COMPANIES_COMPANY_LOOKUP_OPTIONS,
+                ApiPaths.Procurement.COMPANIES_COMPANY_LOOKUP_SOURCE,
+                ApiPaths.Procurement.COMPANIES
+        );
+        assertProcurementLookup(
+                ApiPaths.Procurement.PRODUCTS,
+                "contractId",
+                "entityLookup",
+                ApiPaths.Procurement.CONTRACTS_CONTRACT_LOOKUP_OPTIONS,
+                ApiPaths.Procurement.CONTRACTS_CONTRACT_LOOKUP_SOURCE,
+                ApiPaths.Procurement.CONTRACTS
+        );
+
+        assertProcurementLookup(
+                ApiPaths.Procurement.SUPPLIERS + "/filter",
+                "companyId",
+                "inlineEntityLookup",
+                ApiPaths.Procurement.COMPANIES_COMPANY_LOOKUP_OPTIONS,
+                ApiPaths.Procurement.COMPANIES_COMPANY_LOOKUP_SOURCE,
+                ApiPaths.Procurement.COMPANIES
+        );
+        assertProcurementLookup(
+                ApiPaths.Procurement.CONTRACTS + "/filter",
+                "supplierId",
+                "inlineEntityLookup",
+                ApiPaths.Procurement.SUPPLIERS_SUPPLIER_LOOKUP_OPTIONS,
+                ApiPaths.Procurement.SUPPLIERS_SUPPLIER_LOOKUP_SOURCE,
+                ApiPaths.Procurement.SUPPLIERS
+        );
+        assertProcurementLookup(
+                ApiPaths.Procurement.PRODUCTS + "/filter",
+                "contractId",
+                "inlineEntityLookup",
+                ApiPaths.Procurement.CONTRACTS_CONTRACT_LOOKUP_OPTIONS,
+                ApiPaths.Procurement.CONTRACTS_CONTRACT_LOOKUP_SOURCE,
+                ApiPaths.Procurement.CONTRACTS
+        );
+        assertProcurementLookup(
+                ApiPaths.Procurement.PURCHASE_ORDERS + "/filter",
+                "productId",
+                "inlineEntityLookup",
+                ApiPaths.Procurement.PRODUCTS_PRODUCT_LOOKUP_OPTIONS,
+                ApiPaths.Procurement.PRODUCTS_PRODUCT_LOOKUP_SOURCE,
+                ApiPaths.Procurement.PRODUCTS
+        );
+    }
+
     private JsonNode body(ResponseEntity<String> response) throws Exception {
         assertEquals(HttpStatus.OK, response.getStatusCode(), response.getBody());
         assertNotNull(response.getBody());
@@ -262,6 +340,33 @@ class ProcurementEntityLookupPilotIntegrationTest {
         headers.setContentType(MediaType.APPLICATION_JSON);
         headers.add(HttpHeaders.COOKIE, "SESSION=" + jwtTokenService.generate("admin", "ADMIN"));
         return new HttpEntity<>(json, headers);
+    }
+
+    private void assertProcurementLookup(
+            String path,
+            String fieldName,
+            String expectedControlType,
+            String expectedEndpoint,
+            String expectedKey,
+            String expectedResourcePath
+    ) throws Exception {
+        JsonNode schema = body(restTemplate.getForEntity(
+                "/schemas/filtered?path={path}&operation=post&schemaType=request",
+                String.class,
+                path
+        ));
+
+        JsonNode fieldUi = schema.path("properties").path(fieldName).path("x-ui");
+        JsonNode optionSource = fieldUi.path("optionSource");
+        assertEquals(expectedControlType, fieldUi.path("controlType").asText(), path + "#" + fieldName);
+        assertEquals(expectedEndpoint, fieldUi.path("endpoint").asText(), path + "#" + fieldName);
+        assertEquals(expectedKey, optionSource.path("key").asText(), path + "#" + fieldName);
+        assertEquals("RESOURCE_ENTITY", optionSource.path("type").asText(), path + "#" + fieldName);
+        assertEquals(expectedResourcePath, optionSource.path("resourcePath").asText(), path + "#" + fieldName);
+        assertEquals(expectedKey, optionSource.path("entityKey").asText(), path + "#" + fieldName);
+        assertEquals("id", optionSource.path("valuePropertyPath").asText(), path + "#" + fieldName);
+        assertTrue(optionSource.path("capabilities").path("filter").asBoolean(), path + "#" + fieldName);
+        assertTrue(optionSource.path("capabilities").path("byIds").asBoolean(), path + "#" + fieldName);
     }
 
     private JsonNode findByLabel(JsonNode items, String label) {

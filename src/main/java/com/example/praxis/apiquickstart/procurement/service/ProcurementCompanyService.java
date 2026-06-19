@@ -25,7 +25,7 @@ import java.util.List;
 public class ProcurementCompanyService extends AbstractQuickstartCrudService<ProcurementCompany, ProcurementCompanyDTO, Integer, ProcurementCompanyFilterDTO, CreateProcurementCompanyDTO, UpdateProcurementCompanyDTO> {
     private static final OptionSourceRegistry OPTION_SOURCES = OptionSourceRegistry.builder()
             .add(ProcurementCompany.class, new OptionSourceDescriptor(
-                    "company",
+                    ApiPaths.Procurement.COMPANIES_COMPANY_LOOKUP_SOURCE,
                     OptionSourceType.RESOURCE_ENTITY,
                     ApiPaths.Procurement.COMPANIES,
                     "companyId",
@@ -35,7 +35,7 @@ public class ProcurementCompanyService extends AbstractQuickstartCrudService<Pro
                     List.of(),
                     lookupPolicy(),
                     new EntityLookupDescriptor(
-                            "company",
+                            ApiPaths.Procurement.COMPANIES_COMPANY_LOOKUP_SOURCE,
                             "code",
                             List.of("documentNumber", "city", "state"),
                             "status",

@@ -22,13 +22,13 @@ import java.time.OffsetDateTime;
                 + "Cada registo e uma mencao pontual; sentimento classifica impacto qualitativo (NEG, NEU, POS) para agregacoes.")
 public class MencoesMidiaDTO {
     @Schema(
-            description = "Chave da mencao. Historico imutavel em sentido lato: correcoes geram novo registo ou fluxo de retificacao fora deste DTO (demo).",
+            description = "Chave da mencao. Historico imutavel em sentido lato: correcoes geram novo registo ou fluxo de retificacao fora deste DTO.",
             example = "1")
     private Integer id;
 
-    @UISchema(label = "Funcionário", controlType = FieldControlType.SELECT,
+    @UISchema(label = "Funcionário", controlType = FieldControlType.ENTITY_LOOKUP,
             valueField = "id", displayField = "label",
-            endpoint = com.example.praxis.apiquickstart.constants.ApiPaths.HumanResources.FUNCIONARIOS + "/options/filter",
+            endpoint = com.example.praxis.apiquickstart.constants.ApiPaths.HumanResources.FUNCIONARIOS_EMPLOYEE_LOOKUP_OPTIONS,
             tableHidden = true, helpText = "Colaborador mencionado na mídia.", icon = "badge")
     @Schema(
             description = "Herói citado na peca de midia; FK ao Funcionario. Usado para cruzar com Reputacao e perfil publico.",
@@ -49,7 +49,7 @@ public class MencoesMidiaDTO {
 
     @UISchema(label = "Sentimento", controlType = FieldControlType.SELECT, helpText = "Classificação da menção (Positiva, Negativa, Neutra).", icon = "mood")
     @Schema(
-            description = "Classificacao automatica ou curada: NEG (crise), NEU, POS. Alimenta agregacoes e pode disparar governanca de resposta (demo).")
+            description = "Classificacao automatica ou curada: NEG (crise), NEU, POS. Alimenta agregacoes e pode disparar governanca de resposta.")
     private Sentimento sentimento;
 
     @Size(max = 500)
@@ -61,7 +61,7 @@ public class MencoesMidiaDTO {
 
     @UISchema(label = "Publicado Em", type = FieldDataType.DATE, controlType = FieldControlType.DATE_TIME_PICKER, helpText = "Data e hora da publicação da menção.", icon = "event")
     @Schema(
-            description = "Instante de publicacao referido na fonte; linha de tempo de reputacao e janela de reaccao (demo).",
+            description = "Instante de publicacao referido na fonte; linha de tempo de reputacao e janela de reaccao.",
             example = "2025-03-10T08:00:00Z")
     private OffsetDateTime publicadoEm;
 

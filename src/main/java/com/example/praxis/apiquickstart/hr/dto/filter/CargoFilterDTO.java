@@ -15,18 +15,18 @@ import java.util.List;
 @Schema(
         name = "CargoFilterDTO",
         description = "Criterios de busca para o catalogo de cargos (nao e o Cargo persistido a editar). "
-                + "Usado com GenericFilter / POST /filter no demo RH; paginacao/ordenacao seguem o recurso. Nenhum campo obrigatorio.")
+                + "Apoia consulta de funcoes por denominacao, senioridade, responsabilidade e faixa salarial publicada.")
 public class CargoFilterDTO implements GenericFilterDTO {
     @UISchema(label = "Nome do Cargo", controlType = FieldControlType.INPUT, maxLength = 200, order = 10, helpText = "Filtrar por nome do cargo (ex: Engenheiro).", icon = "badge")
     @Filterable(operation = Filterable.FilterOperation.LIKE)
     @Schema(
-            description = "Texto do titulo do cargo; operacao LIKE (substring) sobre nome. Casar com tabela e escala salarial (demo).")
+            description = "Trecho da denominacao do cargo usada para localizar funcoes no catalogo de pessoal.")
     private String nome;
 
     @UISchema(label = "Nível/Senioridade", controlType = FieldControlType.INPUT, maxLength = 100, order = 20, helpText = "Filtrar por nível ou senioridade.", icon = "trending_up")
     @Filterable(operation = Filterable.FilterOperation.LIKE)
     @Schema(
-            description = "Filtro por senioridade, faixa de carreira ou padrao interno; LIKE sobre campo nivel (demo).")
+            description = "Trecho da senioridade, faixa de carreira ou nivel interno associado ao cargo.")
     private String nivel;
 
     @UISchema(label = "Descrição", controlType = FieldControlType.INPUT, maxLength = 1000, order = 30, helpText = "Filtrar por palavras-chave na descrição.", icon = "description")
@@ -39,14 +39,14 @@ public class CargoFilterDTO implements GenericFilterDTO {
             numericFormat = NumericFormat.CURRENCY, numericStep = "0.01", helpText = "Buscar cargos pelo piso salarial (mínimo e máximo).", icon = "payments")
     @Filterable(operation = Filterable.FilterOperation.BETWEEN, relation = "salarioMinimo")
     @Schema(
-            description = "Intervalo de piso minimo ofertado pelo cargo; BETWEEN na moeda do backend. Refina catalogo e benchmarks internos (demo).")
+            description = "Intervalo de piso salarial previsto para o cargo, usado em comparacao de faixas e planejamento remuneratorio.")
     private List<BigDecimal> salarioMinimoBetween;
 
     @UISchema(label = "Teto Salarial", type = FieldDataType.NUMBER, controlType = FieldControlType.PRICE_RANGE, order = 50,
             numericFormat = NumericFormat.CURRENCY, numericStep = "0.01", helpText = "Buscar cargos pelo teto salarial (mínimo e máximo).", icon = "payments")
     @Filterable(operation = Filterable.FilterOperation.BETWEEN, relation = "salarioMaximo")
     @Schema(
-            description = "Intervalo de teto maximo; BETWEEN. Usa-se em conjunto com piso para faixas de requisicoes (demo).")
+            description = "Intervalo de teto salarial previsto para o cargo, usado em governanca de enquadramento e requisicoes.")
     private List<BigDecimal> salarioMaximoBetween;
 
     public String getNome() { return nome; }

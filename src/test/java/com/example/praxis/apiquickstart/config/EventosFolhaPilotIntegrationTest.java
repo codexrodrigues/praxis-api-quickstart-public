@@ -214,6 +214,34 @@ class EventosFolhaPilotIntegrationTest {
         assertTrue(requestSchema.path("properties").has("folhaPagamentoId"));
         assertFalse(requestSchema.path("properties").has("id"));
         assertFalse(requestSchema.path("properties").has("folhaPagamentoNome"));
+        JsonNode folhaUi = requestSchema.path("properties").path("folhaPagamentoId").path("x-ui");
+        JsonNode payrollOptionSource = folhaUi.path("optionSource");
+        assertEquals("entityLookup", folhaUi.path("controlType").asText());
+        assertEquals("/api/human-resources/folhas-pagamento/option-sources/payroll/options/filter",
+                folhaUi.path("endpoint").asText());
+        assertEquals("payroll", payrollOptionSource.path("key").asText());
+        assertEquals("RESOURCE_ENTITY", payrollOptionSource.path("type").asText());
+        assertEquals("/api/human-resources/folhas-pagamento", payrollOptionSource.path("resourcePath").asText());
+        assertEquals("payroll", payrollOptionSource.path("entityKey").asText());
+        assertTrue(payrollOptionSource.path("capabilities").path("filter").asBoolean());
+        assertTrue(payrollOptionSource.path("capabilities").path("byIds").asBoolean());
+
+        JsonNode payrollOptions = body(restTemplate.postForEntity(
+                "/api/human-resources/folhas-pagamento/option-sources/payroll/options/filter",
+                authorizedJson("{}", jwtTokenService.generate("admin", "ADMIN")),
+                String.class
+        ));
+        assertEquals(1, payrollOptions.path("content").size());
+        assertEquals(1, payrollOptions.path("content").get(0).path("id").asInt());
+        assertEquals("2026", payrollOptions.path("content").get(0).path("label").asText());
+        assertEquals("3 - 2026-03-31", payrollOptions.path("content").get(0).path("extra").path("description").asText());
+
+        JsonNode selectedPayroll = objectMapper.readTree(restTemplate.getForObject(
+                "/api/human-resources/folhas-pagamento/option-sources/payroll/options/by-ids?ids=1",
+                String.class
+        ));
+        assertEquals(1, selectedPayroll.size());
+        assertEquals("2026", selectedPayroll.get(0).path("label").asText());
 
         JsonNode itemSurfaces = body(restTemplate.getForEntity(
                 "/api/human-resources/eventos-folha/1/surfaces",

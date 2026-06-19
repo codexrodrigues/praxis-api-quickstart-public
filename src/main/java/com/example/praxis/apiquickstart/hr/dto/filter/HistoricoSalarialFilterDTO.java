@@ -17,39 +17,39 @@ import java.util.List;
 @Schema(
         name = "HistoricoSalarialFilterDTO",
         description = "Criterios de busca no historico de correcoes/ faixas salariais (nao e a linha de ajuste a submeter). "
-                + "Uso: auditoria de reajustes; GenericFilter / POST /filter (demo).")
+                + "Apoia auditoria de reajustes, vigencia remuneratoria, trilha de carreira e analise de impacto salarial.")
 public class HistoricoSalarialFilterDTO implements GenericFilterDTO {
-    @UISchema(label = "Colaborador", type = FieldDataType.NUMBER, controlType = FieldControlType.ASYNC_SELECT, order = 10,
+    @UISchema(label = "Colaborador", type = FieldDataType.NUMBER, controlType = FieldControlType.INLINE_ENTITY_LOOKUP, order = 10,
             valueField = "id", displayField = "label",
-            endpoint = ApiPaths.HumanResources.FUNCIONARIOS + "/options/filter", helpText = "Filtrar por colaborador.", icon = "badge")
+            endpoint = ApiPaths.HumanResources.FUNCIONARIOS_EMPLOYEE_LOOKUP_OPTIONS, helpText = "Filtrar por colaborador.", icon = "badge")
     @Filterable(operation = Filterable.FilterOperation.EQUAL, relation = "funcionario.id")
     @Schema(
-            description = "Trilha de salario de um unico colaborador; EQUAL (FK) (demo).")
+            description = "Colaborador cuja trilha remuneratoria deve ser consultada para auditoria, promocao ou historico contratual.")
     private Integer funcionarioId;
 
     @UISchema(label = "Faixa Salarial", type = FieldDataType.NUMBER, controlType = FieldControlType.RANGE_SLIDER, order = 20,
             numericFormat = NumericFormat.CURRENCY, numericStep = "0.01", helpText = "Filtrar por faixa salarial no histórico.", icon = "payments")
     @Filterable(operation = Filterable.FilterOperation.BETWEEN, relation = "salario")
     @Schema(
-            description = "Faixa de remuneracao no periodo historico; BETWEEN (reajuste, plano de carreira) (demo).")
+            description = "Intervalo de remuneracao historica usado para localizar faixas salariais, reajustes e mudancas de carreira.")
     private List<BigDecimal> salarioBetween;
 
     @UISchema(label = "Início de Vigência", type = FieldDataType.DATE, controlType = FieldControlType.DATE_RANGE, order = 30, helpText = "Buscar por data de início de vigência.", icon = "event")
     @Filterable(operation = Filterable.FilterOperation.BETWEEN, relation = "dataInicio")
     @Schema(
-            description = "Inicio de vigencia do salario; BETWEEN (janela de validade) (demo).")
+            description = "Intervalo de inicio de vigencia da remuneracao, usado para identificar quando uma condicao salarial passou a valer.")
     private List<LocalDate> dataInicioBetween;
 
     @UISchema(label = "Fim de Vigência", type = FieldDataType.DATE, controlType = FieldControlType.DATE_RANGE, order = 40, helpText = "Buscar por data de fim de vigência.", icon = "event")
     @Filterable(operation = Filterable.FilterOperation.BETWEEN, relation = "dataFim")
     @Schema(
-            description = "Fim de vigencia; BETWEEN (fim de contrato, migracao) (demo).")
+            description = "Intervalo de fim de vigencia da remuneracao, usado para encontrar encerramento, substituicao ou lacunas de historico.")
     private List<LocalDate> dataFimBetween;
 
     @UISchema(label = "Motivo", controlType = FieldControlType.INPUT, maxLength = 2000, order = 50, helpText = "Filtrar por motivo do reajuste ou promoção.", icon = "notes")
     @Filterable(operation = Filterable.FilterOperation.LIKE)
     @Schema(
-            description = "Motivo textual (promocao, reajuste coletivo, correcao); LIKE (demo).")
+            description = "Justificativa de negocio do ajuste, como promocao, reajuste coletivo, correcao contratual ou reenquadramento.")
     private String motivo;
 
     public Integer getFuncionarioId() { return funcionarioId; }

@@ -366,11 +366,11 @@ public class MissaoController extends AbstractQuickstartCrudController<Missao, M
     @Operation(summary = "Iniciar missão", description = "Inicia a execução da missão e publica a transição de estado para catálogos de workflow e capabilities.")
     @WorkflowAction(
             id = "start",
-            title = "Start mission",
-            description = "Transitions a planned mission into active execution",
+            title = "Iniciar missao",
+            description = "Coloca uma missao planejada em execucao ativa e registra o marco inicial da operacao.",
             scope = ActionScope.ITEM,
             order = 100,
-            successMessage = "Mission started",
+            successMessage = "Missao iniciada",
             allowedStates = {"PLANEJADA"},
             tags = {"workflow", "status"}
     )
@@ -385,11 +385,11 @@ public class MissaoController extends AbstractQuickstartCrudController<Missao, M
     @Operation(summary = "Pausar missão", description = "Pausa uma missão em andamento mantendo o contexto operacional necessário para retomada.")
     @WorkflowAction(
             id = "pause",
-            title = "Pause mission",
-            description = "Temporarily pauses an active mission",
+            title = "Pausar missao",
+            description = "Interrompe temporariamente uma missao em andamento preservando contexto para retomada.",
             scope = ActionScope.ITEM,
             order = 110,
-            successMessage = "Mission paused",
+            successMessage = "Missao pausada",
             allowedStates = {"EM_ANDAMENTO"},
             tags = {"workflow", "status"}
     )
@@ -404,11 +404,11 @@ public class MissaoController extends AbstractQuickstartCrudController<Missao, M
     @Operation(summary = "Retomar missão", description = "Retoma uma missão pausada e republica sua disponibilidade para ações subsequentes.")
     @WorkflowAction(
             id = "resume",
-            title = "Resume mission",
-            description = "Resumes a paused mission",
+            title = "Retomar missao",
+            description = "Retoma uma missao pausada e recoloca a operacao no fluxo ativo de acompanhamento.",
             scope = ActionScope.ITEM,
             order = 120,
-            successMessage = "Mission resumed",
+            successMessage = "Missao retomada",
             allowedStates = {"PAUSADA"},
             tags = {"workflow", "status"}
     )
@@ -423,11 +423,11 @@ public class MissaoController extends AbstractQuickstartCrudController<Missao, M
     @Operation(summary = "Concluir missão", description = "Conclui a missão e fecha o ciclo operacional com atualização de estado e data final.")
     @WorkflowAction(
             id = "complete",
-            title = "Complete mission",
-            description = "Marks an active mission as completed",
+            title = "Concluir missao",
+            description = "Encerra uma missao executada com sucesso e fixa seu fechamento operacional.",
             scope = ActionScope.ITEM,
             order = 130,
-            successMessage = "Mission completed",
+            successMessage = "Missao concluida",
             allowedStates = {"EM_ANDAMENTO"},
             tags = {"workflow", "status"}
     )
@@ -442,11 +442,11 @@ public class MissaoController extends AbstractQuickstartCrudController<Missao, M
     @Operation(summary = "Registrar falha da missão", description = "Encerra a missão com falha e publica o resultado operacional para surfaces, actions e auditoria.")
     @WorkflowAction(
             id = "fail",
-            title = "Fail mission",
-            description = "Ends a mission with failure",
+            title = "Registrar falha da missao",
+            description = "Encerra uma missao com falha operacional e preserva o contexto para auditoria e acompanhamento.",
             scope = ActionScope.ITEM,
             order = 140,
-            successMessage = "Mission marked as failed",
+            successMessage = "Falha da missao registrada",
             allowedStates = {"EM_ANDAMENTO", "PAUSADA"},
             tags = {"workflow", "status"}
     )

@@ -2,7 +2,7 @@
 
 Este documento mostra como o catalogo semantico deve ser usado por uma LLM, por um analista de negocio e por um desenvolvedor para entender um dominio em runtime, sem ler codigo-fonte.
 
-O exemplo canonico e `operations.missoes`, porque ele nao e um cadastro isolado: ele se conecta a equipes, bases, participantes, eventos, incidentes, sinais de socorro e acordos regulatorios.
+O exemplo canonico e `operations.missoes`, porque ele nao e um cadastro isolado: ele se conecta diretamente a ameacas e janelas operacionais, e tambem e contextualizado por participantes, eventos, incidentes, licencas, bases, equipes e acordos regulatorios por meio de recursos relacionados e surfaces publicadas.
 
 ## O que a LLM recebe
 
@@ -36,8 +36,9 @@ Conceitos principais:
 - Missao: unidade de trabalho operacional planejada, executada e acompanhada.
 - Status da missao: estado de ciclo de vida usado para governar acoes possiveis.
 - Prioridade: urgencia operacional para ordenacao, escalonamento e dashboards.
-- Base: local ou estrutura operacional associada a execucao.
-- Equipe: grupo responsavel pela execucao.
+- Ameaca: risco principal associado a missao por lookup de entidade governada.
+- Base: estrutura operacional consultada por recursos relacionados, como acessos, equipes e licencas; nao e campo direto do cadastro de missao no contrato atual.
+- Equipe: grupo responsavel pela execucao, normalmente materializado por participantes, membros ou licencas relacionadas; nao e campo direto do cadastro de missao no contrato atual.
 - Participante: pessoa ou agente associado a uma missao com papel especifico.
 - Evento de missao: marco cronologico que registra progresso, pausa, retomada ou mudanca relevante.
 - Incidente: ocorrencia associada a risco, impacto ou desvio operacional.
@@ -47,14 +48,13 @@ Conceitos principais:
 
 Uma LLM nao deve tratar `operations.missoes` como uma tabela plana. Ela deve procurar relacoes no catalogo antes de sugerir UI, regra, validacao ou automacao.
 
-Relacionamentos representativos:
+Relacionamentos representativos no contrato atual:
 
-- Missao usa ou referencia uma base operacional.
-- Missao possui participantes.
-- Missao possui eventos.
-- Missao pode estar associada a incidentes.
-- Missao pode depender de acordos regulatorios.
-- Missao pode consumir contexto de equipes e membros.
+- Missao referencia uma ameaca por `ameacaId`, usando a option source governada `threat` do recurso `risk-intelligence.ameacas`.
+- Missao possui participantes em `operations.missao-participantes`.
+- Missao possui eventos em `operations.missao-eventos`.
+- Missao pode estar associada a incidentes por recursos de incidentes e indicadores de risco.
+- Bases, equipes, licencas e acordos regulatorios sao contexto operacional relacionado; a LLM deve consulta-los quando houver `edges`, surfaces, actions ou bindings publicados, mas nao deve inventar campos diretos em `operations.missoes` sem contrato.
 
 Essas relacoes aparecem como `edges` no catalogo e sao a base para prompts como:
 
@@ -64,7 +64,7 @@ Resposta esperada da LLM:
 
 - Consultar o proprio recurso de missoes.
 - Recuperar participantes e eventos relacionados.
-- Verificar base, equipe e contexto regulatorio quando existirem edges ou bindings publicados.
+- Verificar ameaca, participantes e eventos primeiro; depois consultar base, equipe, licenca e contexto regulatorio somente quando existirem edges, surfaces ou bindings publicados para a tarefa.
 - Respeitar governanca antes de exibir campos sensiveis ou gerar regras.
 
 ## Governança e uso por IA

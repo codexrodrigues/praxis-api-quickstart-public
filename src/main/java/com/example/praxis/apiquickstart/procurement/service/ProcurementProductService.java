@@ -31,7 +31,7 @@ public class ProcurementProductService extends AbstractQuickstartCrudService<Pro
 
     private static final OptionSourceRegistry OPTION_SOURCES = OptionSourceRegistry.builder()
             .add(ProcurementProduct.class, new OptionSourceDescriptor(
-                    "product",
+                    ApiPaths.Procurement.PRODUCTS_PRODUCT_LOOKUP_SOURCE,
                     OptionSourceType.RESOURCE_ENTITY,
                     ApiPaths.Procurement.PRODUCTS,
                     "productId",
@@ -42,7 +42,7 @@ public class ProcurementProductService extends AbstractQuickstartCrudService<Pro
                     DEPENDENCIES,
                     lookupPolicy(),
                     new EntityLookupDescriptor(
-                            "product",
+                            ApiPaths.Procurement.PRODUCTS_PRODUCT_LOOKUP_SOURCE,
                             "sku",
                             List.of("categoryName", "stockAvailable", "unitOfMeasure"),
                             "status",

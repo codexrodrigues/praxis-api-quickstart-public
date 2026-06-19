@@ -214,7 +214,7 @@ public class SecurityConfig {
                 }
 
                 if (writeDisabled) {
-                    // Bloquear escrita na API (demo): POST/PUT/PATCH/DELETE
+                    // Bloquear escrita na API: POST/PUT/PATCH/DELETE
                     // Observação: regras específicas de POST liberadas acima (filters/options/filtered) prevalecem
                     auth
                         .requestMatchers(HttpMethod.DELETE, "/api/**").denyAll()

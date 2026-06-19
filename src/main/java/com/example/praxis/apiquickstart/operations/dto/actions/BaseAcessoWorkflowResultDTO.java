@@ -4,11 +4,11 @@ import io.swagger.v3.oas.annotations.media.Schema;
 
 @Schema(
         name = "BaseAcessoWorkflowResultDTO",
-        description = "Resposta de workflow de acesso a base: id do registo, credencial ativa antes e depois, nivel aprovado, "
-                + "eco de justificativa e mensagem para a UI. OpenAPI 3.1 (demo).")
+        description = "Resultado da decisao de acesso a base, indicando a elegibilidade anterior e vigente, o nivel aprovado, "
+                + "a justificativa registrada e a mensagem operacional da decisao.")
 public class BaseAcessoWorkflowResultDTO {
 
-    @Schema(description = "Identificador interno (PK) deste registo no servico; referencia o recurso em URLs e relacionamentos.")
+    @Schema(description = "Identificador do registro de acesso afetado pela decisao; referencia o recurso em URLs e relacionamentos.")
     private Integer id;
     @Schema(
             description = "Situacao de elegibilidade antes da transicao (ex. credencial suspensa).")
@@ -20,7 +20,7 @@ public class BaseAcessoWorkflowResultDTO {
             description = "String de classificacao de corredor vigente apos a decisao (ex. TSI-2).")
     private String nivelAcesso;
     @Schema(
-            description = "Eco da justificativa fornecida na requisicao de workflow (quando armazenada).")
+            description = "Justificativa preservada para explicar a ativacao ou desativacao da credencial.")
     private String justificativa;
     @Schema(
             description = "Texto amigavel para o operador (sucesso, alerta, proximo passo).")

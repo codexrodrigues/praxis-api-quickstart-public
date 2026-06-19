@@ -16,7 +16,7 @@ import org.praxisplatform.uischema.extension.annotation.UISchema;
 @Schema(
         name = "FuncionarioHabilidadeDTO",
         description = "Vinculo N-N entre colaborador e entrada do catalogo de habilidades. A proficiencia e a origem pertencem ao vinculo (nao ao catalogo): "
-                + "usado em alocacao a missao, relatorios de equipa e matriz de competencias (demo).")
+                + "usado em alocacao a missao, relatorios de equipa e matriz de competencias.")
 public class FuncionarioHabilidadeDTO {
     @Schema(
             description = "Chave do vinculo. Cada par (funcionario, habilidade) pode aparecer no maximo uma vez; listagens de skill do heroi leem deste recurso.",
@@ -24,9 +24,9 @@ public class FuncionarioHabilidadeDTO {
     private Integer id;
 
     @NotNull
-    @UISchema(label = "Funcionário", controlType = FieldControlType.SELECT, required = true, icon = "badge",
+    @UISchema(label = "Funcionário", controlType = FieldControlType.ENTITY_LOOKUP, required = true, icon = "badge",
             valueField = "id", displayField = "label",
-            endpoint = com.example.praxis.apiquickstart.constants.ApiPaths.HumanResources.FUNCIONARIOS + "/options/filter",
+            endpoint = com.example.praxis.apiquickstart.constants.ApiPaths.HumanResources.FUNCIONARIOS_EMPLOYEE_LOOKUP_OPTIONS,
             tableHidden = true, helpText = "Colaborador associado à habilidade.")
     @Schema(
             description = "Colaborador possuidor da proficiencia: referencia o recurso Funcionario (heroi) que acumula esta habilidade.",
@@ -36,7 +36,7 @@ public class FuncionarioHabilidadeDTO {
     @NotNull
     @UISchema(label = "Habilidade", controlType = FieldControlType.SELECT, required = true, icon = "psychology",
             valueField = "id", displayField = "label",
-            endpoint = com.example.praxis.apiquickstart.constants.ApiPaths.HumanResources.HABILIDADES + "/options/filter",
+            endpoint = com.example.praxis.apiquickstart.constants.ApiPaths.HumanResources.HABILIDADES_SKILL_LOOKUP_OPTIONS,
             tableHidden = true, helpText = "Habilidade do catálogo a ser vinculada.")
     @Schema(
             description = "Ponte para o registo de HabilidadeDTO no catalogo; define qual competencia esta a ser classificada para este colaborador.",
@@ -63,7 +63,7 @@ public class FuncionarioHabilidadeDTO {
     @Size(max = 120)
     @UISchema(label = "Origem", controlType = FieldControlType.INPUT, maxLength = 120, helpText = "Onde a habilidade foi adquirida (ex: curso, certificação).", icon = "school")
     @Schema(
-            description = "Proveniencia do treino ou certificacao (ex. Academia, missao 42); texto livre para auditoria e credito de competencia (demo).",
+            description = "Proveniencia do treino ou certificacao (ex. Academia, missao 42); texto livre para auditoria e credito de competencia.",
             example = "Academia de Defesa Metropolitana")
     private String origem;
 

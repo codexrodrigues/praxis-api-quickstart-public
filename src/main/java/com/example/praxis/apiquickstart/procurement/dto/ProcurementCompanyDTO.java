@@ -11,10 +11,9 @@ import org.praxisplatform.uischema.extension.annotation.UISchema;
 @Setter
 @Schema(
         name = "ProcurementCompanyDTO",
-        description = "Empresa cadastrada para abastecimento e contratos (identificacao fiscal, local, elegibilidade). "
-                + "Payload de borda; nao e criterio de filtro. OpenAPI 3.1 e x-ui (demo).")
+        description = "Empresa compradora cadastrada para abastecimento e contratos, com identificacao fiscal, localidade, status de elegibilidade e motivo de bloqueio quando aplicavel.")
 public class ProcurementCompanyDTO {
-    @Schema(description = "Identificador interno (PK) deste registo no servico; referencia o recurso em URLs e relacionamentos.")
+    @Schema(description = "Identificador da empresa compradora no procurement; referencia contratos, fornecedores, produtos e pedidos relacionados.")
     private Integer id;
 
     @UISchema(label = "Codigo", controlType = FieldControlType.INPUT, order = 10, icon = "tag")

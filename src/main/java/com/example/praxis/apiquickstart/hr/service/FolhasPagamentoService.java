@@ -2,6 +2,7 @@ package com.example.praxis.apiquickstart.hr.service;
 
 import com.example.praxis.apiquickstart.config.DomainRuleWorkflowActionPolicy;
 import com.example.praxis.apiquickstart.config.DomainRuleWorkflowActionPolicyResolver;
+import com.example.praxis.apiquickstart.constants.ApiPaths;
 import com.example.praxis.apiquickstart.hr.dto.CreateFolhasPagamentoDTO;
 import com.example.praxis.apiquickstart.hr.dto.FolhasPagamentoDTO;
 import com.example.praxis.apiquickstart.hr.dto.ScheduleFolhaPagamentoDTO;
@@ -14,6 +15,13 @@ import com.example.praxis.apiquickstart.hr.mapper.FolhasPagamentoMapper;
 import com.example.praxis.apiquickstart.hr.repository.FolhasPagamentoRepository;
 import com.example.praxis.apiquickstart.core.service.base.AbstractQuickstartCrudService;
 import org.praxisplatform.uischema.capability.ResourceStateSnapshot;
+import org.praxisplatform.uischema.options.EntityLookupDescriptor;
+import org.praxisplatform.uischema.options.LookupCapabilities;
+import org.praxisplatform.uischema.options.LookupDetailDescriptor;
+import org.praxisplatform.uischema.options.OptionSourceDescriptor;
+import org.praxisplatform.uischema.options.OptionSourcePolicy;
+import org.praxisplatform.uischema.options.OptionSourceRegistry;
+import org.praxisplatform.uischema.options.OptionSourceType;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -23,6 +31,7 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -47,6 +56,32 @@ public class FolhasPagamentoService extends AbstractQuickstartCrudService<Folhas
     private static final String STATE_SCHEDULED = "PROGRAMADA";
     private static final String STATE_PAID = "PAGA";
     private static final String MARK_PAID_POLICY_TARGET = "human-resources.folhas-pagamento:mark-paid";
+    private static final OptionSourceRegistry OPTION_SOURCES = OptionSourceRegistry.builder()
+            .add(FolhasPagamento.class, new OptionSourceDescriptor(
+                    ApiPaths.HumanResources.FOLHAS_PAGAMENTO_PAYROLL_LOOKUP_SOURCE,
+                    OptionSourceType.RESOURCE_ENTITY,
+                    ApiPaths.HumanResources.FOLHAS_PAGAMENTO,
+                    null,
+                    "id",
+                    "ano",
+                    "id",
+                    List.of(),
+                    lookupPolicy(),
+                    new EntityLookupDescriptor(
+                            ApiPaths.HumanResources.FOLHAS_PAGAMENTO_PAYROLL_LOOKUP_SOURCE,
+                            null,
+                            List.of("mes", "dataPagamento"),
+                            null,
+                            null,
+                            null,
+                            List.of("ano", "mes"),
+                            null,
+                            null,
+                            new LookupCapabilities(true, true, true, false, false, true, false, false, false, true),
+                            new LookupDetailDescriptor(ApiPaths.HumanResources.FOLHAS_PAGAMENTO + "/{id}", "/human-resources/folhas-pagamento/{id}", "route")
+                    )
+            ))
+            .build();
     private static final String STATUS_COLUMN_EXISTS_SQL = """
             select exists (
                 select 1
@@ -87,6 +122,15 @@ public class FolhasPagamentoService extends AbstractQuickstartCrudService<Folhas
         this.mapper = mapper;
         this.apiJdbcTemplate = apiJdbcTemplate;
         this.workflowActionPolicyResolver = workflowActionPolicyResolver;
+    }
+
+    public static OptionSourceRegistry optionSources() {
+        return OPTION_SOURCES;
+    }
+
+    @Override
+    public OptionSourceRegistry getOptionSourceRegistry() {
+        return OPTION_SOURCES;
     }
 
     @Override
@@ -276,6 +320,20 @@ public class FolhasPagamentoService extends AbstractQuickstartCrudService<Folhas
             }
         }
         return null;
+    }
+
+    private static OptionSourcePolicy lookupPolicy() {
+        return new OptionSourcePolicy(
+                true,
+                true,
+                "contains",
+                0,
+                25,
+                100,
+                true,
+                false,
+                "label"
+        );
     }
 
     /** Snapshot interno minimo para decidir workflow e availability do recurso. */

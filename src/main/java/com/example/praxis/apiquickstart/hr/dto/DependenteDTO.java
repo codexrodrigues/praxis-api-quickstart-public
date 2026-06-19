@@ -26,7 +26,7 @@ import java.time.LocalDate;
  */
 @Schema(
         name = "DependenteDTO",
-        description = "Membro da familia (ou outro vinculo declarado) associado a um colaborador no demo de RH. "
+        description = "Membro da familia ou outro vinculo declarado associado a um colaborador no dominio de RH. "
                 + "Sustenta cenarios de beneficios, elegibilidade, IR e registo civil; tratar com o mesmo cuidado de dados pessoais (LGPD) que o titular.")
 public class DependenteDTO {
     @Schema(
@@ -59,7 +59,7 @@ public class DependenteDTO {
     @Size(max = 100)
     @UISchema(label = "Parentesco", controlType = FieldControlType.INPUT, required = true, maxLength = 100, group = "Identificação", order = 20, helpText = "Grau de parentesco (ex: filho, cônjuge).", icon = "family_restroom")
     @Schema(
-            description = "Grau de parentesco ou dependencia (ex. conjuge, filha, enteado) usado em regras de desconto e comprovacao; texto livre no demo, sujeito a validacao de negocio fora do DTO.",
+            description = "Grau de parentesco ou dependencia (ex. conjuge, filha, enteado) usado em regras de desconto e comprovacao; texto livre sujeito a validacao de negocio fora do DTO.",
             example = "filha")
     private String parentesco;
 
@@ -85,9 +85,9 @@ public class DependenteDTO {
     private LocalDate dataNascimento;
 
     @NotNull
-    @UISchema(label = "Funcionário", controlType = FieldControlType.SELECT, group = "Relacionamentos", order = 10, icon = "badge",
+    @UISchema(label = "Funcionário", controlType = FieldControlType.ENTITY_LOOKUP, group = "Relacionamentos", order = 10, icon = "badge",
             valueField = "id", displayField = "label",
-            endpoint = com.example.praxis.apiquickstart.constants.ApiPaths.HumanResources.FUNCIONARIOS + "/options/filter",
+            endpoint = com.example.praxis.apiquickstart.constants.ApiPaths.HumanResources.FUNCIONARIOS_EMPLOYEE_LOOKUP_OPTIONS,
             tableHidden = true, helpText = "Colaborador titular vinculado ao dependente.")
     @Schema(
             description = "Colaborador titular do vinculo familiar: o dependente liga-se a este `funcionarioId` (heroi) para beneficios e relatorios.",

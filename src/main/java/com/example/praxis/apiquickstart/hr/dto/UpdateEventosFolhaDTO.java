@@ -14,7 +14,7 @@ import java.math.BigDecimal;
 
 @Schema(
         name = "UpdateEventosFolhaDTO",
-        description = "Corpo de atualizacao no modulo Recursos humanos; campos mutaveis. OpenAPI 3.1 (demo).")
+        description = "Comando para corrigir ou reclassificar um evento de folha existente, mantendo sua identidade tecnica e atualizando rubrica, tipo, valor ou folha de competencia.")
 public class UpdateEventosFolhaDTO {
 
     @NotBlank
@@ -41,12 +41,12 @@ public class UpdateEventosFolhaDTO {
     @NotNull
     @UISchema(
             label = "Folha de Pagamento",
-            controlType = FieldControlType.SELECT,
+            controlType = FieldControlType.ENTITY_LOOKUP,
             group = "Relacionamentos",
             order = 10,
             valueField = "id",
             displayField = "label",
-            endpoint = com.example.praxis.apiquickstart.constants.ApiPaths.HumanResources.FOLHAS_PAGAMENTO + "/options/filter",
+            endpoint = com.example.praxis.apiquickstart.constants.ApiPaths.HumanResources.FOLHAS_PAGAMENTO_PAYROLL_LOOKUP_OPTIONS,
             tableHidden = true,
             helpText = "Nova folha Ã  qual o evento pertence.",
             icon = "receipt_long"

@@ -214,7 +214,9 @@ class AiPatchSchemaResolutionIsolatedIntegrationTest {
         assertNotNull(response.getBody());
         assertEquals("error", response.getBody().get("type"));
         assertEquals("SCHEMA_NOT_FOUND", response.getBody().get("code"));
-        assertTrue(String.valueOf(response.getBody().get("message")).contains("Schema estrutural"));
+        assertTrue(
+                String.valueOf(response.getBody().get("message")).contains("Schema estrutural"),
+                () -> "Unexpected response body: " + response.getBody());
         assertTrue(String.valueOf(response.getBody().get("explanation")).contains("path=/api/human-resources/inexistente"));
     }
 

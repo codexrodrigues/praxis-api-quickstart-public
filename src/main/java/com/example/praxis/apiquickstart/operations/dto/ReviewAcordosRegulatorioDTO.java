@@ -10,7 +10,7 @@ import org.praxisplatform.uischema.extension.annotation.UISchema;
 @Schema(
         name = "ReviewAcordosRegulatorioDTO",
         description = "Corpo de submissao ou revisao de acordo regulatorio: jurisdicao e texto normativo. "
-                + "OpenAPI 3.1 e x-ui (demo).")
+                + "Atualiza o contexto documental de compliance sem executar transicao de workflow do acordo.")
 public class ReviewAcordosRegulatorioDTO {
 
     @NotBlank

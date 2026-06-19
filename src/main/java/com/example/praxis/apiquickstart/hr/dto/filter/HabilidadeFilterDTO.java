@@ -14,7 +14,7 @@ import java.util.List;
 @Schema(
         name = "HabilidadeFilterDTO",
         description = "Criterios de busca no catalogo de competencias/ poderes (nao e a entidade Habilidade em edicao). "
-                + "GenericFilter / POST /filter no demo RH; uteis para requisicoes e mapa de talentos (demo).")
+                + "Apoia selecao de talentos por nome, categoria, intensidade operacional e descricao da capacidade.")
 public class HabilidadeFilterDTO implements GenericFilterDTO {
     @UISchema(label = "Nome da Habilidade", controlType = FieldControlType.INPUT, maxLength = 200, order = 10, helpText = "Filtrar habilidade por nome.", icon = "badge")
     @Filterable(operation = Filterable.FilterOperation.LIKE)
@@ -31,7 +31,7 @@ public class HabilidadeFilterDTO implements GenericFilterDTO {
     @UISchema(label = "Nível de Poder", type = FieldDataType.NUMBER, controlType = FieldControlType.RANGE_SLIDER, order = 30, helpText = "Buscar por faixa de nível de poder.", icon = "trending_up")
     @Filterable(operation = Filterable.FilterOperation.BETWEEN, relation = "nivelPoder")
     @Schema(
-            description = "Intervalo de intensidade ou classe de perigo regulado; BETWEEN sobre nivelPoder (demo).")
+            description = "Intervalo de intensidade da habilidade, usado para compatibilizar demanda operacional, risco e perfil do colaborador.")
     private List<Integer> nivelPoderBetween;
 
     @UISchema(label = "Descrição", controlType = FieldControlType.INPUT, maxLength = 2000, order = 40, helpText = "Buscar palavras na descrição.", icon = "description")

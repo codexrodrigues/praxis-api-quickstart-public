@@ -4,12 +4,14 @@ import io.swagger.v3.oas.annotations.media.Schema;
 
 @Schema(
         name = "LoginRequest",
-        description = "Corpo de login (demo). A password nunca e devolvida em respostas; use apenas no POST de autenticacao.")
+        description = "Credenciais usadas para abrir uma sessao administrativa no host de referencia. "
+                + "Quando aceitas, o servidor emite a sessao em cookie HttpOnly; o segredo nunca e devolvido em respostas.")
 public record LoginRequest(
         @Schema(
-                description = "Identificador de sessao (username ou atributo de login suportado pelo servico de auth).",
-                example = "heroi.demo")
+                description = "Identificador configurado para autenticar a sessao local do quickstart, normalmente o usuario administrativo do host.",
+                example = "admin")
         String username,
-        @Schema(description = "Segredo de autenticacao. Campo de escrita unica; nao aparece no OpenAPI de respostas.")
+        @Schema(
+                description = "Segredo correspondente ao identificador informado. Campo exclusivo da requisicao de login e nunca publicado em payloads de resposta.",
+                accessMode = Schema.AccessMode.WRITE_ONLY)
         String password) {}
-

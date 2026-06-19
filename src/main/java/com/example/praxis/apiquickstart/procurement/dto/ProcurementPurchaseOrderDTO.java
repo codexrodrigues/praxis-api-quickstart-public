@@ -23,7 +23,7 @@ public class ProcurementPurchaseOrderDTO {
     @UISchema(
             label = "Empresa",
             controlType = FieldControlType.ENTITY_LOOKUP,
-            endpoint = ApiPaths.Procurement.COMPANIES + "/option-sources/company/options/filter",
+            endpoint = ApiPaths.Procurement.COMPANIES_COMPANY_LOOKUP_OPTIONS,
             valueField = "id",
             displayField = "label",
             required = true,
@@ -38,7 +38,7 @@ public class ProcurementPurchaseOrderDTO {
     @UISchema(
             label = "Fornecedor",
             controlType = FieldControlType.ENTITY_LOOKUP,
-            endpoint = ApiPaths.Procurement.SUPPLIERS + "/option-sources/supplier/options/filter",
+            endpoint = ApiPaths.Procurement.SUPPLIERS_SUPPLIER_LOOKUP_OPTIONS,
             valueField = "id",
             displayField = "label",
             description = "Lookup governado pela option-source supplier: apenas fornecedores ACTIVE ou APPROVED podem ser selecionados; INACTIVE e BLOCKED ficam indisponiveis.",
@@ -56,7 +56,7 @@ public class ProcurementPurchaseOrderDTO {
     @UISchema(
             label = "Contrato",
             controlType = FieldControlType.ENTITY_LOOKUP,
-            endpoint = ApiPaths.Procurement.CONTRACTS + "/option-sources/contract/options/filter",
+            endpoint = ApiPaths.Procurement.CONTRACTS_CONTRACT_LOOKUP_OPTIONS,
             valueField = "id",
             displayField = "label",
             dependentField = "supplierId",
@@ -70,7 +70,7 @@ public class ProcurementPurchaseOrderDTO {
     @UISchema(
             label = "Produto",
             controlType = FieldControlType.ENTITY_LOOKUP,
-            endpoint = ApiPaths.Procurement.PRODUCTS + "/option-sources/product/options/filter",
+            endpoint = ApiPaths.Procurement.PRODUCTS_PRODUCT_LOOKUP_OPTIONS,
             valueField = "id",
             displayField = "label",
             dependentField = "contractId",

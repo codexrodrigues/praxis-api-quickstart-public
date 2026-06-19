@@ -1,5 +1,6 @@
 package com.example.praxis.apiquickstart.procurement.dto;
 
+import com.example.praxis.apiquickstart.constants.ApiPaths;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Getter;
 import lombok.Setter;
@@ -23,7 +24,8 @@ public class ProcurementSupplierDTO {
     private Integer id;
 
     @Schema(description = "Tenant ou empresa a que o cadastro de fornecedor se subordina em compras multibase.")
-    @UISchema(label = "Empresa", controlType = FieldControlType.ENTITY_LOOKUP, order = 10, icon = "business")
+    @UISchema(label = "Empresa", controlType = FieldControlType.ENTITY_LOOKUP, order = 10, icon = "business",
+            endpoint = ApiPaths.Procurement.COMPANIES_COMPANY_LOOKUP_OPTIONS, valueField = "id", displayField = "label")
     private Integer companyId;
 
     @Schema(description = "Codigo unico alfanumerico usado em pedidos, XML e conciliacoes fiscais.", example = "FORN-00042")

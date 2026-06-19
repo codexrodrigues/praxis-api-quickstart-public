@@ -129,14 +129,14 @@ public class FuncionarioService extends AbstractQuickstartCrudService<Funcionari
                     EMPLOYEE_OPTION_SOURCE_KEY,
                     OptionSourceType.RESOURCE_ENTITY,
                     ApiPaths.HumanResources.FUNCIONARIOS,
-                    "funcionarioId",
+                    null,
                     "id",
                     "nomeCompleto",
                     "id",
                     List.of(),
                     lookupPolicy(),
                     new EntityLookupDescriptor(
-                            "employee",
+                            EMPLOYEE_OPTION_SOURCE_KEY,
                             null,
                             List.of("cargo.nome", "departamento.nome"),
                             null,
@@ -506,8 +506,8 @@ public class FuncionarioService extends AbstractQuickstartCrudService<Funcionari
             case "SOLTEIRO" -> "Solteiro";
             case "CASADO" -> "Casado";
             case "DIVORCIADO" -> "Divorciado";
-            case "VIUVO" -> "Viuvo";
-            case "UNIAO_ESTAVEL" -> "Uniao estavel";
+            case "VIUVO" -> "Viúvo";
+            case "UNIAO_ESTAVEL" -> "União estável";
             default -> estadoCivil.toString();
         };
     }

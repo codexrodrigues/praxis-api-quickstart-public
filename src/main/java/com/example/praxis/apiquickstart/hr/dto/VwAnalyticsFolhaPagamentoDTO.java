@@ -11,8 +11,8 @@ import java.time.LocalDate;
 @UISchema(label = "Analytics da Folha de Pagamento", readOnly = true, icon = "analytics")
 @Schema(
         name = "VwAnalyticsFolhaPagamentoDTO",
-        description = "Linha de vista so-leitura: folha de pagamento cruzada com contexto de heroi (civil, codinome, universo), organograma, operacoes e faixas analiticas. "
-                + "Nao e o DocumentoFolha editavel; e projecao para BI, graficos e LLM. Colunas de valor e percentagem refletem regras de calculo do snapshot (demo).")
+        description = "Projecao somente leitura de folha de pagamento cruzada com colaborador, identidade operacional, organograma, equipe, base e faixas analiticas. "
+                + "Serve a paineis, catalogo semantico e assistentes LLM sem substituir o contrato transacional da folha.")
 public class VwAnalyticsFolhaPagamentoDTO {
     @Schema(
             description = "Chave da folha de pagamento (cabecalho) na origem; liga a competencia e eventos de folha subjacentes.",
@@ -39,7 +39,7 @@ public class VwAnalyticsFolhaPagamentoDTO {
 
     @UISchema(label = "Exposição Pública", type = FieldDataType.BOOLEAN, helpText = "Indica se há permissão de exposição pública.", icon = "badge")
     @Schema(
-            description = "Indicador de exposicao do alter ego; afeta regras de visibilidade em analytics publicos (demo).",
+            description = "Indicador de exposicao publica da identidade operacional, usado para governar visibilidade em analises compartilhadas.",
             example = "true")
     private Boolean exposicaoPublica;
 
@@ -79,7 +79,7 @@ public class VwAnalyticsFolhaPagamentoDTO {
 
     @UISchema(label = "Data Pagamento", type = FieldDataType.DATE, helpText = "Data de depósito liquidado.", icon = "event_available")
     @Schema(
-            description = "Data efetiva de credito/liquidacao planejada para a linha; alinha com agendamento de folha (demo).",
+            description = "Data efetiva ou planejada de credito da folha, usada para reconciliar competencia e liquidacao.",
             example = "2025-04-30")
     private LocalDate dataPagamento;
 
@@ -118,7 +118,7 @@ public class VwAnalyticsFolhaPagamentoDTO {
 
     @UISchema(label = "Saldo Eventos", type = FieldDataType.NUMBER, helpText = "Saldo líquido apenas de eventos extras.", icon = "account_balance")
     @Schema(
-            description = "Saldo liquido dos eventos (provento menos desconto de eventos) conforme a definicao da materializacao (demo).")
+            description = "Saldo liquido dos eventos da folha, calculado como proventos de eventos menos descontos de eventos.")
     private BigDecimal saldoEventos;
 
     @UISchema(label = "% Desconto", type = FieldDataType.NUMBER, helpText = "Proporção de desconto sobre o salário bruto.", icon = "percent")
@@ -149,7 +149,7 @@ public class VwAnalyticsFolhaPagamentoDTO {
 
     @UISchema(label = "Composição Folha", helpText = "Perfil de composição qualitativa de ganhos.", icon = "donut_large")
     @Schema(
-            description = "Composicao qualitativa da folha (ex.: provento-preponderante vs desconto-elevado); classificacao derivada, nao regra de calculo contabil (demo).")
+            description = "Classificacao qualitativa da composicao da folha, derivada da relacao entre proventos, adicionais e descontos.")
     private String composicaoFolha;
 
     @UISchema(label = "Faixa Salário Bruto", helpText = "Agrupamento analítico da faixa do salário bruto.", icon = "stacked_bar_chart")
@@ -161,7 +161,7 @@ public class VwAnalyticsFolhaPagamentoDTO {
     private String faixaSalarioLiquido;
 
     @UISchema(label = "Faixa % Desconto", helpText = "Agrupamento analítico do percentual retido.", icon = "stacked_bar_chart")
-    @Schema(description = "Gama de intensidade de desconto; destaca casos de folha muito onerada (demo).")
+    @Schema(description = "Faixa de intensidade de desconto usada para destacar folhas com maior peso de retencoes.")
     private String faixaPctDesconto;
 
     @UISchema(label = "Faixa Valor Adicionais", helpText = "Agrupamento analítico de valores extras concedidos.", icon = "stacked_bar_chart")

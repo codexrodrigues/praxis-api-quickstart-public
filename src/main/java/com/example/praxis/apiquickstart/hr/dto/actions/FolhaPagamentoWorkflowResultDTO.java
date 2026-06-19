@@ -13,8 +13,7 @@ import java.time.LocalDate;
  */
 @Schema(
         name = "FolhaPagamentoWorkflowResultDTO",
-        description = "Resposta de workflow sobre item (ou lote) de folha: resume transicao de estado, justificativa usada, contadores e mensagem humana. "
-                + "Serve a UI, auditoria e clientes que consomem o mesmo payload sem inferir a maquina de estados a partir de codigos HTTP (demo).")
+        description = "Resultado de workflow de folha de pagamento, consolidando estado anterior, estado vigente, justificativa, contadores operacionais, data de liquidacao e mensagem para o operador.")
 public class FolhaPagamentoWorkflowResultDTO {
 
     @Schema(
@@ -26,22 +25,22 @@ public class FolhaPagamentoWorkflowResultDTO {
             example = "PENDENTE")
     private String estadoAnterior;
     @Schema(
-            description = "Novo estado apos a operacao; confirma sucesso idempotente quando igual ao pedido re-repetido e pode divergir se regra rejeitou (demo).",
+            description = "Novo estado apos a operacao; confirma sucesso idempotente quando igual ao pedido repetido e pode permanecer inalterado se a regra rejeitar a transicao.",
             example = "APROVADO")
     private String estadoAtual;
     @Schema(
             description = "Ecoa ou complementa a justificativa do pedido; preenchimento depende do handler (pode vazio se o fluxo nao a persistir de volta).")
     private String justificativa;
     @Schema(
-            description = "Quantidade de linhas de evento ja incorporadas no processamento corrente; ajuda a barra de progresso em fluxos de folha (demo).",
+            description = "Quantidade de linhas de evento ja incorporadas no processamento corrente; suporta acompanhamento de progresso em fluxos de folha.",
             example = "12")
     private Integer eventosProcessados;
     @Schema(
-            description = "Eventos ainda a processar apos a transicao, quando a action e parcial; zero quando o lote concluiu (demo).",
+            description = "Eventos ainda a processar apos a transicao, quando a action e parcial; zero quando o lote concluiu.",
             example = "0")
     private Long eventosPendentes;
     @Schema(
-            description = "Data de pagamento em vigor apos a transicao, quando a action fixa ou altera a liquidacao; ausente se irrelevante a esta rota (demo).",
+            description = "Data de pagamento em vigor apos a transicao, quando a action fixa ou altera a liquidacao; ausente se irrelevante a esta rota.",
             example = "2025-04-30")
     private LocalDate dataPagamento;
     @Schema(

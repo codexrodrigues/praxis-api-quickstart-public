@@ -19,16 +19,16 @@ import java.time.OffsetDateTime;
 @Schema(
         name = "VwIndicadoresIncidenteDTO",
         description = "Linha de vista so-leitura: indicadores de sinistro/ incidente agregando impacto, severidade e trilha financeira (indenizacoes, pago, pendente). "
-                + "Cruza Operacoes (missao, local) e RH/ financas; nao e o Incidente editavel. Materializada para risk boards e LLM (demo).")
+                + "Cruza Operacoes, local e indicadores financeiros para painéis de risco e respostas assistidas, sem substituir o incidente transacional editavel.")
 public class VwIndicadoresIncidenteDTO {
     @Schema(
-            description = "Chave do incidente na origem; liga a cadastro e workflow em Operacoes (demo).",
+            description = "Chave do incidente transacional que originou a linha materializada; liga o indicador ao cadastro e ao workflow de Operacoes.",
             example = "7")
     private Integer incidenteId;
 
     @UISchema(label = "Missão", icon = "flag")
     @Schema(
-            description = "Titulo ou referencia de missao vinculada; texto desnormalizado (demo).")
+            description = "Titulo ou referencia da missao associada ao incidente, desnormalizado para leitura, agrupamento e explicacao no painel de risco.")
     private String missao;
 
     @UISchema(label = "Descrição", icon = "description")
@@ -67,7 +67,7 @@ public class VwIndicadoresIncidenteDTO {
 
     @UISchema(label = "Severidade", icon = "emergency")
     @Schema(
-            description = "Classe de gravidade (option-source/ bucket) para triagem; string rotulada (demo).")
+            description = "Classe de gravidade atribuida ao incidente; orienta triagem, priorizacao e agrupamentos nos indicadores de risco.")
     private String severidade;
 
     @UISchema(label = "Danos Civis", type = FieldDataType.NUMBER, controlType = FieldControlType.CURRENCY_INPUT, icon = "calendar_today")
@@ -140,7 +140,7 @@ public class VwIndicadoresIncidenteDTO {
 
     @UISchema(label = "Ocorrido em", type = FieldDataType.DATE, controlType = FieldControlType.DATE_TIME_PICKER, icon = "event")
     @Schema(
-            description = "Marco temporal do fato (com offset); linha de tempo de crisis room (demo).",
+            description = "Marco temporal do incidente com offset, usado para linha do tempo operacional, filtros de recencia e correlacao com missoes.",
             example = "2025-04-20T10:00:00Z")
     private OffsetDateTime ocorridoEm;
 

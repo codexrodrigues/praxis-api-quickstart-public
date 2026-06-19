@@ -24,10 +24,10 @@ import org.praxisplatform.uischema.annotation.DomainGovernanceKind;
  */
 @Schema(
         name = "EnderecoDTO",
-        description = "Endereco residencial ou correspondencia do colaborador no demo de RH. Persistido em recurso dedicado, ligado 1-N ao funcionario; "
+        description = "Endereco residencial ou de correspondencia do colaborador. Persistido em recurso dedicado, ligado 1-N ao funcionario; "
                 + "dados de localizacao sao sensiveis (LGPD): uso em folha, contacto de emergencia e logistica operacional, nao em dominios publicos sem consentimento.")
 public class EnderecoDTO {
-    @Schema(description = "Chave do endereco. Liga-se a um unico funcionario; atualizacoes substituem a visualizacao de lista por recurso sem historico de versao no demo.", example = "1")
+    @Schema(description = "Chave do endereco. Liga-se a um unico funcionario; atualizacoes substituem a visualizacao de lista por recurso sem historico de versao neste contrato.", example = "1")
     private Integer id;
 
     @NotBlank
@@ -69,7 +69,7 @@ public class EnderecoDTO {
 
     @NotBlank
     @UISchema(label = "Cidade", required = true, group = "Endereço", order = 50, helpText = "Município de residência.", icon = "location_city")
-    @Schema(description = "Municipio ou cidade perante a UF; relevante para calculos fiscais e agregacoes de RH regionais (demo).", example = "Metropolis")
+    @Schema(description = "Municipio ou cidade perante a UF; relevante para calculos fiscais, logistica e agregacoes de RH regionais.", example = "Metropolis")
     private String cidade;
 
     @NotBlank
@@ -95,13 +95,13 @@ public class EnderecoDTO {
         )
     )
     @UISchema(label = "CEP", required = true, group = "Endereço", order = 70, helpText = "Código postal no formato 00000-000.", icon = "local_post_office")
-    @Schema(description = "CEP brasileiro (8 digitos) com ou sem hifen; usado em validacoes de correio e normalizacao de rota (demo).", example = "01310-100")
+    @Schema(description = "CEP brasileiro (8 digitos) com ou sem hifen; usado em validacoes de correio e normalizacao de rota.", example = "01310-100")
     private String cep;
 
     @NotNull
-    @UISchema(label = "Funcionário", controlType = FieldControlType.SELECT, group = "Relacionamentos", order = 10, icon = "badge",
+    @UISchema(label = "Funcionário", controlType = FieldControlType.ENTITY_LOOKUP, group = "Relacionamentos", order = 10, icon = "badge",
             valueField = "id", displayField = "label",
-            endpoint = com.example.praxis.apiquickstart.constants.ApiPaths.HumanResources.FUNCIONARIOS + "/options/filter",
+            endpoint = com.example.praxis.apiquickstart.constants.ApiPaths.HumanResources.FUNCIONARIOS_EMPLOYEE_LOOKUP_OPTIONS,
             tableHidden = true, helpText = "Colaborador residente.")
     @Schema(
             description = "Dono do endereco: identificador do colaborador (heroi) cujo registo de morada este bloco descreve.",

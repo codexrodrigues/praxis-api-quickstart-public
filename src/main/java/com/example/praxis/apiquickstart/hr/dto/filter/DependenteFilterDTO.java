@@ -15,20 +15,20 @@ import java.util.List;
 @Schema(
         name = "DependenteFilterDTO",
         description = "Criterios de busca de dependentes para IR/beneficio (nao e o registo Dependente em edicao). "
-                + "GenericFilter / POST /filter no demo RH; cuidado com dados sensiveis em buscas amplas (demo).")
+                + "Apoia atendimento cadastral, validacao de elegibilidade e revisao de vinculos familiares com minimizacao de dados pessoais.")
 public class DependenteFilterDTO implements GenericFilterDTO {
     @UISchema(label = "Nome do Dependente", controlType = FieldControlType.INPUT, maxLength = 200, order = 10, helpText = "Buscar dependentes por nome.", icon = "family_restroom")
     @Filterable(operation = Filterable.FilterOperation.LIKE)
     @Schema(
-            description = "Nome do dependente; LIKE em telas de atendimento (demo).")
+            description = "Nome civil do dependente usado para localizar vinculos familiares em atendimento ou revisao cadastral.")
     private String nomeCompleto;
 
-    @UISchema(type = FieldDataType.NUMBER, controlType = FieldControlType.ASYNC_SELECT, order = 20,
+    @UISchema(label = "Colaborador titular", type = FieldDataType.NUMBER, controlType = FieldControlType.INLINE_ENTITY_LOOKUP, order = 20,
             valueField = "id", displayField = "label",
-            endpoint = ApiPaths.HumanResources.FUNCIONARIOS + "/options/filter", helpText = "Filtrar dependentes de um colaborador específico.", icon = "badge")
+            endpoint = ApiPaths.HumanResources.FUNCIONARIOS_EMPLOYEE_LOOKUP_OPTIONS, helpText = "Filtrar dependentes de um colaborador específico.", icon = "badge")
     @Filterable(operation = Filterable.FilterOperation.EQUAL, relation = "funcionario.id")
     @Schema(
-            description = "Colaborador titular; EQUAL por id (FK) para restringir dependencias (demo).")
+            description = "Colaborador titular do vinculo familiar; restringe a busca aos dependentes associados a uma pessoa especifica.")
     private Integer funcionarioId;
 
     @UISchema(label = "Grau de Parentesco", controlType = FieldControlType.INPUT, maxLength = 100, order = 30, helpText = "Filtrar pelo grau de parentesco.", icon = "family_restroom")
@@ -40,13 +40,13 @@ public class DependenteFilterDTO implements GenericFilterDTO {
     @UISchema(label = "Data de Nascimento", type = FieldDataType.DATE, controlType = FieldControlType.DATE_RANGE, order = 40, helpText = "Buscar nascidos entre duas datas.", icon = "event")
     @Filterable(operation = Filterable.FilterOperation.BETWEEN, relation = "dataNascimento")
     @Schema(
-            description = "Janela de nascimento (idade); BETWEEN duas LocalDate; ver tambem nascimento num dia (abaixo). (demo).")
+            description = "Intervalo de datas de nascimento usado para estimar faixa etaria e validar elegibilidade temporal de beneficios.")
     private List<LocalDate> dataNascimentoBetween;
 
-    @UISchema(label = "Data de Nascimento (Na Data)", type = FieldDataType.DATE, controlType = FieldControlType.DATE_PICKER, order = 50, helpText = "Buscar nascidos em uma data específica.", icon = "event")
+    @UISchema(label = "Nascimento em", type = FieldDataType.DATE, controlType = FieldControlType.DATE_PICKER, order = 50, helpText = "Busca dependentes nascidos em uma data específica.", icon = "event")
     @Filterable(operation = Filterable.FilterOperation.ON_DATE, relation = "dataNascimento")
     @Schema(
-            description = "Nascimentos exatamente neste dia civil; operacao ON_DATE (criterio alternativo ao intervalo) (GenericFilter) (demo).")
+            description = "Data civil exata de nascimento quando a consulta precisa confirmar identidade ou localizar aniversariantes especificos.")
     private LocalDate dataNascimentoOn;
 
     public String getNomeCompleto() { return nomeCompleto; }

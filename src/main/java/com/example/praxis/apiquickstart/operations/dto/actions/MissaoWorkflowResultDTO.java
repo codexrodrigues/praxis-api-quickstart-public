@@ -8,11 +8,11 @@ import java.time.OffsetDateTime;
 
 @Schema(
         name = "MissaoWorkflowResultDTO",
-        description = "Resposta de workflow de missao: fase anterior e atual, justificativa, instante da transicao, "
-                + "janela executada (inicio/fim real quando aplicavel) e mensagem para a UI. OpenAPI 3.1 (demo).")
+        description = "Resultado persistido da transicao de missao, com fase anterior, fase atual, justificativa auditavel, "
+                + "marco temporal executado e janela operacional real quando a decisao altera inicio ou encerramento da missao.")
 public class MissaoWorkflowResultDTO {
 
-    @Schema(description = "Identificador interno (PK) deste registo no servico; referencia o recurso em URLs e relacionamentos.")
+    @Schema(description = "Identificador da missao afetada pela transicao; usado para atualizar a tela de detalhe e correlacionar eventos de auditoria.")
     private Integer id;
     @Schema(
             description = "MissaoStatus antes do comando; delta de auditoria.")
@@ -21,10 +21,10 @@ public class MissaoWorkflowResultDTO {
             description = "MissaoStatus apos persistencia; fonte de verdade para detalhe e dashboards.")
     private MissaoStatus statusAtual;
     @Schema(
-            description = "Eco da justificativa enviada na requisicao (quando guardada).")
+            description = "Justificativa efetivamente associada a transicao, preservada para auditoria e revisao operacional.")
     private String justificativa;
     @Schema(
-            description = "Instante associado a transicao (informado ou gerado pelo servidor).")
+            description = "Instante de negocio registrado para a transicao, informado pelo cliente ou definido pelo servidor.")
     private OffsetDateTime ocorridoEm;
     @Schema(
             description = "Inicio executado quando a fase fixa linha de tempo real; opcional.")

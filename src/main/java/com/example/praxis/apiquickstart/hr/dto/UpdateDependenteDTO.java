@@ -1,5 +1,5 @@
 package com.example.praxis.apiquickstart.hr.dto;
 import io.swagger.v3.oas.annotations.media.Schema;
-@Schema(name = "UpdateDependenteDTO", description = "Corpo de atualizacao no modulo Recursos humanos; campos mutaveis. OpenAPI 3.1 (demo).")
+@Schema(name = "UpdateDependenteDTO", description = "Comando para revisar os dados cadastrais editaveis de um dependente, preservando sua identidade tecnica e mantendo o vinculo com o colaborador titular.")
 public class UpdateDependenteDTO extends CreateDependenteDTO {
 }

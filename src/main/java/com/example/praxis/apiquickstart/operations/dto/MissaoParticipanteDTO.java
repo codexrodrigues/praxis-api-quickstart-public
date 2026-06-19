@@ -11,18 +11,18 @@ import org.praxisplatform.uischema.extension.annotation.UISchema;
 @Schema(
         name = "MissaoParticipanteDTO",
         description = "Escalacao de colaborador a missao (papel, ordem, lider, resultado alocado). "
-                + "Payload de borda; nao e criterio de filtro. OpenAPI 3.1 e x-ui (demo).")
+                + "Representa a composicao da equipe de missao, incluindo funcao, lideranca e resultado individual.")
 public class MissaoParticipanteDTO {
     @Schema(description = "Identificador interno (PK) deste registo no servico; referencia o recurso em URLs e relacionamentos.")
     private Integer id;
 
     @NotNull
-    @UISchema(label = "Missão", controlType = FieldControlType.SELECT, required = true,
+    @UISchema(label = "Missão", controlType = FieldControlType.ENTITY_LOOKUP, required = true,
             valueField = "id", displayField = "label",
-        endpoint = com.example.praxis.apiquickstart.constants.ApiPaths.Operations.MISSOES + "/options/filter",
+        endpoint = com.example.praxis.apiquickstart.constants.ApiPaths.Operations.MISSOES_MISSION_LOOKUP_OPTIONS,
             tableHidden = true, icon = "flag")
     @Schema(
-            description = "FK; operacao (missaoId).")
+            description = "Missao operacional em que o colaborador foi escalado.")
     private Integer missaoId;
 
     @NotNull
@@ -31,7 +31,7 @@ public class MissaoParticipanteDTO {
             endpoint = com.example.praxis.apiquickstart.constants.ApiPaths.HumanResources.FUNCIONARIOS_EMPLOYEE_LOOKUP_OPTIONS,
             tableHidden = true, icon = "badge")
     @Schema(
-            description = "FK; heroi escalado (funcionarioId).")
+            description = "Colaborador ou heroi escalado para participar da missao.")
     private Integer funcionarioId;
 
     @UISchema(label = "Missão", readOnly = true, formHidden = true, icon = "flag")
@@ -43,6 +43,11 @@ public class MissaoParticipanteDTO {
     @Schema(
             description = "Nome do colaborador denormalizado (read model).")
     private String funcionarioNome;
+
+    @UISchema(label = "Foto", tableHidden = true, formHidden = true)
+    @Schema(
+            description = "URL da foto de perfil do funcionário (read model).")
+    private String funcionarioFotoUrl;
 
     @UISchema(label = "Papel", controlType = FieldControlType.SELECT, icon = "flag")
     @Schema(
@@ -76,6 +81,8 @@ public class MissaoParticipanteDTO {
     public void setMissaoTitulo(String missaoTitulo) { this.missaoTitulo = missaoTitulo; }
     public String getFuncionarioNome() { return funcionarioNome; }
     public void setFuncionarioNome(String funcionarioNome) { this.funcionarioNome = funcionarioNome; }
+    public String getFuncionarioFotoUrl() { return funcionarioFotoUrl; }
+    public void setFuncionarioFotoUrl(String funcionarioFotoUrl) { this.funcionarioFotoUrl = funcionarioFotoUrl; }
     public PapelMissao getPapel() { return papel; }
     public void setPapel(PapelMissao papel) { this.papel = papel; }
     public Integer getOrdem() { return ordem; }

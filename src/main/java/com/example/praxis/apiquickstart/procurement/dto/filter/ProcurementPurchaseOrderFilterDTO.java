@@ -1,5 +1,6 @@
 package com.example.praxis.apiquickstart.procurement.dto.filter;
 
+import com.example.praxis.apiquickstart.constants.ApiPaths;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import lombok.Getter;
@@ -14,29 +15,40 @@ import org.praxisplatform.uischema.filter.dto.GenericFilterDTO;
 @Schema(
         name = "ProcurementPurchaseOrderFilterDTO",
         description = "Criterios de busca em pedidos de compra (PO); nao e o PO a editar so com filtrar. "
-                + "Recorte por empresa, fornecedor, contrato e produto; GenericFilter / POST /filter (demo).")
+                + "Usado para localizar pedidos por empresa compradora, fornecedor, contrato base e item requisitado.")
 public class ProcurementPurchaseOrderFilterDTO implements GenericFilterDTO {
-    @UISchema(controlType = FieldControlType.ENTITY_LOOKUP, order = 10, icon = "business")
+    @UISchema(label = "Empresa compradora", controlType = FieldControlType.INLINE_ENTITY_LOOKUP, order = 10,
+            endpoint = ApiPaths.Procurement.COMPANIES_COMPANY_LOOKUP_OPTIONS, valueField = "id", displayField = "label",
+            helpText = "Filtra pedidos de compra emitidos por uma empresa.", icon = "business")
     @Filterable(operation = Filterable.FilterOperation.EQUAL)
     @Schema(
-            description = "Organizacao compradora; EQUAL companyId (demo).")
+            description = "Empresa compradora que emitiu ou administra o pedido de compra.")
     private Integer companyId;
 
-    @UISchema(controlType = FieldControlType.ENTITY_LOOKUP, order = 20, icon = "storefront")
+    @UISchema(label = "Fornecedor", controlType = FieldControlType.INLINE_ENTITY_LOOKUP, order = 20,
+            endpoint = ApiPaths.Procurement.SUPPLIERS_SUPPLIER_LOOKUP_OPTIONS, valueField = "id", displayField = "label",
+            dependentField = "companyId", resetOnDependentChange = true,
+            helpText = "Mostra pedidos de compra direcionados a um fornecedor específico.", icon = "storefront")
     @Filterable(operation = Filterable.FilterOperation.EQUAL)
     @Schema(
-            description = "Fornecedor; EQUAL supplierId (demo).")
+            description = "Fornecedor destinatario ou contratado no pedido de compra.")
     private Integer supplierId;
 
-    @UISchema(controlType = FieldControlType.ENTITY_LOOKUP, order = 30, icon = "contract")
+    @UISchema(label = "Contrato", controlType = FieldControlType.INLINE_ENTITY_LOOKUP, order = 30,
+            endpoint = ApiPaths.Procurement.CONTRACTS_CONTRACT_LOOKUP_OPTIONS, valueField = "id", displayField = "label",
+            dependentField = "supplierId", resetOnDependentChange = true,
+            helpText = "Filtra pedidos vinculados a um contrato base.", icon = "contract")
     @Filterable(operation = Filterable.FilterOperation.EQUAL)
     @Schema(
-            description = "Contrato base; EQUAL contractId (demo).")
+            description = "Contrato base que governa condicoes comerciais do pedido.")
     private Integer contractId;
 
-    @UISchema(controlType = FieldControlType.ENTITY_LOOKUP, order = 40, icon = "inventory_2")
+    @UISchema(label = "Produto ou serviço", controlType = FieldControlType.INLINE_ENTITY_LOOKUP, order = 40,
+            endpoint = ApiPaths.Procurement.PRODUCTS_PRODUCT_LOOKUP_OPTIONS, valueField = "id", displayField = "label",
+            dependentField = "contractId", resetOnDependentChange = true,
+            helpText = "Filtra pedidos que incluem um produto ou serviço específico.", icon = "inventory_2")
     @Filterable(operation = Filterable.FilterOperation.EQUAL)
     @Schema(
-            description = "Linha de produto; EQUAL productId (demo).")
+            description = "Produto ou servico requisitado pelo pedido de compra.")
     private Integer productId;
 }

@@ -22,7 +22,7 @@ import java.util.List;
 @Schema(
         name = "EventosFolhaFilterDTO",
         description = "Criterios de busca em linhas de evento de folha (rubrica), nao a folha inteira. "
-                + "Aplica-se a conferencia e workflow de aprovacao; GenericFilter / POST /filter (ver javadoc de classe).")
+                + "Apoia conferencia de proventos, descontos e ajustes antes de aprovacao, pagamento ou auditoria trabalhista.")
 public class EventosFolhaFilterDTO implements GenericFilterDTO {
     @UISchema(label = "Descrição do Evento", controlType = FieldControlType.INPUT, maxLength = 255, order = 10, helpText = "Filtrar evento por descrição.", icon = "description")
     @Filterable(operation = Filterable.FilterOperation.LIKE)
@@ -33,19 +33,19 @@ public class EventosFolhaFilterDTO implements GenericFilterDTO {
     @UISchema(label = "Tipo de Evento", controlType = FieldControlType.INPUT, maxLength = 100, order = 20, helpText = "Filtrar pelo tipo do evento (ex: provento).", icon = "event_note")
     @Filterable(operation = Filterable.FilterOperation.LIKE)
     @Schema(
-            description = "Filtro por classificacao de evento (provento, desconto, etc.); string livre no demo; LIKE.")
+            description = "Classificacao da rubrica, como provento, desconto ou ajuste, usada para separar impacto financeiro e regra de conferencia.")
     private String tipo;
 
     @UISchema(label = "Faixa de Valor", type = FieldDataType.NUMBER, controlType = FieldControlType.PRICE_RANGE, order = 30,
             numericFormat = NumericFormat.CURRENCY, numericStep = "0.01", helpText = "Buscar eventos dentro de uma faixa de valor.", icon = "payments")
     @Filterable(operation = Filterable.FilterOperation.BETWEEN, relation = "valor")
     @Schema(
-            description = "Faixa de valor absoluto do evento na moeda do backend; BETWEEN (min, max) para auditoria (demo).")
+            description = "Intervalo monetario da rubrica usado para localizar valores fora do padrao, impactos relevantes ou itens de auditoria.")
     private List<BigDecimal> valorBetween;
 
-    @UISchema(type = FieldDataType.NUMBER, controlType = FieldControlType.ASYNC_SELECT, order = 40,
+    @UISchema(label = "Folha de pagamento", type = FieldDataType.NUMBER, controlType = FieldControlType.INLINE_ENTITY_LOOKUP, order = 40,
             valueField = "id", displayField = "label",
-            endpoint = ApiPaths.HumanResources.FOLHAS_PAGAMENTO + "/options/filter", helpText = "Filtrar eventos de uma folha específica.", icon = "receipt_long")
+            endpoint = ApiPaths.HumanResources.FOLHAS_PAGAMENTO_PAYROLL_LOOKUP_OPTIONS, helpText = "Filtrar eventos de uma folha específica.", icon = "receipt_long")
     @Filterable(operation = Filterable.FilterOperation.EQUAL, relation = "folhaPagamento.id")
     @Schema(
             description = "Folha de pagamento a que o evento pertence; EQUAL por id (competencia / lote).")

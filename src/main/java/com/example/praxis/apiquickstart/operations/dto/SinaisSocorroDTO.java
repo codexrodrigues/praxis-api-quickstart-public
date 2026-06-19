@@ -13,7 +13,7 @@ import java.time.OffsetDateTime;
 @Schema(
         name = "SinaisSocorroDTO",
         description = "Chamado de emergencia (origem, teatro, escala de ameaca, abertura e encerramento). "
-                + "Payload de borda; nao e criterio de filtro. OpenAPI 3.1 e x-ui (demo).")
+                + "Representa a entrada operacional de triagem para priorizar resposta, acompanhar status e medir tempo de atendimento.")
 public class SinaisSocorroDTO {
     @Schema(description = "Identificador interno (PK) deste registo no servico; referencia o recurso em URLs e relacionamentos.")
     private Integer id;

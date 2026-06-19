@@ -11,8 +11,8 @@ import java.math.BigDecimal;
 @UISchema(label = "Perfil do Herói", readOnly = true, icon = "account_circle")
 @Schema(
         name = "VwPerfilHeroiDTO",
-        description = "Linha de vista so-leitura: perfil agregado civil + alter ego, reputacao, habilidades resumidas e ancoras operacionais (equipe/base). "
-                + "Nao e tabela de gravacao; materializada para ficha unica e para catalogo/LLM. Mutacoes de cadastro vao pelos DTOs de entidade, nao por esta projecao.")
+        description = "Projecao somente leitura que consolida cadastro civil, identidade operacional, reputacao, habilidades resumidas, equipe e base principal. "
+                + "Serve a ficha 360, catalogo semantico e assistentes LLM sem substituir os contratos transacionais de cadastro.")
 public class VwPerfilHeroiDTO {
     @Schema(
             description = "Chave do funcionario; ancora o conjunto de atributos exibidos na ficha de perfil.",
@@ -44,7 +44,7 @@ public class VwPerfilHeroiDTO {
 
     @UISchema(label = "Exposição Pública", type = FieldDataType.BOOLEAN, helpText = "Aprovação para exposição.", icon = "badge")
     @Schema(
-            description = "Se o heroi e tratado como figura de exposicao publica (marketing, midia) para regras de privacidade e beneficio (demo).",
+            description = "Indica se o colaborador pode ser tratado como figura de exposicao publica em regras de privacidade, midia e beneficios.",
             example = "true")
     private Boolean exposicaoPublica;
 
@@ -70,7 +70,7 @@ public class VwPerfilHeroiDTO {
 
     @UISchema(label = "Score Médio", type = FieldDataType.NUMBER, helpText = "Média de reputação.", icon = "analytics")
     @Schema(
-            description = "Agregado derivado (ex.: media entre indices ou com pesos) para destaque unico no cartao; formula na camada de dados (demo).",
+            description = "Indice agregado de reputacao usado como destaque sintetico da ficha, derivado dos scores publico e governamental.",
             example = "80.0")
     private BigDecimal scoreMedio;
 
@@ -84,7 +84,7 @@ public class VwPerfilHeroiDTO {
     private String equipePrincipal;
 
     @UISchema(label = "Base Principal", helpText = "Base operacional de atuação.", icon = "groups")
-    @Schema(description = "Base de operacoes de maior aderencia ou titularidade; suporte a logistica e escalas (demo).")
+    @Schema(description = "Base operacional principal associada ao colaborador para suporte a logistica, escala e planejamento de missao.")
     private String basePrincipal;
 
     public Integer getFuncionarioId() { return funcionarioId; }

@@ -15,49 +15,55 @@ import java.util.List;
 
 @Schema(
         name = "LicencasOperacaoFilterDTO",
-        description = "Criterios de busca em licencas/ autorizacoes operacionais (nao e a concessao a revogar so com filtrar). "
-                + "Ancoradas em acordo, heroi/ equipa e validade. GenericFilter / POST /filter (demo).")
+        description = "Criterios de busca em licencas e autorizacoes operacionais. "
+                + "Relaciona acordos regulatorios, colaboradores, equipes, nivel de autorizacao e vigencia.")
 public class LicencasOperacaoFilterDTO implements GenericFilterDTO {
-    @UISchema(type = FieldDataType.NUMBER, controlType = FieldControlType.ASYNC_SELECT, order = 10,
+    @UISchema(label = "Acordo regulatório", type = FieldDataType.NUMBER, controlType = FieldControlType.INLINE_ENTITY_LOOKUP, order = 10,
             valueField = "id", displayField = "label",
-        endpoint = ApiPaths.Operations.ACORDOS_REGULATORIOS + "/options/filter", icon = "gavel")
+        endpoint = ApiPaths.Operations.ACORDOS_REGULATORIOS_AGREEMENT_LOOKUP_OPTIONS,
+            helpText = "Mostra licenças emitidas a partir de um acordo específico.", icon = "gavel")
     @Filterable(operation = Filterable.FilterOperation.EQUAL, relation = "acordo.id")
     @Schema(
-            description = "Apenas licencas vinculadas a este acordo; EQUAL (FK) (demo).")
+            description = "Acordo regulatorio que fundamenta a emissao da licenca operacional.")
     private Integer acordoId;
 
-    @UISchema(type = FieldDataType.NUMBER, controlType = FieldControlType.ASYNC_SELECT, order = 20,
+    @UISchema(label = "Colaborador", type = FieldDataType.NUMBER, controlType = FieldControlType.INLINE_ENTITY_LOOKUP, order = 20,
             valueField = "id", displayField = "label",
-            endpoint = ApiPaths.HumanResources.FUNCIONARIOS + "/options/filter", icon = "badge")
+            endpoint = ApiPaths.HumanResources.FUNCIONARIOS_EMPLOYEE_LOOKUP_OPTIONS,
+            helpText = "Filtra licenças concedidas a um colaborador ou herói.", icon = "badge")
     @Filterable(operation = Filterable.FilterOperation.EQUAL, relation = "funcionario.id")
     @Schema(
-            description = "Todas as licencas de um colaborador; EQUAL (demo).")
+            description = "Colaborador ou heroi ao qual a licenca operacional foi concedida.")
     private Integer funcionarioId;
 
-    @UISchema(type = FieldDataType.NUMBER, controlType = FieldControlType.ASYNC_SELECT, order = 30,
+    @UISchema(label = "Equipe", type = FieldDataType.NUMBER, controlType = FieldControlType.INLINE_ENTITY_LOOKUP, order = 30,
             valueField = "id", displayField = "label",
-        endpoint = ApiPaths.Operations.EQUIPES + "/options/filter", icon = "groups")
+        endpoint = ApiPaths.Operations.EQUIPES_TEAM_LOOKUP_OPTIONS,
+            helpText = "Filtra autorizações concedidas a uma equipe.", icon = "groups")
     @Filterable(operation = Filterable.FilterOperation.EQUAL, relation = "equipe.id")
     @Schema(
-            description = "Autorizacoes para uma equipa; EQUAL (demo).")
+            description = "Equipe tatica contemplada pela autorizacao operacional.")
     private Integer equipeId;
 
-    @UISchema(controlType = FieldControlType.SELECT, order = 40, icon = "trending_up")
+    @UISchema(label = "Nível da licença", controlType = FieldControlType.SELECT, order = 40,
+            helpText = "Seleciona o nível ou alcance operacional da autorização.", icon = "trending_up")
     @Filterable(operation = Filterable.FilterOperation.EQUAL)
     @Schema(
-            description = "Nivel (alpha, delta, onibus); EQUAL LicencaNivel (demo).")
+            description = "Nivel ou alcance operacional autorizado pela licenca.")
     private LicencaNivel nivel;
 
-    @UISchema(type = FieldDataType.DATE, controlType = FieldControlType.DATE_RANGE, order = 50, icon = "event")
+    @UISchema(label = "Válida a partir de", type = FieldDataType.DATE, controlType = FieldControlType.DATE_RANGE, order = 50,
+            helpText = "Filtra pela janela de início de validade da licença.", icon = "event")
     @Filterable(operation = Filterable.FilterOperation.BETWEEN, relation = "validoDe")
     @Schema(
-            description = "Inicio de validade; BETWEEN (janela) (demo).")
+            description = "Janela de inicio de vigencia da licenca operacional.")
     private List<LocalDate> validoDeBetween;
 
-    @UISchema(type = FieldDataType.DATE, controlType = FieldControlType.DATE_RANGE, order = 60, icon = "event")
+    @UISchema(label = "Válida até", type = FieldDataType.DATE, controlType = FieldControlType.DATE_RANGE, order = 60,
+            helpText = "Filtra pela janela de expiração ou vencimento da licença.", icon = "event")
     @Filterable(operation = Filterable.FilterOperation.BETWEEN, relation = "validoAte")
     @Schema(
-            description = "Fim de validade; BETWEEN (vencimentos) (demo).")
+            description = "Janela de termino, expiracao ou vencimento da licenca operacional.")
     private List<LocalDate> validoAteBetween;
 
     public Integer getAcordoId() { return acordoId; }

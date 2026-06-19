@@ -16,72 +16,82 @@ import java.util.List;
 @Schema(
         name = "VeiculoMissaoUsoFilterDTO",
         description = "Criterios de busca em registos de sortie (veiculo alocado a missao, piloto, janela partida/ chegada); nao e o log a corrigir so com filtrar. "
-                + "GenericFilter / POST /filter (demo).")
+                + "Usado para rastrear uso de frota em missoes, janela de deslocamento, piloto e observacoes operacionais.")
 public class VeiculoMissaoUsoFilterDTO implements GenericFilterDTO {
-    @UISchema(type = FieldDataType.NUMBER, controlType = FieldControlType.ASYNC_SELECT, order = 10,
+    @UISchema(label = "Veículo", type = FieldDataType.NUMBER, controlType = FieldControlType.INLINE_ENTITY_LOOKUP, order = 10,
             valueField = "id", displayField = "label",
-        endpoint = ApiPaths.Assets.VEICULOS + "/options/filter", icon = "directions_car")
+        endpoint = ApiPaths.Assets.VEICULOS_VEHICLE_LOOKUP_OPTIONS,
+            helpText = "Mostra usos de missão de um veículo específico.", icon = "directions_car")
     @Filterable(operation = Filterable.FilterOperation.EQUAL, relation = "veiculo.id")
     @Schema(
-            description = "Sorties deste ativo; EQUAL veiculoId (demo).")
+            description = "Veiculo cuja participacao em missoes deve ser consultada.")
     private Integer veiculoId;
 
-    @UISchema(type = FieldDataType.NUMBER, controlType = FieldControlType.ASYNC_SELECT, order = 20,
+    @UISchema(label = "Missão", type = FieldDataType.NUMBER, controlType = FieldControlType.INLINE_ENTITY_LOOKUP, order = 20,
             valueField = "id", displayField = "label",
-        endpoint = ApiPaths.Operations.MISSOES + "/options/filter", icon = "flag")
+        endpoint = ApiPaths.Operations.MISSOES_MISSION_LOOKUP_OPTIONS,
+            helpText = "Filtra usos de frota associados a uma missão.", icon = "flag")
     @Filterable(operation = Filterable.FilterOperation.EQUAL, relation = "missao.id")
     @Schema(
-            description = "Uso de frota numa missao; EQUAL (demo).")
+            description = "Missao operacional associada ao registro de uso da frota.")
     private Integer missaoId;
 
-    @UISchema(type = FieldDataType.NUMBER, controlType = FieldControlType.ASYNC_SELECT, order = 30,
+    @UISchema(label = "Piloto", type = FieldDataType.NUMBER, controlType = FieldControlType.INLINE_ENTITY_LOOKUP, order = 30,
             valueField = "id", displayField = "label",
-            endpoint = ApiPaths.HumanResources.FUNCIONARIOS + "/options/filter", icon = "filter_list")
+            endpoint = ApiPaths.HumanResources.FUNCIONARIOS_EMPLOYEE_LOOKUP_OPTIONS,
+            helpText = "Filtra registros conduzidos ou assinados por um piloto.", icon = "badge")
     @Filterable(operation = Filterable.FilterOperation.EQUAL, relation = "piloto.id")
     @Schema(
-            description = "Quem conduz/ assina; EQUAL pilotoId (demo).")
+            description = "Piloto ou responsavel que conduziu, assinou ou acompanhou a sortie.")
     private Integer pilotoId;
 
-    @UISchema(type = FieldDataType.DATE, controlType = FieldControlType.DATE_TIME_RANGE, order = 40, icon = "stacked_bar_chart")
+    @UISchema(label = "Período de partida", type = FieldDataType.DATE, controlType = FieldControlType.DATE_TIME_RANGE, order = 40,
+            helpText = "Filtra pela janela de saída ou decolagem do veículo.", icon = "stacked_bar_chart")
     @Filterable(operation = Filterable.FilterOperation.BETWEEN, relation = "partida")
     @Schema(
-            description = "Janela de decolagem/ saida; BETWEEN (demo).")
+            description = "Janela de partida, saida ou decolagem do veiculo na missao.")
     private List<OffsetDateTime> partidaBetween;
 
-    @UISchema(type = FieldDataType.DATE, controlType = FieldControlType.DATE_TIME_RANGE, order = 50, icon = "stacked_bar_chart")
+    @UISchema(label = "Período de chegada", type = FieldDataType.DATE, controlType = FieldControlType.DATE_TIME_RANGE, order = 50,
+            helpText = "Filtra pela janela de retorno ou pouso do veículo.", icon = "stacked_bar_chart")
     @Filterable(operation = Filterable.FilterOperation.BETWEEN, relation = "chegada")
     @Schema(
-            description = "Janela de retorno/ pouso; BETWEEN (demo).")
+            description = "Janela de chegada, retorno ou pouso registrada para o uso do veiculo.")
     private List<OffsetDateTime> chegadaBetween;
 
-    @UISchema(label = "Partida (Na Data)", type = FieldDataType.DATE, controlType = FieldControlType.DATE_PICKER, order = 60, icon = "event")
+    @UISchema(label = "Partida em", type = FieldDataType.DATE, controlType = FieldControlType.DATE_PICKER, order = 60,
+            helpText = "Mostra registros com partida em uma data específica.", icon = "event")
     @Filterable(operation = Filterable.FilterOperation.ON_DATE, relation = "partida")
     @Schema(
-            description = "Saidas neste dia civil; ON_DATE (demo).")
+            description = "Dia civil usado para localizar partidas registradas nessa data.")
     private LocalDate partidaOn;
 
-    @UISchema(label = "Partida (Últimos N dias)", type = FieldDataType.NUMBER, controlType = FieldControlType.INPUT, order = 70, icon = "event")
+    @UISchema(label = "Partida nos últimos dias", type = FieldDataType.NUMBER, controlType = FieldControlType.INPUT, order = 70,
+            helpText = "Informe quantos dias recentes devem ser considerados para a partida.", icon = "event")
     @Filterable(operation = Filterable.FilterOperation.IN_LAST_DAYS, relation = "partida")
     @Schema(
-            description = "Sorties recentes; IN_LAST_DAYS (demo).")
+            description = "Janela relativa para localizar partidas ocorridas nos ultimos N dias.")
     private Integer partidaLastDays;
 
-    @UISchema(label = "Chegada (Na Data)", type = FieldDataType.DATE, controlType = FieldControlType.DATE_PICKER, order = 80, icon = "event")
+    @UISchema(label = "Chegada em", type = FieldDataType.DATE, controlType = FieldControlType.DATE_PICKER, order = 80,
+            helpText = "Mostra registros com chegada em uma data específica.", icon = "event")
     @Filterable(operation = Filterable.FilterOperation.ON_DATE, relation = "chegada")
     @Schema(
-            description = "Chegadas neste dia; ON_DATE (demo).")
+            description = "Dia civil usado para localizar chegadas registradas nessa data.")
     private LocalDate chegadaOn;
 
-    @UISchema(label = "Chegada (Últimos N dias)", type = FieldDataType.NUMBER, controlType = FieldControlType.INPUT, order = 90, icon = "event")
+    @UISchema(label = "Chegada nos últimos dias", type = FieldDataType.NUMBER, controlType = FieldControlType.INPUT, order = 90,
+            helpText = "Informe quantos dias recentes devem ser considerados para a chegada.", icon = "event")
     @Filterable(operation = Filterable.FilterOperation.IN_LAST_DAYS, relation = "chegada")
     @Schema(
-            description = "Fins de sortie recentes; IN_LAST_DAYS (demo).")
+            description = "Janela relativa para localizar chegadas ou encerramentos de sortie nos ultimos N dias.")
     private Integer chegadaLastDays;
 
-    @UISchema(controlType = FieldControlType.INPUT, maxLength = 2000, order = 100, icon = "notes")
+    @UISchema(label = "Observação", controlType = FieldControlType.INPUT, maxLength = 2000, order = 100,
+            helpText = "Busca por notas de operação, dano, combustível ou logística.", icon = "notes")
     @Filterable(operation = Filterable.FilterOperation.LIKE)
     @Schema(
-            description = "Notas tecnicas/ danos/ combustivel; LIKE (demo).")
+            description = "Trecho de observacoes sobre operacao, dano, combustivel, logistica ou contexto da sortie.")
     private String observacao;
 
     public Integer getVeiculoId() { return veiculoId; }

@@ -28,14 +28,14 @@ import java.time.LocalDate;
                 + "dados de salario sao sensiveis (LGPD) e nao sao a mesma coisa que o pagamento realizado na folha (veja eventos de folha).")
 public class HistoricoSalarialDTO {
     @Schema(
-            description = "Chave de uma fatia de historico. Varias fatias no tempo cobrem a trajectoria salarial; sem encadeamento automatico (demo).",
+            description = "Chave de uma fatia de historico. Varias fatias no tempo cobrem a trajectoria salarial; encadeamento e fechamento de intervalos pertencem a regra de negocio.",
             example = "1")
     private Integer id;
 
     @NotNull
-    @UISchema(label = "Funcionário", controlType = FieldControlType.SELECT, required = true, icon = "badge",
+    @UISchema(label = "Funcionário", controlType = FieldControlType.ENTITY_LOOKUP, required = true, icon = "badge",
             valueField = "id", displayField = "label",
-            endpoint = com.example.praxis.apiquickstart.constants.ApiPaths.HumanResources.FUNCIONARIOS + "/options/filter",
+            endpoint = com.example.praxis.apiquickstart.constants.ApiPaths.HumanResources.FUNCIONARIOS_EMPLOYEE_LOOKUP_OPTIONS,
             helpText = "Colaborador titular do histórico.")
     @Schema(
             description = "Colaborador cujo salario (neste recorte) esta a ser registado; referencia o recurso de funcionario.",
@@ -66,7 +66,7 @@ public class HistoricoSalarialDTO {
     @NotNull
     @UISchema(label = "Data Início", type = FieldDataType.DATE, controlType = FieldControlType.DATE_PICKER, required = true, helpText = "Primeiro dia de vigência do salário.", icon = "event")
     @Schema(
-            description = "Inicio de vigencia deste valor (inclusive); primeiro dia em que a faixa e considerada ativa para efeito de regra de negocio (demo).",
+            description = "Inicio de vigencia deste valor (inclusive); primeiro dia em que a faixa e considerada ativa para efeito de regra de negocio.",
             example = "2024-01-01")
     private LocalDate dataInicio;
 

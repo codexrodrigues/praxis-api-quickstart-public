@@ -1,5 +1,6 @@
 package com.example.praxis.apiquickstart.procurement.dto;
 
+import com.example.praxis.apiquickstart.constants.ApiPaths;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import lombok.Getter;
@@ -12,18 +13,20 @@ import org.praxisplatform.uischema.extension.annotation.UISchema;
 @Setter
 @Schema(
         name = "ProcurementProductDTO",
-        description = "Item de catalogo vinculado a empresa e contrato (SKU, estoque, unidade, status). "
-                + "Payload de borda; nao e criterio de filtro. OpenAPI 3.1 e x-ui (demo).")
+        description = "Item de catalogo de compras vinculado a empresa e contrato, com SKU, categoria, estoque disponivel, unidade de medida e elegibilidade para requisicao.")
 public class ProcurementProductDTO {
-    @Schema(description = "Identificador interno (PK) deste registo no servico; referencia o recurso em URLs e relacionamentos.")
+    @Schema(description = "Identificador do item de catalogo; referencia linhas de pedido, contrato vigente e relacionamentos de procurement.")
     private Integer id;
 
-    @UISchema(label = "Empresa", controlType = FieldControlType.ENTITY_LOOKUP, order = 10, icon = "business")
+    @UISchema(label = "Empresa", controlType = FieldControlType.ENTITY_LOOKUP, order = 10, icon = "business",
+            endpoint = ApiPaths.Procurement.COMPANIES_COMPANY_LOOKUP_OPTIONS, valueField = "id", displayField = "label")
     @Schema(
             description = "FK; tenant ou empresa detentora do catalogo (companyId).")
     private Integer companyId;
 
-    @UISchema(label = "Contrato", controlType = FieldControlType.ENTITY_LOOKUP, order = 20, icon = "contract")
+    @UISchema(label = "Contrato", controlType = FieldControlType.ENTITY_LOOKUP, order = 20, icon = "contract",
+            endpoint = ApiPaths.Procurement.CONTRACTS_CONTRACT_LOOKUP_OPTIONS, valueField = "id", displayField = "label",
+            dependentField = "companyId", resetOnDependentChange = true)
     @Schema(
             description = "FK; contrato que rege preco e disponibilidade (contractId).")
     private Integer contractId;

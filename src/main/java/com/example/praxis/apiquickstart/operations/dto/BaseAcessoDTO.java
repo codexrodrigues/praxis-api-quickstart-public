@@ -12,27 +12,27 @@ import org.praxisplatform.uischema.extension.annotation.UISchema;
 @Schema(
         name = "BaseAcessoDTO",
         description = "Liberacao de pessoa a base (nivel de credencial, ativo, vigencia operacional). "
-                + "Payload de borda; nao e criterio de filtro. OpenAPI 3.1 e x-ui (demo).")
+                + "Relaciona colaborador, base operacional e nivel de credencial para auditoria e governanca de acesso.")
 public class BaseAcessoDTO {
     @Schema(description = "Identificador interno (PK) deste registo no servico; referencia o recurso em URLs e relacionamentos.")
     private Integer id;
 
     @NotNull
-    @UISchema(label = "Base", controlType = FieldControlType.SELECT, group = "Relacionamentos", order = 10,
+    @UISchema(label = "Base", controlType = FieldControlType.ENTITY_LOOKUP, group = "Relacionamentos", order = 10,
             valueField = "id", displayField = "label",
-        endpoint = com.example.praxis.apiquickstart.constants.ApiPaths.Operations.BASES + "/options/filter",
+        endpoint = com.example.praxis.apiquickstart.constants.ApiPaths.Operations.BASES_BASE_LOOKUP_OPTIONS,
             tableHidden = true, icon = "location_on")
     @Schema(
-            description = "FK; instalacao a que o acesso se refere (baseId).")
+            description = "Base operacional para a qual a credencial foi concedida.")
     private Integer baseId;
 
     @NotNull
-    @UISchema(label = "Funcionário", controlType = FieldControlType.SELECT, group = "Relacionamentos", order = 20,
+    @UISchema(label = "Funcionário", controlType = FieldControlType.ENTITY_LOOKUP, group = "Relacionamentos", order = 20,
             valueField = "id", displayField = "label",
-            endpoint = com.example.praxis.apiquickstart.constants.ApiPaths.HumanResources.FUNCIONARIOS + "/options/filter",
+            endpoint = com.example.praxis.apiquickstart.constants.ApiPaths.HumanResources.FUNCIONARIOS_EMPLOYEE_LOOKUP_OPTIONS,
             tableHidden = true, icon = "badge")
     @Schema(
-            description = "FK; colaborador beneficiario (funcionarioId).")
+            description = "Colaborador ou heroi beneficiario da credencial de acesso.")
     private Integer funcionarioId;
 
     @UISchema(label = "Base", readOnly = true, formHidden = true, group = "Relacionamentos", order = 11, icon = "location_on")

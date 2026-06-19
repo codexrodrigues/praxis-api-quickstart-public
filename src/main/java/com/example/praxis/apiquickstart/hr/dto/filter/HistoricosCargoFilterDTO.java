@@ -14,35 +14,35 @@ import java.util.List;
 
 @Schema(
         name = "HistoricosCargoFilterDTO",
-        description = "Criterios de busca na linha do tempo de cargos/ lotacao (nao e designacao a gravar so por filtrar). "
-                + "Ancora plano de carreira e alocacao; GenericFilter / POST /filter (demo).")
+        description = "Criterios de busca na linha do tempo de cargos e lotacoes de colaboradores. "
+                + "Apoia analise de carreira, ocupacao de funcoes e periodos de vigencia em cada designacao.")
 public class HistoricosCargoFilterDTO implements GenericFilterDTO {
-    @UISchema(label = "Colaborador", type = FieldDataType.NUMBER, controlType = FieldControlType.ASYNC_SELECT, order = 10,
+    @UISchema(label = "Colaborador", type = FieldDataType.NUMBER, controlType = FieldControlType.INLINE_ENTITY_LOOKUP, order = 10,
             valueField = "id", displayField = "label",
-            endpoint = ApiPaths.HumanResources.FUNCIONARIOS + "/options/filter", helpText = "Filtrar histórico de um colaborador específico.", icon = "badge")
+            endpoint = ApiPaths.HumanResources.FUNCIONARIOS_EMPLOYEE_LOOKUP_OPTIONS, helpText = "Filtrar histórico de um colaborador específico.", icon = "badge")
     @Filterable(operation = Filterable.FilterOperation.EQUAL, relation = "funcionario.id")
     @Schema(
-            description = "Evolucao de cargos de um unico colaborador; EQUAL (FK) (demo).")
+            description = "Colaborador cuja trajetoria de cargos e lotacoes deve ser consultada.")
     private Integer funcionarioId;
 
     @UISchema(label = "Cargo", type = FieldDataType.NUMBER, controlType = FieldControlType.ASYNC_SELECT, order = 20,
             valueField = "id", displayField = "label",
-            endpoint = ApiPaths.HumanResources.CARGOS + "/options/filter", helpText = "Filtrar por cargo ocupado.", icon = "work")
+            endpoint = ApiPaths.HumanResources.CARGOS_JOB_ROLE_LOOKUP_OPTIONS, helpText = "Filtrar por cargo ocupado.", icon = "work")
     @Filterable(operation = Filterable.FilterOperation.EQUAL, relation = "cargo.id")
     @Schema(
-            description = "Quem ja ocupou (ou ocupa) este cargo; EQUAL por id de Cargo (demo).")
+            description = "Cargo usado para localizar colaboradores que ja ocuparam ou ocupam a funcao.")
     private Integer cargoId;
 
     @UISchema(label = "Início da Lotação", type = FieldDataType.DATE, controlType = FieldControlType.DATE_RANGE, order = 30, helpText = "Buscar por período de início da lotação.", icon = "event")
     @Filterable(operation = Filterable.FilterOperation.BETWEEN, relation = "dataInicio")
     @Schema(
-            description = "Mandato/ periodo: inicio; BETWEEN; cruza com dataFim (demo).")
+            description = "Janela de inicio da designacao, usada para analisar entrada em cargo ou lotacao.")
     private List<LocalDate> dataInicioBetween;
 
     @UISchema(label = "Término da Lotação", type = FieldDataType.DATE, controlType = FieldControlType.DATE_RANGE, order = 40, helpText = "Buscar por período de término da lotação.", icon = "event")
     @Filterable(operation = Filterable.FilterOperation.BETWEEN, relation = "dataFim")
     @Schema(
-            description = "Mandato/ periodo: fim; BETWEEN (fim nulo fora do filtro) (demo).")
+            description = "Janela de termino da designacao, usada para localizar encerramentos de cargo ou lotacao.")
     private List<LocalDate> dataFimBetween;
 
     public Integer getFuncionarioId() { return funcionarioId; }

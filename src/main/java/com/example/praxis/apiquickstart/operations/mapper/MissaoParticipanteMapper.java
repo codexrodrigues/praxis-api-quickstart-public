@@ -14,7 +14,8 @@ public interface MissaoParticipanteMapper {
             @Mapping(target = "missaoId", source = "missao.id"),
             @Mapping(target = "funcionarioId", source = "funcionario.id"),
             @Mapping(target = "missaoTitulo", source = "missao.titulo"),
-            @Mapping(target = "funcionarioNome", source = "funcionario.nomeCompleto")
+            @Mapping(target = "funcionarioNome", source = "funcionario.nomeCompleto"),
+            @Mapping(target = "funcionarioFotoUrl", source = "funcionario.fotoPerfilUrl")
     })
     MissaoParticipanteDTO toDto(MissaoParticipante entity);
 

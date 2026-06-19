@@ -12,24 +12,23 @@ import java.time.OffsetDateTime;
 
 @Schema(
         name = "EquipamentoAlocacaoDTO",
-        description = "Periodo de custodia de um equipamento por colaborador (inicio, fim, status de alocacao). "
-                + "Payload de borda; nao e criterio de filtro. OpenAPI 3.1 e x-ui (demo).")
+        description = "Vinculo temporal de custodia entre um equipamento e um colaborador, registrando inicio, encerramento e status da responsabilidade operacional.")
 public class EquipamentoAlocacaoDTO {
-    @Schema(description = "Identificador interno (PK) deste registo no servico; referencia o recurso em URLs e relacionamentos.")
+    @Schema(description = "Identificador da alocacao de equipamento; referencia o periodo de custodia em URLs e trilhas de auditoria.")
     private Integer id;
 
     @NotNull
-    @UISchema(label = "Equipamento", controlType = FieldControlType.SELECT,
+    @UISchema(label = "Equipamento", controlType = FieldControlType.ENTITY_LOOKUP,
             valueField = "id", displayField = "label",
-        endpoint = com.example.praxis.apiquickstart.constants.ApiPaths.Assets.EQUIPAMENTOS + "/options/filter", required = true, icon = "construction")
+        endpoint = com.example.praxis.apiquickstart.constants.ApiPaths.Assets.EQUIPAMENTOS_EQUIPMENT_LOOKUP_OPTIONS, required = true, icon = "construction")
     @Schema(
             description = "FK; item alocado (equipamentoId).")
     private Integer equipamentoId;
 
     @NotNull
-    @UISchema(label = "Funcionário", controlType = FieldControlType.SELECT,
+    @UISchema(label = "Funcionário", controlType = FieldControlType.ENTITY_LOOKUP,
             valueField = "id", displayField = "label",
-            endpoint = com.example.praxis.apiquickstart.constants.ApiPaths.HumanResources.FUNCIONARIOS + "/options/filter", required = true, icon = "badge")
+            endpoint = com.example.praxis.apiquickstart.constants.ApiPaths.HumanResources.FUNCIONARIOS_EMPLOYEE_LOOKUP_OPTIONS, required = true, icon = "badge")
     @Schema(
             description = "FK; colaborador que detem o item (funcionarioId).")
     private Integer funcionarioId;

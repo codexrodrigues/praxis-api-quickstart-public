@@ -17,122 +17,137 @@ import java.util.List;
 @Schema(
         name = "VwResumoMissoeFilterDTO",
         description = "Criterios de busca na vista VwResumoMissoe (resumo agregado; nao e a missao em edicao). "
-                + "Distinto de MissaoFilterDTO (entidade). Suporta multiplas missoes, texto e janelas temporais de acoes. GenericFilter / POST /filter (demo).")
+                + "Suporta recortes por missoes, estado operacional, ameaca, participantes, volume de eventos e recencia da linha do tempo.")
 public class VwResumoMissoeFilterDTO implements GenericFilterDTO {
-    @UISchema(type = FieldDataType.NUMBER, controlType = FieldControlType.ASYNC_SELECT, order = 10,
+    @UISchema(label = "Missão", type = FieldDataType.NUMBER, controlType = FieldControlType.INLINE_ENTITY_LOOKUP, order = 10,
             valueField = "id", displayField = "label",
-        endpoint = ApiPaths.Operations.MISSOES + "/options/filter", icon = "flag")
+        endpoint = ApiPaths.Operations.MISSOES_MISSION_LOOKUP_OPTIONS,
+            helpText = "Foca o resumo agregado de uma missão específica.", icon = "flag")
     @Filterable(operation = Filterable.FilterOperation.EQUAL)
     @Schema(
-            description = "Uma unica missao no resumo; EQUAL (FK) (demo).")
+            description = "Missao especifica cujo resumo agregado deve ser localizado.")
     private Integer missaoId;
 
-    @UISchema(label = "Missões (Incluir)", type = FieldDataType.NUMBER, controlType = FieldControlType.INLINE_MULTISELECT, order = 15,
+    @UISchema(label = "Mostrar missões", type = FieldDataType.NUMBER, controlType = FieldControlType.INLINE_MULTISELECT, order = 15,
             valueField = "id", displayField = "label",
-        endpoint = ApiPaths.Operations.MISSOES + "/options/filter", icon = "checklist")
+        endpoint = ApiPaths.Operations.MISSOES_MISSION_LOOKUP_OPTIONS,
+            helpText = "Inclui no resumo apenas as missões selecionadas.", icon = "checklist")
     @Filterable(operation = Filterable.FilterOperation.IN, relation = "missaoId")
     @Schema(
-            description = "Subconjunto de missoes; operacao IN (multi-select) (demo).")
+            description = "Conjunto de missoes que deve compor o resumo agregado retornado.")
     private List<Integer> missaoIdsIn;
 
-    @UISchema(controlType = FieldControlType.INPUT, maxLength = 200, order = 20, icon = "title")
+    @UISchema(label = "Título da missão", controlType = FieldControlType.INPUT, maxLength = 200, order = 20,
+            helpText = "Busca por palavras-chave no título exibido no resumo.", icon = "title")
     @Filterable(operation = Filterable.FilterOperation.LIKE)
     @Schema(
-            description = "Titulo exibido na vista; LIKE (demo).")
+            description = "Trecho do titulo da missao exibido na vista de resumo.")
     private String titulo;
 
-    @UISchema(controlType = FieldControlType.INPUT, maxLength = 50, order = 30, icon = "toggle_on")
+    @UISchema(label = "Status da missão", controlType = FieldControlType.INPUT, maxLength = 50, order = 30,
+            helpText = "Busca pelo status textual projetado na visão resumida.", icon = "toggle_on")
     @Filterable(operation = Filterable.FilterOperation.LIKE)
     @Schema(
-            description = "Estado de workflow (string da projecao); LIKE (demo).")
+            description = "Trecho do estado de workflow projetado na linha de resumo.")
     private String status;
 
-    @UISchema(controlType = FieldControlType.INPUT, maxLength = 50, order = 40, icon = "priority_high")
+    @UISchema(label = "Prioridade", controlType = FieldControlType.INPUT, maxLength = 50, order = 40,
+            helpText = "Busca pela prioridade textual exibida no resumo.", icon = "priority_high")
     @Filterable(operation = Filterable.FilterOperation.LIKE)
     @Schema(
-            description = "Prioridade exibida; LIKE (demo).")
+            description = "Trecho da prioridade operacional exibida no resumo.")
     private String prioridade;
 
-    @UISchema(controlType = FieldControlType.INPUT, maxLength = 200, order = 50, icon = "location_on")
+    @UISchema(label = "Local", controlType = FieldControlType.INPUT, maxLength = 200, order = 50,
+            helpText = "Filtra pelo local ou cenário operacional da missão.", icon = "location_on")
     @Filterable(operation = Filterable.FilterOperation.LIKE)
     @Schema(
-            description = "Cenario operacional; LIKE (demo).")
+            description = "Trecho do local ou cenario operacional da missao.")
     private String local;
 
-    @UISchema(controlType = FieldControlType.INPUT, maxLength = 200, order = 60, icon = "warning")
+    @UISchema(label = "Ameaça principal", controlType = FieldControlType.INPUT, maxLength = 200, order = 60,
+            helpText = "Busca pelo texto da ameaça principal associada à missão.", icon = "warning")
     @Filterable(operation = Filterable.FilterOperation.LIKE)
     @Schema(
-            description = "Ameaca principal (texto denormalizado); LIKE (demo).")
+            description = "Trecho da ameaca principal desnormalizada associada a missao.")
     private String ameaca;
 
-    @UISchema(type = FieldDataType.NUMBER, controlType = FieldControlType.RANGE_SLIDER, order = 70, icon = "badge")
+    @UISchema(label = "Quantidade de heróis", type = FieldDataType.NUMBER, controlType = FieldControlType.RANGE_SLIDER, order = 70,
+            helpText = "Filtra missões pela faixa de participantes no resumo.", icon = "badge")
     @Filterable(operation = Filterable.FilterOperation.BETWEEN, relation = "qtdHerois")
     @Schema(
-            description = "Faixa de headcount de herois; BETWEEN (demo).")
+            description = "Faixa de quantidade de participantes vinculados a missao no resumo.")
     private List<Long> qtdHeroisBetween;
 
-    @UISchema(type = FieldDataType.NUMBER, controlType = FieldControlType.RANGE_SLIDER, order = 80, icon = "event_note")
+    @UISchema(label = "Quantidade de eventos", type = FieldDataType.NUMBER, controlType = FieldControlType.RANGE_SLIDER, order = 80,
+            helpText = "Filtra missões pela quantidade de eventos registrados na linha do tempo.", icon = "event_note")
     @Filterable(operation = Filterable.FilterOperation.BETWEEN, relation = "qtdEventos")
     @Schema(
-            description = "Faixa de volume de eventos; BETWEEN (carga operacional) (demo).")
+            description = "Faixa de quantidade de eventos registrados na linha do tempo da missao.")
     private List<Long> qtdEventosBetween;
 
-    @UISchema(type = FieldDataType.DATE, controlType = FieldControlType.DATE_TIME_RANGE, order = 90, icon = "stacked_bar_chart")
+    @UISchema(label = "Período da primeira ação", type = FieldDataType.DATE, controlType = FieldControlType.DATE_TIME_RANGE, order = 90,
+            helpText = "Filtra pela janela em que a primeira ação da missão ocorreu.", icon = "stacked_bar_chart")
     @Filterable(operation = Filterable.FilterOperation.BETWEEN, relation = "primeiraAcao")
     @Schema(
-            description = "Janela da primeira acao na timeline; BETWEEN (demo).")
+            description = "Janela temporal da primeira acao registrada na linha do tempo da missao.")
     private List<OffsetDateTime> primeiraAcaoBetween;
 
-    @UISchema(type = FieldDataType.DATE, controlType = FieldControlType.DATE_TIME_RANGE, order = 100, icon = "stacked_bar_chart")
+    @UISchema(label = "Período da última ação", type = FieldDataType.DATE, controlType = FieldControlType.DATE_TIME_RANGE, order = 100,
+            helpText = "Filtra pela janela em que a atividade mais recente da missão ocorreu.", icon = "stacked_bar_chart")
     @Filterable(operation = Filterable.FilterOperation.BETWEEN, relation = "ultimaAcao")
     @Schema(
-            description = "Janela da ultima acao; BETWEEN (staleness) (demo).")
+            description = "Janela temporal da atividade mais recente registrada para a missao.")
     private List<OffsetDateTime> ultimaAcaoBetween;
 
-    @UISchema(label = "Primeira Ação (Na Data)", type = FieldDataType.DATE, controlType = FieldControlType.DATE_PICKER, order = 110, icon = "event")
+    @UISchema(label = "Primeira ação em", type = FieldDataType.DATE, controlType = FieldControlType.DATE_PICKER, order = 110,
+            helpText = "Mostra missões cuja primeira ação ocorreu em uma data específica.", icon = "event")
     @Filterable(operation = Filterable.FilterOperation.ON_DATE, relation = "primeiraAcao")
     @Schema(
-            description = "Primeira acao neste dia civil; ON_DATE (demo).")
+            description = "Dia civil usado para localizar missoes cuja primeira acao ocorreu nessa data.")
     private LocalDate primeiraAcaoOn;
 
     @UISchema(
-            label = "Primeira Ação (Periodo Relativo)",
+            label = "Período rápido da primeira ação",
             controlType = FieldControlType.INLINE_RELATIVE_PERIOD,
             order = 120,
             extraProperties = {
                     @ExtensionProperty(name = "relativePeriodOptions", value = QuickstartRelativePeriodUiOptions.DEFAULT_OPTIONS_JSON)
-            }, icon = "event")
+            }, helpText = "Aplica atalhos de tempo para a primeira ação, como hoje ou últimos períodos.", icon = "event")
     @Schema(
-            description = "Preset de periodo para primeira acao; string+ UI options (demo).")
+            description = "Atalho de periodo relativo aplicado a data da primeira acao, conforme opcoes publicadas para a UI.")
     private String primeiraAcaoPreset;
 
-    @UISchema(label = "Primeira Ação (Últimos N dias)", type = FieldDataType.NUMBER, controlType = FieldControlType.INPUT, order = 125, icon = "event")
+    @UISchema(label = "Primeira ação nos últimos dias", type = FieldDataType.NUMBER, controlType = FieldControlType.INPUT, order = 125,
+            helpText = "Informe quantos dias recentes devem ser considerados para a primeira ação.", icon = "event")
     @Filterable(operation = Filterable.FilterOperation.IN_LAST_DAYS, relation = "primeiraAcao")
     @Schema(
-            description = "Missao com primeira acao recente; IN_LAST_DAYS (demo).")
+            description = "Janela relativa para localizar missoes cuja primeira acao ocorreu nos ultimos N dias.")
     private Integer primeiraAcaoLastDays;
 
-    @UISchema(label = "Última Ação (Na Data)", type = FieldDataType.DATE, controlType = FieldControlType.DATE_PICKER, order = 130, icon = "event")
+    @UISchema(label = "Última ação em", type = FieldDataType.DATE, controlType = FieldControlType.DATE_PICKER, order = 130,
+            helpText = "Mostra missões cuja atividade mais recente ocorreu em uma data específica.", icon = "event")
     @Filterable(operation = Filterable.FilterOperation.ON_DATE, relation = "ultimaAcao")
     @Schema(
-            description = "Ultima acao neste dia; ON_DATE (demo).")
+            description = "Dia civil usado para localizar missoes cuja ultima atividade ocorreu nessa data.")
     private LocalDate ultimaAcaoOn;
 
     @UISchema(
-            label = "Última Ação (Periodo Relativo)",
+            label = "Período rápido da última ação",
             controlType = FieldControlType.INLINE_RELATIVE_PERIOD,
             order = 140,
             extraProperties = {
                     @ExtensionProperty(name = "relativePeriodOptions", value = QuickstartRelativePeriodUiOptions.DEFAULT_OPTIONS_JSON)
-            }, icon = "event")
+            }, helpText = "Aplica atalhos de tempo para a última ação, como hoje ou últimos períodos.", icon = "event")
     @Schema(
-            description = "Preset relativo para ultima acao; string serializada (demo).")
+            description = "Atalho de periodo relativo aplicado a data da ultima acao da missao.")
     private String ultimaAcaoPreset;
 
-    @UISchema(label = "Última Ação (Últimos N dias)", type = FieldDataType.NUMBER, controlType = FieldControlType.INPUT, order = 145, icon = "event")
+    @UISchema(label = "Última ação nos últimos dias", type = FieldDataType.NUMBER, controlType = FieldControlType.INPUT, order = 145,
+            helpText = "Informe quantos dias recentes devem ser considerados para a última ação.", icon = "event")
     @Filterable(operation = Filterable.FilterOperation.IN_LAST_DAYS, relation = "ultimaAcao")
     @Schema(
-            description = "Atividade recente; ultima acao em N dias; IN_LAST_DAYS (demo).")
+            description = "Janela relativa para localizar missoes com atividade registrada nos ultimos N dias.")
     private Integer ultimaAcaoLastDays;
 
     public Integer getMissaoId() { return missaoId; }

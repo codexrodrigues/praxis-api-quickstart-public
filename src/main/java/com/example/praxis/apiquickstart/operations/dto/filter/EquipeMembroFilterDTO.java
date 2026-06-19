@@ -15,65 +15,74 @@ import java.util.List;
 
 @Schema(
         name = "EquipeMembroFilterDTO",
-        description = "Criterios de busca no quadro de membros (equipe x colaborador); nao e a nomeacao a editar so com filtrar. "
-                + "Janelas de entrada/ saida; GenericFilter / POST /filter (demo).")
+        description = "Criterios de busca no quadro de membros de equipes taticas. "
+                + "Relaciona equipe, colaborador, papel exercido e janelas de entrada ou saida da composicao.")
 public class EquipeMembroFilterDTO implements GenericFilterDTO {
-    @UISchema(type = FieldDataType.NUMBER, controlType = FieldControlType.ASYNC_SELECT, order = 10,
+    @UISchema(label = "Equipe", type = FieldDataType.NUMBER, controlType = FieldControlType.INLINE_ENTITY_LOOKUP, order = 10,
             valueField = "id", displayField = "label",
-        endpoint = ApiPaths.Operations.EQUIPES + "/options/filter", icon = "groups")
+        endpoint = ApiPaths.Operations.EQUIPES_TEAM_LOOKUP_OPTIONS,
+            helpText = "Mostra membros vinculados a uma equipe específica.", icon = "groups")
     @Filterable(operation = Filterable.FilterOperation.EQUAL, relation = "equipe.id")
     @Schema(
-            description = "Apenas escalados nesta equipe; EQUAL (FK) (demo).")
+            description = "Equipe tatica cuja composicao de membros deve ser consultada.")
     private Integer equipeId;
 
-    @UISchema(type = FieldDataType.NUMBER, controlType = FieldControlType.ASYNC_SELECT, order = 20,
+    @UISchema(label = "Colaborador", type = FieldDataType.NUMBER, controlType = FieldControlType.INLINE_ENTITY_LOOKUP, order = 20,
             valueField = "id", displayField = "label",
-            endpoint = ApiPaths.HumanResources.FUNCIONARIOS + "/options/filter", icon = "badge")
+            endpoint = ApiPaths.HumanResources.FUNCIONARIOS_EMPLOYEE_LOOKUP_OPTIONS,
+            helpText = "Mostra a participação de um colaborador em equipes.", icon = "badge")
     @Filterable(operation = Filterable.FilterOperation.EQUAL, relation = "funcionario.id")
     @Schema(
-            description = "Todas as equipas de um colaborador; EQUAL (demo).")
+            description = "Colaborador ou heroi cuja participacao em equipes deve ser localizada.")
     private Integer funcionarioId;
 
-    @UISchema(controlType = FieldControlType.SELECT, order = 30, icon = "filter_list")
+    @UISchema(label = "Papel na equipe", controlType = FieldControlType.SELECT, order = 30,
+            helpText = "Filtra por uma função específica exercida na equipe.", icon = "filter_list")
     @Filterable(operation = Filterable.FilterOperation.EQUAL)
     @Schema(
-            description = "Papel unico; EQUAL PapelEquipe (demo).")
+            description = "Funcao exercida pelo colaborador dentro da equipe tatica.")
     private PapelEquipe papel;
 
-    @UISchema(type = FieldDataType.DATE, controlType = FieldControlType.DATE_RANGE, order = 40, icon = "event")
+    @UISchema(label = "Período de entrada", type = FieldDataType.DATE, controlType = FieldControlType.DATE_RANGE, order = 40,
+            helpText = "Filtra pela janela em que o membro entrou na equipe.", icon = "event")
     @Filterable(operation = Filterable.FilterOperation.BETWEEN, relation = "dataEntrada")
     @Schema(
-            description = "Janela de alistamento; BETWEEN (demo).")
+            description = "Janela de entrada do colaborador na composicao da equipe.")
     private List<LocalDate> dataEntradaBetween;
 
-    @UISchema(type = FieldDataType.DATE, controlType = FieldControlType.DATE_RANGE, order = 50, icon = "event")
+    @UISchema(label = "Período de saída", type = FieldDataType.DATE, controlType = FieldControlType.DATE_RANGE, order = 50,
+            helpText = "Filtra pela janela em que o membro saiu ou foi transferido.", icon = "event")
     @Filterable(operation = Filterable.FilterOperation.BETWEEN, relation = "dataSaida")
     @Schema(
-            description = "Janela de desligamento/ transferencia; BETWEEN (demo).")
+            description = "Janela de saida, desligamento ou transferencia do colaborador da equipe.")
     private List<LocalDate> dataSaidaBetween;
 
-    @UISchema(label = "Papel (Incluir)", controlType = FieldControlType.INLINE_MULTISELECT, order = 60, icon = "filter_list")
-    @Filterable(operation = Filterable.FilterOperation.IN)
+    @UISchema(label = "Mostrar papéis", controlType = FieldControlType.INLINE_MULTISELECT, order = 60,
+            helpText = "Inclui membros que tenham qualquer um dos papéis selecionados.", icon = "filter_list")
+    @Filterable(operation = Filterable.FilterOperation.IN, relation = "papel")
     @Schema(
-            description = "Uniao de funcoes; operacao IN (demo).")
+            description = "Conjunto de papeis de equipe aceitos para compor o resultado da busca.")
     private List<PapelEquipe> papeisIn;
 
-    @UISchema(label = "Papel (Excluir)", controlType = FieldControlType.INLINE_MULTISELECT, order = 70, icon = "filter_list")
-    @Filterable(operation = Filterable.FilterOperation.NOT_IN)
+    @UISchema(label = "Ocultar papéis", controlType = FieldControlType.INLINE_MULTISELECT, order = 70,
+            helpText = "Remove do resultado membros com os papéis selecionados.", icon = "filter_list")
+    @Filterable(operation = Filterable.FilterOperation.NOT_IN, relation = "papel")
     @Schema(
-            description = "Excluir funcoes; NOT_IN (demo).")
+            description = "Conjunto de papeis de equipe que devem ser excluidos do resultado da busca.")
     private List<PapelEquipe> papeisNotIn;
 
-    @UISchema(label = "Entrada (Na Data)", type = FieldDataType.DATE, controlType = FieldControlType.DATE_PICKER, order = 80, icon = "event")
+    @UISchema(label = "Entrada em", type = FieldDataType.DATE, controlType = FieldControlType.DATE_PICKER, order = 80,
+            helpText = "Mostra membros que entraram na equipe em uma data específica.", icon = "event")
     @Filterable(operation = Filterable.FilterOperation.ON_DATE, relation = "dataEntrada")
     @Schema(
-            description = "Alistamento neste dia; ON_DATE (demo).")
+            description = "Dia civil usado para localizar entradas de membros na equipe.")
     private LocalDate dataEntradaOn;
 
-    @UISchema(label = "Saída (Na Data)", type = FieldDataType.DATE, controlType = FieldControlType.DATE_PICKER, order = 90, icon = "event")
+    @UISchema(label = "Saída em", type = FieldDataType.DATE, controlType = FieldControlType.DATE_PICKER, order = 90,
+            helpText = "Mostra membros que saíram da equipe em uma data específica.", icon = "event")
     @Filterable(operation = Filterable.FilterOperation.ON_DATE, relation = "dataSaida")
     @Schema(
-            description = "Saidas neste dia; ON_DATE (demo).")
+            description = "Dia civil usado para localizar saidas de membros da equipe.")
     private LocalDate dataSaidaOn;
 
     public Integer getEquipeId() { return equipeId; }

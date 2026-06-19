@@ -8,13 +8,14 @@ import org.praxisplatform.uischema.extension.annotation.UISchema;
 
 @Schema(
         name = "BaseAcessoWorkflowRequestDTO",
-        description = "Requisicao de transicao de workflow de acesso a base: justificativa opcional (ex. deferimento em 2o nivel).")
+        description = "Comando de elegibilidade para ativar ou desativar o acesso de uma pessoa a uma base operacional. "
+                + "A justificativa registra a decisao de credenciamento quando a politica exigir rastro.")
 public class BaseAcessoWorkflowRequestDTO {
 
     @Size(max = 500)
     @UISchema(label = "Justificativa", controlType = FieldControlType.TEXTAREA, maxLength = 500, order = 10, icon = "notes")
     @Schema(
-            description = "Razao da decisao; recomendada quando a politica exige rastro.")
+            description = "Motivo da ativacao ou desativacao da credencial de base; recomendado para revisao de seguranca e auditoria de acesso.")
     private String justificativa;
 
     public String getJustificativa() {

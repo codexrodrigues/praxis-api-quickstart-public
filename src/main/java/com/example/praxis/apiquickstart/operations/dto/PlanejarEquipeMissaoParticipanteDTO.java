@@ -9,7 +9,7 @@ import org.praxisplatform.uischema.extension.annotation.UISchema;
 @Schema(
         name = "PlanejarEquipeMissaoParticipanteDTO",
         description = "Elemento de equipe a alocar: heroi, papel, ordem e designacao de lider no planejamento. "
-                + "OpenAPI 3.1 e x-ui (demo).")
+                + "Usado dentro do plano de equipe para validar unicidade por colaborador e definir exatamente um participante principal.")
 public class PlanejarEquipeMissaoParticipanteDTO {
     @Schema(description = "Identificador interno (PK) deste registo no servico; referencia o recurso em URLs e relacionamentos.")
     private Integer id;

@@ -19,184 +19,210 @@ import java.util.List;
 @Schema(
         name = "MissaoFilterDTO",
         description = "Criterios de busca no catalogo de missoes (ameaca, janelas previstas e reais, status e prioridade); nao e a entidade a editar so com filtrar. "
-                + "GenericFilter / POST /filter (demo).")
+                + "Usado por consoles operacionais e assistentes para localizar missoes por ciclo de vida, agenda, prioridade, teatro e ameaca relacionada.")
 public class MissaoFilterDTO implements GenericFilterDTO {
-    @UISchema(controlType = FieldControlType.INPUT, maxLength = 200, order = 10, icon = "title")
+    @UISchema(label = "Título da missão", controlType = FieldControlType.INPUT, maxLength = 200, order = 10,
+            helpText = "Digite parte do nome da missão para localizar campanhas específicas.", icon = "title")
     @Filterable(operation = Filterable.FilterOperation.LIKE)
     @Schema(
-            description = "Designacao de campanha/operacao; LIKE titulo (demo).")
+            description = "Trecho do nome usado para localizar uma campanha ou operação no catálogo de missões.")
     private String titulo;
 
-    @UISchema(controlType = FieldControlType.INPUT, maxLength = 4000, order = 20, icon = "flag")
+    @UISchema(label = "Objetivo da missão", controlType = FieldControlType.INPUT, maxLength = 4000, order = 20,
+            helpText = "Busque por palavras presentes na finalidade ou narrativa operacional.", icon = "flag")
     @Filterable(operation = Filterable.FilterOperation.LIKE)
     @Schema(
-            description = "Finalidade tatica/ narrativa; LIKE objetivo (demo).")
+            description = "Trecho da finalidade operacional ou narrativa esperada para a missão.")
     private String objetivo;
 
-    @UISchema(controlType = FieldControlType.SELECT, order = 30, icon = "priority_high")
+    @UISchema(label = "Prioridade", controlType = FieldControlType.SELECT, order = 30,
+            helpText = "Filtra por uma única prioridade operacional.", icon = "priority_high")
     @Filterable(operation = Filterable.FilterOperation.EQUAL)
     @Schema(
-            description = "Um unico grau; EQUAL MissaoPrioridade (demo).")
+            description = "Grau de urgência atribuído à missão para orientar triagem e ordenação operacional.")
     private MissaoPrioridade prioridade;
 
-    @UISchema(controlType = FieldControlType.SELECT, order = 40, icon = "toggle_on")
+    @UISchema(label = "Status", controlType = FieldControlType.SELECT, order = 40,
+            helpText = "Filtra por uma única fase do ciclo de vida da missão.", icon = "toggle_on")
     @Filterable(operation = Filterable.FilterOperation.EQUAL)
     @Schema(
-            description = "Uma fase; EQUAL MissaoStatus (demo).")
+            description = "Fase atual do ciclo de vida da missão, como planejada, em andamento, pausada, concluída ou falha.")
     private MissaoStatus status;
 
-    @UISchema(controlType = FieldControlType.INPUT, maxLength = 200, order = 50, icon = "location_on")
+    @UISchema(label = "Local", controlType = FieldControlType.INPUT, maxLength = 200, order = 50,
+            helpText = "Digite parte do teatro operacional, base ou região da missão.", icon = "location_on")
     @Filterable(operation = Filterable.FilterOperation.LIKE)
     @Schema(
-            description = "Teatro ou base; LIKE local (demo).")
+            description = "Trecho do teatro operacional, base ou região associada à missão.")
     private String local;
 
-    @UISchema(type = FieldDataType.NUMBER, controlType = FieldControlType.INLINE_ENTITY_LOOKUP, order = 60,
+    @UISchema(label = "Ameaça", type = FieldDataType.NUMBER, controlType = FieldControlType.INLINE_ENTITY_LOOKUP, order = 60,
             valueField = "id", displayField = "label",
-        endpoint = ApiPaths.RiskIntelligence.AMEACAS + "/options/filter", icon = "warning")
+        endpoint = ApiPaths.RiskIntelligence.AMEACAS_THREAT_LOOKUP_OPTIONS,
+            helpText = "Selecione a ameaça vinculada às missões que deseja analisar.", icon = "warning")
     @Filterable(operation = Filterable.FilterOperation.EQUAL, relation = "ameaca.id")
     @Schema(
-            description = "Ameaca a neutralizar; EQUAL ameacaId (demo).")
+            description = "Ameaça principal que a missão deve conter, investigar ou neutralizar.")
     private Integer ameacaId;
 
-    @UISchema(type = FieldDataType.DATE, controlType = FieldControlType.DATE_TIME_RANGE, order = 70, icon = "event")
+    @UISchema(label = "Período previsto de início", type = FieldDataType.DATE, controlType = FieldControlType.DATE_TIME_RANGE, order = 70,
+            helpText = "Informe uma janela para encontrar missões previstas para começar nesse período.", icon = "event")
     @Filterable(operation = Filterable.FilterOperation.BETWEEN, relation = "inicioPrev")
     @Schema(
-            description = "Janela de partida prevista; BETWEEN inicioPrev (demo).")
+            description = "Intervalo de datas em que a missão estava prevista para começar.")
     private List<OffsetDateTime> inicioPrevBetween;
 
-    @UISchema(type = FieldDataType.DATE, controlType = FieldControlType.DATE_TIME_RANGE, order = 80, icon = "event")
+    @UISchema(label = "Período previsto de término", type = FieldDataType.DATE, controlType = FieldControlType.DATE_TIME_RANGE, order = 80,
+            helpText = "Informe uma janela para encontrar missões previstas para terminar nesse período.", icon = "event")
     @Filterable(operation = Filterable.FilterOperation.BETWEEN, relation = "fimPrev")
     @Schema(
-            description = "Janela de conclusao prevista; BETWEEN fimPrev (demo).")
+            description = "Intervalo de datas em que a missão estava prevista para terminar.")
     private List<OffsetDateTime> fimPrevBetween;
 
-    @UISchema(label = "Status (Incluir)", controlType = FieldControlType.INLINE_MULTISELECT, order = 90, icon = "toggle_on")
-    @Filterable(operation = Filterable.FilterOperation.IN)
+    @UISchema(label = "Mostrar status", controlType = FieldControlType.INLINE_MULTISELECT, order = 90,
+            helpText = "Mostra apenas missões nos status selecionados.", icon = "toggle_on")
+    @Filterable(operation = Filterable.FilterOperation.IN, relation = "status")
     @Schema(
-            description = "Uniao de fases; IN MissaoStatus (demo).")
+            description = "Conjunto de fases que devem aparecer no resultado da busca.")
     private List<MissaoStatus> statusIn;
 
-    @UISchema(label = "Status (Excluir)", controlType = FieldControlType.INLINE_MULTISELECT, order = 100, icon = "toggle_on")
-    @Filterable(operation = Filterable.FilterOperation.NOT_IN)
+    @UISchema(label = "Ocultar status", controlType = FieldControlType.INLINE_MULTISELECT, order = 100,
+            helpText = "Remove do resultado as missões nos status selecionados.", icon = "toggle_off")
+    @Filterable(operation = Filterable.FilterOperation.NOT_IN, relation = "status")
     @Schema(
-            description = "Excluir fases; NOT_IN MissaoStatus (demo).")
+            description = "Conjunto de fases que devem ser removidas do resultado da busca.")
     private List<MissaoStatus> statusNotIn;
 
-    @UISchema(label = "Prioridade (Incluir)", controlType = FieldControlType.INLINE_MULTISELECT, order = 110, icon = "priority_high")
-    @Filterable(operation = Filterable.FilterOperation.IN)
+    @UISchema(label = "Mostrar prioridades", controlType = FieldControlType.INLINE_MULTISELECT, order = 110,
+            helpText = "Mostra apenas missões com as prioridades selecionadas.", icon = "priority_high")
+    @Filterable(operation = Filterable.FilterOperation.IN, relation = "prioridade")
     @Schema(
-            description = "Uniao de prioridades; IN (demo).")
+            description = "Conjunto de prioridades que devem aparecer no resultado da busca.")
     private List<MissaoPrioridade> prioridadeIn;
 
-    @UISchema(label = "Prioridade (Excluir)", controlType = FieldControlType.INLINE_MULTISELECT, order = 120, icon = "priority_high")
-    @Filterable(operation = Filterable.FilterOperation.NOT_IN)
+    @UISchema(label = "Ocultar prioridades", controlType = FieldControlType.INLINE_MULTISELECT, order = 120,
+            helpText = "Remove do resultado as missões com as prioridades selecionadas.", icon = "low_priority")
+    @Filterable(operation = Filterable.FilterOperation.NOT_IN, relation = "prioridade")
     @Schema(
-            description = "Excluir prioridades; NOT_IN (demo).")
+            description = "Conjunto de prioridades que devem ser removidas do resultado da busca.")
     private List<MissaoPrioridade> prioridadeNotIn;
 
-    @UISchema(label = "Início Previsto (Na Data)", type = FieldDataType.DATE, controlType = FieldControlType.DATE_PICKER, order = 130, icon = "event")
+    @UISchema(label = "Início previsto em", type = FieldDataType.DATE, controlType = FieldControlType.DATE_PICKER, order = 130,
+            helpText = "Escolha um dia exato de início previsto.", icon = "event")
     @Filterable(operation = Filterable.FilterOperation.ON_DATE, relation = "inicioPrev")
     @Schema(
-            description = "Partida prevista neste dia civil; ON_DATE inicioPrev (demo).")
+            description = "Dia civil exato em que a missão estava prevista para começar.")
     private LocalDate inicioPrevOn;
 
     @UISchema(
-            label = "Início Previsto (Periodo Relativo)",
+            label = "Início previsto rápido",
             controlType = FieldControlType.INLINE_RELATIVE_PERIOD,
             order = 140,
+            helpText = "Use atalhos como hoje, este mês ou últimos dias para o início previsto.",
             extraProperties = {
                     @ExtensionProperty(name = "relativePeriodOptions", value = QuickstartRelativePeriodUiOptions.DEFAULT_OPTIONS_JSON)
             }, icon = "event")
     @Schema(
-            description = "Intervalo relativo (UI) sobre inicioPrev; string de preset, complementa BETWEEN/ON_DATE (demo).")
+            description = "Atalho de período relativo aplicado à data prevista de início, como mês atual ou últimos dias.")
     private String inicioPrevPreset;
 
-    @UISchema(label = "Início Previsto (Últimos N dias)", type = FieldDataType.NUMBER, controlType = FieldControlType.INPUT, order = 145, icon = "event")
+    @UISchema(label = "Início previsto nos últimos dias", type = FieldDataType.NUMBER, controlType = FieldControlType.INPUT, order = 145,
+            helpText = "Informe quantos dias recentes devem ser considerados para o início previsto.", icon = "event")
     @Filterable(operation = Filterable.FilterOperation.IN_LAST_DAYS, relation = "inicioPrev")
     @Schema(
-            description = "Partida prevista nos ultimos N dias; IN_LAST_DAYS inicioPrev (demo).")
+            description = "Quantidade de dias recentes usada para localizar missões com início previsto nesse recorte.")
     private Integer inicioPrevLastDays;
 
-    @UISchema(label = "Fim Previsto (Na Data)", type = FieldDataType.DATE, controlType = FieldControlType.DATE_PICKER, order = 150, icon = "event")
+    @UISchema(label = "Término previsto em", type = FieldDataType.DATE, controlType = FieldControlType.DATE_PICKER, order = 150,
+            helpText = "Escolha um dia exato de término previsto.", icon = "event")
     @Filterable(operation = Filterable.FilterOperation.ON_DATE, relation = "fimPrev")
     @Schema(
-            description = "Conclusao prevista neste dia; ON_DATE fimPrev (demo).")
+            description = "Dia civil exato em que a missão estava prevista para terminar.")
     private LocalDate fimPrevOn;
 
     @UISchema(
-            label = "Fim Previsto (Periodo Relativo)",
+            label = "Término previsto rápido",
             controlType = FieldControlType.INLINE_RELATIVE_PERIOD,
             order = 160,
+            helpText = "Use atalhos de período para o término previsto da missão.",
             extraProperties = {
                     @ExtensionProperty(name = "relativePeriodOptions", value = QuickstartRelativePeriodUiOptions.DEFAULT_OPTIONS_JSON)
             }, icon = "event")
     @Schema(
-            description = "Intervalo relativo (UI) sobre fimPrev; string de preset (demo).")
+            description = "Atalho de período relativo aplicado à data prevista de término.")
     private String fimPrevPreset;
 
-    @UISchema(label = "Fim Previsto (Últimos N dias)", type = FieldDataType.NUMBER, controlType = FieldControlType.INPUT, order = 165, icon = "event")
+    @UISchema(label = "Término previsto nos últimos dias", type = FieldDataType.NUMBER, controlType = FieldControlType.INPUT, order = 165,
+            helpText = "Informe quantos dias recentes devem ser considerados para o término previsto.", icon = "event")
     @Filterable(operation = Filterable.FilterOperation.IN_LAST_DAYS, relation = "fimPrev")
     @Schema(
-            description = "Fim previsto nos ultimos N dias; IN_LAST_DAYS fimPrev (demo).")
+            description = "Quantidade de dias recentes usada para localizar missões com término previsto nesse recorte.")
     private Integer fimPrevLastDays;
 
-    @UISchema(type = FieldDataType.DATE, controlType = FieldControlType.DATE_TIME_RANGE, order = 170, icon = "event")
+    @UISchema(label = "Período real de início", type = FieldDataType.DATE, controlType = FieldControlType.DATE_TIME_RANGE, order = 170,
+            helpText = "Informe uma janela para encontrar missões que começaram nesse período.", icon = "event")
     @Filterable(operation = Filterable.FilterOperation.BETWEEN, relation = "inicioReal")
     @Schema(
-            description = "Janela de inicio executado; BETWEEN inicioReal (demo).")
+            description = "Intervalo de datas em que a execução da missão realmente começou.")
     private List<OffsetDateTime> inicioRealBetween;
 
-    @UISchema(type = FieldDataType.DATE, controlType = FieldControlType.DATE_TIME_RANGE, order = 180, icon = "event")
+    @UISchema(label = "Período real de término", type = FieldDataType.DATE, controlType = FieldControlType.DATE_TIME_RANGE, order = 180,
+            helpText = "Informe uma janela para encontrar missões concluídas nesse período.", icon = "event")
     @Filterable(operation = Filterable.FilterOperation.BETWEEN, relation = "fimReal")
     @Schema(
-            description = "Janela de fim executado; BETWEEN fimReal (demo).")
+            description = "Intervalo de datas em que a execução da missão realmente terminou.")
     private List<OffsetDateTime> fimRealBetween;
 
-    @UISchema(label = "Início Real (Na Data)", type = FieldDataType.DATE, controlType = FieldControlType.DATE_PICKER, order = 190, icon = "event")
+    @UISchema(label = "Início real em", type = FieldDataType.DATE, controlType = FieldControlType.DATE_PICKER, order = 190,
+            helpText = "Escolha o dia exato em que a execução começou.", icon = "event")
     @Filterable(operation = Filterable.FilterOperation.ON_DATE, relation = "inicioReal")
     @Schema(
-            description = "Inicio efetivo neste dia; ON_DATE inicioReal (demo).")
+            description = "Dia civil exato em que a execução da missão começou.")
     private LocalDate inicioRealOn;
 
     @UISchema(
-            label = "Início Real (Periodo Relativo)",
+            label = "Início real rápido",
             controlType = FieldControlType.INLINE_RELATIVE_PERIOD,
             order = 200,
+            helpText = "Use atalhos de período para o início real da execução.",
             extraProperties = {
                     @ExtensionProperty(name = "relativePeriodOptions", value = QuickstartRelativePeriodUiOptions.DEFAULT_OPTIONS_JSON)
             }, icon = "event")
     @Schema(
-            description = "Intervalo relativo (UI) sobre inicioReal; string de preset (demo).")
+            description = "Atalho de período relativo aplicado à data real de início da missão.")
     private String inicioRealPreset;
 
-    @UISchema(label = "Início Real (Últimos N dias)", type = FieldDataType.NUMBER, controlType = FieldControlType.INPUT, order = 205, icon = "event")
+    @UISchema(label = "Início real nos últimos dias", type = FieldDataType.NUMBER, controlType = FieldControlType.INPUT, order = 205,
+            helpText = "Informe quantos dias recentes devem ser considerados para o início real.", icon = "event")
     @Filterable(operation = Filterable.FilterOperation.IN_LAST_DAYS, relation = "inicioReal")
     @Schema(
-            description = "Inicio real nos ultimos N dias; IN_LAST_DAYS inicioReal (demo).")
+            description = "Quantidade de dias recentes usada para localizar missões iniciadas nesse recorte.")
     private Integer inicioRealLastDays;
 
-    @UISchema(label = "Fim Real (Na Data)", type = FieldDataType.DATE, controlType = FieldControlType.DATE_PICKER, order = 210, icon = "event")
+    @UISchema(label = "Término real em", type = FieldDataType.DATE, controlType = FieldControlType.DATE_PICKER, order = 210,
+            helpText = "Escolha o dia exato em que a execução terminou.", icon = "event")
     @Filterable(operation = Filterable.FilterOperation.ON_DATE, relation = "fimReal")
     @Schema(
-            description = "Fim executado neste dia; ON_DATE fimReal (demo).")
+            description = "Dia civil exato em que a execução da missão terminou.")
     private LocalDate fimRealOn;
 
     @UISchema(
-            label = "Fim Real (Periodo Relativo)",
+            label = "Término real rápido",
             controlType = FieldControlType.INLINE_RELATIVE_PERIOD,
             order = 220,
+            helpText = "Use atalhos de período para o término real da execução.",
             extraProperties = {
                     @ExtensionProperty(name = "relativePeriodOptions", value = QuickstartRelativePeriodUiOptions.DEFAULT_OPTIONS_JSON)
             }, icon = "event")
     @Schema(
-            description = "Intervalo relativo (UI) sobre fimReal; string de preset (demo).")
+            description = "Atalho de período relativo aplicado à data real de término da missão.")
     private String fimRealPreset;
 
-    @UISchema(label = "Fim Real (Últimos N dias)", type = FieldDataType.NUMBER, controlType = FieldControlType.INPUT, order = 225, icon = "event")
+    @UISchema(label = "Término real nos últimos dias", type = FieldDataType.NUMBER, controlType = FieldControlType.INPUT, order = 225,
+            helpText = "Informe quantos dias recentes devem ser considerados para o término real.", icon = "event")
     @Filterable(operation = Filterable.FilterOperation.IN_LAST_DAYS, relation = "fimReal")
     @Schema(
-            description = "Fim real nos ultimos N dias; IN_LAST_DAYS fimReal (demo).")
+            description = "Quantidade de dias recentes usada para localizar missões finalizadas nesse recorte.")
     private Integer fimRealLastDays;
 
     public String getTitulo() { return titulo; }

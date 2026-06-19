@@ -20,10 +20,10 @@ import java.time.LocalDate;
 @Schema(
         name = "FeriasAfastamentoDTO",
         description = "Periodo em que o colaborador esta em ferias, licenca ou afastamento: bloqueia ou reduz disponibilidade para missao e alimenta calendario de folha. "
-                + "O *tipo* e texto livre no demo; em producao normalizaria-se para catalogo (CLT, atestado, etc.).")
+                + "O tipo e texto livre neste contrato, mas representa a classificacao operacional que regras de RH podem normalizar em catalogo.")
 public class FeriasAfastamentoDTO {
     @Schema(
-            description = "Chave do periodo de ausencia. Cada registo e um intervalo; sobreposicoes de datas devem ser tratadas por regra de negocio fora do DTO (demo).",
+            description = "Chave do periodo de ausencia. Cada registo e um intervalo; sobreposicoes de datas devem ser tratadas por regra de negocio fora do DTO.",
             example = "1")
     private Integer id;
 
@@ -83,9 +83,9 @@ public class FeriasAfastamentoDTO {
     private String observacoes;
 
     @NotNull
-    @UISchema(label = "Funcionário", controlType = FieldControlType.SELECT, group = "Relacionamentos", order = 10, icon = "badge",
+    @UISchema(label = "Funcionário", controlType = FieldControlType.ENTITY_LOOKUP, group = "Relacionamentos", order = 10, icon = "badge",
             valueField = "id", displayField = "label",
-            endpoint = com.example.praxis.apiquickstart.constants.ApiPaths.HumanResources.FUNCIONARIOS + "/options/filter",
+            endpoint = com.example.praxis.apiquickstart.constants.ApiPaths.HumanResources.FUNCIONARIOS_EMPLOYEE_LOOKUP_OPTIONS,
             helpText = "Colaborador em afastamento.")
     @Schema(
             description = "Colaborador afastado: FK ao `Funcionario` afetado pelo periodo; obrigatorio para vincular ausencia a pessoa certa.",

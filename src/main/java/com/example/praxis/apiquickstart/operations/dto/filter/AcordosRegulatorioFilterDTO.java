@@ -10,31 +10,35 @@ import org.praxisplatform.uischema.filter.dto.GenericFilterDTO;
 
 @Schema(
         name = "AcordosRegulatorioFilterDTO",
-        description = "Criterios de busca no registo de acordos/ tratados com poderes publicos (nao e o instrumento a assinar so com filtrar). "
-                + "GenericFilter / POST /filter (demo).")
+        description = "Criterios de busca em acordos regulatorios firmados com autoridades ou jurisdicoes. "
+                + "Apoia descoberta por nome, territorio, status de vigencia e conteudo resumido do instrumento.")
 public class AcordosRegulatorioFilterDTO implements GenericFilterDTO {
-    @UISchema(controlType = FieldControlType.INPUT, maxLength = 200, order = 10, icon = "filter_list")
+    @UISchema(label = "Nome do acordo", controlType = FieldControlType.INPUT, maxLength = 200, order = 10,
+            helpText = "Busca pelo nome curto ou título do acordo regulatório.", icon = "filter_list")
     @Filterable(operation = Filterable.FilterOperation.LIKE)
     @Schema(
-            description = "Nome curto do acordo; LIKE (demo).")
+            description = "Trecho do nome curto ou titulo publico do acordo regulatorio.")
     private String nome;
 
-    @UISchema(controlType = FieldControlType.INPUT, maxLength = 120, order = 20, icon = "filter_list")
+    @UISchema(label = "Jurisdição", controlType = FieldControlType.INPUT, maxLength = 120, order = 20,
+            helpText = "Filtra pelo órgão, território ou jurisdição responsável.", icon = "gavel")
     @Filterable(operation = Filterable.FilterOperation.LIKE)
     @Schema(
-            description = "Orgao ou territorio; LIKE (jurisdicao) (demo).")
+            description = "Trecho do orgao, territorio ou jurisdicao responsavel pelo acordo.")
     private String jurisdicao;
 
-    @UISchema(controlType = FieldControlType.SELECT, order = 30, icon = "toggle_on")
+    @UISchema(label = "Status do acordo", controlType = FieldControlType.SELECT, order = 30,
+            helpText = "Mostra acordos conforme vigência, homologação ou suspensão.", icon = "toggle_on")
     @Filterable(operation = Filterable.FilterOperation.EQUAL)
     @Schema(
-            description = "Ciclo de vigencia/ homologacao; EQUAL AcordoStatus (demo).")
+            description = "Estado de vigencia, homologacao ou suspensao do acordo regulatorio.")
     private AcordoStatus status;
 
-    @UISchema(controlType = FieldControlType.INPUT, maxLength = 4000, order = 40, icon = "description")
+    @UISchema(label = "Descrição do acordo", controlType = FieldControlType.INPUT, maxLength = 4000, order = 40,
+            helpText = "Busca por palavras-chave no resumo ou nas cláusulas do acordo.", icon = "description")
     @Filterable(operation = Filterable.FilterOperation.LIKE)
     @Schema(
-            description = "Pesquisa no texto de sumario ou clausulas; LIKE (demo).")
+            description = "Trecho do resumo, objetivo ou clausulas relevantes do acordo.")
     private String descricao;
 
     public String getNome() { return nome; }

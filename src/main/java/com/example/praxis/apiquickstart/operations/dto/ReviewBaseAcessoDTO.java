@@ -11,7 +11,7 @@ import org.praxisplatform.uischema.extension.annotation.UISchema;
 @Schema(
         name = "ReviewBaseAcessoDTO",
         description = "Corpo de aprovacao de credencial de base: classificacao de acesso a conceder. "
-                + "OpenAPI 3.1 e x-ui (demo).")
+                + "Atualiza o nivel autorizado antes ou durante workflow de ativacao, preservando rastreabilidade da credencial.")
 public class ReviewBaseAcessoDTO {
 
     @NotBlank

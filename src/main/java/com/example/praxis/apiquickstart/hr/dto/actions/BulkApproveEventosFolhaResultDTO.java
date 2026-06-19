@@ -14,7 +14,7 @@ import java.util.List;
 @Schema(
         name = "BulkApproveEventosFolhaResultDTO",
         description = "Resposta da aprovacao em lote: totais agregados e detalhe por id para o operador e para automacoes. "
-                + "Falha parcial e suportada: processed + failed == total se todos os ids tiveram desfecho (demo).")
+                + "Falha parcial e suportada: processed + failed == total quando todos os ids tiveram desfecho individual.")
 public class BulkApproveEventosFolhaResultDTO {
     @Schema(
             description = "Numero de ids recebidos no pedido (tamanho logico do lote, antes de deduplicacao interna, se houver).",
@@ -69,7 +69,7 @@ public class BulkApproveEventosFolhaResultDTO {
      */
     @Schema(
             name = "BulkApproveEventosFolhaItemResult",
-            description = "Desfecho de um unico id no lote; ok indica aprovacao aplicada, error explica a falha quando ok e false (demo).")
+            description = "Desfecho de um unico id no lote; ok indica aprovacao aplicada, error explica a falha quando ok e false.")
     public static class ItemResult {
         @Schema(
                 description = "Identificador do evento de folha submetido; corresponde a um id do request quando presente e encontrado.",
@@ -80,7 +80,7 @@ public class BulkApproveEventosFolhaResultDTO {
                 example = "true")
         private boolean ok;
         @Schema(
-                description = "Texto de erro ou codigo amigavel quando ok e false; vazio em sucesso. Nao e stack trace; uso operacional (demo).",
+                description = "Texto de erro ou codigo amigavel quando ok e false; vazio em sucesso. Nao e stack trace; uso operacional.",
                 example = "Evento nao esta pendente de aprovacao")
         private String error;
 

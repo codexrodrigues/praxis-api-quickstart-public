@@ -1754,18 +1754,18 @@ COPY public.acordos_regulatorios (id, nome, jurisdicao, status, descricao) FROM 
 1	Acordos de Sokovia	ONU	VIGENTE	Regula atividade de super-equipes
 2	Tratado de Wakanda	UA	VIGENTE	Cooperação tecnológica e segurança
 3	Diretiva Prime	UFP	VIGENTE	Não interferência em civilizações pré-dobra
-4	Pacto de Resposta Costeira Atlante	Atlantis	VIGENTE	Coordena operacoes costeiras, salvamento anfibio e auditoria de rotas maritimas sensiveis.
-5	Estatuto de Patrulha Orbital S.W.O.R.D.	S.W.O.R.D.	VIGENTE	Regula intervencoes em corredores orbitais, zonas de exclusao e intercambio de dados de vigilancia espacial.
+4	Pacto de Resposta Costeira Atlante	Atlantis	VIGENTE	Coordena operacoes costeiras, salvamento anfibio e auditoria de rotas marítimas sensiveis.
+5	Estatuto de Patrulha Orbital S.W.O.R.D.	S.W.O.R.D.	VIGENTE	Regula intervenções em corredores orbitais, zonas de exclusão e intercambio de dados de vigilância espacial.
 6	Convencao de Mobilidade Interdimensional	Conselho Multiversal	VIGENTE	Define requisitos de rastreabilidade para deslocamentos interdimensionais e janelas de autorizacao operacional.
 7	Acordo de Protecao de Infraestrutura Mutante	Genosha	VIGENTE	Estabelece controles de resiliencia para bases energeticas, centros de acolhimento e contingencia humanitaria.
-8	Diretiva de Custodia de Artefatos Mistico-Tecnologicos	Kamar-Taj	VIGENTE	Formaliza guarda, inventario e transporte assistido de artefatos com risco mistico-tecnologico.
-9	Memorando de Corredores de Evacuacao Temporal	TVA	SUSPENSO	Suspenso para reavaliacao de trilhas temporais apos divergencias de reconciliacao operacional.
-10	Acordo de Integridade de Telecomandos de Defesa	Sokovia Reconstruction Council	SUSPENSO	Suspenso preventivamente ate a conclusao da auditoria de telecomandos e cadeias de aprovacao remota.
+8	Diretiva de Custódia de Artefatos Místico-Tecnológicos	Kamar-Taj	VIGENTE	Formaliza guarda, inventário e transporte assistido de artefatos com risco místico-tecnológico.
+9	Memorando de Corredores de Evacuacao Temporal	TVA	SUSPENSO	Suspenso para reavaliacao de trilhas temporais apos divergências de reconciliacao operacional.
+10	Acordo de Integridade de Telecomandos de Defesa	Sokovia Reconstruction Council	SUSPENSO	Suspenso preventivamente até a conclusão da auditoria de telecomandos e cadeias de aprovação remota.
 11	Tratado de Interoperabilidade de Frotas Kree-Skrull	Kree-Skrull Alliance	SUSPENSO	Suspenso por conflito de semantica entre telemetria de frota, janelas diplomaticas e trilhas de custodia.
-12	Protocolo de Licenciamento de Portais Urbanos	Nova York Sanctum Network	SUSPENSO	Suspenso ate revisao de parametros de abertura publica, priorizacao emergencial e zonas de amortecimento.
+12	Protocolo de Licenciamento de Portais Urbanos	Nova York Sanctum Network	SUSPENSO	Suspenso até revisão de parâmetros de abertura pública, priorização emergencial e zonas de amortecimento.
 13	Carta de Contencao de Simbiontes	Fundacao Ravencroft	REVOGADO	Revogado apos encerramento do programa e substituicao integral por politica corporativa de biosseguranca.
-14	Acordo de Supervisao de Clones Operacionais	Kamino Oversight Board	REVOGADO	Revogado por violacoes reincidentes de trilha genetica, consentimento e segregacao de cadeia logistica.
-15	Diretiva de Patrimonio de Cristais Terrigenos	Attilan	REVOGADO	Revogada por consolidacao normativa e migracao das operacoes para novo marco de custodia mineral.
+14	Acordo de Supervisao de Clones Operacionais	Kamino Oversight Board	REVOGADO	Revogado por violacoes reincidentes de trilha genética, consentimento e segregacao de cadeia logistica.
+15	Diretiva de Patrimonio de Cristais Terrígenos	Attilan	REVOGADO	Revogada por consolidacao normativa e migracao das operacoes para novo marco de custodia mineral.
 \.
 
 
@@ -25981,83 +25981,83 @@ COPY public.missao_eventos (id, missao_id, ocorrido_em, tipo, descricao) FROM st
 17	29	2025-11-18 22:00:00+00	INTEL	Alinhamento astral previsto; preparar selo temporal
 18	29	2025-11-19 02:45:00+00	CONTATO	Portadores posicionados nos pontos cardeais
 19	1	2025-10-17 20:41:41.008005+00	CONTATO	Briefing operacional confirmado para Batalha de Nova York
-20	1	2025-10-18 02:41:41.008005+00	INTEL	Pacote de inteligencia consolidado para Batalha de Nova York
-21	1	2025-10-18 14:41:41.008005+00	COMBATE	Contato tatico ativo em Batalha de Nova York
+20	1	2025-10-18 02:41:41.008005+00	INTEL	Pacote de inteligência consolidado para Batalha de Nova York
+21	1	2025-10-18 14:41:41.008005+00	COMBATE	Contato tático ativo em Batalha de Nova York
 22	2	2025-10-20 20:41:41.008005+00	CONTATO	Briefing operacional confirmado para Ataque do Duende
-23	2	2025-10-21 02:41:41.008005+00	INTEL	Pacote de inteligencia consolidado para Ataque do Duende
-24	2	2025-10-21 14:41:41.008005+00	EXTRA	Janela de prontidao aberta para Ataque do Duende
+23	2	2025-10-21 02:41:41.008005+00	INTEL	Pacote de inteligência consolidado para Ataque do Duende
+24	2	2025-10-21 14:41:41.008005+00	EXTRA	Janela de prontidão aberta para Ataque do Duende
 25	3	2025-10-23 20:41:41.008005+00	CONTATO	Briefing operacional confirmado para Protocolo Ultron
-26	3	2025-10-24 02:41:41.008005+00	INTEL	Pacote de inteligencia consolidado para Protocolo Ultron
-27	3	2025-10-24 14:41:41.008005+00	EXTRA	Janela de prontidao aberta para Protocolo Ultron
+26	3	2025-10-24 02:41:41.008005+00	INTEL	Pacote de inteligência consolidado para Protocolo Ultron
+27	3	2025-10-24 14:41:41.008005+00	EXTRA	Janela de prontidão aberta para Protocolo Ultron
 28	5	2025-11-09 09:00:00+00	CONTATO	Briefing operacional confirmado para Interdição em Latveria
-29	5	2025-11-09 15:00:00+00	INTEL	Pacote de inteligencia consolidado para Interdição em Latveria
-30	5	2025-11-10 03:00:00+00	S.O.S	Incidente critico registrado em Interdição em Latveria
+29	5	2025-11-09 15:00:00+00	INTEL	Pacote de inteligência consolidado para Interdição em Latveria
+30	5	2025-11-10 03:00:00+00	S.O.S	Incidente crítico registrado em Interdição em Latveria
 31	10	2025-11-13 08:00:00+00	CONTATO	Briefing operacional confirmado para Quarentena em Los Angeles
-32	10	2025-11-13 14:00:00+00	INTEL	Pacote de inteligencia consolidado para Quarentena em Los Angeles
-33	10	2025-11-14 02:00:00+00	EXTRA	Janela de prontidao aberta para Quarentena em Los Angeles
+32	10	2025-11-13 14:00:00+00	INTEL	Pacote de inteligência consolidado para Quarentena em Los Angeles
+33	10	2025-11-14 02:00:00+00	EXTRA	Janela de prontidão aberta para Quarentena em Los Angeles
 34	12	2025-11-14 09:00:00+00	CONTATO	Briefing operacional confirmado para Defesa da Torre Stark
-35	12	2025-11-14 15:00:00+00	INTEL	Pacote de inteligencia consolidado para Defesa da Torre Stark
-36	12	2025-11-15 03:00:00+00	EXTRA	Janela de prontidao aberta para Defesa da Torre Stark
+35	12	2025-11-14 15:00:00+00	INTEL	Pacote de inteligência consolidado para Defesa da Torre Stark
+36	12	2025-11-15 03:00:00+00	EXTRA	Janela de prontidão aberta para Defesa da Torre Stark
 37	14	2025-11-07 07:00:00+00	CONTATO	Briefing operacional confirmado para Operação Firewall Global II
-38	14	2025-11-07 13:00:00+00	INTEL	Pacote de inteligencia consolidado para Operação Firewall Global II
-39	14	2025-11-08 01:00:00+00	COMBATE	Contato tatico ativo em Operação Firewall Global II
+38	14	2025-11-07 13:00:00+00	INTEL	Pacote de inteligência consolidado para Operação Firewall Global II
+39	14	2025-11-08 01:00:00+00	COMBATE	Contato tático ativo em Operação Firewall Global II
 40	16	2025-11-10 10:00:00+00	CONTATO	Briefing operacional confirmado para Resgate em Wakanda
-41	16	2025-11-10 16:00:00+00	INTEL	Pacote de inteligencia consolidado para Resgate em Wakanda
-42	16	2025-11-11 04:00:00+00	EXTRA	Janela de prontidao aberta para Resgate em Wakanda
+41	16	2025-11-10 16:00:00+00	INTEL	Pacote de inteligência consolidado para Resgate em Wakanda
+42	16	2025-11-11 04:00:00+00	EXTRA	Janela de prontidão aberta para Resgate em Wakanda
 43	17	2025-11-11 06:00:00+00	CONTATO	Briefing operacional confirmado para Sentinelas em Genosha
-44	17	2025-11-11 12:00:00+00	INTEL	Pacote de inteligencia consolidado para Sentinelas em Genosha
-45	17	2025-11-12 00:00:00+00	S.O.S	Dependencia bloqueante registrada em Sentinelas em Genosha
+44	17	2025-11-11 12:00:00+00	INTEL	Pacote de inteligência consolidado para Sentinelas em Genosha
+45	17	2025-11-12 00:00:00+00	S.O.S	Dependência bloqueante registrada em Sentinelas em Genosha
 46	18	2025-11-12 02:00:00+00	CONTATO	Briefing operacional confirmado para Vigilância Orbital Lunar
-47	18	2025-11-12 08:00:00+00	INTEL	Pacote de inteligencia consolidado para Vigilância Orbital Lunar
-48	18	2025-11-12 20:00:00+00	EXTRA	Janela de prontidao aberta para Vigilância Orbital Lunar
+47	18	2025-11-12 08:00:00+00	INTEL	Pacote de inteligência consolidado para Vigilância Orbital Lunar
+48	18	2025-11-12 20:00:00+00	EXTRA	Janela de prontidão aberta para Vigilância Orbital Lunar
 49	19	2025-11-06 21:00:00+00	CONTATO	Briefing operacional confirmado para Varredura em Madripoor
-50	19	2025-11-07 03:00:00+00	INTEL	Pacote de inteligencia consolidado para Varredura em Madripoor
-51	19	2025-11-07 15:00:00+00	EXFIL	Exfiltracao e encerramento confirmados em Varredura em Madripoor
+50	19	2025-11-07 03:00:00+00	INTEL	Pacote de inteligência consolidado para Varredura em Madripoor
+51	19	2025-11-07 15:00:00+00	EXFIL	Exfiltração e encerramento confirmados em Varredura em Madripoor
 52	21	2025-11-07 19:00:00+00	CONTATO	Briefing operacional confirmado para Patrulha em Tóquio
-53	21	2025-11-08 01:00:00+00	INTEL	Pacote de inteligencia consolidado para Patrulha em Tóquio
-54	21	2025-11-08 13:00:00+00	COMBATE	Contato tatico ativo em Patrulha em Tóquio
+53	21	2025-11-08 01:00:00+00	INTEL	Pacote de inteligência consolidado para Patrulha em Tóquio
+54	21	2025-11-08 13:00:00+00	COMBATE	Contato tático ativo em Patrulha em Tóquio
 55	23	2025-11-15 05:00:00+00	CONTATO	Briefing operacional confirmado para Operação Maré Alta
-56	23	2025-11-15 11:00:00+00	INTEL	Pacote de inteligencia consolidado para Operação Maré Alta
-57	23	2025-11-15 23:00:00+00	EXTRA	Janela de prontidao aberta para Operação Maré Alta
+56	23	2025-11-15 11:00:00+00	INTEL	Pacote de inteligência consolidado para Operação Maré Alta
+57	23	2025-11-15 23:00:00+00	EXTRA	Janela de prontidão aberta para Operação Maré Alta
 58	25	2025-11-16 23:00:00+00	CONTATO	Briefing operacional confirmado para Incursão Apokolips
-59	25	2025-11-17 05:00:00+00	INTEL	Pacote de inteligencia consolidado para Incursão Apokolips
-60	25	2025-11-17 17:00:00+00	EXTRA	Janela de prontidao aberta para Incursão Apokolips
+59	25	2025-11-17 05:00:00+00	INTEL	Pacote de inteligência consolidado para Incursão Apokolips
+60	25	2025-11-17 17:00:00+00	EXTRA	Janela de prontidão aberta para Incursão Apokolips
 61	26	2025-11-17 09:00:00+00	CONTATO	Briefing operacional confirmado para Bloqueio Coluano
-62	26	2025-11-17 15:00:00+00	INTEL	Pacote de inteligencia consolidado para Bloqueio Coluano
-63	26	2025-11-18 03:00:00+00	COMBATE	Contato tatico ativo em Bloqueio Coluano
+62	26	2025-11-17 15:00:00+00	INTEL	Pacote de inteligência consolidado para Bloqueio Coluano
+63	26	2025-11-18 03:00:00+00	COMBATE	Contato tático ativo em Bloqueio Coluano
 64	27	2025-11-18 10:00:00+00	CONTATO	Briefing operacional confirmado para Baluarte Latveriano
-65	27	2025-11-18 16:00:00+00	INTEL	Pacote de inteligencia consolidado para Baluarte Latveriano
-66	27	2025-11-19 04:00:00+00	S.O.S	Dependencia bloqueante registrada em Baluarte Latveriano
+65	27	2025-11-18 16:00:00+00	INTEL	Pacote de inteligência consolidado para Baluarte Latveriano
+66	27	2025-11-19 04:00:00+00	S.O.S	Dependência bloqueante registrada em Baluarte Latveriano
 67	28	2025-11-13 09:00:00+00	CONTATO	Briefing operacional confirmado para Operação Hydrafall
-68	28	2025-11-13 15:00:00+00	INTEL	Pacote de inteligencia consolidado para Operação Hydrafall
-69	28	2025-11-14 03:00:00+00	EXFIL	Exfiltracao e encerramento confirmados em Operação Hydrafall
+68	28	2025-11-13 15:00:00+00	INTEL	Pacote de inteligência consolidado para Operação Hydrafall
+69	28	2025-11-14 03:00:00+00	EXFIL	Exfiltração e encerramento confirmados em Operação Hydrafall
 70	29	2025-11-19 03:00:00+00	CONTATO	Briefing operacional confirmado para Ritual de Contenção
-71	29	2025-11-19 09:00:00+00	INTEL	Pacote de inteligencia consolidado para Ritual de Contenção
-72	29	2025-11-19 21:00:00+00	EXTRA	Janela de prontidao aberta para Ritual de Contenção
-73	30	2026-04-18 07:00:00+00	CONTATO	Briefing operacional confirmado para Operacao Linha do Tempo Segura
-74	30	2026-04-18 13:00:00+00	INTEL	Pacote de inteligencia consolidado para Operacao Linha do Tempo Segura
-75	30	2026-04-19 01:00:00+00	S.O.S	Dependencia bloqueante registrada em Operacao Linha do Tempo Segura
-76	31	2026-03-02 06:00:00+00	CONTATO	Briefing operacional confirmado para Falha de Custodia em Kamino
-77	31	2026-03-02 12:00:00+00	INTEL	Pacote de inteligencia consolidado para Falha de Custodia em Kamino
-78	31	2026-03-03 00:00:00+00	S.O.S	Incidente critico registrado em Falha de Custodia em Kamino
+71	29	2025-11-19 09:00:00+00	INTEL	Pacote de inteligência consolidado para Ritual de Contenção
+72	29	2025-11-19 21:00:00+00	EXTRA	Janela de prontidão aberta para Ritual de Contenção
+73	30	2026-04-18 07:00:00+00	CONTATO	Briefing operacional confirmado para Operação Linha do Tempo Segura
+74	30	2026-04-18 13:00:00+00	INTEL	Pacote de inteligência consolidado para Operação Linha do Tempo Segura
+75	30	2026-04-19 01:00:00+00	S.O.S	Dependência bloqueante registrada em Operação Linha do Tempo Segura
+76	31	2026-03-02 06:00:00+00	CONTATO	Briefing operacional confirmado para Falha de Custódia em Kamino
+77	31	2026-03-02 12:00:00+00	INTEL	Pacote de inteligência consolidado para Falha de Custódia em Kamino
+78	31	2026-03-03 00:00:00+00	S.O.S	Incidente crítico registrado em Falha de Custódia em Kamino
 79	32	2026-04-05 08:00:00+00	CONTATO	Briefing operacional confirmado para Escudo de Atlantis
-80	32	2026-04-05 14:00:00+00	INTEL	Pacote de inteligencia consolidado para Escudo de Atlantis
-81	32	2026-04-06 02:00:00+00	COMBATE	Contato tatico ativo em Escudo de Atlantis
+80	32	2026-04-05 14:00:00+00	INTEL	Pacote de inteligência consolidado para Escudo de Atlantis
+81	32	2026-04-06 02:00:00+00	COMBATE	Contato tático ativo em Escudo de Atlantis
 82	33	2026-04-12 05:00:00+00	CONTATO	Briefing operacional confirmado para Comboio Kree-Skrull
-83	33	2026-04-12 11:00:00+00	INTEL	Pacote de inteligencia consolidado para Comboio Kree-Skrull
-84	33	2026-04-12 23:00:00+00	COMBATE	Contato tatico ativo em Comboio Kree-Skrull
-85	34	2026-01-10 11:00:00+00	CONTATO	Briefing operacional confirmado para Recolhimento de Cristais Terrigenos
-86	34	2026-01-10 17:00:00+00	INTEL	Pacote de inteligencia consolidado para Recolhimento de Cristais Terrigenos
-87	34	2026-01-11 05:00:00+00	EXFIL	Exfiltracao e encerramento confirmados em Recolhimento de Cristais Terrigenos
+83	33	2026-04-12 11:00:00+00	INTEL	Pacote de inteligência consolidado para Comboio Kree-Skrull
+84	33	2026-04-12 23:00:00+00	COMBATE	Contato tático ativo em Comboio Kree-Skrull
+85	34	2026-01-10 11:00:00+00	CONTATO	Briefing operacional confirmado para Recolhimento de Cristais Terrígenos
+86	34	2026-01-10 17:00:00+00	INTEL	Pacote de inteligência consolidado para Recolhimento de Cristais Terrígenos
+87	34	2026-01-11 05:00:00+00	EXFIL	Exfiltração e encerramento confirmados em Recolhimento de Cristais Terrígenos
 88	35	2026-05-01 09:00:00+00	CONTATO	Briefing operacional confirmado para Auditoria em Sokovia Reconstruction Council
-89	35	2026-05-01 15:00:00+00	INTEL	Pacote de inteligencia consolidado para Auditoria em Sokovia Reconstruction Council
-90	35	2026-05-02 03:00:00+00	S.O.S	Dependencia bloqueante registrada em Auditoria em Sokovia Reconstruction Council
+89	35	2026-05-01 15:00:00+00	INTEL	Pacote de inteligência consolidado para Auditoria em Sokovia Reconstruction Council
+90	35	2026-05-02 03:00:00+00	S.O.S	Dependência bloqueante registrada em Auditoria em Sokovia Reconstruction Council
 91	36	2026-06-01 12:00:00+00	CONTATO	Briefing operacional confirmado para Vistoria dos Portais Urbanos
-92	36	2026-06-01 18:00:00+00	INTEL	Pacote de inteligencia consolidado para Vistoria dos Portais Urbanos
-93	36	2026-06-02 06:00:00+00	EXTRA	Janela de prontidao aberta para Vistoria dos Portais Urbanos
+92	36	2026-06-01 18:00:00+00	INTEL	Pacote de inteligência consolidado para Vistoria dos Portais Urbanos
+93	36	2026-06-02 06:00:00+00	EXTRA	Janela de prontidão aberta para Vistoria dos Portais Urbanos
 94	37	2026-02-01 09:00:00+00	CONTATO	Briefing operacional confirmado para Rescaldo em Ravencroft
-95	37	2026-02-01 15:00:00+00	INTEL	Pacote de inteligencia consolidado para Rescaldo em Ravencroft
-96	37	2026-02-02 03:00:00+00	EXFIL	Exfiltracao e encerramento confirmados em Rescaldo em Ravencroft
+95	37	2026-02-01 15:00:00+00	INTEL	Pacote de inteligência consolidado para Rescaldo em Ravencroft
+96	37	2026-02-02 03:00:00+00	EXFIL	Exfiltração e encerramento confirmados em Rescaldo em Ravencroft
 \.
 
 
@@ -26251,14 +26251,14 @@ COPY public.missoes (id, titulo, objetivo, prioridade, status, local, ameaca_id,
 27	Baluarte Latveriano	Desmantelar barreiras místicas e capturar o soberano	ALTA	PAUSADA	Latveria	9	2025-11-18 10:00:00+00	2025-11-18 20:00:00+00	2025-11-18 10:10:00+00	\N
 28	Operação Hydrafall	Desmantelar células ativas e apreender recursos estratégicos	ALTA	CONCLUIDA	Europa Oriental	14	2025-11-13 09:00:00+00	2025-11-13 19:00:00+00	2025-11-13 09:05:00+00	2025-11-13 18:42:00+00
 29	Ritual de Contenção	Aplicar selo temporal e conter interferência extradimensional	CRITICA	PLANEJADA	Kamar-Taj	13	2025-11-19 03:00:00+00	2025-11-19 12:00:00+00	\N	\N
-30	Operacao Linha do Tempo Segura	Conter divergencias em corredores temporais e consolidar trilhas de evacuacao.	CRITICA	PAUSADA	TVA Nexus	8	2026-04-18 07:00:00+00	2026-04-30 23:00:00+00	2026-04-18 07:05:00+00	\N
-31	Falha de Custodia em Kamino	Responder a ruptura de trilha genetica e extravio de material operacional.	CRITICA	FALHOU	Kamino	4	2026-03-02 06:00:00+00	2026-03-10 23:00:00+00	2026-03-02 06:20:00+00	2026-03-06 13:00:00+00
-32	Escudo de Atlantis	Estabilizar corredores de resposta maritima e proteger infraestrutura costeira sensivel.	ALTA	EM_ANDAMENTO	Atlantis	6	2026-04-05 08:00:00+00	2026-04-20 20:00:00+00	2026-04-05 08:30:00+00	\N
-33	Comboio Kree-Skrull	Escoltar intercambio diplomatico e telemetria de frotas em zona de risco elevado.	CRITICA	EM_ANDAMENTO	Zona Neutra Kree-Skrull	7	2026-04-12 05:00:00+00	2026-04-28 21:00:00+00	2026-04-12 05:10:00+00	\N
-34	Recolhimento de Cristais Terrigenos	Transferir ativos remanescentes para custodia controlada e encerramento normativo.	ALTA	CONCLUIDA	Attilan	10	2026-01-10 11:00:00+00	2026-01-22 20:00:00+00	2026-01-10 11:30:00+00	2026-01-21 16:00:00+00
-35	Auditoria em Sokovia Reconstruction Council	Validar telecomandos, cadeia de aprovacao e contingencias remotas do conselho de reconstrucao.	MEDIA	PAUSADA	Sokovia	3	2026-05-01 09:00:00+00	2026-05-12 18:00:00+00	2026-05-02 10:00:00+00	\N
-36	Vistoria dos Portais Urbanos	Revisar pontos de abertura publica, amortecimento mistico e janelas de emergencia.	ALTA	PLANEJADA	Nova York	9	2026-06-01 12:00:00+00	2026-06-08 22:00:00+00	\N	\N
-37	Rescaldo em Ravencroft	Encerrar cadeia de contencao biologica e inventariar residuos do programa revogado.	MEDIA	CONCLUIDA	Ravencroft	5	2026-02-01 09:00:00+00	2026-02-14 19:00:00+00	2026-02-01 09:05:00+00	2026-02-12 17:45:00+00
+30	Operação Linha do Tempo Segura	Conter divergências em corredores temporais e consolidar trilhas de evacuação.	CRITICA	PAUSADA	TVA Nexus	8	2026-04-18 07:00:00+00	2026-04-30 23:00:00+00	2026-04-18 07:05:00+00	\N
+31	Falha de Custódia em Kamino	Responder a ruptura de trilha genética e extravio de material operacional.	CRITICA	FALHOU	Kamino	4	2026-03-02 06:00:00+00	2026-03-10 23:00:00+00	2026-03-02 06:20:00+00	2026-03-06 13:00:00+00
+32	Escudo de Atlantis	Estabilizar corredores de resposta marítima e proteger infraestrutura costeira sensível.	ALTA	EM_ANDAMENTO	Atlantis	6	2026-04-05 08:00:00+00	2026-04-20 20:00:00+00	2026-04-05 08:30:00+00	\N
+33	Comboio Kree-Skrull	Escoltar intercâmbio diplomático e telemetria de frotas em zona de risco elevado.	CRITICA	EM_ANDAMENTO	Zona Neutra Kree-Skrull	7	2026-04-12 05:00:00+00	2026-04-28 21:00:00+00	2026-04-12 05:10:00+00	\N
+34	Recolhimento de Cristais Terrígenos	Transferir ativos remanescentes para custódia controlada e encerramento normativo.	ALTA	CONCLUIDA	Attilan	10	2026-01-10 11:00:00+00	2026-01-22 20:00:00+00	2026-01-10 11:30:00+00	2026-01-21 16:00:00+00
+35	Auditoria em Sokovia Reconstruction Council	Validar telecomandos, cadeia de aprovação e contingências remotas do conselho de reconstrução.	MEDIA	PAUSADA	Sokovia	3	2026-05-01 09:00:00+00	2026-05-12 18:00:00+00	2026-05-02 10:00:00+00	\N
+36	Vistoria dos Portais Urbanos	Revisar pontos de abertura pública, amortecimento místico e janelas de emergência.	ALTA	PLANEJADA	Nova York	9	2026-06-01 12:00:00+00	2026-06-08 22:00:00+00	\N	\N
+37	Rescaldo em Ravencroft	Encerrar cadeia de contenção biológica e inventariar resíduos do programa revogado.	MEDIA	CONCLUIDA	Ravencroft	5	2026-02-01 09:00:00+00	2026-02-14 19:00:00+00	2026-02-01 09:05:00+00	2026-02-12 17:45:00+00
 \.
 
 

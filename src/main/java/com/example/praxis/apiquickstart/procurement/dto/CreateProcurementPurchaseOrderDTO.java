@@ -4,6 +4,9 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 @JsonIgnoreProperties({"id"})
-@Schema(name = "CreateProcurementPurchaseOrderDTO", description = "Corpo de criacao no procurement; campos do POST. OpenAPI 3.1 (demo).")
+@Schema(
+    name = "CreateProcurementPurchaseOrderDTO",
+    description = "Comando para emitir um pedido de compra vinculando empresa, fornecedor, contrato opcional, produto, quantidade, moeda e data. A selecao de fornecedor e produto deve respeitar option sources e politicas publicadas de procurement."
+)
 public class CreateProcurementPurchaseOrderDTO extends ProcurementPurchaseOrderDTO {
 }

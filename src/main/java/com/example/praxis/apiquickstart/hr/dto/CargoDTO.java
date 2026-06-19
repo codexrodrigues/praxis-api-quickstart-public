@@ -14,7 +14,7 @@ import java.math.BigDecimal;
 @Schema(
         name = "CargoDTO",
         description = "Definicao de funcao no catalogo de RH: titulo, senioridade, texto livre e faixa salarial de referencia "
-                + "usada em lotacao e planeamento de pessoal (demo; valores nao substituem negociacao coletiva real).")
+                + "usada em lotacao, progressao interna, planejamento de pessoal e governanca remuneratoria.")
 public class CargoDTO {
     @Schema(
             description = "Chave do cargo no servico. Referenciado por colaboradores, lotacoes e ofertas internas; "
@@ -35,7 +35,7 @@ public class CargoDTO {
     @UISchema(label = "Nível", required = true, maxLength = 100, group = "Principal", order = 20, helpText = "Grau de senioridade (ex: Júnior, Pleno).", icon = "trending_up")
     @Schema(
             description = "Nivel ou faixa de senioridade associada ao cargo (ex. Junior, Pleno, Especialista); "
-                    + "governa regras de alocacao e progressao interna no demo.",
+                    + "governa regras de alocacao e progressao interna.",
             example = "Pleno")
     private String nivel;
 
@@ -57,7 +57,7 @@ public class CargoDTO {
     @UISchema(label = "Salário Máximo", type = FieldDataType.NUMBER, controlType = FieldControlType.CURRENCY_INPUT, group = "Remuneração", order = 20, helpText = "Teto salarial de referência.", icon = "account_balance_wallet")
     @Schema(
             description = "Tecto de referencia da faixa salarial, emparelhado a salario minimo. Define o intervalo ofertavel "
-                    + "para aprovacao (demo).")
+                    + "para aprovacao e enquadramento remuneratorio.")
     private BigDecimal salarioMaximo;
 
     public Integer getId() { return id; }

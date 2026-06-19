@@ -14,14 +14,14 @@ import java.time.OffsetDateTime;
 @Schema(
         name = "IncidenteDTO",
         description = "Registo de incidente pos-missao (relato, severidade, local, vitimas, impacto economico). "
-                + "Payload de borda; nao e criterio de filtro. OpenAPI 3.1 e x-ui (demo).")
+                + "Consolida evidencias operacionais para resposta, auditoria, cobertura indenizatoria e analise de risco.")
 public class IncidenteDTO {
     @Schema(description = "Identificador interno (PK) deste registo no servico; referencia o recurso em URLs e relacionamentos.")
     private Integer id;
 
-    @UISchema(label = "Missão", controlType = FieldControlType.SELECT,
+    @UISchema(label = "Missão", controlType = FieldControlType.ENTITY_LOOKUP,
             valueField = "id", displayField = "label",
-        endpoint = com.example.praxis.apiquickstart.constants.ApiPaths.Operations.MISSOES + "/options/filter", icon = "flag")
+        endpoint = com.example.praxis.apiquickstart.constants.ApiPaths.Operations.MISSOES_MISSION_LOOKUP_OPTIONS, icon = "flag")
     @Schema(
             description = "FK; missao onde o incidente ocorreu (missaoId).")
     private Integer missaoId;

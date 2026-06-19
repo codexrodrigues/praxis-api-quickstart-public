@@ -215,8 +215,11 @@ class StatsSchemaSmokeHttpTest {
                 Map.of("universo", "universoContexto")
         );
         assertFieldOptionSource(payrollFilterSchemaResponse.getBody(), "faixaPctDesconto", "faixaPctDesconto", "CATEGORICAL_BUCKET");
+        assertFieldOptionSource(payrollFilterSchemaResponse.getBody(), "baseId", "base", "RESOURCE_ENTITY");
         assertFieldEndpointContains(payrollFilterSchemaResponse.getBody(), "payrollProfile",
                 "/api/human-resources/vw-analytics-folha-pagamento/option-sources/payrollProfile/options/filter");
+        assertFieldEndpointContains(payrollFilterSchemaResponse.getBody(), "baseId",
+                "/api/operations/bases/option-sources/base/options/filter");
 
         ResponseEntity<Map> heroiFilterSchemaResponse = restTemplate.getForEntity(
                 "/schemas/filtered?path={path}&operation=post&schemaType=request",

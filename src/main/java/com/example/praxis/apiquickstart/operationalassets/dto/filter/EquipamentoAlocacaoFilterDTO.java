@@ -16,40 +16,45 @@ import java.util.List;
 @Schema(
         name = "EquipamentoAlocacaoFilterDTO",
         description = "Criterios de busca no historico de alocacoes (equipamento x colaborador, janela e status); nao e a cedencia a ajustar so com filtrar. "
-                + "GenericFilter / POST /filter (demo).")
+                + "Usado para rastrear cadeia de custodia, responsavel, vigencia e estado da alocacao.")
 public class EquipamentoAlocacaoFilterDTO implements GenericFilterDTO {
-    @UISchema(type = FieldDataType.NUMBER, controlType = FieldControlType.ASYNC_SELECT, order = 10,
+    @UISchema(label = "Equipamento", type = FieldDataType.NUMBER, controlType = FieldControlType.INLINE_ENTITY_LOOKUP, order = 10,
             valueField = "id", displayField = "label",
-        endpoint = ApiPaths.Assets.EQUIPAMENTOS + "/options/filter", icon = "construction")
+        endpoint = ApiPaths.Assets.EQUIPAMENTOS_EQUIPMENT_LOOKUP_OPTIONS,
+            helpText = "Mostra o histórico de alocações de um item específico.", icon = "construction")
     @Filterable(operation = Filterable.FilterOperation.EQUAL, relation = "equipamento.id")
     @Schema(
-            description = "Cadeia de custodia de um item; EQUAL equipamentoId (demo).")
+            description = "Equipamento cuja cadeia de custodia deve ser consultada.")
     private Integer equipamentoId;
 
-    @UISchema(type = FieldDataType.NUMBER, controlType = FieldControlType.ASYNC_SELECT, order = 20,
+    @UISchema(label = "Colaborador", type = FieldDataType.NUMBER, controlType = FieldControlType.INLINE_ENTITY_LOOKUP, order = 20,
             valueField = "id", displayField = "label",
-            endpoint = ApiPaths.HumanResources.FUNCIONARIOS + "/options/filter", icon = "badge")
+            endpoint = ApiPaths.HumanResources.FUNCIONARIOS_EMPLOYEE_LOOKUP_OPTIONS,
+            helpText = "Filtra as alocações vinculadas a um colaborador ou herói.", icon = "badge")
     @Filterable(operation = Filterable.FilterOperation.EQUAL, relation = "funcionario.id")
     @Schema(
-            description = "Alocacoes vinculadas a um colaborador; EQUAL funcionarioId (demo).")
+            description = "Colaborador ou operador vinculado as alocacoes de equipamento buscadas.")
     private Integer funcionarioId;
 
-    @UISchema(controlType = FieldControlType.SELECT, order = 30, icon = "toggle_on")
+    @UISchema(label = "Status da alocação", controlType = FieldControlType.SELECT, order = 30,
+            helpText = "Diferencia alocações ativas, encerradas ou em transição.", icon = "toggle_on")
     @Filterable(operation = Filterable.FilterOperation.EQUAL)
     @Schema(
-            description = "Ciclo de vida da alocacao; EQUAL AlocacaoStatus (demo).")
+            description = "Status da alocacao, usado para separar custodias ativas, encerradas ou em transicao.")
     private AlocacaoStatus status;
 
-    @UISchema(type = FieldDataType.DATE, controlType = FieldControlType.DATE_TIME_RANGE, order = 40, icon = "event")
+    @UISchema(label = "Período de início", type = FieldDataType.DATE, controlType = FieldControlType.DATE_TIME_RANGE, order = 40,
+            helpText = "Filtra pela janela em que a custódia do equipamento começou.", icon = "event")
     @Filterable(operation = Filterable.FilterOperation.BETWEEN, relation = "inicio")
     @Schema(
-            description = "Inicio da custodia; BETWEEN (demo).")
+            description = "Janela em que a custodia do equipamento foi iniciada.")
     private List<OffsetDateTime> inicioBetween;
 
-    @UISchema(type = FieldDataType.DATE, controlType = FieldControlType.DATE_TIME_RANGE, order = 50, icon = "event")
+    @UISchema(label = "Período de término", type = FieldDataType.DATE, controlType = FieldControlType.DATE_TIME_RANGE, order = 50,
+            helpText = "Filtra pela janela em que a custódia foi encerrada.", icon = "event")
     @Filterable(operation = Filterable.FilterOperation.BETWEEN, relation = "fim")
     @Schema(
-            description = "Fim da custodia; BETWEEN (nulo se ativo) (demo).")
+            description = "Janela em que a custodia foi encerrada; alocacoes ativas podem nao ter fim preenchido.")
     private List<OffsetDateTime> fimBetween;
 
     public Integer getEquipamentoId() { return equipamentoId; }

@@ -14,11 +14,11 @@ import java.math.BigDecimal;
 
 @Schema(
         name = "EventosFolhaResponseDTO",
-        description = "Linha de evento de folha (provento, desconto, base de calculo) vinculada a uma folha de pagamento no demo. "
+        description = "Linha de evento de folha vinculada a uma folha de pagamento, representando provento, desconto ou base de calculo. "
                 + "A soma e o tipo alimentam conciliacao e auditoria; valor e nao-negativo na validacao, semantica de credito/debito fica no tipo (string livre/ catalogo UI).")
 public class EventosFolhaResponseDTO {
     @Schema(
-            description = "Chave do evento de folha. Identifica o item no recurso e nas actions de aprovacao em lote (demo).",
+            description = "Chave do evento de folha. Identifica o item no recurso e nas acoes de aprovacao em lote.",
             example = "1")
     private Integer id;
 
@@ -34,7 +34,7 @@ public class EventosFolhaResponseDTO {
     @Size(max = 100)
     @UISchema(label = "Tipo", required = true, maxLength = 100, group = "Principal", order = 20, helpText = "Provento ou desconto.", icon = "category")
     @Schema(
-            description = "Classificacao operacional: tipicamente provento vs desconto ou rubrica; o quickstart usa string para flexibilidade de catalogo (demo).",
+            description = "Classificacao operacional do evento, tipicamente provento, desconto, base de calculo ou rubrica definida pelo catalogo.",
             example = "provento")
     private String tipo;
 
@@ -49,18 +49,18 @@ public class EventosFolhaResponseDTO {
     @NotNull
     @UISchema(
             label = "Folha de Pagamento",
-            controlType = FieldControlType.SELECT,
+            controlType = FieldControlType.ENTITY_LOOKUP,
             group = "Relacionamentos",
             order = 10,
             icon = "receipt_long",
             valueField = "id",
             displayField = "label",
-            endpoint = com.example.praxis.apiquickstart.constants.ApiPaths.HumanResources.FOLHAS_PAGAMENTO + "/options/filter",
+            endpoint = com.example.praxis.apiquickstart.constants.ApiPaths.HumanResources.FOLHAS_PAGAMENTO_PAYROLL_LOOKUP_OPTIONS,
             tableHidden = true,
             helpText = "Folha à qual o evento pertence."
     )
     @Schema(
-            description = "Folha de pagamento a que o evento pertence; agrega competencia e janela de fecho (demo).",
+            description = "Folha de pagamento a que o evento pertence, agregando competencia e janela de fechamento.",
             example = "5")
     private Integer folhaPagamentoId;
 

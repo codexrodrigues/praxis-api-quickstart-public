@@ -12,9 +12,9 @@ A redação de **definições de negócio** em DTOs (`@Schema`) no host — em p
 
 ## Versões alinhadas
 
-- `praxis-metadata-starter`: `8.0.0-rc.13`
-- `praxis-config-starter`: `0.1.0-rc.33`
-- `praxis-ui-angular`: `8.0.0-beta.18`
+- `praxis-metadata-starter`: `8.0.0-rc.19`
+- `praxis-config-starter`: `0.1.0-rc.50`
+- `praxis-ui-angular`: `9.0.0-beta.9`
 - `praxis-api-quickstart`: host operacional de referência usando os dois starters publicados no Maven Central.
 
 ## Responsabilidades
@@ -183,7 +183,7 @@ Em `auto`, o smoke cria/publica uma regra de validacao para
 comando mutavel de pedido se a publication ja tiver derivado
 `resource_validation_policy`; se a versao publicada do starter ainda nao fizer
 essa derivacao, o script registra warning e evita escrever pedido de teste no
-managed PostgreSQL. Com `praxis-config-starter:0.1.0-rc.33`, a derivacao automatica de
+managed PostgreSQL. No corte corrente do host (`praxis-config-starter:0.1.0-rc.50`), a derivacao automatica de
 `backend_validation` esta publicada com `source_hash` derivado por digest
 estavel. Quando o gate chega ao comando mutavel de pedido, o smoke autentica
 em `/auth/login` com `ADMIN_PASSWORD` ou `PRACTICE_TEMP_PASSWORD`, preservando a
@@ -205,7 +205,7 @@ decisao materializada sem se tornar fonte primaria da regra.
 O workflow manual `Domain Rules Runtime Smoke` expõe os mesmos gates via
 inputs `require_simulation`, `require_publication` e
 `require_backend_validation`, alem de `require_workflow_action` para o caminho de
-actions governadas. No host alinhado a `praxis-config-starter:0.1.0-rc.33`, os
+actions governadas. No host alinhado a `praxis-config-starter:0.1.0-rc.50`, os
 gates de simulation, publication e backend validation recomendados sao `true`;
 quando a derivacao `workflow_action` tambem estiver publicada no host, o gate
 recomendado passa a ser `require_workflow_action=true`.

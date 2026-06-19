@@ -18,74 +18,74 @@ import java.util.List;
 
 @Schema(
         name = "MencoesMidiaFilterDTO",
-        description = "Criterios de busca em mencoes de midia (nao e a peca a editar; pode ser lista para monitorizacao/ crisis). "
-                + "Inclui sentimento, veiculo, janela temporal; GenericFilter / POST /filter. Sentimento: NEG, NEU, POS (enum) (demo).")
+        description = "Criterios de busca em mencoes de midia associadas a colaboradores. "
+                + "Apoia monitoramento reputacional por pessoa, veiculo, sentimento, janela de publicacao e origem da URL.")
 public class MencoesMidiaFilterDTO implements GenericFilterDTO {
-    @UISchema(label = "Herói Mencionado", type = FieldDataType.NUMBER, controlType = FieldControlType.ASYNC_SELECT, order = 10,
+    @UISchema(label = "Herói Mencionado", type = FieldDataType.NUMBER, controlType = FieldControlType.INLINE_ENTITY_LOOKUP, order = 10,
             valueField = "id", displayField = "label",
-            endpoint = ApiPaths.HumanResources.FUNCIONARIOS + "/options/filter", helpText = "Filtrar menções ligadas a um colaborador.", icon = "badge")
+            endpoint = ApiPaths.HumanResources.FUNCIONARIOS_EMPLOYEE_LOOKUP_OPTIONS, helpText = "Filtrar menções ligadas a um colaborador.", icon = "badge")
     @Filterable(operation = Filterable.FilterOperation.EQUAL, relation = "funcionario.id")
     @Schema(
-            description = "Citar apenas um heroi; EQUAL (FK) (demo).")
+            description = "Colaborador mencionado pela publicacao ou peca de midia monitorada.")
     private Integer funcionarioId;
 
     @UISchema(label = "Veículo de Mídia", controlType = FieldControlType.INPUT, maxLength = 120, order = 20, helpText = "Buscar pelo nome do veículo de mídia.", icon = "directions_car")
     @Filterable(operation = Filterable.FilterOperation.LIKE)
     @Schema(
-            description = "Outlets (jornal, site, programa); LIKE (demo).")
+            description = "Trecho do nome do veiculo, canal, programa ou publicador responsavel pela mencao.")
     private String veiculo;
 
     @UISchema(label = "Sentimento", controlType = FieldControlType.INLINE_SENTIMENT, order = 30, helpText = "Filtrar pelo sentimento geral da menção.", icon = "mood")
     @Filterable(operation = Filterable.FilterOperation.EQUAL)
     @Schema(
-            description = "Filtro simples; EQUAL a um unico Sentimento (demo).")
+            description = "Classificacao de sentimento atribuida a mencao, usada para separar impacto positivo, neutro ou negativo.")
     private Sentimento sentimento;
 
     @UISchema(label = "Período de Publicação", type = FieldDataType.DATE, controlType = FieldControlType.DATE_TIME_RANGE, order = 40, helpText = "Buscar menções publicadas em um intervalo de tempo.", icon = "event")
     @Filterable(operation = Filterable.FilterOperation.BETWEEN, relation = "publicadoEm")
     @Schema(
-            description = "Janela de publicacao (instante com offset); BETWEEN em publicadoEm (demo).")
+            description = "Janela de publicacao da mencao, preservando o instante com offset para analise temporal.")
     private List<OffsetDateTime> publicadoEmBetween;
 
-    @UISchema(label = "Sentimento (Incluir)", controlType = FieldControlType.INLINE_MULTISELECT, order = 50, helpText = "Filtrar menções que contenham qualquer um destes sentimentos.", icon = "mood")
-    @Filterable(operation = Filterable.FilterOperation.IN)
+    @UISchema(label = "Mostrar sentimentos", controlType = FieldControlType.INLINE_MULTISELECT, order = 50, helpText = "Inclui menções com qualquer um dos sentimentos selecionados.", icon = "mood")
+    @Filterable(operation = Filterable.FilterOperation.IN, relation = "sentimento")
     @Schema(
-            description = "Uniao: quaisquer mencoes cujo sentimento pertenca a esta lista; operacao IN (multi-select) (demo).")
+            description = "Conjunto de sentimentos aceitos para compor o resultado de monitoramento.")
     private List<Sentimento> sentimentoIn;
 
-    @UISchema(label = "Sentimento (Excluir)", controlType = FieldControlType.INLINE_MULTISELECT, order = 60, helpText = "Excluir menções que contenham estes sentimentos.", icon = "mood")
-    @Filterable(operation = Filterable.FilterOperation.NOT_IN)
+    @UISchema(label = "Ocultar sentimentos", controlType = FieldControlType.INLINE_MULTISELECT, order = 60, helpText = "Remove do resultado menções com os sentimentos selecionados.", icon = "mood")
+    @Filterable(operation = Filterable.FilterOperation.NOT_IN, relation = "sentimento")
     @Schema(
-            description = "Rejeitar resultados cujo sentimento caia na lista; operacao NOT_IN (demo).")
+            description = "Conjunto de sentimentos que devem ser excluidos do resultado de monitoramento.")
     private List<Sentimento> sentimentoNotIn;
 
-    @UISchema(label = "Publicado em (Na Data)", type = FieldDataType.DATE, controlType = FieldControlType.DATE_PICKER, order = 70, helpText = "Buscar menções publicadas em uma data específica.", icon = "event")
+    @UISchema(label = "Publicado em", type = FieldDataType.DATE, controlType = FieldControlType.DATE_PICKER, order = 70, helpText = "Busca menções publicadas em uma data específica.", icon = "event")
     @Filterable(operation = Filterable.FilterOperation.ON_DATE, relation = "publicadoEm")
     @Schema(
-            description = "Apenas pecas cujo instante cai no dia local; ON_DATE (zona/ trunc depende de backend) (demo).")
+            description = "Dia civil usado para localizar mencoes publicadas em uma data especifica.")
     private LocalDate publicadoEmOn;
 
     @UISchema(
-            label = "Publicado em (Periodo Relativo)",
+            label = "Período rápido de publicação",
             controlType = FieldControlType.INLINE_RELATIVE_PERIOD,
             order = 80,
             extraProperties = {
                     @ExtensionProperty(name = "relativePeriodOptions", value = QuickstartRelativePeriodUiOptions.DEFAULT_OPTIONS_JSON)
-            }, helpText = "Filtrar usando períodos relativos (ex: última semana).", icon = "event")
+            }, helpText = "Aplica atalhos de tempo, como hoje, esta semana ou últimos períodos configurados.", icon = "event")
     @Schema(
-            description = "Preset (ex.: ultima semana) conforme opcoes de UI; string serializada, interpretacao do motor de filtro (demo).")
+            description = "Atalho de periodo relativo aplicado a data de publicacao da mencao.")
     private String publicadoEmPreset;
 
-    @UISchema(label = "Publicado em (Últimos N dias)", type = FieldDataType.NUMBER, controlType = FieldControlType.INPUT, order = 85, helpText = "Buscar menções publicadas nos últimos N dias.", icon = "event")
+    @UISchema(label = "Publicado nos últimos dias", type = FieldDataType.NUMBER, controlType = FieldControlType.INPUT, order = 85, helpText = "Informe quantos dias recentes devem ser considerados na busca.", icon = "event")
     @Filterable(operation = Filterable.FilterOperation.IN_LAST_DAYS, relation = "publicadoEm")
     @Schema(
-            description = "Recencia: publicado nos ultimos N dias; IN_LAST_DAYS (demo).")
+            description = "Janela relativa para localizar mencoes publicadas nos ultimos N dias.")
     private Integer publicadoEmLastDays;
 
     @UISchema(label = "URL ou Domínio", controlType = FieldControlType.INPUT, maxLength = 500, order = 90, helpText = "Buscar por fragmentos de URL ou domínio.", icon = "link")
     @Filterable(operation = Filterable.FilterOperation.LIKE)
     @Schema(
-            description = "Fragmento de URL (dominio, path); LIKE; atencao a dados externos (demo).")
+            description = "Trecho de dominio, caminho ou URL de origem usado para rastrear a fonte externa da mencao.")
     private String url;
 
     public Integer getFuncionarioId() { return funcionarioId; }

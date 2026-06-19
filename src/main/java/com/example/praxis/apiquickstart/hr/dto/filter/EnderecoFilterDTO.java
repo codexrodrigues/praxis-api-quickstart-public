@@ -12,7 +12,7 @@ import org.praxisplatform.uischema.filter.dto.GenericFilterDTO;
 @Schema(
         name = "EnderecoFilterDTO",
         description = "Criterios de busca em enderecos residenciais (nao e o endereco a gravar). "
-                + "Trata-se de procura cadastral e LGPD-aware no demo; GenericFilter / POST /filter.")
+                + "Apoia localizacao cadastral, recortes territoriais e verificacao de contato com cuidado sobre exposicao de dados pessoais.")
 public class EnderecoFilterDTO implements GenericFilterDTO {
     @UISchema(label = "Logradouro", controlType = FieldControlType.INPUT, maxLength = 200, order = 10, helpText = "Buscar por rua ou avenida.", icon = "home")
     @Filterable(operation = Filterable.FilterOperation.LIKE)
@@ -23,13 +23,13 @@ public class EnderecoFilterDTO implements GenericFilterDTO {
     @UISchema(label = "Cidade", controlType = FieldControlType.INPUT, maxLength = 200, order = 20, helpText = "Buscar endereços por cidade.", icon = "location_city")
     @Filterable(operation = Filterable.FilterOperation.LIKE)
     @Schema(
-            description = "Municipio; LIKE. Usa-se com estado para recorte geografico (demo).")
+            description = "Municipio de residencia usado em conjunto com UF para recorte geografico de colaboradores e dependencias operacionais.")
     private String cidade;
 
     @UISchema(label = "Estado/UF", controlType = FieldControlType.INPUT, maxLength = 2, order = 30, helpText = "Buscar pela sigla do estado (UF).", icon = "map")
     @Filterable(operation = Filterable.FilterOperation.LIKE)
     @Schema(
-            description = "Unidade federativa (sigla); LIKE, tipicamente duas letras (demo).")
+            description = "Sigla da unidade federativa usada para consolidar enderecos por regiao administrativa ou cobertura estadual.")
     private String estado;
 
     @UISchema(label = "Número", controlType = FieldControlType.INPUT, maxLength = 50, order = 35, helpText = "Filtrar por número da residência.", icon = "pin")
@@ -38,9 +38,9 @@ public class EnderecoFilterDTO implements GenericFilterDTO {
             description = "Numero predial; LIKE para acomodar sufixos alfanumericos (ex.: 1200A).")
     private String numero;
 
-    @UISchema(type = FieldDataType.NUMBER, controlType = FieldControlType.ASYNC_SELECT, order = 40,
+    @UISchema(label = "Colaborador", type = FieldDataType.NUMBER, controlType = FieldControlType.INLINE_ENTITY_LOOKUP, order = 40,
             valueField = "id", displayField = "label",
-            endpoint = ApiPaths.HumanResources.FUNCIONARIOS + "/options/filter", helpText = "Localizar endereço de um colaborador específico.", icon = "badge")
+            endpoint = ApiPaths.HumanResources.FUNCIONARIOS_EMPLOYEE_LOOKUP_OPTIONS, helpText = "Localizar endereço de um colaborador específico.", icon = "badge")
     @Filterable(operation = Filterable.FilterOperation.EQUAL, relation = "funcionario.id")
     @Schema(
             description = "Titular do endereco; EQUAL por id do Funcionario (FK).")
@@ -49,7 +49,7 @@ public class EnderecoFilterDTO implements GenericFilterDTO {
     @UISchema(label = "Complemento", controlType = FieldControlType.INPUT, order = 50, helpText = "Filtrar por bloco ou apartamento.", icon = "add_location_alt")
     @Filterable(operation = Filterable.FilterOperation.LIKE)
     @Schema(
-            description = "Apto, bloco, andar; LIKE para achar variacoes de complemento (demo).")
+            description = "Complemento do endereco, como apartamento, bloco ou andar, usado para diferenciar residencias no mesmo logradouro.")
     private String complemento;
 
     @UISchema(label = "Bairro", controlType = FieldControlType.INPUT, order = 60, helpText = "Buscar por bairro.", icon = "location_city")
@@ -61,7 +61,7 @@ public class EnderecoFilterDTO implements GenericFilterDTO {
     @UISchema(label = "CEP", controlType = FieldControlType.INPUT, maxLength = 9, order = 70, helpText = "Buscar por CEP (apenas números ou formatado).", icon = "local_post_office")
     @Filterable(operation = Filterable.FilterOperation.LIKE)
     @Schema(
-            description = "CEP sem formatacao fixa; LIKE para 8 digitos com ou sem hifen (cuidado com padrao de entrada) (demo).")
+            description = "Codigo postal informado no cadastro, usado para localizar enderecos por zona de entrega, bairro ou normalizacao territorial.")
     private String cep;
 
     public String getLogradouro() { return logradouro; }

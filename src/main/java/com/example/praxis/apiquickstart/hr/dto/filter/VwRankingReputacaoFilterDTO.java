@@ -15,64 +15,64 @@ import java.util.List;
 @Schema(
         name = "VwRankingReputacaoFilterDTO",
         description = "Criterios de busca sobre a vista VwRankingReputacao (linha de ranking, nao entidade editavel). "
-                + "Filtra colunas desnormalizadas de score, media e posicao; distinto de ReputacaoFilterDTO (tabela base). GenericFilter / POST /filter (demo).")
+                + "Filtra score publico, score governamental, media e posicao para leitura de ranking sem alterar a tabela base de reputacao.")
 public class VwRankingReputacaoFilterDTO implements GenericFilterDTO {
-    @UISchema(label = "Colaborador / Herói", type = FieldDataType.NUMBER, controlType = FieldControlType.ASYNC_SELECT, order = 10,
+    @UISchema(label = "Colaborador / Herói", type = FieldDataType.NUMBER, controlType = FieldControlType.INLINE_ENTITY_LOOKUP, order = 10,
             valueField = "id", displayField = "label",
-            endpoint = ApiPaths.HumanResources.FUNCIONARIOS + "/options/filter", helpText = "Destacar posição de um colaborador no ranking.", icon = "badge")
+            endpoint = ApiPaths.HumanResources.FUNCIONARIOS_EMPLOYEE_LOOKUP_OPTIONS, helpText = "Destacar posição de um colaborador no ranking.", icon = "badge")
     @Filterable(operation = Filterable.FilterOperation.EQUAL)
     @Schema(
-            description = "Foco em um unico colaborador no ranking; EQUAL por funcionarioId (demo).")
+            description = "Colaborador cuja posicao no ranking deve ser destacada.")
     private Integer funcionarioId;
 
-    @UISchema(label = "Funcionários (Incluir)", type = FieldDataType.NUMBER, controlType = FieldControlType.ASYNC_SELECT, order = 15,
+    @UISchema(label = "Mostrar colaboradores", type = FieldDataType.NUMBER, controlType = FieldControlType.INLINE_ENTITY_LOOKUP, order = 15,
             valueField = "id", displayField = "label",
-            endpoint = ApiPaths.HumanResources.FUNCIONARIOS + "/options/filter", helpText = "Comparar posições de múltiplos colaboradores.", icon = "checklist")
+            endpoint = ApiPaths.HumanResources.FUNCIONARIOS_EMPLOYEE_LOOKUP_OPTIONS, helpText = "Inclui no ranking apenas os colaboradores selecionados.", icon = "checklist")
     @Filterable(operation = Filterable.FilterOperation.IN, relation = "funcionarioId")
     @Schema(
-            description = "Subconjunto de candidatos; operacao IN na coluna desnormalizada (multi-select) (demo).")
+            description = "Subconjunto de colaboradores que deve compor o ranking retornado.")
     private List<Integer> funcionarioIdsIn;
 
     @UISchema(label = "Nome Completo", controlType = FieldControlType.INPUT, maxLength = 200, order = 20, helpText = "Procurar colaborador no ranking pelo nome.", icon = "badge")
     @Filterable(operation = Filterable.FilterOperation.LIKE)
     @Schema(
-            description = "Pesquisa em nome civil exibido na tabela; LIKE (demo).")
+            description = "Trecho do nome civil exibido na linha de ranking.")
     private String nomeCompleto;
 
     @UISchema(label = "Codinome", controlType = FieldControlType.INPUT, maxLength = 120, order = 30, helpText = "Procurar no ranking por nome de guerra.", icon = "theater_comedy")
     @Filterable(operation = Filterable.FilterOperation.LIKE)
     @Schema(
-            description = "Filtro por alter ego/ codinome; LIKE (demo).")
+            description = "Trecho do codinome ou alter ego exibido no ranking.")
     private String codinome;
 
     @UISchema(label = "Equipe", controlType = FieldControlType.INPUT, maxLength = 120, order = 40, helpText = "Filtrar o ranking para exibir apenas uma equipe.", icon = "groups")
     @Filterable(operation = Filterable.FilterOperation.LIKE)
     @Schema(
-            description = "Rotulo de equipa na linha; LIKE (texto, nao FK) (demo).")
+            description = "Trecho do rotulo de equipe exibido na linha de ranking.")
     private String equipe;
 
     @UISchema(label = "Score de Mídia", type = FieldDataType.NUMBER, controlType = FieldControlType.RANGE_SLIDER, order = 50, helpText = "Restringir ranking pela aprovação pública.", icon = "campaign")
     @Filterable(operation = Filterable.FilterOperation.BETWEEN, relation = "scorePublico")
     @Schema(
-            description = "Faixa de coluna scorePublico; BETWEEN (ranking) (demo).")
+            description = "Faixa de score publico usada para segmentar aprovacao ou visibilidade no ranking.")
     private List<Integer> scorePublicoBetween;
 
     @UISchema(label = "Score Governamental", type = FieldDataType.NUMBER, controlType = FieldControlType.RANGE_SLIDER, order = 60, helpText = "Restringir ranking pelo alinhamento do governo.", icon = "gavel")
     @Filterable(operation = Filterable.FilterOperation.BETWEEN, relation = "scoreGovernamental")
     @Schema(
-            description = "Faixa de score governamental; BETWEEN (demo).")
+            description = "Faixa de score governamental usada para segmentar alinhamento institucional no ranking.")
     private List<Integer> scoreGovernamentalBetween;
 
     @UISchema(label = "Média Final", type = FieldDataType.NUMBER, controlType = FieldControlType.RANGE_SLIDER, order = 70, helpText = "Filtrar ranking por faixas de média final.", icon = "analytics")
     @Filterable(operation = Filterable.FilterOperation.BETWEEN, relation = "media")
     @Schema(
-            description = "Faixa da metrica de ordenacao/ destaque; BETWEEN (regra de agregacao na vista) (demo).")
+            description = "Faixa da media final usada como metrica de ordenacao e destaque no ranking.")
     private List<BigDecimal> mediaBetween;
 
     @UISchema(label = "Posição no Ranking", type = FieldDataType.NUMBER, controlType = FieldControlType.RANGE_SLIDER, order = 80, helpText = "Exibir apenas heróis dentro de faixas de posições (ex: Top 10).", icon = "analytics")
     @Filterable(operation = Filterable.FilterOperation.BETWEEN, relation = "posicao")
     @Schema(
-            description = "Fatiar o ranking top-N ou intervalo de posicoes; BETWEEN (ordinais) (demo).")
+            description = "Intervalo ordinal de posicoes para recortar top-N ou faixas especificas do ranking.")
     private List<Long> posicaoBetween;
 
     public Integer getFuncionarioId() { return funcionarioId; }

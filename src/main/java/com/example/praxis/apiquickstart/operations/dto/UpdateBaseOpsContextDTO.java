@@ -13,7 +13,7 @@ import java.math.BigDecimal;
 @Schema(
         name = "UpdateBaseOpsContextDTO",
         description = "Patch operacional de base: sigilo, planeta, coordenadas (sem trocar nome/tipo de instalacao). "
-                + "OpenAPI 3.1 e x-ui (demo).")
+                + "Usado para ajustar contexto tatico e cartografico de planejamento sem recriar o cadastro principal da base.")
 public class UpdateBaseOpsContextDTO {
 
     @UISchema(label = "Sigilo", controlType = FieldControlType.SELECT, order = 10, icon = "label")

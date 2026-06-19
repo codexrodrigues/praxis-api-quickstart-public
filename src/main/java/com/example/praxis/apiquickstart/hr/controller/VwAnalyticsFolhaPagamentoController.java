@@ -40,6 +40,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
@@ -52,6 +53,7 @@ import java.util.List;
  */
 @ApiResource(value = ApiPaths.HumanResources.VW_ANALYTICS_FOLHA_PAGAMENTO, resourceKey = "human-resources.vw-analytics-folha-pagamento")
 @ApiGroup("human-resources")
+@RestController
 public class VwAnalyticsFolhaPagamentoController extends AbstractQuickstartReadOnlyController<VwAnalyticsFolhaPagamento, VwAnalyticsFolhaPagamentoDTO, Integer, VwAnalyticsFolhaPagamentoFilterDTO> {
 
     private static final String GROUP_BY_STATS_REQUEST_EXAMPLE = """
@@ -334,7 +336,6 @@ public class VwAnalyticsFolhaPagamentoController extends AbstractQuickstartReadO
         return super.getById(id);
     }
 }
-
 
 
 

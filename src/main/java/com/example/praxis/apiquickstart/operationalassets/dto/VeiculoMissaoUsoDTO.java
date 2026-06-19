@@ -11,33 +11,32 @@ import java.time.OffsetDateTime;
 
 @Schema(
         name = "VeiculoMissaoUsoDTO",
-        description = "Registo de sortie: veiculo alocado a missao com piloto e janela partida/chegada. "
-                + "Payload de borda; nao e criterio de filtro. OpenAPI 3.1 e x-ui (demo).")
+        description = "Registro de uso de frota em uma missao, vinculando veiculo, missao, piloto, partida, chegada e observacoes operacionais da sortie.")
 public class VeiculoMissaoUsoDTO {
-    @Schema(description = "Identificador interno (PK) deste registo no servico; referencia o recurso em URLs e relacionamentos.")
+    @Schema(description = "Identificador do uso de veiculo na missao; referencia a sortie em URLs, auditoria operacional e relacionamentos de frota.")
     private Integer id;
 
     @NotNull
-    @UISchema(label = "Veículo", controlType = FieldControlType.SELECT,
+    @UISchema(label = "Veículo", controlType = FieldControlType.ENTITY_LOOKUP,
             valueField = "id", displayField = "label",
-        endpoint = com.example.praxis.apiquickstart.constants.ApiPaths.Assets.VEICULOS + "/options/filter", required = true,
+        endpoint = com.example.praxis.apiquickstart.constants.ApiPaths.Assets.VEICULOS_VEHICLE_LOOKUP_OPTIONS, required = true,
             tableHidden = true, icon = "directions_car")
     @Schema(
             description = "FK; ativo de frota utilizado (veiculoId).")
     private Integer veiculoId;
 
     @NotNull
-    @UISchema(label = "Missão", controlType = FieldControlType.SELECT,
+    @UISchema(label = "Missão", controlType = FieldControlType.ENTITY_LOOKUP,
             valueField = "id", displayField = "label",
-        endpoint = com.example.praxis.apiquickstart.constants.ApiPaths.Operations.MISSOES + "/options/filter", required = true,
+        endpoint = com.example.praxis.apiquickstart.constants.ApiPaths.Operations.MISSOES_MISSION_LOOKUP_OPTIONS, required = true,
             tableHidden = true, icon = "flag")
     @Schema(
             description = "FK; operacao a que a sortie pertence (missaoId).")
     private Integer missaoId;
 
-    @UISchema(label = "Piloto", controlType = FieldControlType.SELECT,
+    @UISchema(label = "Piloto", controlType = FieldControlType.ENTITY_LOOKUP,
             valueField = "id", displayField = "label",
-            endpoint = com.example.praxis.apiquickstart.constants.ApiPaths.HumanResources.FUNCIONARIOS + "/options/filter",
+            endpoint = com.example.praxis.apiquickstart.constants.ApiPaths.HumanResources.FUNCIONARIOS_EMPLOYEE_LOOKUP_OPTIONS,
             tableHidden = true, icon = "flag")
     @Schema(
             description = "FK; piloto responsavel (pilotoId).")

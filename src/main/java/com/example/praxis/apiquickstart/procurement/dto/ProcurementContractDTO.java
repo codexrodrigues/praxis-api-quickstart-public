@@ -1,5 +1,6 @@
 package com.example.praxis.apiquickstart.procurement.dto;
 
+import com.example.praxis.apiquickstart.constants.ApiPaths;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import lombok.Getter;
@@ -14,18 +15,20 @@ import java.time.LocalDate;
 @Setter
 @Schema(
         name = "ProcurementContractDTO",
-        description = "Contrato de fornecimento (empresa, fornecedor, vigencia, moeda, status). "
-                + "Payload de borda; nao e criterio de filtro. OpenAPI 3.1 e x-ui (demo).")
+        description = "Contrato de fornecimento que governa compras entre empresa e fornecedor, incluindo numero legal, moeda, vigencia, status e bloqueios operacionais.")
 public class ProcurementContractDTO {
-    @Schema(description = "Identificador interno (PK) deste registo no servico; referencia o recurso em URLs e relacionamentos.")
+    @Schema(description = "Identificador do contrato de fornecimento; referencia produtos, pedidos e relacionamentos de procurement.")
     private Integer id;
 
-    @UISchema(label = "Empresa", controlType = FieldControlType.ENTITY_LOOKUP, order = 10, icon = "business")
+    @UISchema(label = "Empresa", controlType = FieldControlType.ENTITY_LOOKUP, order = 10, icon = "business",
+            endpoint = ApiPaths.Procurement.COMPANIES_COMPANY_LOOKUP_OPTIONS, valueField = "id", displayField = "label")
     @Schema(
             description = "FK; empresa compradora (companyId).")
     private Integer companyId;
 
-    @UISchema(label = "Fornecedor", controlType = FieldControlType.ENTITY_LOOKUP, order = 20, icon = "storefront")
+    @UISchema(label = "Fornecedor", controlType = FieldControlType.ENTITY_LOOKUP, order = 20, icon = "storefront",
+            endpoint = ApiPaths.Procurement.SUPPLIERS_SUPPLIER_LOOKUP_OPTIONS, valueField = "id", displayField = "label",
+            dependentField = "companyId", resetOnDependentChange = true)
     @Schema(
             description = "FK; fornecedor contratado (supplierId).")
     private Integer supplierId;

@@ -15,79 +15,91 @@ import java.util.List;
 
 @Schema(
         name = "SinaisSocorroFilterDTO",
-        description = "Criterios de busca em pedidos de socorro/ alertas (nao e o ticket a encerrar so com filtrar). "
-                + "Janelas abertura/ fecho; GenericFilter / POST /filter (demo).")
+        description = "Criterios de busca em sinais de socorro e alertas operacionais. "
+                + "Apoia triagem por origem, local, nivel de ameaca, status de atendimento e janelas de abertura ou encerramento.")
 public class SinaisSocorroFilterDTO implements GenericFilterDTO {
-    @UISchema(controlType = FieldControlType.INPUT, maxLength = 200, order = 10, icon = "source")
+    @UISchema(label = "Origem do alerta", controlType = FieldControlType.INPUT, maxLength = 200, order = 10,
+            helpText = "Digite parte da origem do alerta, como torre, sensor ou solicitante.", icon = "source")
     @Filterable(operation = Filterable.FilterOperation.LIKE)
     @Schema(
-            description = "Fonte do alerta (torre, cidadao, sensor); LIKE (demo).")
+            description = "Trecho da origem do alerta, como torre, sensor, solicitante ou canal de comunicacao.")
     private String origem;
 
-    @UISchema(controlType = FieldControlType.INPUT, maxLength = 200, order = 20, icon = "location_on")
+    @UISchema(label = "Local do alerta", controlType = FieldControlType.INPUT, maxLength = 200, order = 20,
+            helpText = "Digite parte do local onde o sinal foi aberto.", icon = "location_on")
     @Filterable(operation = Filterable.FilterOperation.LIKE)
     @Schema(
-            description = "Cenario onde o sinal foi aberto; LIKE (demo).")
+            description = "Trecho do local ou cenario operacional onde o sinal de socorro foi aberto.")
     private String local;
 
-    @UISchema(type = FieldDataType.NUMBER, controlType = FieldControlType.RANGE_SLIDER, order = 30, icon = "warning")
+    @UISchema(label = "Nível de ameaça", type = FieldDataType.NUMBER, controlType = FieldControlType.RANGE_SLIDER, order = 30,
+            helpText = "Defina uma faixa de gravidade para priorizar a triagem.", icon = "warning")
     @Filterable(operation = Filterable.FilterOperation.BETWEEN, relation = "nivelAmeaca")
     @Schema(
-            description = "Escala de ameaca iminente; BETWEEN (triagem) (demo).")
+            description = "Faixa de gravidade usada para priorizar sinais de socorro em triagem operacional.")
     private List<Integer> nivelAmeacaBetween;
 
-    @UISchema(controlType = FieldControlType.SELECT, order = 40, icon = "toggle_on")
+    @UISchema(label = "Status do atendimento", controlType = FieldControlType.SELECT, order = 40,
+            helpText = "Filtra por um único estado de atendimento.", icon = "toggle_on")
     @Filterable(operation = Filterable.FilterOperation.EQUAL)
     @Schema(
-            description = "Estado unico (aberto, atendido, falso); EQUAL SinalSocorroStatus (demo).")
+            description = "Estado de atendimento do sinal de socorro, usado para diferenciar chamados abertos, atendidos, encerrados ou falsos.")
     private SinalSocorroStatus status;
 
-    @UISchema(type = FieldDataType.DATE, controlType = FieldControlType.DATE_TIME_RANGE, order = 50, icon = "event")
+    @UISchema(label = "Período de abertura", type = FieldDataType.DATE, controlType = FieldControlType.DATE_TIME_RANGE, order = 50,
+            helpText = "Informe a janela em que o sinal de socorro foi aberto.", icon = "event")
     @Filterable(operation = Filterable.FilterOperation.BETWEEN, relation = "abertoEm")
     @Schema(
-            description = "Janela de abertura; BETWEEN (fila) (demo).")
+            description = "Intervalo de datas em que o sinal de socorro foi aberto.")
     private List<OffsetDateTime> abertoEmBetween;
 
-    @UISchema(type = FieldDataType.DATE, controlType = FieldControlType.DATE_TIME_RANGE, order = 60, icon = "event")
+    @UISchema(label = "Período de fechamento", type = FieldDataType.DATE, controlType = FieldControlType.DATE_TIME_RANGE, order = 60,
+            helpText = "Informe a janela em que o sinal de socorro foi encerrado.", icon = "event")
     @Filterable(operation = Filterable.FilterOperation.BETWEEN, relation = "fechadoEm")
     @Schema(
-            description = "Janela de fechamento; BETWEEN (resolucao) (demo).")
+            description = "Intervalo de datas em que o sinal de socorro foi encerrado.")
     private List<OffsetDateTime> fechadoEmBetween;
 
-    @UISchema(label = "Status (Incluir)", controlType = FieldControlType.SELECT, order = 70, icon = "toggle_on")
-    @Filterable(operation = Filterable.FilterOperation.IN)
+    @UISchema(label = "Mostrar status", controlType = FieldControlType.SELECT, order = 70,
+            helpText = "Mostra apenas sinais de socorro nos status selecionados.", icon = "toggle_on")
+    @Filterable(operation = Filterable.FilterOperation.IN, relation = "status")
     @Schema(
-            description = "Uniao de estados; operacao IN (demo).")
+            description = "Conjunto de estados de atendimento que devem aparecer no resultado da busca.")
     private List<SinalSocorroStatus> statusIn;
 
-    @UISchema(label = "Status (Excluir)", controlType = FieldControlType.SELECT, order = 80, icon = "toggle_on")
-    @Filterable(operation = Filterable.FilterOperation.NOT_IN)
+    @UISchema(label = "Ocultar status", controlType = FieldControlType.SELECT, order = 80,
+            helpText = "Remove do resultado os sinais de socorro nos status selecionados.", icon = "toggle_off")
+    @Filterable(operation = Filterable.FilterOperation.NOT_IN, relation = "status")
     @Schema(
-            description = "Excluir estados; NOT_IN (demo).")
+            description = "Conjunto de estados de atendimento que devem ser removidos do resultado da busca.")
     private List<SinalSocorroStatus> statusNotIn;
 
-    @UISchema(label = "Aberto em (Na Data)", type = FieldDataType.DATE, controlType = FieldControlType.DATE_PICKER, order = 90, icon = "event")
+    @UISchema(label = "Aberto em", type = FieldDataType.DATE, controlType = FieldControlType.DATE_PICKER, order = 90,
+            helpText = "Escolha o dia exato em que o sinal foi aberto.", icon = "event")
     @Filterable(operation = Filterable.FilterOperation.ON_DATE, relation = "abertoEm")
     @Schema(
-            description = "Dia civil do inicio; ON_DATE (demo).")
+            description = "Dia civil exato em que o sinal de socorro foi aberto.")
     private LocalDate abertoEmOn;
 
-    @UISchema(label = "Aberto em (Últimos N dias)", type = FieldDataType.NUMBER, controlType = FieldControlType.INPUT, order = 100, icon = "event")
+    @UISchema(label = "Aberto nos últimos dias", type = FieldDataType.NUMBER, controlType = FieldControlType.INPUT, order = 100,
+            helpText = "Informe quantos dias recentes devem ser considerados desde a abertura.", icon = "event")
     @Filterable(operation = Filterable.FilterOperation.IN_LAST_DAYS, relation = "abertoEm")
     @Schema(
-            description = "Corte movel; IN_LAST_DAYS (demo).")
+            description = "Quantidade de dias recentes usada para localizar sinais de socorro abertos nesse recorte.")
     private Integer abertoEmLastDays;
 
-    @UISchema(label = "Fechado em (Na Data)", type = FieldDataType.DATE, controlType = FieldControlType.DATE_PICKER, order = 110, icon = "event")
+    @UISchema(label = "Fechado em", type = FieldDataType.DATE, controlType = FieldControlType.DATE_PICKER, order = 110,
+            helpText = "Escolha o dia exato em que o sinal foi encerrado.", icon = "event")
     @Filterable(operation = Filterable.FilterOperation.ON_DATE, relation = "fechadoEm")
     @Schema(
-            description = "Fechamentos neste dia; ON_DATE (demo).")
+            description = "Dia civil exato em que o sinal de socorro foi encerrado.")
     private LocalDate fechadoEmOn;
 
-    @UISchema(label = "Fechado em (Últimos N dias)", type = FieldDataType.NUMBER, controlType = FieldControlType.INPUT, order = 120, icon = "event")
+    @UISchema(label = "Fechado nos últimos dias", type = FieldDataType.NUMBER, controlType = FieldControlType.INPUT, order = 120,
+            helpText = "Informe quantos dias recentes devem ser considerados desde o fechamento.", icon = "event")
     @Filterable(operation = Filterable.FilterOperation.IN_LAST_DAYS, relation = "fechadoEm")
     @Schema(
-            description = "Fechados recentes; IN_LAST_DAYS (demo).")
+            description = "Quantidade de dias recentes usada para localizar sinais de socorro encerrados nesse recorte.")
     private Integer fechadoEmLastDays;
 
     public String getOrigem() { return origem; }

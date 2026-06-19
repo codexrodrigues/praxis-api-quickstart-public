@@ -14,23 +14,26 @@ import org.praxisplatform.uischema.filter.dto.GenericFilterDTO;
 @Schema(
         name = "ProcurementCompanyFilterDTO",
         description = "Criterios de busca em empresas legais (entidade de compras; nao e a empresa a editar so por filtrar). "
-                + "Usado com GenericFilter / POST /filter no demo Procurement (cnpj, razao, status) (demo).")
+                + "Usado para localizar empresas compradoras por nome, documento fiscal e situacao cadastral.")
 public class ProcurementCompanyFilterDTO implements GenericFilterDTO {
-    @UISchema(controlType = FieldControlType.INPUT, order = 10, icon = "business")
+    @UISchema(label = "Razão social", controlType = FieldControlType.INPUT, order = 10,
+            helpText = "Busca empresas pelo nome legal ou comercial.", icon = "business")
     @Filterable(operation = Filterable.FilterOperation.LIKE)
     @Schema(
-            description = "Razao social ou nome comercial; LIKE (demo).")
+            description = "Trecho da razao social ou nome comercial usado para localizar a empresa compradora.")
     private String legalName;
 
-    @UISchema(controlType = FieldControlType.INPUT, order = 20, icon = "fingerprint")
+    @UISchema(label = "Documento", controlType = FieldControlType.INPUT, order = 20,
+            helpText = "Busca por CNPJ, CPF ou outro identificador cadastral.", icon = "fingerprint")
     @Filterable(operation = Filterable.FilterOperation.LIKE)
     @Schema(
-            description = "CPF/ CNPJ/ documento (formatacao livre na busca); LIKE (demo).")
+            description = "Trecho do CNPJ, CPF ou identificador cadastral equivalente, aceitando formatacao livre na busca.")
     private String documentNumber;
 
-    @UISchema(controlType = FieldControlType.SELECT, order = 30, icon = "toggle_on")
+    @UISchema(label = "Status da empresa", controlType = FieldControlType.SELECT, order = 30,
+            helpText = "Filtra empresas conforme situação cadastral ou habilitação.", icon = "toggle_on")
     @Filterable(operation = Filterable.FilterOperation.EQUAL)
     @Schema(
-            description = "Situacao cadastral/ habilitacao (catalogo de status); EQUAL string (demo).")
+            description = "Situacao cadastral ou habilitacao da empresa para compras, conforme catalogo de status do procurement.")
     private String status;
 }

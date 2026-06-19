@@ -16,38 +16,43 @@ import java.util.List;
 @Schema(
         name = "EquipamentoFilterDTO",
         description = "Criterios de busca no inventario de equipamento (traje, arma, gadget); nao e o item a ajustar so com filtrar. "
-                + "GenericFilter / POST /filter (demo).")
+                + "Usado para localizar ativos por designacao, categoria, custodiante, status e faixa de resistencia.")
 public class EquipamentoFilterDTO implements GenericFilterDTO {
-    @UISchema(controlType = FieldControlType.INPUT, maxLength = 200, order = 10, icon = "filter_list")
+    @UISchema(label = "Nome do equipamento", controlType = FieldControlType.INPUT, maxLength = 200, order = 10,
+            helpText = "Busca por nome, designação ou apelido do equipamento.", icon = "filter_list")
     @Filterable(operation = Filterable.FilterOperation.LIKE)
     @Schema(
-            description = "Designacao (ex.: luva anti-grav); LIKE (demo).")
+            description = "Trecho da designacao, nome operacional ou apelido do equipamento no inventario.")
     private String nome;
 
-    @UISchema(controlType = FieldControlType.SELECT, order = 20, icon = "category")
+    @UISchema(label = "Tipo de equipamento", controlType = FieldControlType.SELECT, order = 20,
+            helpText = "Restringe a busca à categoria do item operacional.", icon = "category")
     @Filterable(operation = Filterable.FilterOperation.EQUAL)
     @Schema(
-            description = "Categoria de equipamento; EQUAL EquipamentoTipo (demo).")
+            description = "Categoria tatica do equipamento, restringindo a busca a um valor do catalogo EquipamentoTipo.")
     private EquipamentoTipo tipo;
 
-    @UISchema(type = FieldDataType.NUMBER, controlType = FieldControlType.ASYNC_SELECT, order = 30,
+    @UISchema(label = "Responsável", type = FieldDataType.NUMBER, controlType = FieldControlType.INLINE_ENTITY_LOOKUP, order = 30,
             valueField = "id", displayField = "label",
-            endpoint = ApiPaths.HumanResources.FUNCIONARIOS + "/options/filter", icon = "filter_list")
+            endpoint = ApiPaths.HumanResources.FUNCIONARIOS_EMPLOYEE_LOOKUP_OPTIONS,
+            helpText = "Filtra equipamentos sob custódia de um colaborador ou herói.", icon = "badge")
     @Filterable(operation = Filterable.FilterOperation.EQUAL, relation = "proprietario.id")
     @Schema(
-            description = "Custodia por heroi/ funcionario; EQUAL proprietarioId (demo).")
+            description = "Colaborador ou operador que detem a custodia formal do equipamento.")
     private Integer proprietarioId;
 
-    @UISchema(controlType = FieldControlType.SELECT, order = 40, icon = "toggle_on")
+    @UISchema(label = "Status do equipamento", controlType = FieldControlType.SELECT, order = 40,
+            helpText = "Mostra itens conforme disponibilidade, manutenção ou perda.", icon = "toggle_on")
     @Filterable(operation = Filterable.FilterOperation.EQUAL)
     @Schema(
-            description = "Situacao (operacional, manutencao, perdido); EQUAL EquipamentoStatus (demo).")
+            description = "Status de disponibilidade do equipamento, como operacional, em manutencao ou perdido.")
     private EquipamentoStatus status;
 
-    @UISchema(type = FieldDataType.NUMBER, controlType = FieldControlType.RANGE_SLIDER, order = 50, icon = "stacked_bar_chart")
+    @UISchema(label = "Faixa de resistência", type = FieldDataType.NUMBER, controlType = FieldControlType.RANGE_SLIDER, order = 50,
+            helpText = "Filtra por intervalo de durabilidade ou capacidade de absorção do equipamento.", icon = "stacked_bar_chart")
     @Filterable(operation = Filterable.FilterOperation.BETWEEN, relation = "resistencia")
     @Schema(
-            description = "Indice de durabilidade/ absorcao; BETWEEN (1-N conforme regra) (demo).")
+            description = "Faixa de resistencia, durabilidade ou capacidade de absorcao usada para comparar equipamentos.")
     private List<Integer> resistenciaBetween;
 
     public String getNome() { return nome; }

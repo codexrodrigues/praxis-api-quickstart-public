@@ -144,6 +144,22 @@ class LicencasOperacaoPilotIntegrationTest {
                 insert into public.acordos_regulatorios (id, nome, jurisdicao, status, descricao)
                 values (1, 'Orbital Security Accord', 'Global Council', 'VIGENTE', 'Supports orbital operations')
                 """);
+        jdbcTemplate.update("""
+                insert into public.acordos_regulatorios (id, nome, jurisdicao, status, descricao)
+                values (2, 'Legacy Airspace Accord', 'Global Council', 'SUSPENSO', 'Suspended for audit')
+                """);
+        jdbcTemplate.update("""
+                insert into public.acordos_regulatorios (id, nome, jurisdicao, status, descricao)
+                values (3, 'Retired Coastal Accord', 'Atlantic Board', 'REVOGADO', 'Revoked after treaty replacement')
+                """);
+        jdbcTemplate.update("""
+                insert into public.equipes (id, nome, sigla, base_principal_id, status)
+                values (1, 'Alpha Response Team', 'ALFA', null, 'ATIVA')
+                """);
+        jdbcTemplate.update("""
+                insert into public.equipes (id, nome, sigla, base_principal_id, status)
+                values (2, 'Legacy Response Team', 'LEG', null, 'DISSOLVIDA')
+                """);
 
         jdbcTemplate.update(
                 "insert into public.licencas_operacao (id, acordo_id, nivel, valido_de, valido_ate) values (?, ?, ?, ?, ?)",
@@ -165,6 +181,119 @@ class LicencasOperacaoPilotIntegrationTest {
 
     @Test
     void shouldExposeRenewSurfaceAndSemanticLookupForLicencasOperacao() throws Exception {
+        JsonNode createSchema = body(restTemplate.getForEntity(
+                "/schemas/filtered?path=/api/operations/licencas-operacao&operation=post&schemaType=request",
+                String.class
+        ));
+        JsonNode createTeamUi = createSchema.path("properties").path("equipeId").path("x-ui");
+        assertAgreementLookup(
+                createSchema.path("properties").path("acordoId").path("x-ui"),
+                "entityLookup"
+        );
+        assertEquals("entityLookup", createTeamUi.path("controlType").asText());
+        assertEquals("/api/operations/equipes/option-sources/team/options/filter",
+                createTeamUi.path("endpoint").asText());
+        assertEquals("team", createTeamUi.path("optionSource").path("key").asText());
+        assertEquals("RESOURCE_ENTITY", createTeamUi.path("optionSource").path("type").asText());
+        assertEquals("/api/operations/equipes", createTeamUi.path("optionSource").path("resourcePath").asText());
+        assertEquals("team", createTeamUi.path("optionSource").path("entityKey").asText());
+        assertEquals("status", createTeamUi.path("optionSource").path("statusPropertyPath").asText());
+        assertEquals("ATIVA", createTeamUi.path("optionSource").path("selectionPolicy").path("allowedStatuses").get(0).asText());
+        assertEquals("DISSOLVIDA", createTeamUi.path("optionSource").path("selectionPolicy").path("blockedStatuses").get(0).asText());
+        assertEmployeeLookup(
+                createSchema.path("properties").path("funcionarioId").path("x-ui"),
+                "entityLookup"
+        );
+
+        JsonNode filterSchema = body(restTemplate.getForEntity(
+                "/schemas/filtered?path=/api/operations/licencas-operacao/filter&operation=post&schemaType=request",
+                String.class
+        ));
+        assertAgreementLookup(
+                filterSchema.path("properties").path("acordoId").path("x-ui"),
+                "inlineEntityLookup"
+        );
+        JsonNode filterTeamUi = filterSchema.path("properties").path("equipeId").path("x-ui");
+        assertEquals("inlineEntityLookup", filterTeamUi.path("controlType").asText());
+        assertEquals("team", filterTeamUi.path("optionSource").path("key").asText());
+        assertEmployeeLookup(
+                filterSchema.path("properties").path("funcionarioId").path("x-ui"),
+                "inlineEntityLookup"
+        );
+
+        JsonNode memberSchema = body(restTemplate.getForEntity(
+                "/schemas/filtered?path=/api/operations/equipe-membros&operation=post&schemaType=request",
+                String.class
+        ));
+        JsonNode memberTeamUi = memberSchema.path("properties").path("equipeId").path("x-ui");
+        assertEquals("entityLookup", memberTeamUi.path("controlType").asText());
+        assertEquals("team", memberTeamUi.path("optionSource").path("key").asText());
+        assertEmployeeLookup(
+                memberSchema.path("properties").path("funcionarioId").path("x-ui"),
+                "entityLookup"
+        );
+
+        JsonNode memberFilterSchema = body(restTemplate.getForEntity(
+                "/schemas/filtered?path=/api/operations/equipe-membros/filter&operation=post&schemaType=request",
+                String.class
+        ));
+        assertEmployeeLookup(
+                memberFilterSchema.path("properties").path("funcionarioId").path("x-ui"),
+                "inlineEntityLookup"
+        );
+
+        JsonNode payrollSchema = body(restTemplate.getForEntity(
+                "/schemas/filtered?path=/api/human-resources/vw-analytics-folha-pagamento/filter&operation=post&schemaType=request",
+                String.class
+        ));
+        JsonNode payrollTeamUi = payrollSchema.path("properties").path("equipeId").path("x-ui");
+        assertEquals("inlineEntityLookup", payrollTeamUi.path("controlType").asText());
+        assertEquals("team", payrollTeamUi.path("optionSource").path("key").asText());
+        assertEquals("RESOURCE_ENTITY", payrollTeamUi.path("optionSource").path("type").asText());
+
+        JsonNode teams = body(restTemplate.postForEntity(
+                "/api/operations/equipes/option-sources/team/options/filter?search=Alpha",
+                authorizedJson("{}"),
+                String.class
+        ));
+        assertEquals(1, teams.path("content").size());
+        JsonNode alpha = teams.path("content").get(0);
+        assertEquals(1, alpha.path("id").asInt());
+        assertEquals("Alpha Response Team", alpha.path("label").asText());
+        assertTrue(alpha.path("extra").path("description").isMissingNode());
+        assertTrue(alpha.path("extra").path("selectable").asBoolean());
+
+        JsonNode selectedTeams = objectMapper.readTree(restTemplate.getForObject(
+                "/api/operations/equipes/option-sources/team/options/by-ids?ids=1&ids=2",
+                String.class
+        ));
+        assertEquals("Alpha Response Team", selectedTeams.get(0).path("label").asText());
+        assertTrue(selectedTeams.get(0).path("extra").path("selectable").asBoolean());
+        assertEquals("Legacy Response Team", selectedTeams.get(1).path("label").asText());
+        assertFalse(selectedTeams.get(1).path("extra").path("selectable").asBoolean());
+
+        JsonNode agreements = body(restTemplate.postForEntity(
+                "/api/operations/acordos-regulatorios/option-sources/agreement/options/filter?search=Orbital",
+                authorizedJson("{}"),
+                String.class
+        ));
+        assertEquals(1, agreements.path("content").size());
+        JsonNode orbitalAgreement = agreements.path("content").get(0);
+        assertEquals(1, orbitalAgreement.path("id").asInt());
+        assertEquals("Orbital Security Accord", orbitalAgreement.path("label").asText());
+        assertTrue(orbitalAgreement.path("extra").path("selectable").asBoolean());
+
+        JsonNode selectedAgreements = objectMapper.readTree(restTemplate.getForObject(
+                "/api/operations/acordos-regulatorios/option-sources/agreement/options/by-ids?ids=1&ids=2&ids=3",
+                String.class
+        ));
+        assertEquals("Orbital Security Accord", selectedAgreements.get(0).path("label").asText());
+        assertTrue(selectedAgreements.get(0).path("extra").path("selectable").asBoolean());
+        assertEquals("Legacy Airspace Accord", selectedAgreements.get(1).path("label").asText());
+        assertFalse(selectedAgreements.get(1).path("extra").path("selectable").asBoolean());
+        assertEquals("Retired Coastal Accord", selectedAgreements.get(2).path("label").asText());
+        assertFalse(selectedAgreements.get(2).path("extra").path("selectable").asBoolean());
+
         JsonNode surfacesCatalog = body(restTemplate.getForEntity(
                 "/schemas/surfaces?resource=operations.licencas-operacao",
                 String.class
@@ -243,7 +372,7 @@ class LicencasOperacaoPilotIntegrationTest {
     }
 
     private JsonNode body(ResponseEntity<String> response) throws Exception {
-        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(HttpStatus.OK, response.getStatusCode(), response.getBody());
         assertNotNull(response.getBody());
         return objectMapper.readTree(response.getBody());
     }
@@ -262,5 +391,39 @@ class LicencasOperacaoPilotIntegrationTest {
             }
         }
         return null;
+    }
+
+    private void assertEmployeeLookup(JsonNode fieldUi, String expectedControlType) {
+        JsonNode optionSource = fieldUi.path("optionSource");
+        assertEquals(expectedControlType, fieldUi.path("controlType").asText());
+        assertEquals("/api/human-resources/funcionarios/option-sources/employee/options/filter",
+                fieldUi.path("endpoint").asText());
+        assertEquals("employee", optionSource.path("key").asText());
+        assertEquals("RESOURCE_ENTITY", optionSource.path("type").asText());
+        assertEquals("/api/human-resources/funcionarios", optionSource.path("resourcePath").asText());
+        assertFalse(optionSource.hasNonNull("filterField"));
+        assertEquals("employee", optionSource.path("entityKey").asText());
+        assertEquals("nomeCompleto", optionSource.path("labelPropertyPath").asText());
+        assertTrue(optionSource.path("capabilities").path("filter").asBoolean());
+        assertTrue(optionSource.path("capabilities").path("byIds").asBoolean());
+    }
+
+    private void assertAgreementLookup(JsonNode fieldUi, String expectedControlType) {
+        JsonNode optionSource = fieldUi.path("optionSource");
+        assertEquals(expectedControlType, fieldUi.path("controlType").asText());
+        assertEquals("/api/operations/acordos-regulatorios/option-sources/agreement/options/filter",
+                fieldUi.path("endpoint").asText());
+        assertEquals("agreement", optionSource.path("key").asText());
+        assertEquals("RESOURCE_ENTITY", optionSource.path("type").asText());
+        assertEquals("/api/operations/acordos-regulatorios", optionSource.path("resourcePath").asText());
+        assertFalse(optionSource.hasNonNull("filterField"));
+        assertEquals("agreement", optionSource.path("entityKey").asText());
+        assertEquals("nome", optionSource.path("labelPropertyPath").asText());
+        assertEquals("jurisdicao", optionSource.path("codePropertyPath").asText());
+        assertEquals("status", optionSource.path("statusPropertyPath").asText());
+        assertEquals("VIGENTE", optionSource.path("selectionPolicy").path("allowedStatuses").get(0).asText());
+        assertEquals("SUSPENSO", optionSource.path("selectionPolicy").path("blockedStatuses").get(0).asText());
+        assertTrue(optionSource.path("capabilities").path("filter").asBoolean());
+        assertTrue(optionSource.path("capabilities").path("byIds").asBoolean());
     }
 }

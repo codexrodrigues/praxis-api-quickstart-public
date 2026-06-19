@@ -21,34 +21,34 @@ import java.util.List;
 @Schema(
         name = "VwPerfilHeroiFilterDTO",
         description = "Criterios de busca na vista VwPerfilHeroi (ficha agregada; nao e alteracao de cadastro so por filtrar). "
-                + "Cruza identidade, universo, organograma e scores; ver javadoc de classe. GenericFilter / POST /filter (demo).")
+                + "Cruza identidade, universo, organograma, reputacao e contexto operacional para montar fichas agregadas de colaboradores.")
 public class VwPerfilHeroiFilterDTO implements GenericFilterDTO {
-    @UISchema(label = "Herói", type = FieldDataType.NUMBER, controlType = FieldControlType.ENTITY_LOOKUP, order = 10,
+    @UISchema(label = "Herói", type = FieldDataType.NUMBER, controlType = FieldControlType.INLINE_ENTITY_LOOKUP, order = 10,
             valueField = "id", displayField = "label",
             endpoint = ApiPaths.HumanResources.FUNCIONARIOS_EMPLOYEE_LOOKUP_OPTIONS, helpText = "Filtrar perfil de um colaborador.", icon = "badge")
     @Filterable(operation = Filterable.FilterOperation.EQUAL)
     @Schema(
-            description = "Um unico heroi/ funcionario; EQUAL (ficha detalhada) (demo).")
+            description = "Colaborador especifico cuja ficha agregada deve ser localizada.")
     private Integer funcionarioId;
 
-    @UISchema(label = "Herois (Incluir)", type = FieldDataType.NUMBER, controlType = FieldControlType.ENTITY_LOOKUP, order = 15,
+    @UISchema(label = "Mostrar heróis", type = FieldDataType.NUMBER, controlType = FieldControlType.INLINE_ENTITY_LOOKUP, order = 15,
             valueField = "id", displayField = "label",
-            endpoint = ApiPaths.HumanResources.FUNCIONARIOS_EMPLOYEE_LOOKUP_OPTIONS, helpText = "Comparar perfis de múltiplos colaboradores.", icon = "checklist")
+            endpoint = ApiPaths.HumanResources.FUNCIONARIOS_EMPLOYEE_LOOKUP_OPTIONS, helpText = "Inclui na ficha agregada apenas os heróis selecionados.", icon = "checklist")
     @Filterable(operation = Filterable.FilterOperation.IN, relation = "funcionarioId")
     @Schema(
-            description = "Conjunto de perfis; operacao IN (multi) — criterio de busca, nao lista a persistir (demo).")
+            description = "Conjunto de colaboradores que devem aparecer na ficha agregada, sem alterar cadastros individuais.")
     private List<Integer> funcionarioIdsIn;
 
     @UISchema(label = "Nome Civil", controlType = FieldControlType.INPUT, maxLength = 200, order = 20, helpText = "Busca livre por nome civil do herói.", icon = "badge")
     @Filterable(operation = Filterable.FilterOperation.LIKE)
     @Schema(
-            description = "Nome civil; LIKE (demo).")
+            description = "Trecho do nome civil do colaborador usado para busca textual.")
     private String nomeCompleto;
 
     @UISchema(label = "Codinome", controlType = FieldControlType.INPUT, maxLength = 120, order = 30, helpText = "Busca livre por nome de guerra.", icon = "theater_comedy")
     @Filterable(operation = Filterable.FilterOperation.LIKE)
     @Schema(
-            description = "Codinome/ marca publica; LIKE (demo).")
+            description = "Trecho do codinome, nome de guerra ou marca publica associada ao colaborador.")
     private String codinome;
 
     @UISchema(label = "Universo", controlType = FieldControlType.ASYNC_SELECT, maxLength = 120, order = 40,
@@ -56,49 +56,49 @@ public class VwPerfilHeroiFilterDTO implements GenericFilterDTO {
             endpoint = ApiPaths.HumanResources.VW_PERFIL_HEROI + "/option-sources/universo/options/filter", helpText = "Filtrar por universo narrativo de origem.", icon = "public")
     @Filterable(operation = Filterable.FilterOperation.EQUAL)
     @Schema(
-            description = "Universo ficcional; EQUAL via option-source (demo).")
+            description = "Universo ou contexto narrativo de origem usado como dimensao de segmentacao da ficha.")
     private String universo;
 
     @UISchema(label = "Exposição Pública", type = FieldDataType.BOOLEAN, controlType = FieldControlType.CHECKBOX, order = 50, helpText = "Filtrar por heróis públicos ou secretos.", icon = "visibility")
     @Filterable(operation = Filterable.FilterOperation.EQUAL)
     @Schema(
-            description = "Visibilidade publica planejada; EQUAL (demo).")
+            description = "Indicador de exposicao publica planejada, separando perfis publicos de identidades protegidas.")
     private Boolean exposicaoPublica;
 
     @UISchema(label = "Cargo", controlType = FieldControlType.INPUT, maxLength = 120, order = 60, helpText = "Busca textual do cargo atual.", icon = "work")
     @Filterable(operation = Filterable.FilterOperation.LIKE)
     @Schema(
-            description = "Texto de cargo desnormalizado na vista; LIKE (nao id de Cargo) (demo).")
+            description = "Trecho do cargo atual exibido na vista agregada, usado em busca textual.")
     private String cargo;
 
     @UISchema(label = "Departamento", controlType = FieldControlType.INPUT, maxLength = 120, order = 70, helpText = "Busca textual do departamento alocado.", icon = "apartment")
     @Filterable(operation = Filterable.FilterOperation.LIKE)
     @Schema(
-            description = "Texto de departamento na vista; LIKE (demo).")
+            description = "Trecho do departamento exibido na vista agregada.")
     private String departamento;
 
     @UISchema(label = "Score de Mídia", type = FieldDataType.NUMBER, controlType = FieldControlType.RANGE_SLIDER, order = 80, helpText = "Filtrar por faixa de score de mídia.", icon = "campaign")
     @Filterable(operation = Filterable.FilterOperation.BETWEEN, relation = "scorePublico")
     @Schema(
-            description = "Faixa de score publico; BETWEEN (demo).")
+            description = "Faixa de score publico ou midiatico usada para comparar exposicao e reputacao.")
     private List<Integer> scorePublicoBetween;
 
     @UISchema(label = "Score Governamental", type = FieldDataType.NUMBER, controlType = FieldControlType.RANGE_SLIDER, order = 90, helpText = "Filtrar por faixa de aderência governamental.", icon = "gavel")
     @Filterable(operation = Filterable.FilterOperation.BETWEEN, relation = "scoreGovernamental")
     @Schema(
-            description = "Faixa de score governamental; BETWEEN (demo).")
+            description = "Faixa de score governamental usada para avaliar alinhamento institucional.")
     private List<Integer> scoreGovernamentalBetween;
 
     @UISchema(label = "Score Médio", type = FieldDataType.NUMBER, controlType = FieldControlType.RANGE_SLIDER, order = 100, helpText = "Filtrar por avaliação geral média.", icon = "analytics")
     @Filterable(operation = Filterable.FilterOperation.BETWEEN, relation = "scoreMedio")
     @Schema(
-            description = "Faixa de media agregada de reputacao; BETWEEN (regra no SQL da vista) (demo).")
+            description = "Faixa de media agregada de reputacao calculada pela vista.")
     private List<BigDecimal> scoreMedioBetween;
 
     @UISchema(label = "Habilidades", controlType = FieldControlType.INPUT, maxLength = 4000, order = 110, helpText = "Busca livre por palavras-chave nas habilidades.", icon = "psychology")
     @Filterable(operation = Filterable.FilterOperation.LIKE)
     @Schema(
-            description = "Texto resumido de competencias; LIKE em campo concatenado (detalhe em outras telas) (demo).")
+            description = "Trecho do resumo de competencias e habilidades concatenadas para busca rapida na ficha.")
     private String habilidades;
 
     @UISchema(label = "Equipe Principal", controlType = FieldControlType.ASYNC_SELECT, maxLength = 120, order = 120,
@@ -106,7 +106,7 @@ public class VwPerfilHeroiFilterDTO implements GenericFilterDTO {
             endpoint = ApiPaths.HumanResources.VW_PERFIL_HEROI + "/option-sources/equipePrincipal/options/filter", helpText = "Filtrar pela equipe de operação prioritária.", icon = "toggle_on")
     @Filterable(operation = Filterable.FilterOperation.EQUAL)
     @Schema(
-            description = "Filtro por equipa tatica de maior aderencia; EQUAL (option-source) (demo).")
+            description = "Equipe tatica principal associada ao colaborador na ficha agregada.")
     private String equipePrincipal;
 
     @UISchema(label = "Base Principal", controlType = FieldControlType.ASYNC_SELECT, maxLength = 120, order = 130,
@@ -114,7 +114,7 @@ public class VwPerfilHeroiFilterDTO implements GenericFilterDTO {
             endpoint = ApiPaths.HumanResources.VW_PERFIL_HEROI + "/option-sources/basePrincipal/options/filter", helpText = "Filtrar por local base de referência.", icon = "toggle_on")
     @Filterable(operation = Filterable.FilterOperation.EQUAL)
     @Schema(
-            description = "Filtro por base de operacoes preferencial; EQUAL (option-source) (demo).")
+            description = "Base operacional principal associada ao colaborador na ficha agregada.")
     private String basePrincipal;
 
     public Integer getFuncionarioId() { return funcionarioId; }

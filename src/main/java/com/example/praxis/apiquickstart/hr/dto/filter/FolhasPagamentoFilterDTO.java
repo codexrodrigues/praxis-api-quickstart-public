@@ -24,59 +24,59 @@ import java.util.List;
 @Schema(
         name = "FolhasPagamentoFilterDTO",
         description = "Criterios de busca de folha por competencia, colaborador e montante (nao e o fecho/ contracheque em edicao). "
-                + "Backoffice: localizar competencia/funcionario e refinar data ou valores; ver javadoc de classe. GenericFilter (demo).")
+                + "Apoia backoffice financeiro a localizar lotes, conciliacao de pagamento e desvios de valores por competencia.")
 public class FolhasPagamentoFilterDTO implements GenericFilterDTO {
     @UISchema(label = "Ano de Referência", type = FieldDataType.NUMBER, order = 10, helpText = "Filtrar pelo ano de competência.", icon = "calendar_today")
     @Filterable(operation = Filterable.FilterOperation.EQUAL)
     @Schema(
-            description = "Ano civil da competencia; EQUAL (ex.: 2025) (demo).")
+            description = "Ano civil da competencia da folha, usado com o mes para localizar o periodo remuneratorio contabil.")
     private Integer ano;
 
     @UISchema(label = "Mês de Referência", type = FieldDataType.NUMBER, order = 20, helpText = "Filtrar pelo mês de competência.", icon = "calendar_month")
     @Filterable(operation = Filterable.FilterOperation.EQUAL)
     @Schema(
-            description = "Mes da competencia (1-12); EQUAL em conjunto com ano (demo).")
+            description = "Mes da competencia remuneratoria, de 1 a 12, usado com o ano para identificar o ciclo de folha.")
     private Integer mes;
 
-    @UISchema(type = FieldDataType.NUMBER, controlType = FieldControlType.ASYNC_SELECT, order = 30,
+    @UISchema(label = "Colaborador", type = FieldDataType.NUMBER, controlType = FieldControlType.INLINE_ENTITY_LOOKUP, order = 30,
             valueField = "id", displayField = "label",
-            endpoint = ApiPaths.HumanResources.FUNCIONARIOS + "/options/filter", helpText = "Filtrar folhas de um colaborador específico.", icon = "badge")
+            endpoint = ApiPaths.HumanResources.FUNCIONARIOS_EMPLOYEE_LOOKUP_OPTIONS, helpText = "Filtrar folhas de um colaborador específico.", icon = "badge")
     @Filterable(operation = Filterable.FilterOperation.EQUAL, relation = "funcionario.id")
     @Schema(
-            description = "Folha do colaborador; EQUAL (FK) — reduz resultado a uma pessoa (demo).")
+            description = "Colaborador cuja folha deve ser localizada para atendimento, conferencia individual ou conciliacao de pagamento.")
     private Integer funcionarioId;
 
     @UISchema(label = "Período de Pagamento", type = FieldDataType.DATE, controlType = FieldControlType.DATE_RANGE, order = 40, helpText = "Buscar por intervalo de data de pagamento.", icon = "event")
     @Filterable(operation = Filterable.FilterOperation.BETWEEN, relation = "dataPagamento")
     @Schema(
-            description = "Janela de data efetiva de credito/liquidacao; BETWEEN (reconciliacao bancaria) (demo).")
+            description = "Intervalo de datas efetivas de credito ou liquidacao, usado para reconciliacao bancaria e controle de lote.")
     private List<LocalDate> dataPagamentoBetween;
 
     @UISchema(label = "Salário Bruto", type = FieldDataType.NUMBER, controlType = FieldControlType.PRICE_RANGE, order = 50,
             numericFormat = NumericFormat.CURRENCY, numericStep = "0.01", helpText = "Buscar por faixa de salário bruto.", icon = "payments")
     @Filterable(operation = Filterable.FilterOperation.BETWEEN, relation = "salarioBruto")
     @Schema(
-            description = "Faixa de provento bruto consolidado; BETWEEN na moeda do backend (demo).")
+            description = "Intervalo de valor bruto consolidado da folha antes de descontos, usado para analise de massa salarial.")
     private List<BigDecimal> salarioBrutoBetween;
 
     @UISchema(label = "Total de Descontos", type = FieldDataType.NUMBER, controlType = FieldControlType.PRICE_RANGE, order = 60,
             numericFormat = NumericFormat.CURRENCY, numericStep = "0.01", helpText = "Buscar por faixa de total de descontos.", icon = "money_off")
     @Filterable(operation = Filterable.FilterOperation.BETWEEN, relation = "totalDescontos")
     @Schema(
-            description = "Soma de descontos; BETWEEN para achar folhas muito oneradas (demo).")
+            description = "Intervalo do total de descontos aplicados, usado para localizar incidencias elevadas ou divergencias de calculo.")
     private List<BigDecimal> totalDescontosBetween;
 
     @UISchema(label = "Salário Líquido", type = FieldDataType.NUMBER, controlType = FieldControlType.PRICE_RANGE, order = 70,
             numericFormat = NumericFormat.CURRENCY, numericStep = "0.01", helpText = "Buscar por faixa de salário líquido.", icon = "payments")
     @Filterable(operation = Filterable.FilterOperation.BETWEEN, relation = "salarioLiquido")
     @Schema(
-            description = "Faixa de liquido a depositar; BETWEEN (regra de teto, auditoria) (demo).")
+            description = "Intervalo de valor liquido a depositar, usado para conferir teto, piso, conciliacao e impacto financeiro individual.")
     private List<BigDecimal> salarioLiquidoBetween;
 
-    @UISchema(label = "Data de Pagamento (Na Data)", type = FieldDataType.DATE, controlType = FieldControlType.DATE_PICKER, order = 80, helpText = "Buscar por data de pagamento exata.", icon = "event")
+    @UISchema(label = "Pago em", type = FieldDataType.DATE, controlType = FieldControlType.DATE_PICKER, order = 80, helpText = "Busca folhas pagas em uma data específica.", icon = "event")
     @Filterable(operation = Filterable.FilterOperation.ON_DATE, relation = "dataPagamento")
     @Schema(
-            description = "Folhas com pagamento nesse dia civil exato; ON_DATE (criterio alternativo ao intervalo) (GenericFilter) (demo).")
+            description = "Data civil exata em que o pagamento foi ou sera liquidado, usada quando a consulta mira um lote diario especifico.")
     private LocalDate dataPagamentoOn;
 
     public Integer getAno() { return ano; }

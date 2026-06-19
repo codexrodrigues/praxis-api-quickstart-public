@@ -11,10 +11,9 @@ import org.praxisplatform.uischema.extension.annotation.UISchema;
 
 @Schema(
         name = "VeiculoDTO",
-        description = "Ativo de frota (designacao, tipo, lotacao, proprietario, status de missao). "
-                + "Payload de borda; nao e criterio de filtro. OpenAPI 3.1 e x-ui (demo).")
+        description = "Ativo de frota usado em operacoes, com designacao, tipo de plataforma, capacidade, custodiante e status de disponibilidade para missoes.")
 public class VeiculoDTO {
-    @Schema(description = "Identificador interno (PK) deste registo no servico; referencia o recurso em URLs e relacionamentos.")
+    @Schema(description = "Identificador do veiculo no cadastro de ativos; referencia o recurso em URLs, uso em missoes e relacionamentos de frota.")
     private Integer id;
 
     @NotBlank
@@ -35,9 +34,9 @@ public class VeiculoDTO {
             description = "Lugares ou carga maxima usada no escalonamento (unidade de dominio).")
     private Integer capacidade;
 
-    @UISchema(label = "Proprietário", controlType = FieldControlType.SELECT,
+    @UISchema(label = "Proprietário", controlType = FieldControlType.ENTITY_LOOKUP,
             valueField = "id", displayField = "label",
-            endpoint = com.example.praxis.apiquickstart.constants.ApiPaths.HumanResources.FUNCIONARIOS + "/options/filter",
+            endpoint = com.example.praxis.apiquickstart.constants.ApiPaths.HumanResources.FUNCIONARIOS_EMPLOYEE_LOOKUP_OPTIONS,
             tableHidden = true, icon = "inventory_2")
     @Schema(
             description = "FK; colaborador responsavel pela custodia (proprietarioId).")

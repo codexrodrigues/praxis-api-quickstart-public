@@ -9,7 +9,7 @@ import org.praxisplatform.uischema.extension.annotation.UISchema;
 
 @Schema(
         name = "DepartamentoDTO",
-        description = "Unidade organizacional no demo de RH: agrupa lotacoes e reporting. O codigo curto identifica o departamento em integracoes; "
+        description = "Unidade organizacional de RH: agrupa lotacoes, reporting e responsabilidades operacionais. O codigo curto identifica o departamento em integracoes; "
                 + "o responsavel e o heroi de referencia para aprovacoes operacionais dentro do escopo do departamento.")
 public class DepartamentoDTO {
     @Schema(
@@ -33,9 +33,9 @@ public class DepartamentoDTO {
             example = "OPS-EST")
     private String codigo;
 
-    @UISchema(label = "Responsável", controlType = org.praxisplatform.uischema.FieldControlType.SELECT, group = "Relacionamentos", order = 10, icon = "supervisor_account",
+    @UISchema(label = "Responsável", controlType = org.praxisplatform.uischema.FieldControlType.ENTITY_LOOKUP, group = "Relacionamentos", order = 10, icon = "supervisor_account",
             valueField = "id", displayField = "label",
-            endpoint = com.example.praxis.apiquickstart.constants.ApiPaths.HumanResources.FUNCIONARIOS + "/options/filter",
+            endpoint = com.example.praxis.apiquickstart.constants.ApiPaths.HumanResources.FUNCIONARIOS_EMPLOYEE_LOOKUP_OPTIONS,
             tableHidden = true, helpText = "Líder responsável pelas aprovações.")
     @Schema(
             description = "Identificador do funcionario (heroi) responsavel pelo departamento: aprovacoes de alocacao e ponto de contacto operacional.")

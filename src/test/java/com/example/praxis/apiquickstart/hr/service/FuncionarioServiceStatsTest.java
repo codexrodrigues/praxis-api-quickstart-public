@@ -104,7 +104,8 @@ class FuncionarioServiceStatsTest {
         Method method = FuncionarioService.class.getDeclaredMethod("estadoCivilLabel", Object.class);
         method.setAccessible(true);
 
-        assertEquals("Uniao estavel", method.invoke(service, "UNIAO_ESTAVEL"));
+        assertEquals("União estável", method.invoke(service, "UNIAO_ESTAVEL"));
+        assertEquals("Viúvo", method.invoke(service, "VIUVO"));
         assertEquals("Divorciado", method.invoke(service, "DIVORCIADO"));
     }
 

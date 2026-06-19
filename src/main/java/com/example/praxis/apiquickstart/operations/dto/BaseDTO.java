@@ -14,7 +14,7 @@ import java.math.BigDecimal;
 @Schema(
         name = "BaseDTO",
         description = "Instalacao operacional (nome, tipo, classificacao de sigilo, georeferencia, planeta). "
-                + "Payload de borda; nao e criterio de filtro. OpenAPI 3.1 e x-ui (demo).")
+                + "Representa o ponto fisico ou regional usado para logistica, controle de acesso, equipes e missoes.")
 public class BaseDTO {
     @Schema(description = "Identificador interno (PK) deste registo no servico; referencia o recurso em URLs e relacionamentos.")
     private Integer id;

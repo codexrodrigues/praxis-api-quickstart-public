@@ -86,9 +86,9 @@ public class MissaoDTO {
     @UISchema(label = "Local", controlType = FieldControlType.INPUT, maxLength = 200, icon = "location_on")
     private String local;
 
-    @UISchema(label = "Ameaça", controlType = FieldControlType.SELECT,
+    @UISchema(label = "Ameaça", controlType = FieldControlType.ENTITY_LOOKUP,
             valueField = "id", displayField = "label",
-        endpoint = com.example.praxis.apiquickstart.constants.ApiPaths.RiskIntelligence.AMEACAS + "/options/filter",
+        endpoint = com.example.praxis.apiquickstart.constants.ApiPaths.RiskIntelligence.AMEACAS_THREAT_LOOKUP_OPTIONS,
             tableHidden = true, icon = "warning")
     @Schema(
         description = "Referencia a ameaca de risco associada; enriquecimento e SLAs vêm do servico de risk intelligence."

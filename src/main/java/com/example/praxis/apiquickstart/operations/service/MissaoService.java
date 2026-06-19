@@ -2,6 +2,7 @@ package com.example.praxis.apiquickstart.operations.service;
 
 import com.example.praxis.apiquickstart.config.DomainRuleWorkflowActionPolicy;
 import com.example.praxis.apiquickstart.config.DomainRuleWorkflowActionPolicyResolver;
+import com.example.praxis.apiquickstart.constants.ApiPaths;
 import com.example.praxis.apiquickstart.operations.dto.MissaoDTO;
 import com.example.praxis.apiquickstart.operations.dto.CreateMissaoDTO;
 import com.example.praxis.apiquickstart.operations.dto.PlanejarEquipeMissaoDTO;
@@ -20,6 +21,14 @@ import com.example.praxis.apiquickstart.operations.mapper.MissaoMapper;
 import com.example.praxis.apiquickstart.operations.repository.MissaoParticipanteRepository;
 import com.example.praxis.apiquickstart.operations.repository.MissaoRepository;
 import com.example.praxis.apiquickstart.core.service.base.AbstractQuickstartCrudService;
+import org.praxisplatform.uischema.options.EntityLookupDescriptor;
+import org.praxisplatform.uischema.options.LookupCapabilities;
+import org.praxisplatform.uischema.options.LookupDetailDescriptor;
+import org.praxisplatform.uischema.options.LookupSelectionPolicy;
+import org.praxisplatform.uischema.options.OptionSourceDescriptor;
+import org.praxisplatform.uischema.options.OptionSourcePolicy;
+import org.praxisplatform.uischema.options.OptionSourceRegistry;
+import org.praxisplatform.uischema.options.OptionSourceType;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -47,6 +56,40 @@ import static org.springframework.http.HttpStatus.CONFLICT;
 public class MissaoService extends AbstractQuickstartCrudService<Missao, MissaoDTO, Integer, MissaoFilterDTO, CreateMissaoDTO, UpdateMissaoDTO> {
 
     private static final String WORKFLOW_POLICY_TARGET_PREFIX = "operations.missoes:";
+    private static final OptionSourceRegistry OPTION_SOURCES = OptionSourceRegistry.builder()
+            .add(Missao.class, new OptionSourceDescriptor(
+                    ApiPaths.Operations.MISSOES_MISSION_LOOKUP_SOURCE,
+                    OptionSourceType.RESOURCE_ENTITY,
+                    ApiPaths.Operations.MISSOES,
+                    null,
+                    "id",
+                    "titulo",
+                    "id",
+                    List.of(),
+                    lookupPolicy(),
+                    new EntityLookupDescriptor(
+                            ApiPaths.Operations.MISSOES_MISSION_LOOKUP_SOURCE,
+                            null,
+                            List.of("prioridade", "local"),
+                            "status",
+                            null,
+                            null,
+                            List.of("titulo", "local"),
+                            null,
+                            new LookupSelectionPolicy(
+                                    null,
+                                    "status",
+                                    List.of("PLANEJADA", "EM_ANDAMENTO", "PAUSADA"),
+                                    List.of("CONCLUIDA", "FALHOU"),
+                                    true,
+                                    "Missao encerrada preservada apenas para reidratacao de valores existentes.",
+                                    "Selecione uma missao planejada, em andamento ou pausada."
+                            ),
+                            new LookupCapabilities(true, true, true, false, false, true, false, false, false, true),
+                            new LookupDetailDescriptor(ApiPaths.Operations.MISSOES + "/{id}", "/operations/missoes/{id}", "route")
+                    )
+            ))
+            .build();
 
     private final MissaoRepository repository;
     private final MissaoParticipanteRepository participanteRepository;
@@ -64,6 +107,15 @@ public class MissaoService extends AbstractQuickstartCrudService<Missao, MissaoD
         this.participanteRepository = participanteRepository;
         this.mapper = mapper;
         this.workflowActionPolicyResolver = workflowActionPolicyResolver;
+    }
+
+    public static OptionSourceRegistry optionSources() {
+        return OPTION_SOURCES;
+    }
+
+    @Override
+    public OptionSourceRegistry getOptionSourceRegistry() {
+        return OPTION_SOURCES;
     }
 
     @Override
@@ -321,6 +373,20 @@ public class MissaoService extends AbstractQuickstartCrudService<Missao, MissaoD
         Missao managed = getEntityManager().contains(entity) ? entity : getEntityManager().merge(entity);
         getEntityManager().refresh(managed);
         return managed;
+    }
+
+    private static OptionSourcePolicy lookupPolicy() {
+        return new OptionSourcePolicy(
+                true,
+                true,
+                "contains",
+                0,
+                25,
+                100,
+                true,
+                false,
+                "label"
+        );
     }
 }
 

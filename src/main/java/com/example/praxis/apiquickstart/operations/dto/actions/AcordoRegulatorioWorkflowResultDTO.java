@@ -8,7 +8,7 @@ import org.praxisplatform.uischema.extension.annotation.UISchema;
 
 @Schema(
         name = "AcordoRegulatorioWorkflowResultDTO",
-        description = "Resposta de workflow: id do acordo, status antes e depois, justificativa e mensagem operacional para a UI.")
+        description = "Resultado da decisao regulatoria aplicada ao acordo, expondo o status anterior, o status vigente, a justificativa preservada e a mensagem operacional.")
 public class AcordoRegulatorioWorkflowResultDTO {
 
     @UISchema(label = "ID", controlType = FieldControlType.INPUT, readOnly = true, icon = "label")
@@ -28,7 +28,7 @@ public class AcordoRegulatorioWorkflowResultDTO {
 
     @UISchema(label = "Justificativa", controlType = FieldControlType.TEXTAREA, readOnly = true, icon = "notes")
     @Schema(
-            description = "Eco da justificativa fornecida na requisicao (quando guardada).")
+            description = "Justificativa registrada para explicar a suspensao, reativacao ou revogacao do acordo.")
     private String justificativa;
 
     @UISchema(label = "Mensagem", controlType = FieldControlType.INPUT, readOnly = true, icon = "label")

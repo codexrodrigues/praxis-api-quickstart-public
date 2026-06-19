@@ -222,11 +222,11 @@ public class BaseAcessoController extends AbstractQuickstartCrudController<BaseA
     @Operation(summary = "Ativar acesso à base", description = "Ativa o vínculo de acesso e publica a transição para catálogos de ações, capabilities e auditoria operacional.")
     @WorkflowAction(
             id = "activate",
-            title = "Activate access",
-            description = "Activates base access for the selected employee",
+            title = "Ativar acesso",
+            description = "Ativa a credencial de acesso de uma pessoa a base operacional selecionada.",
             scope = ActionScope.ITEM,
             order = 100,
-            successMessage = "Access activated",
+            successMessage = "Acesso ativado",
             allowedStates = {"INATIVO"},
             tags = {"workflow", "access"}
     )
@@ -241,11 +241,11 @@ public class BaseAcessoController extends AbstractQuickstartCrudController<BaseA
     @Operation(summary = "Desativar acesso à base", description = "Desativa o vínculo de acesso preservando o contexto de auditoria e a rastreabilidade da autorização concedida.")
     @WorkflowAction(
             id = "deactivate",
-            title = "Deactivate access",
-            description = "Disables base access while preserving audit context",
+            title = "Desativar acesso",
+            description = "Desativa a credencial de acesso a base mantendo o contexto necessario para auditoria.",
             scope = ActionScope.ITEM,
             order = 110,
-            successMessage = "Access deactivated",
+            successMessage = "Acesso desativado",
             allowedStates = {"ATIVO"},
             tags = {"workflow", "access"}
     )

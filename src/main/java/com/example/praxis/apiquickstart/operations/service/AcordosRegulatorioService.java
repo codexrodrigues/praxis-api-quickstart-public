@@ -1,5 +1,6 @@
 package com.example.praxis.apiquickstart.operations.service;
 
+import com.example.praxis.apiquickstart.constants.ApiPaths;
 import com.example.praxis.apiquickstart.operations.dto.AcordosRegulatorioDTO;
 import com.example.praxis.apiquickstart.operations.dto.CreateAcordosRegulatorioDTO;
 import com.example.praxis.apiquickstart.operations.dto.ReviewAcordosRegulatorioDTO;
@@ -12,9 +13,19 @@ import com.example.praxis.apiquickstart.operations.enums.AcordoStatus;
 import com.example.praxis.apiquickstart.operations.mapper.AcordosRegulatorioMapper;
 import com.example.praxis.apiquickstart.operations.repository.AcordosRegulatorioRepository;
 import com.example.praxis.apiquickstart.core.service.base.AbstractQuickstartCrudService;
+import org.praxisplatform.uischema.options.EntityLookupDescriptor;
+import org.praxisplatform.uischema.options.LookupCapabilities;
+import org.praxisplatform.uischema.options.LookupDetailDescriptor;
+import org.praxisplatform.uischema.options.LookupSelectionPolicy;
+import org.praxisplatform.uischema.options.OptionSourceDescriptor;
+import org.praxisplatform.uischema.options.OptionSourcePolicy;
+import org.praxisplatform.uischema.options.OptionSourceRegistry;
+import org.praxisplatform.uischema.options.OptionSourceType;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
+
+import java.util.List;
 
 import static org.springframework.http.HttpStatus.CONFLICT;
 
@@ -27,6 +38,41 @@ import static org.springframework.http.HttpStatus.CONFLICT;
  */
 @Service
 public class AcordosRegulatorioService extends AbstractQuickstartCrudService<AcordosRegulatorio, AcordosRegulatorioDTO, Integer, AcordosRegulatorioFilterDTO, CreateAcordosRegulatorioDTO, UpdateAcordosRegulatorioDTO> {
+    private static final OptionSourceRegistry OPTION_SOURCES = OptionSourceRegistry.builder()
+            .add(AcordosRegulatorio.class, new OptionSourceDescriptor(
+                    ApiPaths.Operations.ACORDOS_REGULATORIOS_AGREEMENT_LOOKUP_SOURCE,
+                    OptionSourceType.RESOURCE_ENTITY,
+                    ApiPaths.Operations.ACORDOS_REGULATORIOS,
+                    null,
+                    "id",
+                    "nome",
+                    "id",
+                    List.of(),
+                    lookupPolicy(),
+                    new EntityLookupDescriptor(
+                            ApiPaths.Operations.ACORDOS_REGULATORIOS_AGREEMENT_LOOKUP_SOURCE,
+                            "jurisdicao",
+                            List.of("descricao"),
+                            "status",
+                            null,
+                            null,
+                            List.of("nome", "jurisdicao", "descricao"),
+                            null,
+                            new LookupSelectionPolicy(
+                                    null,
+                                    "status",
+                                    List.of("VIGENTE"),
+                                    List.of("SUSPENSO", "REVOGADO"),
+                                    true,
+                                    "Acordo regulatorio suspenso ou revogado preservado apenas para reidratacao de licencas existentes.",
+                                    "Selecione um acordo regulatorio vigente."
+                            ),
+                            new LookupCapabilities(true, true, true, false, false, true, false, false, false, true),
+                            new LookupDetailDescriptor(ApiPaths.Operations.ACORDOS_REGULATORIOS + "/{id}", "/operations/acordos-regulatorios/{id}", "route")
+                    )
+            ))
+            .build();
+
 
     private final AcordosRegulatorioRepository repository;
     private final AcordosRegulatorioMapper mapper;
@@ -35,6 +81,15 @@ public class AcordosRegulatorioService extends AbstractQuickstartCrudService<Aco
         super(repository, AcordosRegulatorio.class, mapper::toDto, mapper::toEntity, mapper::toEntity, AcordosRegulatorio::getId);
         this.repository = repository;
         this.mapper = mapper;
+    }
+
+    public static OptionSourceRegistry optionSources() {
+        return OPTION_SOURCES;
+    }
+
+    @Override
+    public OptionSourceRegistry getOptionSourceRegistry() {
+        return OPTION_SOURCES;
     }
 
     @Override
@@ -115,6 +170,20 @@ public class AcordosRegulatorioService extends AbstractQuickstartCrudService<Aco
         AcordosRegulatorio managed = getEntityManager().contains(entity) ? entity : getEntityManager().merge(entity);
         getEntityManager().refresh(managed);
         return managed;
+    }
+
+    private static OptionSourcePolicy lookupPolicy() {
+        return new OptionSourcePolicy(
+                true,
+                true,
+                "contains",
+                0,
+                25,
+                100,
+                true,
+                false,
+                "label"
+        );
     }
 }
 

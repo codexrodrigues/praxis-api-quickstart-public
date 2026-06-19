@@ -31,7 +31,7 @@ public class ProcurementContractService extends AbstractQuickstartCrudService<Pr
 
     private static final OptionSourceRegistry OPTION_SOURCES = OptionSourceRegistry.builder()
             .add(ProcurementContract.class, new OptionSourceDescriptor(
-                    "contract",
+                    ApiPaths.Procurement.CONTRACTS_CONTRACT_LOOKUP_SOURCE,
                     OptionSourceType.RESOURCE_ENTITY,
                     ApiPaths.Procurement.CONTRACTS,
                     "contractId",
@@ -42,7 +42,7 @@ public class ProcurementContractService extends AbstractQuickstartCrudService<Pr
                     DEPENDENCIES,
                     lookupPolicy(),
                     new EntityLookupDescriptor(
-                            "contract",
+                            ApiPaths.Procurement.CONTRACTS_CONTRACT_LOOKUP_SOURCE,
                             null,
                             List.of("supplierName", "validUntil", "currency"),
                             "status",

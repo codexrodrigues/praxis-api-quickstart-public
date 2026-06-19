@@ -1,11 +1,23 @@
 package com.example.praxis.apiquickstart.config;
 
+import com.example.praxis.apiquickstart.hr.service.CargoService;
+import com.example.praxis.apiquickstart.hr.service.DepartamentoService;
 import com.example.praxis.apiquickstart.hr.service.VwAnalyticsFolhaPagamentoService;
+import com.example.praxis.apiquickstart.hr.service.FolhasPagamentoService;
 import com.example.praxis.apiquickstart.hr.service.FuncionarioService;
+import com.example.praxis.apiquickstart.hr.service.HabilidadeService;
+import com.example.praxis.apiquickstart.operations.service.AcordosRegulatorioService;
+import com.example.praxis.apiquickstart.operations.service.BaseService;
+import com.example.praxis.apiquickstart.operations.service.EquipeService;
+import com.example.praxis.apiquickstart.operations.service.IncidenteService;
+import com.example.praxis.apiquickstart.operations.service.MissaoService;
+import com.example.praxis.apiquickstart.operationalassets.service.EquipamentoService;
+import com.example.praxis.apiquickstart.operationalassets.service.VeiculoService;
 import com.example.praxis.apiquickstart.procurement.service.ProcurementCompanyService;
 import com.example.praxis.apiquickstart.procurement.service.ProcurementContractService;
 import com.example.praxis.apiquickstart.procurement.service.ProcurementProductService;
 import com.example.praxis.apiquickstart.procurement.service.ProcurementSupplierService;
+import com.example.praxis.apiquickstart.riskintelligence.service.AmeacaService;
 import com.example.praxis.apiquickstart.riskintelligence.service.VwIndicadoresIncidenteService;
 import com.example.praxis.apiquickstart.hr.service.VwPerfilHeroiService;
 import org.praxisplatform.uischema.options.OptionSourceRegistry;
@@ -31,13 +43,25 @@ public class OptionSourceConfig {
     OptionSourceRegistry optionSourceRegistry() {
         return OptionSourceRegistry.merge(
                 FuncionarioService.optionSources(),
+                CargoService.optionSources(),
+                DepartamentoService.optionSources(),
+                HabilidadeService.optionSources(),
+                AmeacaService.optionSources(),
+                BaseService.optionSources(),
+                EquipeService.optionSources(),
+                AcordosRegulatorioService.optionSources(),
+                IncidenteService.optionSources(),
+                MissaoService.optionSources(),
+                EquipamentoService.optionSources(),
+                VeiculoService.optionSources(),
                 VwAnalyticsFolhaPagamentoService.optionSources(),
                 VwPerfilHeroiService.optionSources(),
                 VwIndicadoresIncidenteService.optionSources(),
                 ProcurementCompanyService.optionSources(),
                 ProcurementSupplierService.optionSources(),
                 ProcurementContractService.optionSources(),
-                ProcurementProductService.optionSources()
+                ProcurementProductService.optionSources(),
+                FolhasPagamentoService.optionSources()
         );
     }
 }

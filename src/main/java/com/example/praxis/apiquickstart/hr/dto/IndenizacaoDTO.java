@@ -18,10 +18,10 @@ import java.math.BigDecimal;
 @Schema(
         name = "IndenizacaoDTO",
         description = "Registo de cobertura indenizatoria (seguro, sinistro) associado a um incidente de Operacoes. "
-                + "Aproxima a ponte entre RH/Finance e o modulo de incidentes: valor acordado, pagamento, seguradora e processo; nao substitui apolice nem contrato (demo).")
+                + "Aproxima a ponte entre RH, financeiro e o modulo de incidentes: valor acordado, pagamento, seguradora e processo; nao substitui apolice nem contrato.")
 public class IndenizacaoDTO {
     @Schema(
-            description = "Chave da indenizacao. Um incidente pode ter varias parcelas ou revisoes; cada registo materializa um valor/estado (demo).",
+            description = "Chave da indenizacao. Um incidente pode ter varias parcelas ou revisoes; cada registo materializa um valor e um estado de liquidacao.",
             example = "1")
     private Integer id;
 
@@ -56,7 +56,7 @@ public class IndenizacaoDTO {
     @Size(max = 200)
     @UISchema(label = "Seguradora", controlType = FieldControlType.INPUT, maxLength = 200, helpText = "Empresa responsável pela cobertura.", icon = "label")
     @Schema(
-            description = "Entidade underwriter ou TPA que processa a reclamacao; vazio se cobertura self-insured interna (demo).",
+            description = "Entidade underwriter ou TPA que processa a reclamacao; vazio se a cobertura for assumida internamente.",
             example = "Cobertura Metropolis Mutual")
     private String seguradora;
 
@@ -68,12 +68,12 @@ public class IndenizacaoDTO {
     private String processoNum;
 
     @NotNull
-    @UISchema(label = "Incidente", controlType = FieldControlType.SELECT,
+    @UISchema(label = "Incidente", controlType = FieldControlType.ENTITY_LOOKUP,
             valueField = "id", displayField = "label",
-        endpoint = com.example.praxis.apiquickstart.constants.ApiPaths.Operations.INCIDENTES + "/options/filter", required = true,
+        endpoint = com.example.praxis.apiquickstart.constants.ApiPaths.Operations.INCIDENTES_INCIDENT_LOOKUP_OPTIONS, required = true,
             tableHidden = true, helpText = "Incidente que originou a indenização.", icon = "report_problem")
     @Schema(
-            description = "Incidente de Operacoes que originou a cobertura: FK a Incidente; ancora danos, missao e responsavel operacional (demo).",
+            description = "Incidente de Operacoes que originou a cobertura: FK a Incidente; ancora danos, missao e responsavel operacional.",
             example = "7")
     private Integer incidenteId;
 

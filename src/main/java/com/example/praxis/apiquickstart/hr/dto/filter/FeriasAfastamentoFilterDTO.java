@@ -15,7 +15,7 @@ import java.util.List;
 @Schema(
         name = "FeriasAfastamentoFilterDTO",
         description = "Criterios de busca de ausencias (ferias, licenca, missao, etc.); nao e o lancamento a editar. "
-                + "Uteis a escala e cobertura; GenericFilter / POST /filter (demo).")
+                + "Apoia analise de disponibilidade, cobertura operacional, conflitos de escala e historico de afastamentos.")
 public class FeriasAfastamentoFilterDTO implements GenericFilterDTO {
     @UISchema(label = "Tipo de Afastamento", controlType = FieldControlType.INPUT, maxLength = 100, order = 10, helpText = "Filtrar por tipo de ausência.", icon = "category")
     @Filterable(operation = Filterable.FilterOperation.LIKE)
@@ -23,30 +23,30 @@ public class FeriasAfastamentoFilterDTO implements GenericFilterDTO {
             description = "Classe de ausencia (ferias, afastamento medico, treino); string catalogada na UI; LIKE.")
     private String tipo;
 
-    @UISchema(type = FieldDataType.NUMBER, controlType = FieldControlType.ASYNC_SELECT, order = 20,
+    @UISchema(label = "Colaborador", type = FieldDataType.NUMBER, controlType = FieldControlType.INLINE_ENTITY_LOOKUP, order = 20,
             valueField = "id", displayField = "label",
-            endpoint = ApiPaths.HumanResources.FUNCIONARIOS + "/options/filter", helpText = "Filtrar ausências de um colaborador.", icon = "badge")
+            endpoint = ApiPaths.HumanResources.FUNCIONARIOS_EMPLOYEE_LOOKUP_OPTIONS, helpText = "Filtrar ausências de um colaborador.", icon = "badge")
     @Filterable(operation = Filterable.FilterOperation.EQUAL, relation = "funcionario.id")
     @Schema(
-            description = "Apenas historico do colaborador; EQUAL (FK) (demo).")
+            description = "Colaborador cujo historico de ausencias deve ser consultado para disponibilidade, aprovacao ou auditoria.")
     private Integer funcionarioId;
 
     @UISchema(label = "Período Inicial", type = FieldDataType.DATE, controlType = FieldControlType.DATE_RANGE, order = 30, helpText = "Filtrar por data de início no intervalo.", icon = "event")
     @Filterable(operation = Filterable.FilterOperation.BETWEEN, relation = "dataInicio")
     @Schema(
-            description = "Inicio de periodo (range); BETWEEN; cruza com data fim para achar conflitos de cobertura (demo).")
+            description = "Intervalo de datas de inicio da ausencia, usado para identificar quando a indisponibilidade comeca e cruzar conflitos de escala.")
     private List<LocalDate> dataInicioBetween;
 
     @UISchema(label = "Período Final", type = FieldDataType.DATE, controlType = FieldControlType.DATE_RANGE, order = 40, helpText = "Filtrar por data de término no intervalo.", icon = "event")
     @Filterable(operation = Filterable.FilterOperation.BETWEEN, relation = "dataFim")
     @Schema(
-            description = "Fim de periodo; BETWEEN; usar com inicio para janela completa (demo).")
+            description = "Intervalo de datas de fim da ausencia, usado para identificar retorno previsto e recomposicao de cobertura.")
     private List<LocalDate> dataFimBetween;
 
     @UISchema(label = "Observações", controlType = FieldControlType.INPUT, maxLength = 2000, order = 50, helpText = "Filtrar por notas ou justificativas.", icon = "notes")
     @Filterable(operation = Filterable.FilterOperation.LIKE)
     @Schema(
-            description = "Notas livres (substituicao, aprovador); LIKE para rastreio de texto (demo).")
+            description = "Observacoes de negocio sobre a ausencia, como justificativa, substituicao planejada, aprovador ou restricao operacional.")
     private String observacoes;
 
     public String getTipo() { return tipo; }

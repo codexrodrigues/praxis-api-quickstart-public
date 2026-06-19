@@ -9,6 +9,9 @@ import io.swagger.v3.oas.annotations.media.Schema;
  * de competencia, valores consolidados e vinculo com o funcionario.
  */
 @JsonIgnoreProperties({"id"})
-@Schema(name = "CreateFolhasPagamentoDTO", description = "Corpo de criacao no modulo Recursos humanos; campos do POST. OpenAPI 3.1 (demo).")
+@Schema(
+    name = "CreateFolhasPagamentoDTO",
+    description = "Comando para registrar uma folha de pagamento de um colaborador em uma competencia, consolidando salario bruto, descontos, liquido, data de pagamento e vinculos operacionais. Os valores financeiros alimentam analytics e seguem governanca de privacidade e politica interna."
+)
 public class CreateFolhasPagamentoDTO extends FolhasPagamentoDTO {
 }

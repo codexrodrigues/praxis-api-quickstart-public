@@ -17,21 +17,21 @@ import java.time.OffsetDateTime;
  */
 @Schema(
         name = "ReputacaoDTO",
-        description = "Snapshot agregado de reputacao do colaborador no demo: indicadores sinteticos (midia, confianca publica) alimentam rankings e Vws analiticos. "
+        description = "Snapshot agregado de reputacao do colaborador: indicadores sinteticos (midia, confianca publica) alimentam rankings e views analiticas. "
                 + "Nao e veredicto legal; actualizado em batch ou por job conforme atualizadoEm.")
 public class ReputacaoDTO {
     @Schema(
-            description = "Chave do registo de reputacao. Em geral 1-1 com funcionario; exposta em APIs de perfil e analise (demo).",
+            description = "Chave do registo de reputacao. Em geral 1-1 com funcionario; exposta em APIs de perfil e analise.",
             example = "1")
     private Integer id;
 
     @NotNull
-    @UISchema(label = "Funcionário", controlType = FieldControlType.SELECT,
+    @UISchema(label = "Funcionário", controlType = FieldControlType.ENTITY_LOOKUP,
             valueField = "id", displayField = "label",
-            endpoint = com.example.praxis.apiquickstart.constants.ApiPaths.HumanResources.FUNCIONARIOS + "/options/filter", required = true,
+            endpoint = com.example.praxis.apiquickstart.constants.ApiPaths.HumanResources.FUNCIONARIOS_EMPLOYEE_LOOKUP_OPTIONS, required = true,
             tableHidden = true, helpText = "Colaborador avaliado.", icon = "badge")
     @Schema(
-            description = "Colaborador a quem os scores se referem; FK ao Funcionario. Sem este id o snapshot nao tem dono (demo).",
+            description = "Colaborador a quem os scores se referem; FK ao Funcionario. Sem este id o snapshot nao tem dono.",
             example = "3")
     private Integer funcionarioId;
 
@@ -41,13 +41,13 @@ public class ReputacaoDTO {
 
     @UISchema(label = "Score Público", type = FieldDataType.NUMBER, helpText = "Índice de reputação junto ao público (0 a 100).", icon = "analytics")
     @Schema(
-            description = "Indice derivado de visibilidade e sentimento de midia (demo); escala e pesos sao heuristicos do quickstart, nao auditoria externa.",
+            description = "Indice derivado de visibilidade e sentimento de midia; escala e pesos pertencem ao modelo operacional do quickstart, nao a auditoria externa.",
             example = "72")
     private Integer scorePublico;
 
     @UISchema(label = "Score Governamental", type = FieldDataType.NUMBER, helpText = "Índice de alinhamento com regras governamentais.", icon = "gavel")
     @Schema(
-            description = "Indice de alinhamento a politicas internas e compliance em missoes (demo); separado do score publico para confrontar risco operacional vs imagem.",
+            description = "Indice de alinhamento a politicas internas e compliance em missoes; separado do score publico para confrontar risco operacional vs imagem.",
             example = "88")
     private Integer scoreGovernamental;
 

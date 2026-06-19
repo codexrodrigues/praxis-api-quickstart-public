@@ -12,45 +12,51 @@ import org.praxisplatform.uischema.filter.dto.GenericFilterDTO;
 
 @Schema(
         name = "EquipeFilterDTO",
-        description = "Criterios de busca em equipas taticas (nao e a Equipe a editar so por filtrar). "
-                + "Ancora em base principal e estados; GenericFilter / POST /filter (demo).")
+        description = "Criterios de busca em equipes taticas de Operacoes. "
+                + "Apoia descoberta por nome, sigla, base principal e estado operacional da equipe.")
 public class EquipeFilterDTO implements GenericFilterDTO {
-    @UISchema(controlType = FieldControlType.INPUT, maxLength = 200, order = 10, icon = "filter_list")
+    @UISchema(label = "Nome da equipe", controlType = FieldControlType.INPUT, maxLength = 200, order = 10,
+            helpText = "Digite parte do nome da equipe tática.", icon = "filter_list")
     @Filterable(operation = Filterable.FilterOperation.LIKE)
     @Schema(
-            description = "Nome de unidade (ex.: Esquadrao Alpha); LIKE (demo).")
+            description = "Trecho do nome da unidade tatica usado para localizar equipes operacionais.")
     private String nome;
 
-    @UISchema(controlType = FieldControlType.INPUT, maxLength = 50, order = 15, icon = "filter_list")
+    @UISchema(label = "Sigla da equipe", controlType = FieldControlType.INPUT, maxLength = 50, order = 15,
+            helpText = "Digite a sigla ou parte da sigla da equipe.", icon = "filter_list")
     @Filterable(operation = Filterable.FilterOperation.LIKE)
     @Schema(
-            description = "Sigla curta; LIKE (demo).")
+            description = "Trecho da sigla usada como identificador curto da equipe.")
     private String sigla;
 
-    @UISchema(type = FieldDataType.NUMBER, controlType = FieldControlType.ASYNC_SELECT, order = 20,
+    @UISchema(label = "Base principal", type = FieldDataType.NUMBER, controlType = FieldControlType.INLINE_ENTITY_LOOKUP, order = 20,
             valueField = "id", displayField = "label",
-        endpoint = ApiPaths.Operations.BASES + "/options/filter", icon = "toggle_on")
+        endpoint = ApiPaths.Operations.BASES_BASE_LOOKUP_OPTIONS,
+            helpText = "Selecione a base operacional principal da equipe.", icon = "location_on")
     @Filterable(operation = Filterable.FilterOperation.EQUAL, relation = "basePrincipal.id")
     @Schema(
-            description = "Filtrar equipas ancoradas nesta base; EQUAL basePrincipalId (FK) (demo).")
+            description = "Base operacional principal onde a equipe esta ancorada.")
     private Integer basePrincipalId;
 
-    @UISchema(controlType = FieldControlType.SELECT, order = 30, icon = "toggle_on")
+    @UISchema(label = "Status da equipe", controlType = FieldControlType.SELECT, order = 30,
+            helpText = "Filtra por um único estado da equipe.", icon = "toggle_on")
     @Filterable(operation = Filterable.FilterOperation.EQUAL)
     @Schema(
-            description = "Estado unico; EQUAL EquipeStatus (demo).")
+            description = "Estado operacional atual da equipe, usado para separar equipes ativas, indisponiveis ou em reorganizacao.")
     private EquipeStatus status;
 
-    @UISchema(label = "Status (Incluir)", controlType = FieldControlType.SELECT, order = 40, icon = "toggle_on")
-    @Filterable(operation = Filterable.FilterOperation.IN)
+    @UISchema(label = "Mostrar status", controlType = FieldControlType.SELECT, order = 40,
+            helpText = "Mostra apenas equipes nos status selecionados.", icon = "toggle_on")
+    @Filterable(operation = Filterable.FilterOperation.IN, relation = "status")
     @Schema(
-            description = "Uniao de estados aceites; operacao IN (demo).")
+            description = "Conjunto de estados de equipe que devem aparecer no resultado da busca.")
     private java.util.List<EquipeStatus> statusIn;
 
-    @UISchema(label = "Status (Excluir)", controlType = FieldControlType.SELECT, order = 50, icon = "toggle_on")
-    @Filterable(operation = Filterable.FilterOperation.NOT_IN)
+    @UISchema(label = "Ocultar status", controlType = FieldControlType.SELECT, order = 50,
+            helpText = "Remove do resultado as equipes nos status selecionados.", icon = "toggle_off")
+    @Filterable(operation = Filterable.FilterOperation.NOT_IN, relation = "status")
     @Schema(
-            description = "Excluir estados; operacao NOT_IN (demo).")
+            description = "Conjunto de estados de equipe que devem ser removidos do resultado da busca.")
     private java.util.List<EquipeStatus> statusNotIn;
 
     public String getNome() { return nome; }

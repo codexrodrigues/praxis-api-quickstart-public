@@ -252,7 +252,7 @@ public class FuncionarioDTO {
     @NotNull
     @UISchema(label = "Cargo", controlType = FieldControlType.SELECT, group = "Profissional", order = 40, icon = "work",
             valueField = "id", displayField = "label",
-            endpoint = com.example.praxis.apiquickstart.constants.ApiPaths.HumanResources.CARGOS + "/options/filter",
+            endpoint = com.example.praxis.apiquickstart.constants.ApiPaths.HumanResources.CARGOS_JOB_ROLE_LOOKUP_OPTIONS,
             tableHidden = true, helpText = "Cargo ocupado atualmente.")
     @Schema(description = "Referencia ao cargo atualmente atribuido; define faixa, competencias e relatorios de RH associados.", example = "1")
     private Integer cargoId;
@@ -260,7 +260,7 @@ public class FuncionarioDTO {
     @NotNull
     @UISchema(label = "Departamento", controlType = FieldControlType.SELECT, group = "Profissional", order = 50, icon = "apartment",
             valueField = "id", displayField = "label",
-            endpoint = com.example.praxis.apiquickstart.constants.ApiPaths.HumanResources.DEPARTAMENTOS + "/options/filter",
+            endpoint = com.example.praxis.apiquickstart.constants.ApiPaths.HumanResources.DEPARTAMENTOS_DEPARTMENT_LOOKUP_OPTIONS,
             tableHidden = true, helpText = "Unidade organizacional alocada.")
     @Schema(
         description = "Unidade organizacional a qual o colaborador esta alocado; usada em aprovacoes, custeio e visibilidade de dados."

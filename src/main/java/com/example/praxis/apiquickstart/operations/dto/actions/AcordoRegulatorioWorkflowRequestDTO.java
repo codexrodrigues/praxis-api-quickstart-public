@@ -9,7 +9,8 @@ import org.praxisplatform.uischema.extension.annotation.UISchema;
 
 @Schema(
         name = "AcordoRegulatorioWorkflowRequestDTO",
-        description = "Requisicao de transicao de workflow de acordo regulatorio: justificativa de mudanca de status.")
+        description = "Comando de governanca para suspender, reativar ou revogar um acordo regulatorio. "
+                + "A justificativa documenta a causa normativa ou operacional da mudanca de status.")
 public class AcordoRegulatorioWorkflowRequestDTO {
 
     @NotBlank
@@ -22,7 +23,7 @@ public class AcordoRegulatorioWorkflowRequestDTO {
             icon = "notes"
     )
     @Schema(
-            description = "Razao da transicao; auditoria e compliance (texto curto).")
+            description = "Motivo obrigatorio da decisao regulatoria; suporta auditoria, compliance e explicacao posterior do estado vigente do acordo.")
     private String justificativa;
 
     public String getJustificativa() {

@@ -10,6 +10,13 @@ Premissa Local
 - O quickstart deve ser tratado como host operacional de referencia para uma plataforma de decisoes semanticas authoradas por IA.
 - Os dominios de exemplo devem demonstrar como a IA entende o dominio, encontra evidencias, authora decisoes governadas e materializa comportamento em superfícies reais; nao devem virar apenas exemplos de CRUD ou de configuracao de formulario.
 
+Inventario Local de Aderencia Antes de Novo Contrato
+- Antes de criar endpoint, DTO, path, regra de seguranca, exemplo de dominio ou adaptacao local para cobrir uma necessidade de plataforma, auditar primeiro o que os starters e o quickstart ja publicam em HTTP real.
+- A pergunta obrigatoria e: o que `praxis-metadata-starter`, `praxis-config-starter` ou o proprio quickstart ja sabem por schema, capabilities, actions, config, AI context, headers, security policy, exemplos ou testes downstream, mas ainda nao esta sendo bem materializado?
+- Classificar cada melhoria como `ja-suportado-so-ux`, `ja-suportado-mal-nomeado-ou-mal-materializado`, `suportado-parcialmente` ou `lacuna-real-de-contrato`.
+- So `lacuna-real-de-contrato` autoriza novo contrato. Nesse caso, explicitar dado faltante, fonte canonica, consumidores impactados, artefatos derivados e validacao minima antes de implementar.
+- Nao usar o quickstart para criar semantica paralela que deveria pertencer ao metadata starter, config starter ou runtime Angular. O quickstart prova integracao; nao redefine contrato canonico.
+
 Classificacao Padrao da Mudanca
 - `docs-apenas`: mudancas restritas a `AGENTS.md`, `README.md`, `docs/**` ou comentarios/Javadoc sem efeito em contrato ou comportamento.
 - `local-pequena`: mudanca confinada ao host Spring Boot do quickstart, sem alterar semantica publica de `x-ui`, `/schemas/**`, `/capabilities` ou `/api/praxis/config/**`.

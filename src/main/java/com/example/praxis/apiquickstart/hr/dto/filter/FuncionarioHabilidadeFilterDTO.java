@@ -13,35 +13,35 @@ import java.util.List;
 
 @Schema(
         name = "FuncionarioHabilidadeFilterDTO",
-        description = "Criterios de busca no relacionamento N-N heroi x habilidade (nao e a liga a persistir so por filtrar). "
-                + "Afinidade e escala; GenericFilter / POST /filter (demo).")
+        description = "Criterios de busca na matriz de habilidades de colaboradores. "
+                + "Relaciona pessoas, capacidades, nivel de proficiencia e origem da competencia para selecao operacional.")
 public class FuncionarioHabilidadeFilterDTO implements GenericFilterDTO {
-    @UISchema(type = FieldDataType.NUMBER, controlType = FieldControlType.ASYNC_SELECT, order = 10,
+    @UISchema(label = "Colaborador", type = FieldDataType.NUMBER, controlType = FieldControlType.INLINE_ENTITY_LOOKUP, order = 10,
             valueField = "id", displayField = "label",
-            endpoint = ApiPaths.HumanResources.FUNCIONARIOS + "/options/filter", helpText = "Filtrar pelo colaborador que possui a habilidade.", icon = "badge")
+            endpoint = ApiPaths.HumanResources.FUNCIONARIOS_EMPLOYEE_LOOKUP_OPTIONS, helpText = "Filtrar pelo colaborador que possui a habilidade.", icon = "badge")
     @Filterable(operation = Filterable.FilterOperation.EQUAL, relation = "funcionario.id")
     @Schema(
-            description = "Habilidades de um colaborador; EQUAL (FK) (demo).")
+            description = "Colaborador cujas habilidades e proficiencias devem ser consultadas.")
     private Integer funcionarioId;
 
-    @UISchema(type = FieldDataType.NUMBER, controlType = FieldControlType.ASYNC_SELECT, order = 20,
+    @UISchema(label = "Habilidade", type = FieldDataType.NUMBER, controlType = FieldControlType.ASYNC_SELECT, order = 20,
             valueField = "id", displayField = "label",
-            endpoint = ApiPaths.HumanResources.HABILIDADES + "/options/filter", helpText = "Filtrar pela habilidade desejada.", icon = "psychology")
+            endpoint = ApiPaths.HumanResources.HABILIDADES_SKILL_LOOKUP_OPTIONS, helpText = "Filtrar pela habilidade desejada.", icon = "psychology")
     @Filterable(operation = Filterable.FilterOperation.EQUAL, relation = "habilidade.id")
     @Schema(
-            description = "Quem detem esta competencia; EQUAL por Habilidade (demo).")
+            description = "Habilidade especifica usada para localizar colaboradores que possuem essa competencia.")
     private Integer habilidadeId;
 
     @UISchema(label = "Nível de Proficiência", type = FieldDataType.NUMBER, controlType = FieldControlType.RANGE_SLIDER, order = 30, helpText = "Filtrar por nível de proficiência.", icon = "trending_up")
     @Filterable(operation = Filterable.FilterOperation.BETWEEN, relation = "proficiencia")
     @Schema(
-            description = "Nivel 1-10 (ou faixa de UI); BETWEEN sobre proficiencia (mapa de talento) (demo).")
+            description = "Faixa de proficiencia atribuida ao colaborador naquela habilidade, usada em mapa de talentos e escala operacional.")
     private List<Integer> proficienciaBetween;
 
     @UISchema(label = "Origem da Habilidade", controlType = FieldControlType.INPUT, maxLength = 120, order = 40, helpText = "Filtrar pela origem da proficiência.", icon = "psychology")
     @Filterable(operation = Filterable.FilterOperation.LIKE)
     @Schema(
-            description = "Origem certificacao, treino ou atribuicao (ex.: Academia, missao 42); LIKE (demo).")
+            description = "Trecho da origem da competencia, como treinamento, certificacao, avaliacao ou missao que comprovou a habilidade.")
     private String origem;
 
     public Integer getFuncionarioId() { return funcionarioId; }

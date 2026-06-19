@@ -148,6 +148,81 @@ class BaseAccessPilotIntegrationTest {
     }
 
     @Test
+    void shouldExposeBaseResourceEntityLookupForAccessAndTeamSchemas() throws Exception {
+        JsonNode accessSchema = body(restTemplate.getForEntity(
+                "/schemas/filtered?path=/api/operations/base-acessos&operation=post&schemaType=request",
+                String.class
+        ));
+        JsonNode accessBaseUi = accessSchema.path("properties").path("baseId").path("x-ui");
+        JsonNode accessOptionSource = accessBaseUi.path("optionSource");
+        assertEquals("entityLookup", accessBaseUi.path("controlType").asText());
+        assertEquals("/api/operations/bases/option-sources/base/options/filter",
+                accessBaseUi.path("endpoint").asText());
+        assertEquals("base", accessOptionSource.path("key").asText());
+        assertEquals("RESOURCE_ENTITY", accessOptionSource.path("type").asText());
+        assertEquals("/api/operations/bases", accessOptionSource.path("resourcePath").asText());
+        assertTrue(accessOptionSource.path("filterField").isMissingNode());
+        assertEquals("base", accessOptionSource.path("entityKey").asText());
+        assertEquals("tipo", accessOptionSource.path("descriptionPropertyPaths").get(0).asText());
+        assertEquals("planeta", accessOptionSource.path("descriptionPropertyPaths").get(1).asText());
+        assertEquals("nome", accessOptionSource.path("searchPropertyPaths").get(0).asText());
+        assertTrue(accessOptionSource.path("capabilities").path("filter").asBoolean());
+        assertTrue(accessOptionSource.path("capabilities").path("byIds").asBoolean());
+        assertEmployeeLookup(
+                accessSchema.path("properties").path("funcionarioId").path("x-ui"),
+                "entityLookup"
+        );
+
+        JsonNode accessFilterSchema = body(restTemplate.getForEntity(
+                "/schemas/filtered?path=/api/operations/base-acessos/filter&operation=post&schemaType=request",
+                String.class
+        ));
+        assertEmployeeLookup(
+                accessFilterSchema.path("properties").path("funcionarioId").path("x-ui"),
+                "inlineEntityLookup"
+        );
+
+        JsonNode teamSchema = body(restTemplate.getForEntity(
+                "/schemas/filtered?path=/api/operations/equipes&operation=post&schemaType=request",
+                String.class
+        ));
+        JsonNode teamBaseUi = teamSchema.path("properties").path("basePrincipalId").path("x-ui");
+        assertEquals("entityLookup", teamBaseUi.path("controlType").asText());
+        assertEquals("base", teamBaseUi.path("optionSource").path("key").asText());
+        assertTrue(teamBaseUi.path("optionSource").path("filterField").isMissingNode());
+
+        JsonNode payrollSchema = body(restTemplate.getForEntity(
+                "/schemas/filtered?path=/api/human-resources/vw-analytics-folha-pagamento/filter&operation=post&schemaType=request",
+                String.class
+        ));
+        JsonNode payrollBaseUi = payrollSchema.path("properties").path("baseId").path("x-ui");
+        assertEquals("inlineEntityLookup", payrollBaseUi.path("controlType").asText());
+        assertEquals("base", payrollBaseUi.path("optionSource").path("key").asText());
+        assertEquals("RESOURCE_ENTITY", payrollBaseUi.path("optionSource").path("type").asText());
+        assertTrue(payrollBaseUi.path("optionSource").path("filterField").isMissingNode());
+
+        JsonNode bases = body(restTemplate.postForEntity(
+                "/api/operations/bases/option-sources/base/options/filter?search=Helicarrier",
+                authorizedJson("{}"),
+                String.class
+        ));
+        assertEquals(1, bases.path("content").size());
+        JsonNode helicarrier = bases.path("content").get(0);
+        assertEquals(1, helicarrier.path("id").asInt());
+        assertEquals("Helicarrier Hub", helicarrier.path("label").asText());
+        assertEquals("MOVEL - Terra", helicarrier.path("extra").path("description").asText());
+        assertTrue(helicarrier.path("extra").path("selectable").asBoolean());
+        assertEquals("/api/operations/bases/1", helicarrier.path("extra").path("detailHref").asText());
+
+        JsonNode selectedBases = objectMapper.readTree(restTemplate.getForObject(
+                "/api/operations/bases/option-sources/base/options/by-ids?ids=1",
+                String.class
+        ));
+        assertEquals("Helicarrier Hub", selectedBases.get(0).path("label").asText());
+        assertTrue(selectedBases.get(0).path("extra").path("selectable").asBoolean());
+    }
+
+    @Test
     void shouldExposeBaseSurfaceAndBaseAccessActions() throws Exception {
         JsonNode baseSurfaces = body(restTemplate.getForEntity(
                 "/schemas/surfaces?resource=operations.bases",
@@ -297,5 +372,20 @@ class BaseAccessPilotIntegrationTest {
             }
         }
         return null;
+    }
+
+    private void assertEmployeeLookup(JsonNode fieldUi, String expectedControlType) {
+        JsonNode optionSource = fieldUi.path("optionSource");
+        assertEquals(expectedControlType, fieldUi.path("controlType").asText());
+        assertEquals("/api/human-resources/funcionarios/option-sources/employee/options/filter",
+                fieldUi.path("endpoint").asText());
+        assertEquals("employee", optionSource.path("key").asText());
+        assertEquals("RESOURCE_ENTITY", optionSource.path("type").asText());
+        assertEquals("/api/human-resources/funcionarios", optionSource.path("resourcePath").asText());
+        assertFalse(optionSource.hasNonNull("filterField"));
+        assertEquals("employee", optionSource.path("entityKey").asText());
+        assertEquals("nomeCompleto", optionSource.path("labelPropertyPath").asText());
+        assertTrue(optionSource.path("capabilities").path("filter").asBoolean());
+        assertTrue(optionSource.path("capabilities").path("byIds").asBoolean());
     }
 }

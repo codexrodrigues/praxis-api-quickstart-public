@@ -11,7 +11,7 @@ import java.math.BigDecimal;
 @Schema(
         name = "VwRankingReputacaoDTO",
         description = "Linha de vista so-leitura: ranking de reputacao do colaborador face a pares (midia vs governo, media e posicao). "
-                + "Nao e entidade persistida; deriva de agregados e joins do demo. Serve listagens, dashboards e descricao semantica para consumo/LLM.")
+                + "Nao e entidade editavel; consolida agregados de reputacao para listagens, dashboards e analise semantica por assistentes.")
 public class VwRankingReputacaoDTO {
     @Schema(
             description = "Identificador do funcionario na base; chave de ligacao ao cadastro e ao restante dominio RH.",

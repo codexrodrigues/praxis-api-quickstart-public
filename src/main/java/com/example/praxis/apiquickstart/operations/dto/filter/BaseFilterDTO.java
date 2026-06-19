@@ -11,31 +11,35 @@ import org.praxisplatform.uischema.filter.dto.GenericFilterDTO;
 
 @Schema(
         name = "BaseFilterDTO",
-        description = "Criterios de busca em bases/ instalacoes (nao e a base a persistir so por filtrar). "
-                + "Tipo, sigilo e planeta de ficcao; GenericFilter / POST /filter (demo Operacoes).")
+        description = "Criterios de busca em bases e instalacoes operacionais. "
+                + "Apoia descoberta por nome, categoria, nivel de sigilo e localizacao regional ou planetaria.")
 public class BaseFilterDTO implements GenericFilterDTO {
-    @UISchema(controlType = FieldControlType.INPUT, maxLength = 200, order = 10, icon = "filter_list")
+    @UISchema(label = "Nome da base", controlType = FieldControlType.INPUT, maxLength = 200, order = 10,
+            helpText = "Busca pelo nome operacional da base ou instalação.", icon = "filter_list")
     @Filterable(operation = Filterable.FilterOperation.LIKE)
     @Schema(
-            description = "Nome operacional da base; LIKE (demo).")
+            description = "Trecho do nome operacional usado para identificar a base ou instalacao.")
     private String nome;
 
-    @UISchema(controlType = FieldControlType.SELECT, order = 20, icon = "category")
+    @UISchema(label = "Tipo de base", controlType = FieldControlType.SELECT, order = 20,
+            helpText = "Seleciona a categoria da instalação operacional.", icon = "category")
     @Filterable(operation = Filterable.FilterOperation.EQUAL)
     @Schema(
-            description = "Classificacao (quartel, hangar, laboratorio, etc.); EQUAL BaseTipo (demo).")
+            description = "Categoria da instalacao operacional, como quartel, hangar, laboratorio ou base avancada.")
     private BaseTipo tipo;
 
-    @UISchema(controlType = FieldControlType.SELECT, order = 30, icon = "filter_list")
+    @UISchema(label = "Nível de sigilo", controlType = FieldControlType.SELECT, order = 30,
+            helpText = "Filtra bases conforme classificação de acesso.", icon = "security")
     @Filterable(operation = Filterable.FilterOperation.EQUAL)
     @Schema(
-            description = "Nivel de acesso (publico, restrito, negro); EQUAL BaseSigilo (demo).")
+            description = "Classificacao de sigilo que governa visibilidade e acesso a base.")
     private BaseSigilo sigilo;
 
-    @UISchema(controlType = FieldControlType.INPUT, maxLength = 120, order = 40, icon = "public")
+    @UISchema(label = "Planeta ou região", controlType = FieldControlType.INPUT, maxLength = 120, order = 40,
+            helpText = "Busca pelo planeta, setor ou região onde a base está localizada.", icon = "public")
     @Filterable(operation = Filterable.FilterOperation.LIKE)
     @Schema(
-            description = "Orbe/ planeta simulado; LIKE (ficcao) (demo).")
+            description = "Trecho do planeta, setor ou regiao onde a base esta localizada.")
     private String planeta;
 
     public String getNome() { return nome; }

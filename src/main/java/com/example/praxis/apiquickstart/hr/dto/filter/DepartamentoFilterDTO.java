@@ -12,7 +12,7 @@ import org.praxisplatform.uischema.filter.dto.GenericFilterDTO;
 @Schema(
         name = "DepartamentoFilterDTO",
         description = "Criterios de busca na arvore organizacional (nao e o Departamento persistido em edicao). "
-                + "GenericFilter / POST /filter no demo RH; usado em org charts e alocacao (demo).")
+                + "Usado para localizar unidades por nome, codigo e responsavel antes de analisar estrutura, alocacao e governanca de lideranca.")
 public class DepartamentoFilterDTO implements GenericFilterDTO {
     @UISchema(label = "Nome do Departamento", controlType = FieldControlType.INPUT, maxLength = 200, order = 10, helpText = "Filtrar por nome do departamento.", icon = "badge")
     @Filterable(operation = Filterable.FilterOperation.LIKE)
@@ -26,9 +26,9 @@ public class DepartamentoFilterDTO implements GenericFilterDTO {
             description = "Codigo curto interno (ex.: OP-01); LIKE; nao e CNPJ.")
     private String codigo;
 
-    @UISchema(type = FieldDataType.NUMBER, controlType = FieldControlType.ASYNC_SELECT, order = 30,
+    @UISchema(label = "Responsável", type = FieldDataType.NUMBER, controlType = FieldControlType.INLINE_ENTITY_LOOKUP, order = 30,
             valueField = "id", displayField = "label",
-            endpoint = ApiPaths.HumanResources.FUNCIONARIOS + "/options/filter", helpText = "Buscar departamentos por líder responsável.", icon = "filter_list")
+            endpoint = ApiPaths.HumanResources.FUNCIONARIOS_EMPLOYEE_LOOKUP_OPTIONS, helpText = "Busca departamentos pelo líder ou responsável operacional.", icon = "badge")
     @Filterable(operation = Filterable.FilterOperation.EQUAL, relation = "responsavel.id")
     @Schema(
             description = "Funcionario responsavel pelo departamento; EQUAL por id (FK logica).")

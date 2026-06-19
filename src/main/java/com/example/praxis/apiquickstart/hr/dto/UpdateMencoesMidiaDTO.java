@@ -1,5 +1,5 @@
 package com.example.praxis.apiquickstart.hr.dto;
 import io.swagger.v3.oas.annotations.media.Schema;
-@Schema(name = "UpdateMencoesMidiaDTO", description = "Corpo de atualizacao no modulo Recursos humanos; campos mutaveis. OpenAPI 3.1 (demo).")
+@Schema(name = "UpdateMencoesMidiaDTO", description = "Comando para revisar uma mencao de midia existente, ajustando classificacao, fonte ou referencia temporal sem alterar sua identidade tecnica.")
 public class UpdateMencoesMidiaDTO extends CreateMencoesMidiaDTO {
 }

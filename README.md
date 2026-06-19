@@ -345,8 +345,8 @@ curl -i -b cookies.txt -c cookies.txt \
 ## Rodar local
 Este quickstart usa os starters alinhados ao ciclo corrente:
 
-- Metadata: `io.github.codexrodrigues:praxis-metadata-starter:8.0.0-rc.17`
-- Config: `io.github.codexrodrigues:praxis-config-starter:0.1.0-rc.38`
+- Metadata: `io.github.codexrodrigues:praxis-metadata-starter:8.0.0-rc.22`
+- Config: `io.github.codexrodrigues:praxis-config-starter:0.1.0-rc.63`
 - UI Angular: `@praxisui/*:8.0.0-beta.19`
 
 1) Build (repo standalone)
@@ -405,10 +405,16 @@ Swagger UI: http://localhost:8088/swagger-ui/index.html
 Quando usar `POST /{resource}/options/filter`
 - Preencher selects/multi-select/autocomplete com projecao leve `OptionDTO{id,label,extra}`.
 - Vantagens: payload minimo, paginacao, filtros tipados (usa o mesmo FilterDTO do recurso).
-- Como configurar no `@UISchema` (campos relacionais):
+- Como configurar no `@UISchema` para filtros auxiliares ou surfaces simples ainda nao nomeadas:
   - `controlType=SELECT` (ou equivalente)
   - `endpoint="/api/.../{resource}/options/filter"`
   - `valueField="id"`, `displayField="label"`
+- Para catalogos leves reutilizados por varios campos, prefira uma fonte nomeada
+  `LIGHT_LOOKUP` em `/option-sources/{sourceKey}/options/filter`. Ela continua retornando
+  `OptionDTO{id,label}`, mas publica `x-ui.optionSource` com recurso dono, chave estavel e caminhos
+  executaveis de valor/label.
+- Para relacionamentos de negocio que selecionam uma entidade governada, use `RESOURCE_ENTITY`
+  em `/option-sources/{sourceKey}` conforme a secao abaixo; nao trate esses campos como combo leve.
 
 Quando NAO usar endpoint (Enums)
 - Campos `enum` em filtros/DTOs nao precisam de `endpoint`: as opcoes do `SELECT` vem do proprio schema OpenAPI (lista `enum`).
@@ -416,10 +422,10 @@ Quando NAO usar endpoint (Enums)
 - Exemplo pratico: `statusIn`/`statusNotIn` em Equipe usam `IN/NOT_IN` sem endpoint extra.
 
 Convencao de labels para IN/NOT_IN
-- Use labels didaticos para distinguir inclusao/exclusao no UI:
-  - `label = "Status (incluir)"` para `statusIn`
-  - `label = "Status (excluir)"` para `statusNotIn`
-  - Aplique o mesmo padrao para outros enums: `Prioridade (incluir)`, `Prioridade (excluir)`, etc.
+- Use labels orientados a acao para distinguir inclusao/exclusao no UI:
+  - `label = "Mostrar status"` para `statusIn`
+  - `label = "Ocultar status"` para `statusNotIn`
+  - Aplique o mesmo padrao para outros enums: `Mostrar prioridades`, `Ocultar prioridades`, etc.
 
 Quando usar `GET /{resource}/options/by-ids`
 - Reidratar opcoes por IDs ja conhecidos (pre-selecao, chips) preservando a ordem.
@@ -430,9 +436,103 @@ Quando usar `POST /{resource}/filter` (nao options)
 - Para dialogos de selecao com muitos atributos visiveis, prefira `/filter`.
 
 Boas praticas
-- Grandes datasets: use `/options/filter` com o FilterDTO alvo (ex.: busca por nome/codigo).
-- Pre-selecao: reidrate com `/options/by-ids` (ordem garantida).
+- Grandes datasets leves compartilhados: use `LIGHT_LOOKUP` nomeado com `labelPropertyPath` e
+  `valuePropertyPath`.
+- Filtros auxiliares locais: use `/options/filter` com o FilterDTO alvo (ex.: busca por nome/codigo).
+- Entidades de negocio selecionaveis: use uma source governada em `/option-sources/{sourceKey}/options/filter`.
+- Pre-selecao: reidrate com `/options/by-ids` ou `/option-sources/{sourceKey}/options/by-ids` conforme a fonte.
 - Mantenha `size` moderado; utilize `X-Data-Version` para cache de listas.
+
+### Lookup de entidade governada (`RESOURCE_ENTITY`)
+
+Use `RESOURCE_ENTITY` quando o campo representa uma entidade de negocio selecionavel e precisa publicar semantica alem de `id/label`: recurso dono, chave de entidade, campos de busca, status, politica de selecao, capacidades e rota de detalhe. Nesses casos, nao aponte o `@UISchema` para o endpoint generico `/{resource}/options/filter`; publique uma fonte nomeada em `/option-sources/{sourceKey}/options/filter` e mantenha o par `/by-ids` para reidratacao.
+
+Exemplos de referencia no quickstart:
+
+- `operations.missoes.ameacaId` usa `controlType=ENTITY_LOOKUP`.
+- A fonte `threat` e publicada por `risk-intelligence.ameacas` como `x-ui.optionSource.type=RESOURCE_ENTITY`.
+- Endpoint de busca: `POST /api/risk-intelligence/ameacas/option-sources/threat/options/filter`.
+- Endpoint de reidratacao: `GET /api/risk-intelligence/ameacas/option-sources/threat/options/by-ids?ids=1`.
+- A politica permite selecionar ameacas em ciclo operacional e reidrata ameacas encerradas como valores existentes nao selecionaveis.
+- A fonte `employee` e publicada por `human-resources.funcionarios` em
+  `POST /api/human-resources/funcionarios/option-sources/employee/options/filter` e pode ser
+  reutilizada por campos consumidores diferentes, como `funcionarioId`, `pilotoId` e
+  `proprietarioId`. Por isso, ela nao publica `filterField`; o binding pertence ao DTO consumidor.
+- Em `operations`, relacionamentos operacionais com colaboradores, como
+  `operations.base-acessos.funcionarioId`, `operations.equipe-membros.funcionarioId` e
+  `operations.licencas-operacao.funcionarioId`, consomem a fonte governada `employee`.
+- Em `human-resources`, recursos dependentes do colaborador, como departamentos por responsavel,
+  dependentes, enderecos, ferias/afastamentos, folhas, habilidades, historicos, identidades,
+  mencoes e reputacao, tambem reutilizam a fonte governada `employee` nos formularios e filtros.
+- `human-resources.eventos-folha.folhaPagamentoId` usa a fonte `payroll`.
+- A fonte `payroll` e publicada por `human-resources.folhas-pagamento` em
+  `POST /api/human-resources/folhas-pagamento/option-sources/payroll/options/filter`; eventos de
+  folha usam `ENTITY_LOOKUP` em formularios e `INLINE_ENTITY_LOOKUP` em filtros para reidratar a
+  competencia financeira selecionada.
+- `operations.base-acessos.baseId` e `operations.equipes.basePrincipalId` usam a fonte `base`.
+- A fonte `base` e publicada por `operations.bases` em `POST /api/operations/bases/option-sources/base/options/filter`.
+- Como a mesma fonte `base` atende campos consumidores diferentes (`baseId`, `basePrincipalId`
+  e filtros analiticos), ela nao publica `filterField` no `x-ui.optionSource`; o binding continua
+  sendo o campo do DTO consumidor.
+- O lookup de `base` publica apenas dados seguros para desambiguacao operacional (`tipo` e
+  `planeta`). Classificacao de sigilo permanece no recurso completo e nao deve ser exposta em
+  descricoes genericas de lookup sem uma politica explicita de visibilidade.
+- `operations.equipe-membros.equipeId`, `operations.licencas-operacao.equipeId` e filtros
+  analiticos usam a fonte `team`.
+- A fonte `team` e publicada por `operations.equipes` em
+  `POST /api/operations/equipes/option-sources/team/options/filter`; equipes `ATIVA` e `RESERVA`
+  sao selecionaveis, enquanto `DISSOLVIDA` e reidratavel para valores existentes mas bloqueada
+  para novas selecoes.
+- `operations.licencas-operacao.acordoId` usa a fonte `agreement`.
+- A fonte `agreement` e publicada por `operations.acordos-regulatorios` em
+  `POST /api/operations/acordos-regulatorios/option-sources/agreement/options/filter`; acordos
+  `VIGENTE` sao selecionaveis, enquanto `SUSPENSO` e `REVOGADO` permanecem reidrataveis em
+  licencas existentes, mas bloqueados para novas autorizacoes.
+- `operations.missao-participantes.missaoId`, `operations.missao-eventos.missaoId`,
+  `operations.incidentes.missaoId`, `operations.vw-resumo-missoes` e
+  `assets.veiculo-missao-usos.missaoId` usam a fonte `mission`.
+- A fonte `mission` e publicada por `operations.missoes` em
+  `POST /api/operations/missoes/option-sources/mission/options/filter`; missões `PLANEJADA`,
+  `EM_ANDAMENTO` e `PAUSADA` sao selecionaveis, enquanto `CONCLUIDA` e `FALHOU` permanecem
+  reidrataveis para historico, mas bloqueadas para novas selecoes.
+- Como a fonte `mission` e reutilizada por filtros unitarios, filtros multi-select e formularios de
+  dominios distintos, ela nao publica `filterField`; cada DTO consumidor mantem seu proprio binding.
+- `human-resources.indenizacoes.incidenteId` e `risk-intelligence.vw-indicadores-incidentes.incidenteId`
+  usam a fonte `incident` para selecionar o incidente transacional que ancora cobertura financeira
+  e indicadores agregados.
+- A fonte `incident` e publicada por `operations.incidentes` em
+  `POST /api/operations/incidentes/option-sources/incident/options/filter`; ela tambem oferece
+  `/by-ids` para reidratar valores existentes em formularios e filtros corporativos.
+- `assets.veiculo-missao-usos.veiculoId` usa a fonte `vehicle`.
+- A fonte `vehicle` e publicada por `assets.veiculos` em
+  `POST /api/assets/veiculos/option-sources/vehicle/options/filter`; veiculos `OPERACIONAL`
+  sao selecionaveis, enquanto `MANUTENCAO` e `INOPERANTE` permanecem reidrataveis para historico
+  mas bloqueados para novas sorties.
+- `assets.equipamento-alocacoes.equipamentoId` usa a fonte `equipment`.
+- A fonte `equipment` e publicada por `assets.equipamentos` em
+  `POST /api/assets/equipamentos/option-sources/equipment/options/filter`; equipamentos `ESTOQUE`
+  e `EM_USO` sao selecionaveis, enquanto `MANUTENCAO`, `QUEBRADO` e `PERDIDO` permanecem
+  reidrataveis para custodias existentes, mas bloqueados para novas alocacoes.
+- Em `assets`, os campos de pessoa operacional (`proprietarioId`, `pilotoId` e `funcionarioId`)
+  consomem a fonte governada `employee` em vez do endpoint generico de funcionarios.
+- Em `procurement`, as fontes `company`, `supplier`, `contract` e `product` demonstram uma cadeia
+  corporativa de compras: empresa compradora filtra fornecedores, fornecedor filtra contratos e
+  contrato filtra produtos. Formularios usam `ENTITY_LOOKUP`; filtros usam `INLINE_ENTITY_LOOKUP`
+  contra as mesmas fontes governadas e preservam `by-ids`, dependencias e politica de selecao.
+
+Catalogos leves com `LIGHT_LOOKUP`:
+
+- `human-resources.cargos`, `human-resources.departamentos` e `human-resources.habilidades` sao
+  cadastros auxiliares de RH usados para selects e filtros. Eles publicam fontes nomeadas
+  `LIGHT_LOOKUP` (`jobRole`, `department` e `skill`) em
+  `/option-sources/{sourceKey}/options/filter`.
+- Essas fontes mantem payload leve `OptionDTO{id,label}` e suportam `/by-ids`, mas nao publicam
+  `entityLookup`, capacidades ricas, status, politica de selecao ou rota de detalhe.
+- Promover esses catalogos para `RESOURCE_ENTITY` confundiria catalogo leve com entidade
+  corporativa governada. Use `RESOURCE_ENTITY` apenas quando o consumidor precisar da semantica
+  rica descrita na secao anterior.
+- O endpoint generico `/{resource}/options/filter` continua disponivel para compatibilidade e uso
+  local simples, mas os schemas de campos reutilizaveis devem apontar para a fonte nomeada.
 
 ### Cascata canonica com `dependencyFilterMap`
 
@@ -646,7 +746,7 @@ curl -s -X POST 'http://localhost:8088/api/human-resources/funcionarios/options/
 - `ddl-auto`: `none` (dev) e `validate` (prod), conforme `application-dev.properties`/`application-prod.properties`.
 - Se um provedor fornecer apenas `DATABASE_URL` no formato DSN, converta para JDBC antes de setar `SPRING_DATASOURCE_URL`.
 - Dependencia no Maven Central: `io.github.codexrodrigues:praxis-metadata-starter` (nenhuma etapa previa de build local e necessaria).
-- `io.github.codexrodrigues:praxis-config-starter` esta alinhado ao corte local `0.1.0-rc.38`; este quickstart acompanha o release candidate usado para validar os contratos atuais no host operacional de referencia antes de qualquer publicacao externa.
+- `io.github.codexrodrigues:praxis-config-starter` esta alinhado ao corte publicado `0.1.0-rc.63`; este quickstart acompanha o release candidate usado para validar os contratos atuais no host operacional de referencia e no rollout Render.
 - Este quickstart deve consumir a versao mais recente do starter disponivel para o ciclo corrente para refletir no host operacional os contratos atuais de `ETag`, `If-None-Match`, `If-Match`, `412 Precondition Failed` e authoring AI em `/api/praxis/config/**`.
 - Este quickstart ativa explicitamente `praxis.ai.authoring.reference-ui-composition-provider-enabled=true` porque e o host de referencia que demonstra composicoes ricas de RH/folha. O `praxis-config-starter` generico nao registra esse provider por padrao; hosts reais devem alimentar authoring por catalogo, contexto semantico e providers proprios quando precisarem de planos especializados.
 

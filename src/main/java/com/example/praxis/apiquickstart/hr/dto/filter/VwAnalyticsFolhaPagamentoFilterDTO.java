@@ -23,16 +23,15 @@ import java.util.List;
 @Schema(
         name = "VwAnalyticsFolhaPagamentoFilterDTO",
         description = "Criterios de busca sobre a projecao VwAnalyticsFolhaPagamento (vista, nao entidade a persistir). "
-                + "Filtra linhas agregadas de analise de folha com contexto de heroi, organograma e buckets; nao e o mesmo contrato que FolhaPagamentoFilterDTO. "
-                + "GenericFilter / POST /filter; ver javadoc de classe. (demo RH).")
+                + "Filtra linhas agregadas de folha com contexto de colaborador, organograma, operacoes e buckets de remuneracao, sem substituir o contrato transacional de FolhaPagamento.")
 public class VwAnalyticsFolhaPagamentoFilterDTO implements GenericFilterDTO {
-    @UISchema(label = "Funcionarios (Incluir)", type = FieldDataType.NUMBER, controlType = FieldControlType.ENTITY_LOOKUP, order = 15,
+    @UISchema(label = "Mostrar colaboradores", type = FieldDataType.NUMBER, controlType = FieldControlType.INLINE_ENTITY_LOOKUP, order = 15,
             multiple = true,
             valueField = "id", displayField = "label",
-            endpoint = ApiPaths.HumanResources.FUNCIONARIOS_EMPLOYEE_LOOKUP_OPTIONS, helpText = "Selecionar múltiplos colaboradores para análise.", icon = "checklist")
+            endpoint = ApiPaths.HumanResources.FUNCIONARIOS_EMPLOYEE_LOOKUP_OPTIONS, helpText = "Inclui na análise apenas os colaboradores selecionados.", icon = "checklist")
     @Filterable(operation = Filterable.FilterOperation.IN, relation = "funcionarioId")
     @Schema(
-            description = "Conjunto de colaboradores a incluir (multiplos id); operacao IN na coluna desnormalizada funcionarioId da vista (demo).")
+            description = "Conjunto de colaboradores que devem compor a analise de folha, usando os identificadores desnormalizados da vista.")
     private List<Integer> funcionarioIdsIn;
 
     @UISchema(label = "Universo", controlType = FieldControlType.ASYNC_SELECT, maxLength = 120, order = 40,
@@ -44,129 +43,129 @@ public class VwAnalyticsFolhaPagamentoFilterDTO implements GenericFilterDTO {
     private String universo;
 
     // Alias tecnico usado para demonstrar cascata canonica quando o campo UI difere da chave de filtro.
-    @UISchema(label = "Universo (Contexto)", controlType = FieldControlType.INPUT, maxLength = 120, order = 41, formHidden = true, helpText = "Alias contextual de universo (uso técnico).", icon = "public")
+    @UISchema(label = "Universo contextual", controlType = FieldControlType.INPUT, maxLength = 120, order = 41, formHidden = true, helpText = "Campo auxiliar oculto para reaproveitar o mesmo valor de universo no contrato de filtro.", icon = "public")
     @Filterable(operation = Filterable.FilterOperation.EQUAL, relation = "universo")
     @Schema(
-            description = "Alias de filtro alinhado a coluna universo; uso para contexto/ URL sem duplicar semantica (demo).")
+            description = "Valor contextual de universo reaproveitado pelo contrato de filtro quando a UI precisa manter a mesma semantica em campo auxiliar.")
     private String universoContexto;
 
-    @UISchema(label = "Exposicao Publica", type = FieldDataType.BOOLEAN, controlType = FieldControlType.CHECKBOX, order = 50, helpText = "Filtrar por permissão de exposição do herói.", icon = "visibility")
+    @UISchema(label = "Exposição pública", type = FieldDataType.BOOLEAN, controlType = FieldControlType.CHECKBOX, order = 50, helpText = "Filtra por colaboradores com identidade pública ou protegida.", icon = "visibility")
     @Filterable(operation = Filterable.FilterOperation.EQUAL)
     @Schema(
-            description = "Recorte alter ego publico vs. reservado; EQUAL boolean (demo).")
+            description = "Indicador que separa colaboradores com exposicao publica de identidades protegidas nas analises de folha.")
     private Boolean exposicaoPublica;
 
     @UISchema(label = "Ano", type = FieldDataType.NUMBER, controlType = FieldControlType.RANGE_SLIDER, order = 60, helpText = "Analisar por intervalo de anos.", icon = "calendar_today")
     @Filterable(operation = Filterable.FilterOperation.BETWEEN, relation = "ano")
     @Schema(
-            description = "Intervalo de ano civil; BETWEEN na coluna agregada ano (ex.: 2024-2025) (demo).")
+            description = "Intervalo de anos civis considerado na agregacao da folha.")
     private List<Integer> anoBetween;
 
-    @UISchema(label = "Mes", type = FieldDataType.NUMBER, controlType = FieldControlType.RANGE_SLIDER, order = 70, helpText = "Analisar por intervalo de meses.", icon = "calendar_month")
+    @UISchema(label = "Mês", type = FieldDataType.NUMBER, controlType = FieldControlType.RANGE_SLIDER, order = 70, helpText = "Analisa a folha por intervalo de meses.", icon = "calendar_month")
     @Filterable(operation = Filterable.FilterOperation.BETWEEN, relation = "mes")
     @Schema(
-            description = "Intervalo de mes (1-12) dentro do(s) ano(s) considerados; BETWEEN (demo).")
+            description = "Intervalo de meses dentro dos anos analisados, usando valores de 1 a 12.")
     private List<Integer> mesBetween;
 
-    @UISchema(label = "Competencia", type = FieldDataType.DATE, controlType = FieldControlType.DATE_RANGE, order = 80, helpText = "Buscar por janela de competência da folha.", icon = "calendar_month")
+    @UISchema(label = "Competência", type = FieldDataType.DATE, controlType = FieldControlType.DATE_RANGE, order = 80, helpText = "Busca por janela de competência da folha.", icon = "calendar_month")
     @Filterable(operation = Filterable.FilterOperation.BETWEEN, relation = "competencia")
     @Schema(
-            description = "Janela de competencia (data-ancora da folha); BETWEEN LocalDate (demo).")
+            description = "Janela de competencia da folha, usada como data ancora do periodo remuneratorio.")
     private List<LocalDate> competenciaBetween;
 
-    @UISchema(label = "Data Pagamento", type = FieldDataType.DATE, controlType = FieldControlType.DATE_RANGE, order = 90, helpText = "Buscar por janela de depósito liquidado.", icon = "event")
+    @UISchema(label = "Data de pagamento", type = FieldDataType.DATE, controlType = FieldControlType.DATE_RANGE, order = 90, helpText = "Busca por janela de depósito ou liquidação da folha.", icon = "event")
     @Filterable(operation = Filterable.FilterOperation.BETWEEN, relation = "dataPagamento")
     @Schema(
-            description = "Janela de credito/liquidacao; BETWEEN; cruza com tesouraria (demo).")
+            description = "Janela de credito ou liquidacao da folha, usada para cruzar remuneracao com tesouraria.")
     private List<LocalDate> dataPagamentoBetween;
 
     @UISchema(label = "Cargo", type = FieldDataType.NUMBER, controlType = FieldControlType.ASYNC_SELECT, order = 100,
             valueField = "id", displayField = "label",
-            endpoint = ApiPaths.HumanResources.CARGOS + "/options/filter", helpText = "Filtrar análise por cargo ocupado.", icon = "work")
+            endpoint = ApiPaths.HumanResources.CARGOS_JOB_ROLE_LOOKUP_OPTIONS, helpText = "Filtrar análise por cargo ocupado.", icon = "work")
     @Filterable(operation = Filterable.FilterOperation.EQUAL, relation = "cargoId")
     @Schema(
-            description = "Criterio: cargo por id; EQUAL — filtra a vista por cargoId desnormalizado (nao o texto de cargo) (demo).")
+            description = "Cargo ocupado pelo colaborador na linha analitica, usando o identificador desnormalizado da vista.")
     private Integer cargoId;
 
     @UISchema(label = "Departamento", type = FieldDataType.NUMBER, controlType = FieldControlType.ASYNC_SELECT, order = 110,
             valueField = "id", displayField = "label",
-            endpoint = ApiPaths.HumanResources.DEPARTAMENTOS + "/options/filter", helpText = "Filtrar análise por departamento.", icon = "apartment")
+            endpoint = ApiPaths.HumanResources.DEPARTAMENTOS_DEPARTMENT_LOOKUP_OPTIONS, helpText = "Filtrar análise por departamento.", icon = "apartment")
     @Filterable(operation = Filterable.FilterOperation.EQUAL, relation = "departamentoId")
     @Schema(
-            description = "Criterio: departamento por id; EQUAL (demo).")
+            description = "Departamento organizacional associado ao colaborador na linha analitica.")
     private Integer departamentoId;
 
-    @UISchema(label = "Equipe", type = FieldDataType.NUMBER, controlType = FieldControlType.ASYNC_SELECT, order = 120,
+    @UISchema(label = "Equipe", type = FieldDataType.NUMBER, controlType = FieldControlType.INLINE_ENTITY_LOOKUP, order = 120,
             valueField = "id", displayField = "label",
-        endpoint = ApiPaths.Operations.EQUIPES + "/options/filter", helpText = "Filtrar análise por equipe tática.", icon = "groups")
+        endpoint = ApiPaths.Operations.EQUIPES_TEAM_LOOKUP_OPTIONS, helpText = "Filtrar análise por equipe tática.", icon = "groups")
     @Filterable(operation = Filterable.FilterOperation.EQUAL, relation = "equipeId")
     @Schema(
-            description = "Criterio: equipa tatica (Operacoes) por id; EQUAL (demo).")
+            description = "Equipe tatica de Operacoes relacionada ao colaborador no contexto analitico da folha.")
     private Integer equipeId;
 
-    @UISchema(label = "Base", type = FieldDataType.NUMBER, controlType = FieldControlType.ASYNC_SELECT, order = 130,
+    @UISchema(label = "Base", type = FieldDataType.NUMBER, controlType = FieldControlType.INLINE_ENTITY_LOOKUP, order = 130,
             valueField = "id", displayField = "label",
-        endpoint = ApiPaths.Operations.BASES + "/options/filter", helpText = "Filtrar análise por base operacional.", icon = "location_on")
+        endpoint = ApiPaths.Operations.BASES_BASE_LOOKUP_OPTIONS, helpText = "Filtrar análise por base operacional.", icon = "location_on")
     @Filterable(operation = Filterable.FilterOperation.EQUAL, relation = "baseId")
     @Schema(
-            description = "Criterio: base operacional por id; EQUAL (demo).")
+            description = "Base operacional relacionada ao colaborador no contexto analitico da folha.")
     private Integer baseId;
 
     // Campos textuais ocultos no formulario principal, preservados para busca livre e compatibilidade com listagens.
-    @UISchema(label = "Cargo (Texto)", controlType = FieldControlType.INPUT, maxLength = 120, order = 140, formHidden = true, helpText = "Busca livre pelo nome do cargo.", icon = "work")
+    @UISchema(label = "Nome do cargo", controlType = FieldControlType.INPUT, maxLength = 120, order = 140, formHidden = true, helpText = "Campo auxiliar oculto para busca textual pelo nome do cargo.", icon = "work")
     @Filterable(operation = Filterable.FilterOperation.LIKE)
     @Schema(
-            description = "Pesquisa em rotulo de cargo exibido na linha; LIKE; alternativa ad hoc ao select por id (form oculto) (demo).")
+            description = "Trecho do nome de cargo exibido na linha analitica, usado em busca textual quando o identificador do cargo nao esta disponivel.")
     private String cargo;
 
-    @UISchema(label = "Departamento (Texto)", controlType = FieldControlType.INPUT, maxLength = 120, order = 150, formHidden = true, helpText = "Busca livre pelo nome do departamento.", icon = "apartment")
+    @UISchema(label = "Nome do departamento", controlType = FieldControlType.INPUT, maxLength = 120, order = 150, formHidden = true, helpText = "Campo auxiliar oculto para busca textual pelo nome do departamento.", icon = "apartment")
     @Filterable(operation = Filterable.FilterOperation.LIKE)
     @Schema(
-            description = "Pesquisa em nome de departamento desnormalizado; LIKE (demo).")
+            description = "Trecho do nome de departamento desnormalizado exibido na linha analitica.")
     private String departamento;
 
-    @UISchema(label = "Equipe (Texto)", controlType = FieldControlType.INPUT, maxLength = 120, order = 160, formHidden = true, helpText = "Busca livre pelo nome da equipe.", icon = "groups")
+    @UISchema(label = "Nome da equipe", controlType = FieldControlType.INPUT, maxLength = 120, order = 160, formHidden = true, helpText = "Campo auxiliar oculto para busca textual pelo nome da equipe.", icon = "groups")
     @Filterable(operation = Filterable.FilterOperation.LIKE)
     @Schema(
-            description = "Pesquisa em nome de equipe; LIKE; quando id nao conhecido (demo).")
+            description = "Trecho do nome de equipe exibido na linha analitica, usado quando o identificador da equipe nao esta disponivel.")
     private String equipe;
 
-    @UISchema(label = "Base (Texto)", controlType = FieldControlType.INPUT, maxLength = 120, order = 170, formHidden = true, helpText = "Busca livre pelo nome da base.", icon = "location_on")
+    @UISchema(label = "Nome da base", controlType = FieldControlType.INPUT, maxLength = 120, order = 170, formHidden = true, helpText = "Campo auxiliar oculto para busca textual pelo nome da base.", icon = "location_on")
     @Filterable(operation = Filterable.FilterOperation.LIKE)
     @Schema(
-            description = "Pesquisa em nome de base; LIKE (demo).")
+            description = "Trecho do nome de base operacional exibido na linha analitica.")
     private String base;
 
-    @UISchema(label = "Perfil Folha", controlType = FieldControlType.ASYNC_SELECT, maxLength = 80, order = 180,
+    @UISchema(label = "Perfil da folha", controlType = FieldControlType.ASYNC_SELECT, maxLength = 80, order = 180,
             valueField = "id", displayField = "label",
             endpoint = ApiPaths.HumanResources.VW_ANALYTICS_FOLHA_PAGAMENTO + "/option-sources/payrollProfile/options/filter", helpText = "Filtrar por perfil analítico da folha.", icon = "receipt_long")
     @Filterable(operation = Filterable.FilterOperation.EQUAL)
     @Schema(
-            description = "Segmentacao de politica de remuneracao (classe de perfil); EQUAL via option-source (demo).")
+            description = "Segmentacao de politica de remuneracao usada para agrupar perfis de folha e beneficios.")
     private String payrollProfile;
 
-    @UISchema(label = "Composicao Folha", controlType = FieldControlType.ASYNC_SELECT, maxLength = 80, order = 190,
+    @UISchema(label = "Composição da folha", controlType = FieldControlType.ASYNC_SELECT, maxLength = 80, order = 190,
             valueField = "id", displayField = "label",
             endpoint = ApiPaths.HumanResources.VW_ANALYTICS_FOLHA_PAGAMENTO + "/option-sources/composicaoFolha/options/filter", helpText = "Filtrar pela composição de receitas e despesas.", icon = "receipt_long")
     @Filterable(operation = Filterable.FilterOperation.EQUAL)
     @Schema(
-            description = "Composicao qualitativa (ex.: carga de provento vs. desconto); EQUAL; bucket derivado (demo).")
+            description = "Classificacao qualitativa da composicao da folha, como predominancia de proventos ou descontos.")
     private String composicaoFolha;
 
-    @UISchema(label = "Faixa Salario Bruto", controlType = FieldControlType.ASYNC_SELECT, maxLength = 80, order = 200,
+    @UISchema(label = "Faixa de salário bruto", controlType = FieldControlType.ASYNC_SELECT, maxLength = 80, order = 200,
             valueField = "id", displayField = "label",
             endpoint = ApiPaths.HumanResources.VW_ANALYTICS_FOLHA_PAGAMENTO + "/option-sources/faixaSalarioBruto/options/filter", helpText = "Agrupar análise pela faixa de salário bruto.", icon = "payments")
     @Filterable(operation = Filterable.FilterOperation.EQUAL)
     @Schema(
-            description = "Histograma de bruto; EQUAL por rotulo de faixa (option-source) (demo).")
+            description = "Faixa rotulada de salario bruto usada em histogramas e comparacoes de remuneracao.")
     private String faixaSalarioBruto;
 
-    @UISchema(label = "Faixa Salario Liquido", controlType = FieldControlType.ASYNC_SELECT, maxLength = 80, order = 210,
+    @UISchema(label = "Faixa de salário líquido", controlType = FieldControlType.ASYNC_SELECT, maxLength = 80, order = 210,
             valueField = "id", displayField = "label",
             endpoint = ApiPaths.HumanResources.VW_ANALYTICS_FOLHA_PAGAMENTO + "/option-sources/faixaSalarioLiquido/options/filter", helpText = "Agrupar análise pela faixa de salário líquido.", icon = "payments")
     @Filterable(operation = Filterable.FilterOperation.EQUAL)
     @Schema(
-            description = "Faixa de liquido; EQUAL (seguranca de renda) (demo).")
+            description = "Faixa rotulada de salario liquido usada para segmentar renda disponivel.")
     private String faixaSalarioLiquido;
 
     @UISchema(label = "Faixa % Desconto", controlType = FieldControlType.ASYNC_SELECT, maxLength = 80, order = 220,
@@ -174,48 +173,48 @@ public class VwAnalyticsFolhaPagamentoFilterDTO implements GenericFilterDTO {
             endpoint = ApiPaths.HumanResources.VW_ANALYTICS_FOLHA_PAGAMENTO + "/option-sources/faixaPctDesconto/options/filter", helpText = "Agrupar análise pelo percentual retido.", icon = "money_off")
     @Filterable(operation = Filterable.FilterOperation.EQUAL)
     @Schema(
-            description = "Intensidade de desconto agregada; EQUAL por faixa (demo).")
+            description = "Faixa rotulada de intensidade de desconto agregada sobre a remuneracao.")
     private String faixaPctDesconto;
 
-    @UISchema(label = "Salario Bruto", type = FieldDataType.NUMBER, controlType = FieldControlType.PRICE_RANGE, order = 230,
+    @UISchema(label = "Salário bruto", type = FieldDataType.NUMBER, controlType = FieldControlType.PRICE_RANGE, order = 230,
             numericFormat = NumericFormat.CURRENCY, numericStep = "0.01", helpText = "Filtrar por intervalo de valores brutos.", icon = "payments")
     @Filterable(operation = Filterable.FilterOperation.BETWEEN, relation = "salarioBruto")
     @Schema(
-            description = "Faixa numerica de bruto; BETWEEN (moeda) (demo).")
+            description = "Faixa numerica de salario bruto em moeda, antes de descontos.")
     private List<BigDecimal> salarioBrutoBetween;
 
-    @UISchema(label = "Total Descontos", type = FieldDataType.NUMBER, controlType = FieldControlType.PRICE_RANGE, order = 240,
+    @UISchema(label = "Total de descontos", type = FieldDataType.NUMBER, controlType = FieldControlType.PRICE_RANGE, order = 240,
             numericFormat = NumericFormat.CURRENCY, numericStep = "0.01", helpText = "Filtrar por intervalo de descontos aplicados.", icon = "money_off")
     @Filterable(operation = Filterable.FilterOperation.BETWEEN, relation = "totalDescontos")
     @Schema(
-            description = "Faixa de soma de descontos; BETWEEN (demo).")
+            description = "Faixa de soma de descontos aplicados na folha.")
     private List<BigDecimal> totalDescontosBetween;
 
-    @UISchema(label = "Salario Liquido", type = FieldDataType.NUMBER, controlType = FieldControlType.PRICE_RANGE, order = 250,
+    @UISchema(label = "Salário líquido", type = FieldDataType.NUMBER, controlType = FieldControlType.PRICE_RANGE, order = 250,
             numericFormat = NumericFormat.CURRENCY, numericStep = "0.01", helpText = "Filtrar por intervalo de valores líquidos.", icon = "payments")
     @Filterable(operation = Filterable.FilterOperation.BETWEEN, relation = "salarioLiquido")
     @Schema(
-            description = "Faixa de liquido; BETWEEN; cruza com faixa por rotulo (acima) (demo).")
+            description = "Faixa numerica de salario liquido depois dos descontos.")
     private List<BigDecimal> salarioLiquidoBetween;
 
     @UISchema(label = "% Desconto", type = FieldDataType.NUMBER, controlType = FieldControlType.RANGE_SLIDER, order = 260,
             numericFormat = NumericFormat.PERCENT, numericStep = "0.01", helpText = "Filtrar por proporção de descontos.", icon = "money_off")
     @Filterable(operation = Filterable.FilterOperation.BETWEEN, relation = "pctDesconto")
     @Schema(
-            description = "Intervalo de percentual de desconto; BETWEEN (0-1 ou 0-100 conforme apresentacao da vista) (demo).")
+            description = "Intervalo de percentual de desconto agregado, usado para detectar folhas mais oneradas.")
     private List<BigDecimal> pctDescontoBetween;
 
-    @UISchema(label = "Valor Adicionais", type = FieldDataType.NUMBER, controlType = FieldControlType.PRICE_RANGE, order = 270,
+    @UISchema(label = "Valores adicionais", type = FieldDataType.NUMBER, controlType = FieldControlType.PRICE_RANGE, order = 270,
             numericFormat = NumericFormat.CURRENCY, numericStep = "0.01", helpText = "Filtrar por intervalo de ganhos adicionais.", icon = "payments")
     @Filterable(operation = Filterable.FilterOperation.BETWEEN, relation = "valorAdicionais")
     @Schema(
-            description = "Intervalo de adicionais agregados; BETWEEN (provento extra) (demo).")
+            description = "Faixa de valores adicionais agregados, representando proventos extras no periodo.")
     private List<BigDecimal> valorAdicionaisBetween;
 
-    @UISchema(label = "Qtd Eventos", type = FieldDataType.NUMBER, controlType = FieldControlType.RANGE_SLIDER, order = 280, helpText = "Filtrar por quantidade de eventos na folha.", icon = "event_note")
+    @UISchema(label = "Quantidade de eventos", type = FieldDataType.NUMBER, controlType = FieldControlType.RANGE_SLIDER, order = 280, helpText = "Filtra por quantidade de eventos que compõem a folha.", icon = "event_note")
     @Filterable(operation = Filterable.FilterOperation.BETWEEN, relation = "qtdEventos")
     @Schema(
-            description = "Contagem de rubricas na folha; BETWEEN para complexidade de contracheque (demo).")
+            description = "Faixa de quantidade de eventos ou rubricas que compoem a folha, usada como sinal de complexidade do contracheque.")
     private List<Long> qtdEventosBetween;
 
     public List<Integer> getFuncionarioIdsIn() { return funcionarioIdsIn; }

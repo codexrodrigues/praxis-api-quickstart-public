@@ -14,8 +14,8 @@ import org.praxisplatform.uischema.extension.annotation.UISchema;
  */
 @Schema(
         name = "FolhaPagamentoWorkflowRequestDTO",
-        description = "Corpo minimo para transicoes de workflow sobre item de folha (ex.: aprovar, rejeitar, devolver). "
-                + "O quickstart nao exige o DTO completo do recurso; a justificativa e o suporte a auditoria e a governanca de aprovacao (demo).")
+        description = "Comando de workflow para decisao sobre uma folha de pagamento, como aprovar eventos pendentes ou marcar liquidacao. "
+                + "A justificativa registra o motivo operacional da decisao sem enviar novamente o recurso completo.")
 public class FolhaPagamentoWorkflowRequestDTO {
 
     @Size(max = 500)
