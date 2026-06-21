@@ -12,7 +12,7 @@ A redação de **definições de negócio** em DTOs (`@Schema`) no host — em p
 
 ## Versões alinhadas
 
-- `praxis-metadata-starter`: `8.0.0-rc.22`
+- `praxis-metadata-starter`: `8.0.0-rc.23`
 - `praxis-config-starter`: `0.1.0-rc.50`
 - `praxis-ui-angular`: `9.0.0-beta.9`
 - `praxis-api-quickstart`: host operacional de referência usando os dois starters publicados no Maven Central.
