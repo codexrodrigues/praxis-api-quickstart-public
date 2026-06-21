@@ -43,7 +43,7 @@ class FuncionarioServiceOptionSourceTest {
 
         assertEquals(OptionSourceType.RESOURCE_ENTITY, descriptor.type());
         assertEquals(ApiPaths.HumanResources.FUNCIONARIOS, descriptor.resourcePath());
-        assertEquals("funcionarioId", descriptor.filterField());
+        assertNull(descriptor.filterField());
         assertEquals("id", descriptor.valuePropertyPath());
         assertEquals("nomeCompleto", descriptor.labelPropertyPath());
         assertEquals("employee", lookup.entityKey());
