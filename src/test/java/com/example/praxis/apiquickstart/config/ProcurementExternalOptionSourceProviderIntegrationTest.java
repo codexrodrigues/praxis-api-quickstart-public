@@ -2,6 +2,7 @@ package com.example.praxis.apiquickstart.config;
 
 import com.example.praxis.apiquickstart.ApiQuickstartApplication;
 import com.example.praxis.apiquickstart.constants.ApiPaths;
+import com.example.praxis.apiquickstart.procurement.options.ExternalCatalogOptionSourceProvider;
 import com.example.praxis.apiquickstart.procurement.options.ProcurementPaymentTermsOptionSourceProvider;
 import com.example.praxis.apiquickstart.security.JwtTokenService;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -75,6 +76,10 @@ class ProcurementExternalOptionSourceProviderIntegrationTest {
             ApiPaths.Procurement.SUPPLIERS + "/option-sources/"
                     + ApiPaths.Procurement.SUPPLIERS_PAYMENT_TERMS_LOOKUP_SOURCE
                     + "/options/by-ids";
+    private static final String EXTERNAL_LOOKUP_BY_IDS =
+            ApiPaths.Procurement.SUPPLIERS + "/option-sources/"
+                    + ApiPaths.Procurement.SUPPLIERS_EXTERNAL_LOOKUP_SOURCE
+                    + "/options/by-ids";
 
     @jakarta.annotation.Resource
     private TestRestTemplate restTemplate;
@@ -93,6 +98,9 @@ class ProcurementExternalOptionSourceProviderIntegrationTest {
 
     @SpyBean
     private ProcurementPaymentTermsOptionSourceProvider paymentTermsProvider;
+
+    @SpyBean
+    private ExternalCatalogOptionSourceProvider externalCatalogProvider;
 
     @MockBean(name = "ragVectorStore")
     private VectorStore ragVectorStore;
@@ -144,6 +152,44 @@ class ProcurementExternalOptionSourceProviderIntegrationTest {
         assertEquals("NET60", byIds.get(0).path("id").asText());
         assertEquals("NET30", byIds.get(1).path("id").asText());
         verify(paymentTermsProvider).byIds(any(OptionSourceExecutionRequest.class));
+    }
+
+    @Test
+    void neutralExternalLookupProviderExecutesFilterDependenciesAndStringByIdsWithoutLeakingPrivateDetails() throws Exception {
+        reset(externalCatalogProvider);
+        assertTrue(
+                optionSourceProviders.stream().anyMatch(ExternalCatalogOptionSourceProvider.class::isInstance),
+                "The neutral external lookup provider must be registered in the Spring context."
+        );
+
+        JsonNode filtered = ok(restTemplate.postForEntity(
+                ApiPaths.Procurement.SUPPLIERS_EXTERNAL_LOOKUP_OPTIONS + "?search=External&page=0&size=10",
+                authorizedJson("""
+                        {
+                          "companyId": 2
+                        }
+                        """),
+                String.class
+        ));
+
+        assertEquals(2, filtered.path("content").size());
+        assertEquals("EXT-CAT-A", filtered.path("content").get(0).path("id").asText());
+        assertEquals("EXT-CAT-C", filtered.path("content").get(1).path("id").asText());
+        assertEquals("general", filtered.path("content").get(0).path("extra").path("category").asText());
+        assertTrue(filtered.path("content").get(0).path("extra").path("provider").isMissingNode());
+        assertNoPrivateProviderDetails(filtered.toString());
+        verify(externalCatalogProvider, atLeastOnce()).supports(any(), any(), any());
+        verify(externalCatalogProvider).filter(any(OptionSourceExecutionRequest.class));
+
+        JsonNode byIds = ok(restTemplate.getForEntity(
+                EXTERNAL_LOOKUP_BY_IDS + "?ids=EXT-CAT-C&ids=EXT-CAT-A",
+                String.class
+        ));
+
+        assertEquals("EXT-CAT-C", byIds.get(0).path("id").asText());
+        assertEquals("EXT-CAT-A", byIds.get(1).path("id").asText());
+        assertNoPrivateProviderDetails(byIds.toString());
+        verify(externalCatalogProvider).byIds(any(OptionSourceExecutionRequest.class));
     }
 
     @Test
@@ -216,6 +262,31 @@ class ProcurementExternalOptionSourceProviderIntegrationTest {
         assertFalse(metadata.containsKey("function"));
         assertFalse(metadata.containsKey("package"));
 
+        OptionSourceDescriptor externalDescriptor = optionSourceRegistry
+                .resolveByResourcePathAndKey(
+                        ApiPaths.Procurement.SUPPLIERS,
+                        ApiPaths.Procurement.SUPPLIERS_EXTERNAL_LOOKUP_SOURCE
+                )
+                .orElseThrow();
+        Map<String, Object> externalMetadata = externalDescriptor.toMetadataMap();
+
+        assertEquals(ApiPaths.Procurement.SUPPLIERS_EXTERNAL_LOOKUP_SOURCE, externalMetadata.get("key"));
+        assertEquals("LIGHT_LOOKUP", externalMetadata.get("type"));
+        assertEquals(ApiPaths.Procurement.SUPPLIERS, externalMetadata.get("resourcePath"));
+        assertEquals("id", externalMetadata.get("valuePropertyPath"));
+        assertEquals("label", externalMetadata.get("labelPropertyPath"));
+        assertEquals(List.of("companyId"), externalMetadata.get("dependsOn"));
+        assertEquals(Map.of("companyId", "companyId"), externalMetadata.get("dependencyFilterMap"));
+        assertEquals(false, externalMetadata.get("includeIds"));
+        assertFalse(externalMetadata.containsKey("providerConfig"));
+        assertFalse(externalMetadata.containsKey("hostContext"));
+        assertFalse(externalMetadata.containsKey("attributes"));
+        assertFalse(externalMetadata.containsKey("sql"));
+        assertFalse(externalMetadata.containsKey("function"));
+        assertFalse(externalMetadata.containsKey("package"));
+        assertFalse(externalMetadata.containsKey("datasource"));
+        assertFalse(externalMetadata.containsKey("bindParameters"));
+
         JsonNode openApi = ok(restTemplate.getForEntity("/v3/api-docs/api-procurement-suppliers", String.class));
         String openApiText = openApi.toString();
         assertTrue(openApi.path("paths")
@@ -227,6 +298,7 @@ class ProcurementExternalOptionSourceProviderIntegrationTest {
         assertTrue(openApiText.contains("OptionDTOObject"));
         assertNoPrivateProviderDetails(openApiText);
         assertFalse(openApiText.contains("ProcurementPaymentTermsOptionSourceProvider"));
+        assertFalse(openApiText.contains("ExternalCatalogOptionSourceProvider"));
         assertFalse(openApiText.contains("OptionSourceExecutionContext"));
         assertFalse(openApiText.contains("hostContext"));
         assertFalse(openApiText.contains("attributes"));
@@ -264,6 +336,14 @@ class ProcurementExternalOptionSourceProviderIntegrationTest {
         String value = body == null ? "" : body;
         assertFalse(value.contains("providerConfig"));
         assertFalse(value.contains("\"provider\""));
+        assertFalse(value.contains("\"providerName\""));
+        assertFalse(value.contains("\"package\""));
+        assertFalse(value.contains("\"function\""));
+        assertFalse(value.contains("\"table\""));
+        assertFalse(value.contains("\"datasource\""));
+        assertFalse(value.contains("\"bindParameters\""));
+        assertFalse(value.contains("\"hostContext\""));
+        assertFalse(value.contains("\"attributes\""));
         assertFalse(value.contains("select * from"));
         assertFalse(value.contains("internal-token"));
         assertFalse(value.contains("private-endpoint"));

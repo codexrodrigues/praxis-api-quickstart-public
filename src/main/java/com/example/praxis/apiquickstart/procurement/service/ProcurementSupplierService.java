@@ -58,6 +58,7 @@ public class ProcurementSupplierService extends AbstractQuickstartCrudService<Pr
                     )
             ))
             .add(ProcurementSupplier.class, paymentTermsDescriptor())
+            .add(ProcurementSupplier.class, externalLookupDescriptor())
             .build();
 
     private final ProcurementSupplierMapper mapper;
@@ -85,7 +86,8 @@ public class ProcurementSupplierService extends AbstractQuickstartCrudService<Pr
 
     @Override
     public OptionSourceDescriptor resolveOptionSource(String sourceKey) {
-        if (ApiPaths.Procurement.SUPPLIERS_PAYMENT_TERMS_LOOKUP_SOURCE.equals(sourceKey)) {
+        if (ApiPaths.Procurement.SUPPLIERS_PAYMENT_TERMS_LOOKUP_SOURCE.equals(sourceKey)
+                || ApiPaths.Procurement.SUPPLIERS_EXTERNAL_LOOKUP_SOURCE.equals(sourceKey)) {
             return OPTION_SOURCES.resolve(ProcurementSupplier.class, sourceKey).orElseThrow();
         }
         return super.resolveOptionSource(sourceKey);
@@ -95,6 +97,9 @@ public class ProcurementSupplierService extends AbstractQuickstartCrudService<Pr
     public Optional<String> getOptionSourceDatasetVersion(String sourceKey) {
         if (ApiPaths.Procurement.SUPPLIERS_PAYMENT_TERMS_LOOKUP_SOURCE.equals(sourceKey)) {
             return Optional.of("ProcurementPaymentTerms:v1");
+        }
+        if (ApiPaths.Procurement.SUPPLIERS_EXTERNAL_LOOKUP_SOURCE.equals(sourceKey)) {
+            return Optional.of("externalLookup:v1");
         }
         return super.getOptionSourceDatasetVersion(sourceKey);
     }
@@ -137,6 +142,7 @@ public class ProcurementSupplierService extends AbstractQuickstartCrudService<Pr
                         )
                 ))
                 .add(ProcurementSupplier.class, paymentTermsDescriptor())
+                .add(ProcurementSupplier.class, externalLookupDescriptor())
                 .build();
     }
 
@@ -152,6 +158,21 @@ public class ProcurementSupplierService extends AbstractQuickstartCrudService<Pr
                 List.of("companyId"),
                 DEPENDENCIES,
                 new OptionSourcePolicy(false, true, "contains", 3, 10, 20, false, false, "label")
+        ).withExecutionMode(OptionSourceExecutionMode.PROVIDER_REQUIRED);
+    }
+
+    private static OptionSourceDescriptor externalLookupDescriptor() {
+        return new OptionSourceDescriptor(
+                ApiPaths.Procurement.SUPPLIERS_EXTERNAL_LOOKUP_SOURCE,
+                OptionSourceType.LIGHT_LOOKUP,
+                ApiPaths.Procurement.SUPPLIERS,
+                null,
+                null,
+                "label",
+                "id",
+                List.of("companyId"),
+                DEPENDENCIES,
+                new OptionSourcePolicy(false, true, "contains", 0, 10, 20, false, false, "label")
         ).withExecutionMode(OptionSourceExecutionMode.PROVIDER_REQUIRED);
     }
 }
