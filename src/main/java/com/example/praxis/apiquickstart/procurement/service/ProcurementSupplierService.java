@@ -15,6 +15,7 @@ import org.praxisplatform.uischema.options.LookupCapabilities;
 import org.praxisplatform.uischema.options.LookupDetailDescriptor;
 import org.praxisplatform.uischema.options.LookupSelectionPolicy;
 import org.praxisplatform.uischema.options.OptionSourceDescriptor;
+import org.praxisplatform.uischema.options.OptionSourceExecutionMode;
 import org.praxisplatform.uischema.options.OptionSourcePolicy;
 import org.praxisplatform.uischema.options.OptionSourceRegistry;
 import org.praxisplatform.uischema.options.OptionSourceType;
@@ -22,6 +23,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 @Service
 public class ProcurementSupplierService extends AbstractQuickstartCrudService<ProcurementSupplier, ProcurementSupplierDTO, Integer, ProcurementSupplierFilterDTO, CreateProcurementSupplierDTO, UpdateProcurementSupplierDTO> {
@@ -55,6 +57,7 @@ public class ProcurementSupplierService extends AbstractQuickstartCrudService<Pr
                             new LookupDetailDescriptor(ApiPaths.Procurement.SUPPLIERS + "/{id}", "/procurement/suppliers/{id}", "route")
                     )
             ))
+            .add(ProcurementSupplier.class, paymentTermsDescriptor())
             .build();
 
     private final ProcurementSupplierMapper mapper;
@@ -78,6 +81,22 @@ public class ProcurementSupplierService extends AbstractQuickstartCrudService<Pr
         return optionSourcePolicyResolver.resolveAppliedSelectionPolicy(ApiPaths.Procurement.SUPPLIERS_SUPPLIER_LOOKUP_SOURCE)
                 .map(ProcurementSupplierService::optionSourcesWithSelectionPolicy)
                 .orElse(OPTION_SOURCES);
+    }
+
+    @Override
+    public OptionSourceDescriptor resolveOptionSource(String sourceKey) {
+        if (ApiPaths.Procurement.SUPPLIERS_PAYMENT_TERMS_LOOKUP_SOURCE.equals(sourceKey)) {
+            return OPTION_SOURCES.resolve(ProcurementSupplier.class, sourceKey).orElseThrow();
+        }
+        return super.resolveOptionSource(sourceKey);
+    }
+
+    @Override
+    public Optional<String> getOptionSourceDatasetVersion(String sourceKey) {
+        if (ApiPaths.Procurement.SUPPLIERS_PAYMENT_TERMS_LOOKUP_SOURCE.equals(sourceKey)) {
+            return Optional.of("ProcurementPaymentTerms:v1");
+        }
+        return super.getOptionSourceDatasetVersion(sourceKey);
     }
 
     @Override
@@ -117,6 +136,22 @@ public class ProcurementSupplierService extends AbstractQuickstartCrudService<Pr
                                 new LookupDetailDescriptor(ApiPaths.Procurement.SUPPLIERS + "/{id}", "/procurement/suppliers/{id}", "route")
                         )
                 ))
+                .add(ProcurementSupplier.class, paymentTermsDescriptor())
                 .build();
+    }
+
+    private static OptionSourceDescriptor paymentTermsDescriptor() {
+        return new OptionSourceDescriptor(
+                ApiPaths.Procurement.SUPPLIERS_PAYMENT_TERMS_LOOKUP_SOURCE,
+                OptionSourceType.LIGHT_LOOKUP,
+                ApiPaths.Procurement.SUPPLIERS,
+                null,
+                null,
+                "label",
+                "id",
+                List.of("companyId"),
+                DEPENDENCIES,
+                new OptionSourcePolicy(false, true, "contains", 3, 10, 20, false, false, "label")
+        ).withExecutionMode(OptionSourceExecutionMode.PROVIDER_REQUIRED);
     }
 }

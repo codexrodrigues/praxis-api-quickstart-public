@@ -143,6 +143,9 @@ public final class ApiPaths {
         public static final String SUPPLIERS_SUPPLIER_LOOKUP_SOURCE = "supplier";
         public static final String SUPPLIERS_SUPPLIER_LOOKUP_OPTIONS =
                 SUPPLIERS + "/option-sources/" + SUPPLIERS_SUPPLIER_LOOKUP_SOURCE + "/options/filter";
+        public static final String SUPPLIERS_PAYMENT_TERMS_LOOKUP_SOURCE = "paymentTerm";
+        public static final String SUPPLIERS_PAYMENT_TERMS_LOOKUP_OPTIONS =
+                SUPPLIERS + "/option-sources/" + SUPPLIERS_PAYMENT_TERMS_LOOKUP_SOURCE + "/options/filter";
         public static final String CONTRACTS = BASE_PATH + "/contracts";
         public static final String CONTRACTS_CONTRACT_LOOKUP_SOURCE = "contract";
         public static final String CONTRACTS_CONTRACT_LOOKUP_OPTIONS =
