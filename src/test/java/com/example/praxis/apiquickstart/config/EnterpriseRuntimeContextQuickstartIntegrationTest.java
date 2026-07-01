@@ -143,6 +143,65 @@ class EnterpriseRuntimeContextQuickstartIntegrationTest {
     }
 
     @Test
+    void shouldHostEnterpriseRuntimeContextSwitchThroughQuickstartProvider() {
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("X-Tenant-ID", "tenant-demo");
+        headers.add("X-User-ID", "user-demo");
+        headers.add("X-Env", "local");
+        headers.add("Accept-Language", "en-US,en;q=0.9");
+        headers.add("X-Timezone", "UTC");
+        headers.add("X-Praxis-Profile-ID", "manager");
+        headers.add("X-Praxis-Module-Key", "benefits");
+
+        Map<String, Object> command = Map.of(
+                "targetTenantId", "corporate-holding",
+                "targetProfileId", "operator",
+                "targetModuleKey", "payroll",
+                "locale", "pt-BR",
+                "timezone", "America/Sao_Paulo",
+                "reason", "quickstart demo switch");
+
+        ResponseEntity<Map> response = restTemplate.exchange(
+                "/api/praxis/runtime/context",
+                HttpMethod.PUT,
+                new HttpEntity<>(command, headers),
+                Map.class);
+
+        assertThat(runtimeContextProvider).isNotNull();
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().get("schemaVersion")).isEqualTo("praxis-enterprise-runtime-context-switch.v1");
+        assertThat(response.getBody().get("accepted")).isEqualTo(true);
+
+        Map<?, ?> effectiveContext = (Map<?, ?>) response.getBody().get("effectiveContext");
+        assertThat(effectiveContext.get("schemaVersion")).isEqualTo("praxis-enterprise-runtime-context.v1");
+        assertThat(effectiveContext.get("environment")).isEqualTo("local");
+        assertThat(effectiveContext.get("locale")).isEqualTo("pt-BR");
+        assertThat(effectiveContext.get("timezone")).isEqualTo("America/Sao_Paulo");
+        assertThat(effectiveContext.get("activeProfileId")).isEqualTo("operator");
+        assertThat(effectiveContext.get("activeModuleKey")).isEqualTo("payroll");
+
+        Map<?, ?> activeTenant = (Map<?, ?>) effectiveContext.get("activeTenant");
+        assertThat(activeTenant.get("tenantId")).isEqualTo("corporate-holding");
+        assertThat(activeTenant.get("label")).isEqualTo("Corporate holding");
+        assertThat(activeTenant.get("active")).isEqualTo(true);
+
+        @SuppressWarnings("unchecked")
+        Map<String, String> propagationHeaders = (Map<String, String>) response.getBody().get("propagationHeaders");
+        assertThat(propagationHeaders)
+                .containsEntry("X-Tenant-ID", "corporate-holding")
+                .containsEntry("X-Env", "local")
+                .containsEntry("X-Praxis-Profile-ID", "operator")
+                .containsEntry("X-Praxis-Module-Key", "payroll")
+                .containsEntry("X-Timezone", "America/Sao_Paulo");
+
+        @SuppressWarnings("unchecked")
+        List<String> capabilities = (List<String>) response.getBody().get("capabilities");
+        assertThat(capabilities)
+                .contains("runtime.context.switch", "runtime.context.switch.demo-provider");
+    }
+
+    @Test
     void shouldHostEnterpriseRuntimeNavigationThroughQuickstartProvider() {
         HttpHeaders headers = new HttpHeaders();
         headers.add("X-Tenant-ID", "tenant-demo");

@@ -100,6 +100,7 @@ public class SecurityConfig {
                     "/api/*/*/options/**",
                     "/api/*/*/option-sources/**");
             log.info("[SECURITY] Read-Open=true -> Stats POST allowed: {}", "/api/*/*/stats/**");
+            log.info("[SECURITY] Read-Open=true -> Runtime context switch allowed: PUT /api/praxis/runtime/context");
         }
         if (demoAllowBulkActions) {
             log.info("[SECURITY] DemoAllowBulkActions=true -> Allowing POST /api/*/*/actions/**");
@@ -200,7 +201,8 @@ public class SecurityConfig {
                                 "/api/*/*/options/**",
                                 "/api/*/*/option-sources/**",
                                 "/api/*/*/stats/**"
-                        ).permitAll();
+                        ).permitAll()
+                        .requestMatchers(HttpMethod.PUT, "/api/praxis/runtime/context").permitAll();
 
                     if (demoAllowBulkActions) {
                         auth.requestMatchers(HttpMethod.POST, "/api/*/*/actions/**").permitAll();
