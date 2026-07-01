@@ -59,6 +59,7 @@ public final class ApiPaths {
         public static final String FOLHAS_PAGAMENTO_PAYROLL_LOOKUP_OPTIONS =
                 FOLHAS_PAGAMENTO + "/option-sources/" + FOLHAS_PAGAMENTO_PAYROLL_LOOKUP_SOURCE + "/options/filter";
         public static final String EVENTOS_FOLHA = BASE_PATH + "/eventos-folha";
+        public static final String LEGACY_PAY_CODES = BASE_PATH + "/legacy-pay-codes";
         public static final String FERIAS_AFASTAMENTOS = BASE_PATH + "/ferias-afastamentos";
         public static final String HABILIDADES = BASE_PATH + "/habilidades";
         public static final String HABILIDADES_SKILL_LOOKUP_SOURCE = "skill";

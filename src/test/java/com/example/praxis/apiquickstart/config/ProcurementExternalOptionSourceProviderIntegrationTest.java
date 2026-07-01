@@ -255,6 +255,13 @@ class ProcurementExternalOptionSourceProviderIntegrationTest {
         assertEquals(List.of("companyId"), metadata.get("dependsOn"));
         assertEquals(Map.of("companyId", "companyId"), metadata.get("dependencyFilterMap"));
         assertEquals(false, metadata.get("includeIds"));
+        assertEquals(ApiPaths.Procurement.SUPPLIERS_PAYMENT_TERMS_LOOKUP_OPTIONS, metadata.get("filterEndpoint"));
+        assertEquals(ApiPaths.Procurement.SUPPLIERS
+                + "/option-sources/"
+                + ApiPaths.Procurement.SUPPLIERS_PAYMENT_TERMS_LOOKUP_SOURCE
+                + "/options/by-ids", metadata.get("byIdsEndpoint"));
+        assertEquals("required", metadata.get("selectedReloadPolicy"));
+        assertEquals("reject", metadata.get("invalidSortPolicy"));
         assertFalse(metadata.containsKey("providerConfig"));
         assertFalse(metadata.containsKey("hostContext"));
         assertFalse(metadata.containsKey("attributes"));
@@ -278,6 +285,13 @@ class ProcurementExternalOptionSourceProviderIntegrationTest {
         assertEquals(List.of("companyId"), externalMetadata.get("dependsOn"));
         assertEquals(Map.of("companyId", "companyId"), externalMetadata.get("dependencyFilterMap"));
         assertEquals(false, externalMetadata.get("includeIds"));
+        assertEquals(ApiPaths.Procurement.SUPPLIERS_EXTERNAL_LOOKUP_OPTIONS, externalMetadata.get("filterEndpoint"));
+        assertEquals(ApiPaths.Procurement.SUPPLIERS
+                + "/option-sources/"
+                + ApiPaths.Procurement.SUPPLIERS_EXTERNAL_LOOKUP_SOURCE
+                + "/options/by-ids", externalMetadata.get("byIdsEndpoint"));
+        assertEquals("required", externalMetadata.get("selectedReloadPolicy"));
+        assertEquals("reject", externalMetadata.get("invalidSortPolicy"));
         assertFalse(externalMetadata.containsKey("providerConfig"));
         assertFalse(externalMetadata.containsKey("hostContext"));
         assertFalse(externalMetadata.containsKey("attributes"));

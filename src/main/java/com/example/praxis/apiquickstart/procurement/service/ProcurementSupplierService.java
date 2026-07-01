@@ -11,11 +11,11 @@ import com.example.praxis.apiquickstart.procurement.entity.ProcurementSupplier;
 import com.example.praxis.apiquickstart.procurement.mapper.ProcurementSupplierMapper;
 import com.example.praxis.apiquickstart.procurement.repository.ProcurementSupplierRepository;
 import org.praxisplatform.uischema.options.EntityLookupDescriptor;
+import org.praxisplatform.uischema.options.GovernedOptionSourceCatalog;
 import org.praxisplatform.uischema.options.LookupCapabilities;
 import org.praxisplatform.uischema.options.LookupDetailDescriptor;
 import org.praxisplatform.uischema.options.LookupSelectionPolicy;
 import org.praxisplatform.uischema.options.OptionSourceDescriptor;
-import org.praxisplatform.uischema.options.OptionSourceExecutionMode;
 import org.praxisplatform.uischema.options.OptionSourcePolicy;
 import org.praxisplatform.uischema.options.OptionSourceRegistry;
 import org.praxisplatform.uischema.options.OptionSourceType;
@@ -147,32 +147,28 @@ public class ProcurementSupplierService extends AbstractQuickstartCrudService<Pr
     }
 
     private static OptionSourceDescriptor paymentTermsDescriptor() {
-        return new OptionSourceDescriptor(
+        return GovernedOptionSourceCatalog.providerBackedLookup(
                 ApiPaths.Procurement.SUPPLIERS_PAYMENT_TERMS_LOOKUP_SOURCE,
-                OptionSourceType.LIGHT_LOOKUP,
                 ApiPaths.Procurement.SUPPLIERS,
-                null,
                 null,
                 "label",
                 "id",
                 List.of("companyId"),
                 DEPENDENCIES,
                 new OptionSourcePolicy(false, true, "contains", 3, 10, 20, false, false, "label")
-        ).withExecutionMode(OptionSourceExecutionMode.PROVIDER_REQUIRED);
+        );
     }
 
     private static OptionSourceDescriptor externalLookupDescriptor() {
-        return new OptionSourceDescriptor(
+        return GovernedOptionSourceCatalog.providerBackedLookup(
                 ApiPaths.Procurement.SUPPLIERS_EXTERNAL_LOOKUP_SOURCE,
-                OptionSourceType.LIGHT_LOOKUP,
                 ApiPaths.Procurement.SUPPLIERS,
-                null,
                 null,
                 "label",
                 "id",
                 List.of("companyId"),
                 DEPENDENCIES,
                 new OptionSourcePolicy(false, true, "contains", 0, 10, 20, false, false, "label")
-        ).withExecutionMode(OptionSourceExecutionMode.PROVIDER_REQUIRED);
+        );
     }
 }

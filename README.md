@@ -526,6 +526,11 @@ Catalogos leves com `LIGHT_LOOKUP`:
   cadastros auxiliares de RH usados para selects e filtros. Eles publicam fontes nomeadas
   `LIGHT_LOOKUP` (`jobRole`, `department` e `skill`) em
   `/option-sources/{sourceKey}/options/filter`.
+- `procurement.suppliers.paymentTerm` e `procurement.suppliers.externalLookup` demonstram
+  catálogos leves provider-backed declarados com `GovernedOptionSourceCatalog` do
+  `praxis-metadata-starter`. O host continua dono do provider externo, mas os endpoints
+  `filterEndpoint`, `byIdsEndpoint`, `selectedReloadPolicy`, `invalidSortPolicy` e
+  `dependencyFilterMap` sao projetados pelo contrato canonico em `x-ui.optionSource`.
 - Essas fontes mantem payload leve `OptionDTO{id,label}` e suportam `/by-ids`, mas nao publicam
   `entityLookup`, capacidades ricas, status, politica de selecao ou rota de detalhe.
 - Promover esses catalogos para `RESOURCE_ENTITY` confundiria catalogo leve com entidade
@@ -691,6 +696,31 @@ Leitura correta dessas superficies:
 - `canonicalOperations.export` indica a existencia operacional de `POST /export`, sem redefinir o schema estrutural
 - `capabilities.operations.delete` item-level nao deve ser inferido a partir de `DELETE /batch` nem de workflow actions destrutivas
 - `_links` em `RestApiResponse` devem ser tratados como affordances reais da API publicada, nao como detalhe cosmetico
+
+### Piloto legacy-backed para migracao corporativa
+
+O recurso `legacy-pay-codes` demonstra a migracao de uma superficie corporativa mutavel para o
+baseline resource-oriented sem criar contrato paralelo no host. Ele usa
+`AbstractLegacyBackedResourceController` e `LegacyBackedResourceService` do
+`praxis-metadata-starter`, mantendo o quickstart como prova operacional downstream:
+
+```
+GET /api/human-resources/legacy-pay-codes/capabilities
+POST /api/human-resources/legacy-pay-codes
+PUT /api/human-resources/legacy-pay-codes/{id}
+DELETE /api/human-resources/legacy-pay-codes/{id}
+POST /api/human-resources/legacy-pay-codes/{id}/duplicate-draft
+GET /api/human-resources/legacy-pay-codes/{id}/audit-lines
+```
+
+Esse piloto publica `create`, `update`, `delete` e `duplicate-draft` em
+`capabilities.operations`, e expõe `_links` somente quando a operacao esta disponivel. A semantica
+canonica continua vindo do starter; o adapter local apenas simula a integracao com um backend legado.
+
+O endpoint `audit-lines` prova related resource surface em item-level: `/schemas/surfaces` publica
+`relatedResource.childResourceKey`, `childResourcePath`, `childParentField`, selecao por
+`auditLineId` e `childOperations` para a colecao filha. O schema das linhas continua vindo de
+`/schemas/filtered?path=/api/human-resources/legacy-pay-codes/{id}/audit-lines&operation=get&schemaType=response`.
 
 Seguranca (POST):
 - Em ambientes com `app.security.write-disabled=true`, POST e negado por padrao.
