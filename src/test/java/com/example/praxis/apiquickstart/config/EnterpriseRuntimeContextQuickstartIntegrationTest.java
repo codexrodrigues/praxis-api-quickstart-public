@@ -141,4 +141,62 @@ class EnterpriseRuntimeContextQuickstartIntegrationTest {
         assertThat(capabilities)
                 .contains("runtime.tenants.read", "runtime.tenants.demo-provider");
     }
+
+    @Test
+    void shouldHostEnterpriseRuntimeNavigationThroughQuickstartProvider() {
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("X-Tenant-ID", "tenant-demo");
+        headers.add("X-User-ID", "user-demo");
+        headers.add("X-Env", "local");
+        headers.add("X-Praxis-Module-Key", "payroll");
+
+        ResponseEntity<Map> response = restTemplate.exchange(
+                "/api/praxis/runtime/navigation",
+                HttpMethod.GET,
+                new HttpEntity<>(headers),
+                Map.class);
+
+        assertThat(runtimeContextProvider).isNotNull();
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().get("schemaVersion")).isEqualTo("praxis-enterprise-runtime-navigation.v1");
+
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> nodes = (List<Map<String, Object>>) response.getBody().get("nodes");
+        assertThat(nodes).hasSize(1);
+        Map<String, Object> payrollModule = nodes.get(0);
+        assertThat(payrollModule)
+                .containsEntry("id", "payroll")
+                .containsEntry("label", "Payroll")
+                .containsEntry("type", "module")
+                .containsEntry("route", "/payroll")
+                .containsEntry("moduleKey", "payroll");
+
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> children = (List<Map<String, Object>>) payrollModule.get("children");
+        assertThat(children)
+                .extracting(child -> child.get("id"))
+                .containsExactly("payroll.folhas-pagamento", "payroll.folhas-pagamento.aprovacoes");
+
+        Map<String, Object> payrollRuns = children.get(0);
+        assertThat(payrollRuns)
+                .containsEntry("href", "/api/human-resources/folhas-pagamento")
+                .containsEntry("route", "/payroll/folhas-pagamento")
+                .containsEntry("resourceKey", "human-resources.folhas-pagamento")
+                .containsEntry("surfaceRef", "table")
+                .containsEntry("capabilityRef", "resource.read");
+
+        Map<String, Object> payrollApprovals = children.get(1);
+        assertThat(payrollApprovals)
+                .containsEntry("href", "/api/human-resources/folhas-pagamento/actions/approve")
+                .containsEntry("route", "/payroll/folhas-pagamento/approvals")
+                .containsEntry("surfaceRef", "detail")
+                .containsEntry("actionRef", "approve")
+                .containsEntry("capabilityRef", "resource.action.approve");
+
+        @SuppressWarnings("unchecked")
+        List<String> capabilities = (List<String>) response.getBody().get("capabilities");
+        assertThat(capabilities)
+                .contains("runtime.navigation.read", "runtime.navigation.demo-provider");
+    }
 }
