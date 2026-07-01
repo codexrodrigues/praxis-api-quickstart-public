@@ -701,8 +701,9 @@ Leitura correta dessas superficies:
 
 O recurso `legacy-pay-codes` demonstra a migracao de uma superficie corporativa mutavel para o
 baseline resource-oriented sem criar contrato paralelo no host. Ele usa
-`AbstractLegacyBackedResourceController` e `LegacyBackedResourceService` do
-`praxis-metadata-starter`, mantendo o quickstart como prova operacional downstream:
+`AbstractDuplicateDraftLegacyBackedResourceController` e `LegacyBackedResourceService` do
+`praxis-metadata-starter`, mantendo `duplicate-draft` como operacao opt-in real e o quickstart como
+prova operacional downstream:
 
 ```
 GET /api/human-resources/legacy-pay-codes/capabilities
@@ -719,7 +720,7 @@ canonica continua vindo do starter; o adapter local apenas simula a integracao c
 
 O endpoint `audit-lines` prova related resource surface em item-level: `/schemas/surfaces` publica
 `relatedResource.childResourceKey`, `childResourcePath`, `childParentField`, selecao por
-`auditLineId` e `childOperations` para a colecao filha. O schema das linhas continua vindo de
+`auditLineId` e `childOperations = [LIST]` para a colecao filha. O schema das linhas continua vindo de
 `/schemas/filtered?path=/api/human-resources/legacy-pay-codes/{id}/audit-lines&operation=get&schemaType=response`.
 
 Seguranca (POST):
