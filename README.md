@@ -74,7 +74,7 @@ Para uma visao detalhada (tabelas, views e cenarios), veja: `docs/DEMO-DATABASE.
   - Enriquecimento OpenAPI com extensao x-ui, `/schemas/filtered`, `/schemas/domain`, capabilities, actions, option sources, stats e integracoes JPA.
   - Principais pacotes usados aqui: `org.praxisplatform.uischema.annotation`, `org.praxisplatform.uischema.controller.base`, `org.praxisplatform.uischema.service.base`, `org.praxisplatform.uischema.filter`.
 - Praxis Config Starter (biblioteca)
-  - Hospeda `/api/praxis/config/**`, `/api/praxis/runtime/context`, config-store transacional, AI registry, domain catalog, Project Knowledge, Domain Knowledge change sets e domain rules.
+  - Hospeda `/api/praxis/config/**`, `/api/praxis/runtime/context`, `/api/praxis/runtime/tenants`, config-store transacional, AI registry, domain catalog, Project Knowledge, Domain Knowledge change sets e domain rules.
   - E a fronteira canonica para persistir contexto, authorar decisoes governadas, simular, aprovar, publicar e materializar regras.
 - Praxis Backend Seed App (projeto)
   - Repositorio "esqueleto" para iniciar um backend limpo com o Starter ja integrado.
@@ -110,7 +110,7 @@ graph TD
   metadata --> quickstart
   config --> quickstart
   quickstart -->|"OpenAPI + x-ui\n/schemas/filtered"| ui
-  quickstart -->|"/schemas/domain\n/api/praxis/config/**\n/api/praxis/runtime/context"| config
+  quickstart -->|"/schemas/domain\n/api/praxis/config/**\n/api/praxis/runtime/context\n/api/praxis/runtime/tenants"| config
   config -->|"decisoes materializadas"| quickstart
   config -->|"contexto authoring"| ui
   seed --> db
@@ -161,7 +161,7 @@ sequenceDiagram
 ## Mapa do codigo (este repo)
 
 - Aplicacao: `src/main/java/com/example/praxis/apiquickstart/ApiQuickstartApplication.java`
-- Seguranca: `src/main/java/com/example/praxis/apiquickstart/config/SecurityConfig.java` - Swagger, Home e Health publicos; `/api/praxis/config/**` publico para config-store/IA; `/api/praxis/runtime/context` segue a politica de leitura/autenticacao do host; demais rotas controladas por sessao JWT + flags `read-open`/whitelist.
+- Seguranca: `src/main/java/com/example/praxis/apiquickstart/config/SecurityConfig.java` - Swagger, Home e Health publicos; `/api/praxis/config/**` publico para config-store/IA; `/api/praxis/runtime/context` e `/api/praxis/runtime/tenants` seguem a politica de leitura/autenticacao do host; demais rotas controladas por sessao JWT + flags `read-open`/whitelist.
 - Paths da API: `src/main/java/com/example/praxis/apiquickstart/constants/ApiPaths.java` - prefixos como `/api/human-resources/...`, `/api/operations/...`, `/api/assets/...`, `/api/risk-intelligence/...` e `/api/demo/...`.
 - Propriedades: `src/main/resources/application.properties` (base), `src/main/resources/application-dev.properties`, `src/main/resources/application-prod.properties`.
 - Pagina publica: `src/main/resources/static/index.html` e assets em `src/main/resources/static/assets/`.
@@ -346,7 +346,7 @@ curl -i -b cookies.txt -c cookies.txt \
 Este quickstart usa os starters alinhados ao ciclo corrente:
 
 - Metadata: `io.github.codexrodrigues:praxis-metadata-starter:8.0.0-rc.23`
-- Config: `io.github.codexrodrigues:praxis-config-starter:0.1.0-rc.67`
+- Config: `io.github.codexrodrigues:praxis-config-starter:0.1.0-rc.68`
 - UI Angular: `@praxisui/*:8.0.0-beta.19`
 
 1) Build (repo standalone)
@@ -777,9 +777,9 @@ curl -s -X POST 'http://localhost:8088/api/human-resources/funcionarios/options/
 - `ddl-auto`: `none` (dev) e `validate` (prod), conforme `application-dev.properties`/`application-prod.properties`.
 - Se um provedor fornecer apenas `DATABASE_URL` no formato DSN, converta para JDBC antes de setar `SPRING_DATASOURCE_URL`.
 - Dependencia no Maven Central: `io.github.codexrodrigues:praxis-metadata-starter` (nenhuma etapa previa de build local e necessaria).
-- `io.github.codexrodrigues:praxis-config-starter` esta alinhado ao corte publicado `0.1.0-rc.67`; este quickstart acompanha o release candidate usado para validar os contratos atuais no host operacional de referencia e no rollout Render.
+- `io.github.codexrodrigues:praxis-config-starter` esta alinhado ao corte publicado `0.1.0-rc.68`; este quickstart acompanha o release candidate usado para validar os contratos atuais no host operacional de referencia e no rollout Render.
 - Este quickstart deve consumir a versao mais recente do starter disponivel para o ciclo corrente para refletir no host operacional os contratos atuais de `ETag`, `If-None-Match`, `If-Match`, `412 Precondition Failed` e authoring AI em `/api/praxis/config/**`.
-- Com `praxis-config-starter:0.1.0-rc.67`, o quickstart tambem prova `GET /api/praxis/runtime/context` com um provider demonstrativo nao-Ergon (`QuickstartEnterpriseRuntimeContextProvider`). Esse provider apenas projeta contexto publico seguro para shell/AI grounding; autenticacao, autorizacao privada, roles reais e tenant entitlement continuam sendo responsabilidade do host corporativo.
+- Com `praxis-config-starter:0.1.0-rc.68`, o quickstart tambem prova `GET /api/praxis/runtime/context` e `GET /api/praxis/runtime/tenants` com um provider demonstrativo nao-Ergon (`QuickstartEnterpriseRuntimeContextProvider`). Esse provider apenas projeta contexto publico seguro e uma lista de tenants demonstrativa para shell/AI grounding; autenticacao, autorizacao privada, roles reais e tenant entitlement continuam sendo responsabilidade do host corporativo.
 - Este quickstart ativa explicitamente `praxis.ai.authoring.reference-ui-composition-provider-enabled=true` porque e o host de referencia que demonstra composicoes ricas de RH/folha. O `praxis-config-starter` generico nao registra esse provider por padrao; hosts reais devem alimentar authoring por catalogo, contexto semantico e providers proprios quando precisarem de planos especializados.
 
 ### Validacao downstream do AI patch

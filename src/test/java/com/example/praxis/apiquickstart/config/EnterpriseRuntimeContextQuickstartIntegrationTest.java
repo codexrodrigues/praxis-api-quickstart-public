@@ -101,4 +101,44 @@ class EnterpriseRuntimeContextQuickstartIntegrationTest {
         assertThat(capabilities)
                 .contains("runtime.context.read", "runtime.context.demo-provider");
     }
+
+    @Test
+    void shouldHostEnterpriseRuntimeTenantsThroughQuickstartProvider() {
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("X-Tenant-ID", "tenant-demo");
+        headers.add("X-User-ID", "user-demo");
+        headers.add("X-Env", "local");
+
+        ResponseEntity<Map> response = restTemplate.exchange(
+                "/api/praxis/runtime/tenants",
+                HttpMethod.GET,
+                new HttpEntity<>(headers),
+                Map.class);
+
+        assertThat(runtimeContextProvider).isNotNull();
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().get("schemaVersion")).isEqualTo("praxis-enterprise-runtime-tenants.v1");
+
+        Map<?, ?> activeTenant = (Map<?, ?>) response.getBody().get("activeTenant");
+        assertThat(activeTenant.get("tenantId")).isEqualTo("tenant-demo");
+        assertThat(activeTenant.get("label")).isEqualTo("Praxis demo tenant");
+        assertThat(activeTenant.get("active")).isEqualTo(true);
+
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> tenants = (List<Map<String, Object>>) response.getBody().get("tenants");
+        assertThat(tenants)
+                .extracting(tenant -> tenant.get("tenantId"))
+                .containsExactly("tenant-demo", "corporate-holding", "shared-services");
+        assertThat(tenants)
+                .filteredOn(tenant -> Boolean.TRUE.equals(tenant.get("active")))
+                .singleElement()
+                .extracting(tenant -> tenant.get("tenantId"))
+                .isEqualTo("tenant-demo");
+
+        @SuppressWarnings("unchecked")
+        List<String> capabilities = (List<String>) response.getBody().get("capabilities");
+        assertThat(capabilities)
+                .contains("runtime.tenants.read", "runtime.tenants.demo-provider");
+    }
 }

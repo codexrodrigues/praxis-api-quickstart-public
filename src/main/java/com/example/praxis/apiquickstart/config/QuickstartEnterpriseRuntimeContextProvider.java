@@ -5,9 +5,11 @@ import java.util.List;
 import org.praxisplatform.config.dto.EnterpriseRuntimeContextRequest;
 import org.praxisplatform.config.dto.EnterpriseRuntimeContextResponse;
 import org.praxisplatform.config.dto.EnterpriseRuntimeTenant;
+import org.praxisplatform.config.dto.EnterpriseRuntimeTenantsResponse;
 import org.praxisplatform.config.dto.EnterpriseRuntimeUser;
 import org.praxisplatform.config.service.AiPrincipalContext;
 import org.praxisplatform.config.service.EnterpriseRuntimeContextProvider;
+import org.praxisplatform.config.service.EnterpriseRuntimeTenantProvider;
 import org.springframework.stereotype.Component;
 
 /**
@@ -19,9 +21,11 @@ import org.springframework.stereotype.Component;
  * service, keeping private roles and policies outside the public payload.</p>
  */
 @Component
-public class QuickstartEnterpriseRuntimeContextProvider implements EnterpriseRuntimeContextProvider {
+public class QuickstartEnterpriseRuntimeContextProvider
+        implements EnterpriseRuntimeContextProvider, EnterpriseRuntimeTenantProvider {
 
     private static final String SCHEMA_VERSION = "praxis-enterprise-runtime-context.v1";
+    private static final String TENANTS_SCHEMA_VERSION = "praxis-enterprise-runtime-tenants.v1";
 
     @Override
     public EnterpriseRuntimeContextResponse getContext(EnterpriseRuntimeContextRequest request) {
@@ -48,6 +52,28 @@ public class QuickstartEnterpriseRuntimeContextProvider implements EnterpriseRun
                 List.of(
                         "runtime.context.read",
                         "runtime.context.demo-provider"),
+                Instant.now());
+    }
+
+    @Override
+    public EnterpriseRuntimeTenantsResponse getTenants(EnterpriseRuntimeContextRequest request) {
+        AiPrincipalContext principal = request != null ? request.principalContext() : null;
+        String tenantId = valueOrDefault(principal != null ? principal.tenantId() : null, "desenv");
+        EnterpriseRuntimeTenant activeTenant = new EnterpriseRuntimeTenant(
+                tenantId,
+                "Praxis demo tenant",
+                true);
+
+        return new EnterpriseRuntimeTenantsResponse(
+                TENANTS_SCHEMA_VERSION,
+                activeTenant,
+                List.of(
+                        activeTenant,
+                        new EnterpriseRuntimeTenant("corporate-holding", "Corporate holding", false),
+                        new EnterpriseRuntimeTenant("shared-services", "Shared services", false)),
+                List.of(
+                        "runtime.tenants.read",
+                        "runtime.tenants.demo-provider"),
                 Instant.now());
     }
 
