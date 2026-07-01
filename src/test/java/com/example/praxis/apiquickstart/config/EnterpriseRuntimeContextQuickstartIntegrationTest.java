@@ -258,4 +258,47 @@ class EnterpriseRuntimeContextQuickstartIntegrationTest {
         assertThat(capabilities)
                 .contains("runtime.navigation.read", "runtime.navigation.demo-provider");
     }
+
+    @Test
+    void shouldHostEnterpriseRuntimeSecurityEventsThroughQuickstartProvider() {
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("X-Tenant-ID", "tenant-demo");
+        headers.add("X-User-ID", "user-demo");
+        headers.add("X-Env", "local");
+        headers.add("X-Praxis-Module-Key", "payroll");
+
+        ResponseEntity<Map> response = restTemplate.exchange(
+                "/api/praxis/runtime/security-events",
+                HttpMethod.GET,
+                new HttpEntity<>(headers),
+                Map.class);
+
+        assertThat(runtimeContextProvider).isNotNull();
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().get("schemaVersion"))
+                .isEqualTo("praxis-enterprise-runtime-security-events.v1");
+
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> events = (List<Map<String, Object>>) response.getBody().get("events");
+        assertThat(events)
+                .extracting(event -> event.get("eventType"))
+                .containsExactly("session.fresh", "runtime.read_open");
+        assertThat(events)
+                .allSatisfy(event -> {
+                    assertThat(event).containsEntry("tenantId", "tenant-demo");
+                    assertThat(event).containsEntry("environment", "local");
+                    assertThat(event).containsKey("occurredAt");
+                    assertThat(event).doesNotContainKeys("roles", "permissions", "token", "policy");
+                });
+
+        @SuppressWarnings("unchecked")
+        Map<String, String> metadata = (Map<String, String>) events.get(0).get("metadata");
+        assertThat(metadata).containsEntry("authPosture", "demo-public-read");
+
+        @SuppressWarnings("unchecked")
+        List<String> capabilities = (List<String>) response.getBody().get("capabilities");
+        assertThat(capabilities)
+                .contains("runtime.security-events.read", "runtime.security-events.demo-provider");
+    }
 }

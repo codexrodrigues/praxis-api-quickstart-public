@@ -21,7 +21,7 @@
         <praxis.core.version>8.0.0-rc.27</praxis.core.version>
         <lombok.version>1.18.32</lombok.version>
         <org.mapstruct.version>1.5.5.Final</org.mapstruct.version>
-        <praxis.config.version>0.1.0-rc.70</praxis.config.version>
+        <praxis.config.version>0.1.0-rc.71</praxis.config.version>
         <openai.version>4.15.0</openai.version>
         <flyway.version>11.17.0</flyway.version>
         <spring-ai.version>1.1.1</spring-ai.version>

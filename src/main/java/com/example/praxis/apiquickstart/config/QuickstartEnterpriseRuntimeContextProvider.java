@@ -10,6 +10,8 @@ import org.praxisplatform.config.dto.EnterpriseRuntimeContextSwitchCommand;
 import org.praxisplatform.config.dto.EnterpriseRuntimeContextSwitchResponse;
 import org.praxisplatform.config.dto.EnterpriseRuntimeNavigationNode;
 import org.praxisplatform.config.dto.EnterpriseRuntimeNavigationResponse;
+import org.praxisplatform.config.dto.EnterpriseRuntimeSecurityEvent;
+import org.praxisplatform.config.dto.EnterpriseRuntimeSecurityEventsResponse;
 import org.praxisplatform.config.dto.EnterpriseRuntimeTenant;
 import org.praxisplatform.config.dto.EnterpriseRuntimeTenantsResponse;
 import org.praxisplatform.config.dto.EnterpriseRuntimeUser;
@@ -17,6 +19,7 @@ import org.praxisplatform.config.service.AiPrincipalContext;
 import org.praxisplatform.config.service.EnterpriseRuntimeContextProvider;
 import org.praxisplatform.config.service.EnterpriseRuntimeContextSwitchProvider;
 import org.praxisplatform.config.service.EnterpriseRuntimeNavigationProvider;
+import org.praxisplatform.config.service.EnterpriseRuntimeSecurityEventProvider;
 import org.praxisplatform.config.service.EnterpriseRuntimeTenantProvider;
 import org.springframework.stereotype.Component;
 
@@ -33,12 +36,14 @@ public class QuickstartEnterpriseRuntimeContextProvider
         implements EnterpriseRuntimeContextProvider,
                 EnterpriseRuntimeContextSwitchProvider,
                 EnterpriseRuntimeTenantProvider,
-                EnterpriseRuntimeNavigationProvider {
+                EnterpriseRuntimeNavigationProvider,
+                EnterpriseRuntimeSecurityEventProvider {
 
     private static final String SCHEMA_VERSION = "praxis-enterprise-runtime-context.v1";
     private static final String SWITCH_SCHEMA_VERSION = "praxis-enterprise-runtime-context-switch.v1";
     private static final String TENANTS_SCHEMA_VERSION = "praxis-enterprise-runtime-tenants.v1";
     private static final String NAVIGATION_SCHEMA_VERSION = "praxis-enterprise-runtime-navigation.v1";
+    private static final String SECURITY_EVENTS_SCHEMA_VERSION = "praxis-enterprise-runtime-security-events.v1";
 
     @Override
     public EnterpriseRuntimeContextResponse getContext(EnterpriseRuntimeContextRequest request) {
@@ -186,6 +191,39 @@ public class QuickstartEnterpriseRuntimeContextProvider
                 List.of(
                         "runtime.navigation.read",
                         "runtime.navigation.demo-provider"),
+                Instant.now());
+    }
+
+    @Override
+    public EnterpriseRuntimeSecurityEventsResponse getSecurityEvents(EnterpriseRuntimeContextRequest request) {
+        AiPrincipalContext principal = request != null ? request.principalContext() : null;
+        String tenantId = valueOrDefault(principal != null ? principal.tenantId() : null, "desenv");
+        String environment = valueOrDefault(principal != null ? principal.environment() : null, "local");
+
+        return new EnterpriseRuntimeSecurityEventsResponse(
+                SECURITY_EVENTS_SCHEMA_VERSION,
+                List.of(
+                        new EnterpriseRuntimeSecurityEvent(
+                                "quickstart.session.fresh",
+                                "session.fresh",
+                                "info",
+                                "Demo session is active for public runtime exploration.",
+                                tenantId,
+                                environment,
+                                Instant.now(),
+                                Map.of("authPosture", "demo-public-read")),
+                        new EnterpriseRuntimeSecurityEvent(
+                                "quickstart.context.read-open",
+                                "runtime.read_open",
+                                "info",
+                                "Read-open mode is enabled for quickstart runtime surfaces.",
+                                tenantId,
+                                environment,
+                                Instant.now(),
+                                Map.of("scope", "quickstart-demo"))),
+                List.of(
+                        "runtime.security-events.read",
+                        "runtime.security-events.demo-provider"),
                 Instant.now());
     }
 
