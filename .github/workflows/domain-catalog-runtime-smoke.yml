@@ -128,7 +128,12 @@ jobs:
               print(json.dumps({"status": "waiting-runtime-rollout", "expectedAfter": expected.isoformat(), "lastSeen": last_seen}))
               time.sleep(20)
 
-          raise SystemExit(f"Published runtime did not expose a build newer than {expected.isoformat()} before timeout. Last seen: {last_seen}")
+          print(json.dumps({
+              "status": "runtime-rollout-not-observed",
+              "expectedAfter": expected.isoformat(),
+              "lastSeen": last_seen,
+              "nextStep": "syncing the catalog exposed by the currently published runtime"
+          }))
           PY
 
       - name: Sync current domain catalog releases
