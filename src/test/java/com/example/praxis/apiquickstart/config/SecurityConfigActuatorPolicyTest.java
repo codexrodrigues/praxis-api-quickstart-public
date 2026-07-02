@@ -6,6 +6,7 @@ import com.example.praxis.apiquickstart.security.ConfigOriginRestrictionFilter;
 import com.example.praxis.apiquickstart.security.JwtTokenService;
 import com.example.praxis.apiquickstart.security.PublicApiRateLimitFilter;
 import org.junit.jupiter.api.Test;
+import org.praxisplatform.uischema.constants.ApiPaths;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -26,7 +27,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
         PublicApiRateLimitFilter.class
 })
 class SecurityConfigActuatorPolicyTest {
-
     @Autowired
     private MockMvc mockMvc;
 
@@ -43,6 +43,17 @@ class SecurityConfigActuatorPolicyTest {
                     int status = result.getResponse().getStatus();
                     if (status != 401 && status != 403) {
                         throw new AssertionError("Expected 401 or 403, got " + status);
+                    }
+                });
+    }
+
+    @Test
+    void praxisCockpitShouldNotRequireAuthentication() throws Exception {
+        mockMvc.perform(get(ApiPaths.Framework.COCKPIT_INDEX))
+                .andExpect(result -> {
+                    int status = result.getResponse().getStatus();
+                    if (status == 401 || status == 403) {
+                        throw new AssertionError("Expected cockpit to pass security without authentication, got " + status);
                     }
                 });
     }

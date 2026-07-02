@@ -10,6 +10,7 @@
 
 **Demo (Render)**
 - Home publica: https://praxis-api-quickstart.onrender.com/
+- Praxis Cockpit: https://praxis-api-quickstart.onrender.com/praxis/cockpit
 - Swagger UI: https://praxis-api-quickstart.onrender.com/swagger-ui/index.html
 - Health: https://praxis-api-quickstart.onrender.com/actuator/health
 - Build info: https://praxis-api-quickstart.onrender.com/actuator/info
@@ -286,6 +287,7 @@ Opcionalmente, se o provedor expoe `DATABASE_URL` (DSN), mantenha tambem `SPRING
 
 ### Seguranca (SPA-friendly, sem IdP)
 - Swagger/OpenAPI continuam publicos (dev e prod), assim como Home e Health.
+- O cockpit automatico do `praxis-metadata-starter` tambem fica publico em `/praxis/cockpit`, sem copiar HTML/assets para este host.
 - `POST /auth/login` emite cookie HttpOnly (`SESSION`) com JWT (sem IdP/BFF).
 - Por padrao deste repositorio:
   - `/api/praxis/config/**` e publico (integracao config-store/RAG);
@@ -380,6 +382,7 @@ Swagger UI: http://localhost:8088/swagger-ui/index.html
 
 ## Endpoints uteis
 - Home publica: `http://localhost:8088/`
+- Praxis Cockpit: `http://localhost:8088/praxis/cockpit`
 - Swagger UI: `http://localhost:8088/swagger-ui/index.html`
 - Health check: `http://localhost:8088/actuator/health`
 - Schemas enriquecidos (exemplo): `/schemas/filtered?path=/api/human-resources/funcionarios&operation=post&schemaType=request`
@@ -859,6 +862,7 @@ Por que `signed-url-token`:
 Para releases do `praxis-metadata-starter`, este quickstart possui um smoke isolado para a cadeia de grupos OpenAPI:
 
 - `OpenApiGroupResolutionIsolatedIntegrationTest`: sobe o host real com H2 em memoria, usa o `praxis-metadata-starter` real e valida a sequencia `DynamicSwaggerConfig -> OpenApiGroupResolver -> /schemas/catalog -> /v3/api-docs/{group} -> /schemas/filtered`.
+- `PraxisCockpitStarterConsumptionIntegrationTest`: valida que o host serve `/praxis/cockpit` e `/praxis/cockpit/index.html` a partir dos assets empacotados pelo `praxis-metadata-starter`, sem copiar cockpit para o quickstart. Esse teste e o gate downstream minimo para provar que hosts protegidos conseguem consumir a superficie publica do cockpit publicada pelo starter.
 
 O que esse teste cobre:
 - registro dos grupos individuais por controller no startup;

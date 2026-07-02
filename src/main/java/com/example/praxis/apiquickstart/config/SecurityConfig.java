@@ -22,6 +22,7 @@ import com.example.praxis.apiquickstart.security.CookieJwtAuthenticationFilter;
 import com.example.praxis.apiquickstart.security.ConfigOriginRestrictionFilter;
 import com.example.praxis.apiquickstart.security.PublicApiRateLimitFilter;
 import com.example.praxis.apiquickstart.security.SpaCsrfTokenRequestHandler;
+import org.praxisplatform.uischema.constants.ApiPaths;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -79,7 +80,10 @@ public class SecurityConfig {
         // Startup logs: summarize security flags and open endpoints
         log.info("[SECURITY] csrfDisable={}, readOpen={}, writeDisabled={}, schemasAggregatorEnabled={}", csrfDisable, readOpen, writeDisabled, schemasAggregatorEnabled);
         log.info("[SECURITY] read-open whitelist (raw)='{}' (resolved {} pattern(s))", readOpenWhitelist, readOpenWhitelistPatterns.length);
-        log.info("[SECURITY] Base public endpoints (permitAll): /auth/login, /auth/logout, /auth/session, /swagger-ui.html, /swagger-ui/index.html, /swagger-ui/**, /v3/api-docs, /v3/api-docs/**, /v3/api-docs.yaml, /actuator/health, /actuator/health/**, /actuator/info, /, /index.html, /favicon.ico, /assets/**");
+        log.info("[SECURITY] Base public endpoints (permitAll): /auth/login, /auth/logout, /auth/session, /swagger-ui.html, /swagger-ui/index.html, /swagger-ui/**, /v3/api-docs, /v3/api-docs/**, /v3/api-docs.yaml, /actuator/health, /actuator/health/**, /actuator/info, /, /index.html, /favicon.ico, /assets/**, {}, {}/, {}",
+                ApiPaths.Framework.COCKPIT,
+                ApiPaths.Framework.COCKPIT,
+                ApiPaths.Framework.COCKPIT_PATTERN);
         log.info("[SECURITY] /actuator/env requires authentication (and is not exposed by default).");
         if (readOpen) {
             log.info("[SECURITY] Read-Open=true -> GET/HEAD allowed for /api/**");
@@ -164,7 +168,10 @@ public class SecurityConfig {
                         "/",
                         "/index.html",
                         "/favicon.ico",
-                        "/assets/**"
+                        "/assets/**",
+                        ApiPaths.Framework.COCKPIT,
+                        ApiPaths.Framework.COCKPIT + "/",
+                        ApiPaths.Framework.COCKPIT_PATTERN
                 ).permitAll()
                 // Endpoints do config-store/RAG (ingestão de registry/catalog)
                 .requestMatchers("/api/praxis/config/**").permitAll()
