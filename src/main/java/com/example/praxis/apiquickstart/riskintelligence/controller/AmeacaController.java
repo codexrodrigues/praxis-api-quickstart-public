@@ -36,7 +36,14 @@ import java.util.List;
  * separado das views analiticas derivadas. Isso ajuda a distinguir, no quickstart, o que e dado
  * operacional primario e o que e leitura agregada para inteligencia.</p>
  */
-@ApiResource(value = ApiPaths.RiskIntelligence.AMEACAS, resourceKey = "risk-intelligence.ameacas")
+@ApiResource(
+        value = ApiPaths.RiskIntelligence.AMEACAS,
+        resourceKey = "risk-intelligence.ameacas",
+        title = "Ameaças",
+        description = "Riscos monitorados, classificação, nível, origem, status e sinais para priorização analítica.",
+        icon = "shield-alert",
+        visualTone = "risk-intelligence"
+)
 @ApiGroup("risk-intelligence")
 public class AmeacaController extends AbstractQuickstartCrudController<Ameaca, AmeacaDTO, Integer, AmeacaFilterDTO, CreateAmeacaDTO, UpdateAmeacaDTO> {
 
@@ -186,7 +193,6 @@ public class AmeacaController extends AbstractQuickstartCrudController<Ameaca, A
         return super.deleteBatch(ids);
     }
 }
-
 
 
 

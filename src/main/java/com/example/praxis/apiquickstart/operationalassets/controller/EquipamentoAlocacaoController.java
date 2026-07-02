@@ -29,7 +29,14 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import java.util.List;
 
-@ApiResource(value = ApiPaths.Assets.EQUIPAMENTO_ALOCACOES, resourceKey = "assets.equipamento-alocacoes")
+@ApiResource(
+        value = ApiPaths.Assets.EQUIPAMENTO_ALOCACOES,
+        resourceKey = "assets.equipamento-alocacoes",
+        title = "Alocações de equipamento",
+        description = "Cessões, responsáveis, períodos de uso e rastreabilidade de ativos materiais em operação.",
+        icon = "package-check",
+        visualTone = "assets"
+)
 @ApiGroup("assets")
 /**
  * Controller de referência para distribuição e rastreabilidade de equipamentos.
@@ -188,7 +195,6 @@ public class EquipamentoAlocacaoController extends AbstractQuickstartCrudControl
         return super.deleteBatch(ids);
     }
 }
-
 
 
 

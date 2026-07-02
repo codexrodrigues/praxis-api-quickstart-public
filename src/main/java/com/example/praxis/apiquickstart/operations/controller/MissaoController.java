@@ -54,7 +54,14 @@ import java.util.List;
  * referencia importante para qualquer caso em que a disponibilidade de acoes dependa do ciclo de
  * vida real do agregado.</p>
  */
-@ApiResource(value = ApiPaths.Operations.MISSOES, resourceKey = "operations.missoes")
+@ApiResource(
+        value = ApiPaths.Operations.MISSOES,
+        resourceKey = "operations.missoes",
+        title = "Missões",
+        description = "Ciclo operacional de planejamento, execução, participantes, eventos, incidentes e acordos regulatórios.",
+        icon = "route",
+        visualTone = "operations"
+)
 @ApiGroup("operations")
 public class MissaoController extends AbstractQuickstartCrudController<Missao, MissaoDTO, Integer, MissaoFilterDTO, CreateMissaoDTO, UpdateMissaoDTO> {
 
@@ -494,7 +501,6 @@ public class MissaoController extends AbstractQuickstartCrudController<Missao, M
         return withVersion(ResponseEntity.ok(), RestApiResponse.success(result, hateoasOrNull(links)));
     }
 }
-
 
 
 

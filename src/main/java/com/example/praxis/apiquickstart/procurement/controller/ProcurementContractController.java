@@ -12,7 +12,14 @@ import com.example.praxis.apiquickstart.procurement.service.ProcurementContractS
 import org.praxisplatform.uischema.annotation.ApiGroup;
 import org.praxisplatform.uischema.annotation.ApiResource;
 
-@ApiResource(value = ApiPaths.Procurement.CONTRACTS, resourceKey = "procurement.contracts")
+@ApiResource(
+        value = ApiPaths.Procurement.CONTRACTS,
+        resourceKey = "procurement.contracts",
+        title = "Contratos",
+        description = "Acordos comerciais, fornecedores, empresas, produtos e ordens de compra que governam suprimentos.",
+        icon = "file-signature",
+        visualTone = "procurement"
+)
 @ApiGroup("procurement")
 public class ProcurementContractController extends AbstractQuickstartCrudController<ProcurementContract, ProcurementContractDTO, Integer, ProcurementContractFilterDTO, CreateProcurementContractDTO, UpdateProcurementContractDTO> {
     private final ProcurementContractService service;

@@ -54,7 +54,14 @@ import java.util.List;
  * modelar um recurso de RH metadata-driven dentro da Praxis.</p>
  */
 @RestController
-@ApiResource(value = ApiPaths.HumanResources.FUNCIONARIOS, resourceKey = "human-resources.funcionarios")
+@ApiResource(
+        value = ApiPaths.HumanResources.FUNCIONARIOS,
+        resourceKey = "human-resources.funcionarios",
+        title = "Funcionários",
+        description = "Pessoas, perfis, vínculos, reputação e participação operacional que sustentam a execução do serviço.",
+        icon = "users",
+        visualTone = "human-resources"
+)
 @ApiGroup("human-resources")
 public class FuncionarioController extends AbstractQuickstartCrudController<Funcionario, FuncionarioDTO, Integer, FuncionarioFilterDTO, CreateFuncionarioDTO, UpdateFuncionarioDTO> {
 
@@ -354,7 +361,6 @@ public class FuncionarioController extends AbstractQuickstartCrudController<Func
         return super.deleteBatch(ids);
     }
 }
-
 
 
 
