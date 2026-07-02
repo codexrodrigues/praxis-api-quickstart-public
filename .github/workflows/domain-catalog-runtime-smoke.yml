@@ -1,6 +1,10 @@
 name: Domain Catalog Runtime Smoke
 
 on:
+  workflow_run:
+    workflows: [Publish Public Release]
+    types: [completed]
+    branches: [main]
   workflow_dispatch:
     inputs:
       backend_url:
@@ -27,6 +31,14 @@ on:
         description: Maximum elapsed time for the repeated stable ingest
         required: true
         default: '10000'
+      sync_current_releases:
+        description: Force ingest the current /schemas/domain releases before read-only validation
+        required: true
+        default: 'true'
+      wait_for_runtime_rollout:
+        description: Wait for the published runtime build timestamp before syncing releases
+        required: true
+        default: 'true'
   schedule:
     - cron: '17 9 * * *'
 
@@ -36,6 +48,7 @@ concurrency:
 
 jobs:
   runtime-smoke:
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -47,6 +60,9 @@ jobs:
       RESOURCE_KEYS: ${{ inputs.resource_keys || 'human-resources.funcionarios operations.missoes' }}
       RUN_INGEST_RESILIENCE: ${{ inputs.run_ingest_resilience || 'true' }}
       MAX_IDEMPOTENT_INGEST_MS: ${{ inputs.max_idempotent_ingest_ms || '10000' }}
+      SYNC_CURRENT_RELEASES: ${{ inputs.sync_current_releases || 'true' }}
+      WAIT_FOR_RUNTIME_ROLLOUT: ${{ inputs.wait_for_runtime_rollout || 'true' }}
+      EXPECTED_BUILD_AFTER: ${{ github.event.workflow_run.created_at || '' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -63,9 +79,68 @@ jobs:
       - name: Validate smoke script syntax
         shell: bash
         run: |
+          bash -n scripts/upload-domain-catalog.sh
+          bash -n scripts/upload-domain-catalog-batch.sh
+          bash -n scripts/ensure-domain-catalog-context.sh
           bash -n scripts/verify-domain-catalog-context.sh
           bash -n scripts/verify-domain-catalog-ingest-resilience.sh
           bash -n scripts/verify-domain-catalog-authoring-runtime.sh
+
+      - name: Wait for published runtime rollout
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [[ "${WAIT_FOR_RUNTIME_ROLLOUT}" != "true" || -z "${EXPECTED_BUILD_AFTER}" ]]; then
+            echo "Skipping runtime rollout wait."
+            exit 0
+          fi
+
+          python3 - <<'PY'
+          import datetime as dt
+          import json
+          import os
+          import time
+          import urllib.request
+
+          backend_url = os.environ["BACKEND_URL"].rstrip("/")
+          expected = dt.datetime.fromisoformat(os.environ["EXPECTED_BUILD_AFTER"].replace("Z", "+00:00"))
+          deadline = time.time() + int(os.environ.get("RUNTIME_ROLLOUT_WAIT_SECONDS", "900"))
+          last_seen = None
+
+          while time.time() < deadline:
+              try:
+                  with urllib.request.urlopen(f"{backend_url}/actuator/health", timeout=20) as response:
+                      health = json.load(response)
+                  with urllib.request.urlopen(f"{backend_url}/actuator/info", timeout=20) as response:
+                      info = json.load(response)
+
+                  build_time_raw = info.get("build", {}).get("time")
+                  last_seen = {"health": health, "buildTime": build_time_raw}
+                  if health.get("status") == "UP" and build_time_raw:
+                      build_time = dt.datetime.fromisoformat(build_time_raw.replace("Z", "+00:00"))
+                      if build_time >= expected:
+                          print(json.dumps({"status": "runtime-rollout-ready", "expectedAfter": expected.isoformat(), "buildTime": build_time.isoformat()}))
+                          raise SystemExit(0)
+              except Exception as error:
+                  last_seen = {"error": str(error)}
+
+              print(json.dumps({"status": "waiting-runtime-rollout", "expectedAfter": expected.isoformat(), "lastSeen": last_seen}))
+              time.sleep(20)
+
+          raise SystemExit(f"Published runtime did not expose a build newer than {expected.isoformat()} before timeout. Last seen: {last_seen}")
+          PY
+
+      - name: Sync current domain catalog releases
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "${SYNC_CURRENT_RELEASES}" != "true" ]]; then
+            echo "Skipping current release sync."
+            exit 0
+          fi
+
+          FORCE_INGEST=true scripts/upload-domain-catalog-batch.sh
 
       - name: Verify persisted domain catalog context
         shell: bash

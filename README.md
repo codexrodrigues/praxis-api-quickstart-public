@@ -957,6 +957,13 @@ scripts/verify-domain-catalog-ingest-resilience.sh human-resources.funcionarios 
 
 Esse smoke protege o fluxo observado em producao: `/schemas/domain` deve publicar `releaseKey` e `sourceHash` estaveis, `POST /api/praxis/config/domain-catalog/ingest` deve ser idempotente para o mesmo catalogo e `/api/praxis/config/domain-catalog/items` deve continuar retornando governanca persistida.
 
+O workflow `Domain Catalog Runtime Smoke` tambem roda automaticamente depois de
+`Publish Public Release`. Nesse caminho ele aguarda o build publicado em Render,
+forca a ingestao das releases atuais de `/schemas/domain` para os recursos
+criticos e so depois executa as validacoes read-only. A landing publica continua
+apenas validando o config-store; a responsabilidade por alinhar catalogo vivo e
+catalogo persistido permanece neste host de referencia.
+
 Depois de habilitar `praxis.domain-knowledge.projection.enabled=true` e executar uma ingestao controlada, valide a materializacao read-only na camada `domain_knowledge_*`:
 
 ```bash
