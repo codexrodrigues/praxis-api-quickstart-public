@@ -93,7 +93,7 @@ jobs:
             url="$(artifact_url "$artifact" "$version")"
 
             for attempt in {1..30}; do
-              status="$(curl -L -s -o /dev/null -w '%{http_code}' "$url")"
+              status="$(curl -L -s -o /dev/null -w '%{http_code}' --connect-timeout 10 --max-time 30 "$url" || true)"
               if [ "$status" = "200" ]; then
                 echo "${artifact}:${version} is available on Maven Central."
                 return 0
