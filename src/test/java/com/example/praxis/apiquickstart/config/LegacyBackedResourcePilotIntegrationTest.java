@@ -159,7 +159,7 @@ class LegacyBackedResourcePilotIntegrationTest {
         assertEquals("payCodeId", auditSurface.path("relatedResource").path("childParentField").asText());
         assertTrue(auditSurface.path("relatedResource").path("selectable").asBoolean());
         assertEquals("auditLineId", auditSurface.path("relatedResource").path("selectionKeyField").asText());
-        assertEquals("[\"LIST\"]", auditSurface.path("relatedResource").path("childOperations").toString());
+        assertEquals("[]", auditSurface.path("relatedResource").path("childOperations").toString());
         assertTrue(auditSurface.path("schemaUrl").asText().contains("audit-lines"));
 
         JsonNode itemSurfaces = body(restTemplate.getForEntity(BASE_PATH + "/" + createdId + "/surfaces", String.class));
@@ -179,7 +179,7 @@ class LegacyBackedResourcePilotIntegrationTest {
         assertTrue(auditSchema.path("properties").has("payCodeId"), auditSchema.toPrettyString());
         assertEquals("auditLineId", auditSchema.path("x-ui").path("resource").path("idField").asText());
 
-        JsonNode draft = bodyCreated(restTemplate.exchange(
+        JsonNode draft = body(restTemplate.exchange(
                 BASE_PATH + "/" + createdId + "/duplicate-draft",
                 HttpMethod.POST,
                 authorizedJson("{}"),

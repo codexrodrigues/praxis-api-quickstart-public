@@ -12,7 +12,6 @@ import org.praxisplatform.uischema.annotation.ApiResource;
 import org.praxisplatform.uischema.annotation.UiSurface;
 import org.praxisplatform.uischema.controller.base.AbstractDuplicateDraftLegacyBackedResourceController;
 import org.praxisplatform.uischema.rest.response.RestApiResponse;
-import org.praxisplatform.uischema.surface.RelatedResourceChildOperation;
 import org.praxisplatform.uischema.surface.SurfaceKind;
 import org.praxisplatform.uischema.surface.SurfaceScope;
 import org.springframework.hateoas.Links;
@@ -31,7 +30,8 @@ public class LegacyPayCodeController extends AbstractDuplicateDraftLegacyBackedR
         Integer,
         LegacyPayCodeFilterDTO,
         CreateLegacyPayCodeDTO,
-        UpdateLegacyPayCodeDTO> {
+        UpdateLegacyPayCodeDTO,
+        LegacyPayCodeDTO> {
 
     private final LegacyPayCodeService service;
 
@@ -63,10 +63,7 @@ public class LegacyPayCodeController extends AbstractDuplicateDraftLegacyBackedR
             relatedChildResourcePath = "/api/human-resources/legacy-pay-code-audit-lines",
             relatedChildParentField = "payCodeId",
             relatedSelectable = true,
-            relatedSelectionKeyField = "auditLineId",
-            relatedChildOperations = {
-                    RelatedResourceChildOperation.LIST
-            }
+            relatedSelectionKeyField = "auditLineId"
     )
     public ResponseEntity<RestApiResponse<List<LegacyPayCodeAuditLineDTO>>> auditLines(@PathVariable Integer id) {
         List<LegacyPayCodeAuditLineDTO> lines = List.of(

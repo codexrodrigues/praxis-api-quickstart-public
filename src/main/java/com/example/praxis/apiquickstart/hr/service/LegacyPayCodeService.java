@@ -9,7 +9,7 @@ import com.example.praxis.apiquickstart.hr.entity.LegacyPayCode;
 import com.example.praxis.apiquickstart.hr.mapper.LegacyPayCodeMapper;
 import com.example.praxis.apiquickstart.hr.repository.LegacyPayCodeRepository;
 import org.praxisplatform.uischema.service.base.BaseResourceCommandService;
-import org.praxisplatform.uischema.service.base.LegacyBackedResourceService;
+import org.praxisplatform.uischema.service.base.DuplicateDraftLegacyBackedResourceService;
 import org.springframework.stereotype.Service;
 
 import java.util.Collection;
@@ -22,12 +22,13 @@ public class LegacyPayCodeService extends AbstractQuickstartCrudService<
         LegacyPayCodeFilterDTO,
         CreateLegacyPayCodeDTO,
         UpdateLegacyPayCodeDTO>
-        implements LegacyBackedResourceService<
+        implements DuplicateDraftLegacyBackedResourceService<
         LegacyPayCodeDTO,
         Integer,
         LegacyPayCodeFilterDTO,
         CreateLegacyPayCodeDTO,
-        UpdateLegacyPayCodeDTO> {
+        UpdateLegacyPayCodeDTO,
+        LegacyPayCodeDTO> {
 
     private final LegacyPayCodeMapper mapper;
     private final LegacyPayCodeLegacyAdapter legacyAdapter;
@@ -74,7 +75,7 @@ public class LegacyPayCodeService extends AbstractQuickstartCrudService<
     }
 
     @Override
-    public BaseResourceCommandService.SavedResult<Integer, LegacyPayCodeDTO> duplicateDraft(Integer sourceId) {
-        return legacyAdapter.duplicateDraft(sourceId);
+    public LegacyPayCodeDTO duplicateDraft(Integer sourceId) {
+        return legacyAdapter.duplicateDraft(sourceId).body();
     }
 }
