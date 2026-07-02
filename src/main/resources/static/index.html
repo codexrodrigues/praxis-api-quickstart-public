@@ -53,9 +53,9 @@
     .link { color: var(--accent); text-decoration: none; }
     .link:hover { text-decoration: underline; }
   </style>
-  <meta name="description" content="Praxis — Quickstart de API com Spring Boot 3 e suporte a metadata, OpenAPI e integrações. Página pública do projeto e links úteis." />
+  <meta name="description" content="Praxis — Quickstart de API com Spring Boot 3, cockpit de domínio, metadata, OpenAPI e integrações. Página pública do projeto e links úteis." />
   <meta property="og:title" content="Praxis — API Quickstart" />
-  <meta property="og:description" content="Quickstart de API com Spring Boot 3, Praxis Metadata Starter e Swagger UI público." />
+  <meta property="og:description" content="Quickstart de API com Spring Boot 3, Praxis Metadata Starter, cockpit de domínio e Swagger UI público." />
   <meta property="og:type" content="website" />
   <meta property="og:url" content="/" />
 </head>
@@ -66,7 +66,7 @@
         <img src="/assets/praxis-logo.svg" alt="Praxis Logo" />
         <h1>Praxis — API Quickstart</h1>
       </div>
-      <p class="subtitle">Base de referência para construir APIs com Spring Boot 3 (Java 21) integradas ao <span class="badge">Praxis Metadata Starter</span>, expondo documentação OpenAPI e UI públicas.</p>
+      <p class="subtitle">Base de referência para construir APIs com Spring Boot 3 (Java 21) integradas ao <span class="badge">Praxis Metadata Starter</span>, expondo documentação OpenAPI, cockpit de domínio e UI públicas.</p>
       <div class="row">
         <span class="chip">Spring Boot 3</span>
         <span class="chip">Java 21</span>
@@ -74,6 +74,7 @@
         <span class="chip">JPA + PostgreSQL</span>
       </div>
       <div class="row" style="margin-top: 16px;">
+        <a class="cta primary" href="/praxis/cockpit">Abrir Praxis Cockpit</a>
         <a class="cta primary" href="/swagger-ui/index.html">Abrir Swagger UI</a>
         <a class="cta" href="https://github.com/codexrodrigues/praxis-backend-seed-app" target="_blank" rel="noopener">Seed Backend (GitHub)</a>
         <a class="cta" href="#universo">Conhecer o Universo dos Heróis</a>
@@ -88,6 +89,15 @@
           <li>UI Schemas para formular rapidamente telas/fluxos.</li>
           <li>Filtros tipados e endpoints de <code>options</code> para selects/autocomplete.</li>
           <li>Enriquecimento de documentação e padronização de padrões REST.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Praxis Cockpit</h3>
+        <p>Explore este host como um mapa vivo de domínio. O cockpit é servido automaticamente pelo starter e mostra áreas de negócio, recursos, endpoints, filtros, tabelas, formulários, gráficos, actions, prontidão semântica e relações entre recursos.</p>
+        <ul class="list">
+          <li>URL: <a class="link" href="/praxis/cockpit">/praxis/cockpit</a></li>
+          <li>Leitura executiva do que o backend publica para humanos, runtimes e IA.</li>
+          <li>Sem HTML próprio neste host: os assets vêm do <code>praxis-metadata-starter</code>.</li>
         </ul>
       </div>
       <div class="card">

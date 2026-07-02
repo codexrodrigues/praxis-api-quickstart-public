@@ -9,11 +9,13 @@
 <img src="src/main/resources/static/assets/praxis-logo.svg" alt="Praxis - API Quickstart" width="520" />
 
 **Demo (Render)**
-- Home publica: https://praxis-api-quickstart.onrender.com/
-- Praxis Cockpit: https://praxis-api-quickstart.onrender.com/praxis/cockpit
-- Swagger UI: https://praxis-api-quickstart.onrender.com/swagger-ui/index.html
-- Health: https://praxis-api-quickstart.onrender.com/actuator/health
-- Build info: https://praxis-api-quickstart.onrender.com/actuator/info
+- [Home publica](https://praxis-api-quickstart.onrender.com/)
+- [Praxis Cockpit](https://praxis-api-quickstart.onrender.com/praxis/cockpit)
+- [Swagger UI](https://praxis-api-quickstart.onrender.com/swagger-ui/index.html)
+- [Health](https://praxis-api-quickstart.onrender.com/actuator/health)
+- [Build info](https://praxis-api-quickstart.onrender.com/actuator/info)
+
+O [Praxis Cockpit](https://praxis-api-quickstart.onrender.com/praxis/cockpit) e a forma mais rapida de entender este host sem clonar o projeto. Ele e servido automaticamente pelo `praxis-metadata-starter`, nao por HTML copiado no Quickstart, e mostra como o dominio publicado pelo backend vira inventario navegavel: areas de negocio, recursos, endpoints, filtros, tabelas, formularios, graficos, workflow actions, prontidao semantica e relacionamentos entre recursos.
 
 ## Sobre o Praxis (visao geral)
 
@@ -335,11 +337,12 @@ curl -i -b cookies.txt -c cookies.txt \
 
 ### URLs publicas (Render)
 - URL publica do Swagger UI: https://praxis-api-quickstart.onrender.com/swagger-ui/index.html
- - Home publica: https://praxis-api-quickstart.onrender.com/
- - Build info publico para diagnosticar rollout por HTTP: `/actuator/info`
- - A documentacao OpenAPI usada pelo UI tambem esta publica: `/v3/api-docs` e `/v3/api-docs/**`.
- - Endpoints de configuracao/IA (`/api/praxis/config/**`) sao publicos por desenho; acesso as demais rotas depende das flags de seguranca (`read-open` e whitelist).
- - O endpoint `/actuator/info` deve expor ao menos `build.artifact` e `build.version`; use esse payload para confirmar se o Render realmente subiu o artefato esperado antes de diagnosticar endpoints faltando.
+- Home publica: https://praxis-api-quickstart.onrender.com/
+- Praxis Cockpit publico: https://praxis-api-quickstart.onrender.com/praxis/cockpit
+- Build info publico para diagnosticar rollout por HTTP: `/actuator/info`
+- A documentacao OpenAPI usada pelo UI tambem esta publica: `/v3/api-docs` e `/v3/api-docs/**`.
+- Endpoints de configuracao/IA (`/api/praxis/config/**`) sao publicos por desenho; acesso as demais rotas depende das flags de seguranca (`read-open` e whitelist).
+- O endpoint `/actuator/info` deve expor ao menos `build.artifact` e `build.version`; use esse payload para confirmar se o Render realmente subiu o artefato esperado antes de diagnosticar endpoints faltando.
 
 ### Capturas de tela
 - Em breve: screenshots da Home e do Swagger UI renderizados em producao.
@@ -347,7 +350,7 @@ curl -i -b cookies.txt -c cookies.txt \
 ## Rodar local
 Este quickstart usa os starters alinhados ao ciclo corrente:
 
-- Metadata: `io.github.codexrodrigues:praxis-metadata-starter:8.0.0-rc.37`
+- Metadata: `io.github.codexrodrigues:praxis-metadata-starter:8.0.0-rc.46`
 - Config: `io.github.codexrodrigues:praxis-config-starter:0.1.0-rc.71`
 - UI Angular: `@praxisui/*:8.0.0-beta.19`
 
