@@ -17,10 +17,14 @@ import org.praxisplatform.uischema.options.OptionSourceDescriptor;
 import org.praxisplatform.uischema.options.OptionSourcePolicy;
 import org.praxisplatform.uischema.options.OptionSourceRegistry;
 import org.praxisplatform.uischema.options.OptionSourceType;
+import org.praxisplatform.uischema.stats.StatsFieldRegistry;
+import org.praxisplatform.uischema.stats.StatsMetric;
+import org.praxisplatform.uischema.stats.StatsSupportMode;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 @Service
 public class ProcurementProductService extends AbstractQuickstartCrudService<ProcurementProduct, ProcurementProductDTO, Integer, ProcurementProductFilterDTO, CreateProcurementProductDTO, UpdateProcurementProductDTO> {
@@ -28,6 +32,14 @@ public class ProcurementProductService extends AbstractQuickstartCrudService<Pro
             "companyId", "companyId",
             "contractId", "contractId"
     );
+    private static final StatsFieldRegistry STATS_FIELDS = StatsFieldRegistry.builder()
+            .groupByBucket("companyId", "companyId", Set.of(StatsMetric.COUNT))
+            .groupByBucket("contractId", "contractId", Set.of(StatsMetric.COUNT))
+            .groupByBucket("categoryName", "categoryName", Set.of(StatsMetric.COUNT))
+            .groupByBucket("unitOfMeasure", "unitOfMeasure", Set.of(StatsMetric.COUNT))
+            .groupByBucket("status", "status", Set.of(StatsMetric.COUNT))
+            .numericHistogramMeasureField("stockAvailable", "stockAvailable")
+            .build();
 
     private static final OptionSourceRegistry OPTION_SOURCES = OptionSourceRegistry.builder()
             .add(ProcurementProduct.class, new OptionSourceDescriptor(
@@ -77,6 +89,21 @@ public class ProcurementProductService extends AbstractQuickstartCrudService<Pro
     public ProcurementProduct mergeUpdate(ProcurementProduct existing, ProcurementProduct fromPayload) {
         mapper.updateEntity(fromPayload, existing);
         return existing;
+    }
+
+    @Override
+    public StatsSupportMode getGroupByStatsSupportMode() {
+        return StatsSupportMode.AUTO;
+    }
+
+    @Override
+    public StatsSupportMode getDistributionStatsSupportMode() {
+        return StatsSupportMode.AUTO;
+    }
+
+    @Override
+    public StatsFieldRegistry getStatsFieldRegistry() {
+        return STATS_FIELDS;
     }
 
     private static OptionSourcePolicy lookupPolicy() {

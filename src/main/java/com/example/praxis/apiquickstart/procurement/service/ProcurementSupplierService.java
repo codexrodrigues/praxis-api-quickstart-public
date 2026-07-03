@@ -23,6 +23,9 @@ import org.praxisplatform.uischema.options.OptionSourceDescriptor;
 import org.praxisplatform.uischema.options.OptionSourcePolicy;
 import org.praxisplatform.uischema.options.OptionSourceRegistry;
 import org.praxisplatform.uischema.options.OptionSourceType;
+import org.praxisplatform.uischema.stats.StatsFieldRegistry;
+import org.praxisplatform.uischema.stats.StatsMetric;
+import org.praxisplatform.uischema.stats.StatsSupportMode;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -31,6 +34,7 @@ import org.springframework.web.server.ResponseStatusException;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 import static org.springframework.http.HttpStatus.CONFLICT;
 
@@ -41,6 +45,12 @@ public class ProcurementSupplierService extends AbstractQuickstartCrudService<Pr
     private static final Map<String, String> DEPENDENCIES = Map.of("companyId", "companyId");
     private static final LookupSelectionPolicy STATIC_SUPPLIER_SELECTION_POLICY =
             new LookupSelectionPolicy(null, "status", List.of("ACTIVE", "APPROVED"), List.of("INACTIVE", "BLOCKED"), true, null, null);
+    private static final StatsFieldRegistry STATS_FIELDS = StatsFieldRegistry.builder()
+            .groupByBucket("companyId", "companyId", Set.of(StatsMetric.COUNT))
+            .groupByBucket("homologationStatus", "homologationStatus", Set.of(StatsMetric.COUNT))
+            .groupByBucket("riskLevel", "riskLevel", Set.of(StatsMetric.COUNT))
+            .groupByBucket("status", "status", Set.of(StatsMetric.COUNT))
+            .build();
 
     private static final OptionSourceRegistry OPTION_SOURCES = OptionSourceRegistry.builder()
             .add(ProcurementSupplier.class, new OptionSourceDescriptor(
@@ -122,6 +132,16 @@ public class ProcurementSupplierService extends AbstractQuickstartCrudService<Pr
     public ProcurementSupplier mergeUpdate(ProcurementSupplier existing, ProcurementSupplier fromPayload) {
         mapper.updateEntity(fromPayload, existing);
         return existing;
+    }
+
+    @Override
+    public StatsSupportMode getGroupByStatsSupportMode() {
+        return StatsSupportMode.AUTO;
+    }
+
+    @Override
+    public StatsFieldRegistry getStatsFieldRegistry() {
+        return STATS_FIELDS;
     }
 
     @Transactional

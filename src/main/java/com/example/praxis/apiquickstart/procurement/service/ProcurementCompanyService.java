@@ -17,12 +17,22 @@ import org.praxisplatform.uischema.options.OptionSourceDescriptor;
 import org.praxisplatform.uischema.options.OptionSourcePolicy;
 import org.praxisplatform.uischema.options.OptionSourceRegistry;
 import org.praxisplatform.uischema.options.OptionSourceType;
+import org.praxisplatform.uischema.stats.StatsFieldRegistry;
+import org.praxisplatform.uischema.stats.StatsMetric;
+import org.praxisplatform.uischema.stats.StatsSupportMode;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Set;
 
 @Service
 public class ProcurementCompanyService extends AbstractQuickstartCrudService<ProcurementCompany, ProcurementCompanyDTO, Integer, ProcurementCompanyFilterDTO, CreateProcurementCompanyDTO, UpdateProcurementCompanyDTO> {
+    private static final StatsFieldRegistry STATS_FIELDS = StatsFieldRegistry.builder()
+            .groupByBucket("status", "status", Set.of(StatsMetric.COUNT))
+            .groupByBucket("state", "state", Set.of(StatsMetric.COUNT))
+            .groupByBucket("city", "city", Set.of(StatsMetric.COUNT))
+            .build();
+
     private static final OptionSourceRegistry OPTION_SOURCES = OptionSourceRegistry.builder()
             .add(ProcurementCompany.class, new OptionSourceDescriptor(
                     ApiPaths.Procurement.COMPANIES_COMPANY_LOOKUP_SOURCE,
@@ -70,6 +80,16 @@ public class ProcurementCompanyService extends AbstractQuickstartCrudService<Pro
     public ProcurementCompany mergeUpdate(ProcurementCompany existing, ProcurementCompany fromPayload) {
         mapper.updateEntity(fromPayload, existing);
         return existing;
+    }
+
+    @Override
+    public StatsSupportMode getGroupByStatsSupportMode() {
+        return StatsSupportMode.AUTO;
+    }
+
+    @Override
+    public StatsFieldRegistry getStatsFieldRegistry() {
+        return STATS_FIELDS;
     }
 
     private static OptionSourcePolicy lookupPolicy() {

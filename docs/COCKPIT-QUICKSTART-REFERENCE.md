@@ -150,6 +150,11 @@ Recursos atuais com maior potencial:
 - `assets.equipamento-alocacoes`;
 - `assets.veiculos`;
 - `assets.veiculo-missao-usos`.
+- `procurement.purchase-orders`;
+- `procurement.contracts`;
+- `procurement.suppliers`;
+- `procurement.products`;
+- `procurement.companies`.
 
 O cockpit deve preferir explicar charts por pergunta de negocio, por exemplo:
 "Como a severidade de incidentes evolui por base?" em vez de apenas listar que
@@ -175,6 +180,27 @@ Em `assets`, as perguntas ja materializadas pelo host exemplar sao:
   `POST /api/assets/veiculo-missao-usos/stats/group-by` com `field=veiculoId`,
   `field=missaoId` ou `field=pilotoId`.
 
+Em `procurement`, as perguntas ja materializadas pelo host exemplar sao:
+
+- "Como os pedidos se distribuem por status, fornecedor, contrato, produto ou moeda?" via
+  `POST /api/procurement/purchase-orders/stats/group-by`;
+- "Quando pedidos foram criados, aprovados, cancelados ou recebidos?" via
+  `POST /api/procurement/purchase-orders/stats/timeseries` com `field=orderDate`,
+  `field=approvedAt`, `field=cancelledAt` ou `field=receivedAt`;
+- "Qual a distribuicao de quantidade dos pedidos?" via
+  `POST /api/procurement/purchase-orders/stats/distribution` com `field=quantity`;
+- "Quais contratos vencem por periodo e como se distribuem por fornecedor, moeda e status?" via
+  `POST /api/procurement/contracts/stats/timeseries` com `field=validUntil` e
+  `POST /api/procurement/contracts/stats/group-by`;
+- "Como fornecedores se agrupam por homologacao, risco e status?" via
+  `POST /api/procurement/suppliers/stats/group-by`;
+- "Como produtos se agrupam por categoria, unidade, contrato, status e estoque?" via
+  `POST /api/procurement/products/stats/group-by` e
+  `POST /api/procurement/products/stats/distribution` com `field=stockAvailable`;
+- "Onde estao concentradas as empresas compradoras?" via
+  `POST /api/procurement/companies/stats/group-by` com `field=state`, `field=city`
+  ou `field=status`.
+
 ### Relacionamentos navegaveis
 
 Fonte no Quickstart:
@@ -199,8 +225,9 @@ Materializacao esperada:
    `vw-indicadores-incidentes` como leitura analitica.
 2. `human-resources`: ampliar exemplo de ciclo de vida alem de folha, como
    afastamento, reputacao ou habilidade, se houver comando real de dominio.
-3. `procurement`: adicionar charts e surfaces de acompanhamento de pedidos por
-   status, fornecedor e prazo quando houver pergunta operacional clara para isso.
+3. `procurement`: agora ja publica charts de compras; a proxima evolucao e criar
+   surfaces de acompanhamento que contem a jornada empresa -> fornecedor ->
+   contrato -> produto -> pedido em uma experiencia composta.
 4. `assets`: evoluir amostras de dados para evidenciar perdas, danos,
    manutencoes e devolucoes em volume suficiente para o cockpit demonstrar
    outliers e comparativos reais.

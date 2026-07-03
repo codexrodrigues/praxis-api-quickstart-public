@@ -553,6 +553,10 @@ Exemplos de referencia no quickstart:
   corporativa de compras: empresa compradora filtra fornecedores, fornecedor filtra contratos e
   contrato filtra produtos. Formularios usam `ENTITY_LOOKUP`; filtros usam `INLINE_ENTITY_LOOKUP`
   contra as mesmas fontes governadas e preservam `by-ids`, dependencias e politica de selecao.
+- `procurement` tambem publica stats governados para dashboards de compras: empresas por
+  status/estado/cidade, fornecedores por homologacao/risco/status, contratos por fornecedor,
+  moeda, status e vencimento, produtos por categoria/status/estoque e pedidos por status,
+  fornecedor, contrato, produto, datas de aprovacao/cancelamento/recebimento e quantidade.
 
 Catalogos leves com `LIGHT_LOOKUP`:
 

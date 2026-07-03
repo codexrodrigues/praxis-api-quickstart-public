@@ -21,6 +21,9 @@ import org.praxisplatform.uischema.options.OptionSourceDescriptor;
 import org.praxisplatform.uischema.options.OptionSourcePolicy;
 import org.praxisplatform.uischema.options.OptionSourceRegistry;
 import org.praxisplatform.uischema.options.OptionSourceType;
+import org.praxisplatform.uischema.stats.StatsFieldRegistry;
+import org.praxisplatform.uischema.stats.StatsMetric;
+import org.praxisplatform.uischema.stats.StatsSupportMode;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,6 +33,7 @@ import org.springframework.web.server.ResponseStatusException;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 @Service
 public class ProcurementContractService extends AbstractQuickstartCrudService<ProcurementContract, ProcurementContractDTO, Integer, ProcurementContractFilterDTO, CreateProcurementContractDTO, UpdateProcurementContractDTO> {
@@ -39,6 +43,14 @@ public class ProcurementContractService extends AbstractQuickstartCrudService<Pr
             "companyId", "companyId",
             "supplierId", "supplierId"
     );
+    private static final StatsFieldRegistry STATS_FIELDS = StatsFieldRegistry.builder()
+            .groupByBucket("companyId", "companyId", Set.of(StatsMetric.COUNT))
+            .groupByBucket("supplierId", "supplierId", Set.of(StatsMetric.COUNT))
+            .groupByBucket("supplierName", "supplierName", Set.of(StatsMetric.COUNT))
+            .groupByBucket("currency", "currency", Set.of(StatsMetric.COUNT))
+            .groupByBucket("status", "status", Set.of(StatsMetric.COUNT))
+            .temporalTimeSeriesField("validUntil", "validUntil")
+            .build();
 
     private static final OptionSourceRegistry OPTION_SOURCES = OptionSourceRegistry.builder()
             .add(ProcurementContract.class, new OptionSourceDescriptor(
@@ -93,6 +105,21 @@ public class ProcurementContractService extends AbstractQuickstartCrudService<Pr
     public ProcurementContract mergeUpdate(ProcurementContract existing, ProcurementContract fromPayload) {
         mapper.updateEntity(fromPayload, existing);
         return existing;
+    }
+
+    @Override
+    public StatsSupportMode getGroupByStatsSupportMode() {
+        return StatsSupportMode.AUTO;
+    }
+
+    @Override
+    public StatsSupportMode getTimeSeriesStatsSupportMode() {
+        return StatsSupportMode.AUTO;
+    }
+
+    @Override
+    public StatsFieldRegistry getStatsFieldRegistry() {
+        return STATS_FIELDS;
     }
 
     @Transactional

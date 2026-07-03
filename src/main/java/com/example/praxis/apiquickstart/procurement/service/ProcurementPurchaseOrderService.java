@@ -17,6 +17,9 @@ import com.example.praxis.apiquickstart.procurement.mapper.ProcurementPurchaseOr
 import com.example.praxis.apiquickstart.procurement.repository.ProcurementPurchaseOrderRepository;
 import com.example.praxis.apiquickstart.procurement.repository.ProcurementSupplierRepository;
 import org.praxisplatform.uischema.service.base.BaseResourceCommandService;
+import org.praxisplatform.uischema.stats.StatsFieldRegistry;
+import org.praxisplatform.uischema.stats.StatsMetric;
+import org.praxisplatform.uischema.stats.StatsSupportMode;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,6 +29,7 @@ import org.springframework.web.server.ResponseStatusException;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 
 @Service
 public class ProcurementPurchaseOrderService extends AbstractQuickstartCrudService<ProcurementPurchaseOrder, ProcurementPurchaseOrderDTO, Integer, ProcurementPurchaseOrderFilterDTO, CreateProcurementPurchaseOrderDTO, UpdateProcurementPurchaseOrderDTO> {
@@ -37,6 +41,19 @@ public class ProcurementPurchaseOrderService extends AbstractQuickstartCrudServi
     private static final String STATUS_APPROVED = "APPROVED";
     private static final String STATUS_CANCELLED = "CANCELLED";
     private static final String STATUS_RECEIVED = "RECEIVED";
+    private static final StatsFieldRegistry STATS_FIELDS = StatsFieldRegistry.builder()
+            .groupByBucket("companyId", "companyId", Set.of(StatsMetric.COUNT))
+            .groupByBucket("supplierId", "supplierId", Set.of(StatsMetric.COUNT))
+            .groupByBucket("contractId", "contractId", Set.of(StatsMetric.COUNT))
+            .groupByBucket("productId", "productId", Set.of(StatsMetric.COUNT))
+            .groupByBucket("currency", "currency", Set.of(StatsMetric.COUNT))
+            .groupByBucket("status", "status", Set.of(StatsMetric.COUNT))
+            .temporalTimeSeriesField("orderDate", "orderDate")
+            .temporalTimeSeriesField("approvedAt", "approvedAt")
+            .temporalTimeSeriesField("cancelledAt", "cancelledAt")
+            .temporalTimeSeriesField("receivedAt", "receivedAt")
+            .numericHistogramMeasureField("quantity", "quantity")
+            .build();
 
     private final ProcurementPurchaseOrderMapper mapper;
     private final ProcurementSupplierRepository supplierRepository;
@@ -87,6 +104,26 @@ public class ProcurementPurchaseOrderService extends AbstractQuickstartCrudServi
         existing.setCancelledAt(cancelledAt);
         existing.setReceivedAt(receivedAt);
         return existing;
+    }
+
+    @Override
+    public StatsSupportMode getGroupByStatsSupportMode() {
+        return StatsSupportMode.AUTO;
+    }
+
+    @Override
+    public StatsSupportMode getTimeSeriesStatsSupportMode() {
+        return StatsSupportMode.AUTO;
+    }
+
+    @Override
+    public StatsSupportMode getDistributionStatsSupportMode() {
+        return StatsSupportMode.AUTO;
+    }
+
+    @Override
+    public StatsFieldRegistry getStatsFieldRegistry() {
+        return STATS_FIELDS;
     }
 
     @Transactional
