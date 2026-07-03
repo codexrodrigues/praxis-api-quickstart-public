@@ -10,7 +10,10 @@ import com.example.praxis.apiquickstart.operationalassets.mapper.EquipamentoAloc
 import com.example.praxis.apiquickstart.operationalassets.service.EquipamentoAlocacaoService;
 import org.praxisplatform.uischema.annotation.ApiGroup;
 import org.praxisplatform.uischema.annotation.ApiResource;
+import org.praxisplatform.uischema.annotation.UiSurface;
 import com.example.praxis.apiquickstart.core.controller.base.AbstractQuickstartCrudController;
+import org.praxisplatform.uischema.surface.SurfaceKind;
+import org.praxisplatform.uischema.surface.SurfaceScope;
 import org.springframework.beans.factory.annotation.Autowired;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -74,6 +77,16 @@ public class EquipamentoAlocacaoController extends AbstractQuickstartCrudControl
     protected Integer getDtoId(EquipamentoAlocacaoDTO dto) { return dto.getId(); }
 
     @PostMapping("/filter")
+    @UiSurface(
+            id = "equipment-custody-board",
+            kind = SurfaceKind.VIEW,
+            scope = SurfaceScope.COLLECTION,
+            title = "Cadeia de custodia",
+            description = "Rastreia alocacoes de equipamentos por item, responsavel, janela de uso e status da custodia operacional.",
+            intent = "assets-equipment-custody",
+            order = 20,
+            tags = {"assets", "equipment", "custody", "allocation"}
+    )
     @Operation(summary = "Filtrar alocações de equipamentos", description = "Lista cessões de equipamentos por colaborador, responsável, período de uso e status para acompanhar distribuição e rastreabilidade dos ativos.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Lista filtrada retornada com sucesso."),
@@ -195,7 +208,6 @@ public class EquipamentoAlocacaoController extends AbstractQuickstartCrudControl
         return super.deleteBatch(ids);
     }
 }
-
 
 
 

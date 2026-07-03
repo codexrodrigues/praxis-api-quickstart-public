@@ -50,7 +50,7 @@ producao.
 | Pessoas e RH | `human-resources` | 20 | 6 | 4 | `suportado-parcialmente`: boa documentacao de campos, actions em folha e surfaces de funcionarios, mas ainda pode ganhar mais exemplos de workflows de ciclo de vida. |
 | Operacoes | `operations` | 12 | 9 | 10 | `ja-suportado-mal-nomeado-ou-mal-materializado`: e o melhor dominio para demonstrar actions/surfaces; cockpit deve usar esse dominio como referencia visual de workflows. |
 | Suprimentos | `procurement` | 5 | 4 | 0 | `suportado-parcialmente`: recursos, schemas, option sources e surfaces de compra/contrato/fornecedor existem; falta action de workflow somente quando houver comando real de negocio. |
-| Ativos Operacionais | `assets` | 4 | 0 | 0 | `suportado-parcialmente`: recursos conectam equipamentos, veiculos, missoes e alocacoes; falta surface/action exemplar para movimentacao e alocacao. |
+| Ativos Operacionais | `assets` | 4 | 4 | 0 | `suportado-parcialmente`: recursos, lookups e surfaces de inventario/frota/custodia existem; falta action de workflow somente quando houver comando real de movimentacao. |
 | Inteligencia de Risco | `risk-intelligence` | 2 | 0 | 0 | `suportado-parcialmente`: bom potencial analitico; falta surface de painel/serie e action de triagem ou revisao de ameaca. |
 
 Nenhum item acima exige contrato novo neste momento. A plataforma ja sabe expor
@@ -169,9 +169,9 @@ Materializacao esperada:
 1. `procurement`: evoluir de surfaces declarativas para actions de negocio como
    revisar contrato, aprovar pedido ou bloquear fornecedor apenas quando houver
    endpoint/service real que execute o comando governado.
-2. `assets`: publicar surface de alocacao operacional conectando equipamento,
-   veiculo e missao; adicionar action de reservar, liberar ou transferir ativo
-   quando o service ja suportar comando claro.
+2. `assets`: evoluir surfaces de inventario, custodia e frota para actions de
+   reservar, liberar ou transferir ativo apenas quando existir endpoint/service
+   real que execute a decisao operacional.
 3. `risk-intelligence`: publicar surface analitica para incidentes/ameacas e
    action de revisar severidade, marcar ameaca monitorada ou abrir investigacao.
 4. `human-resources`: ampliar exemplo de ciclo de vida alem de folha, como

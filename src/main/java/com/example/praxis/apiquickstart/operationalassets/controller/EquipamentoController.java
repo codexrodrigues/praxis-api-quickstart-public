@@ -10,7 +10,10 @@ import com.example.praxis.apiquickstart.operationalassets.mapper.EquipamentoMapp
 import com.example.praxis.apiquickstart.operationalassets.service.EquipamentoService;
 import org.praxisplatform.uischema.annotation.ApiGroup;
 import org.praxisplatform.uischema.annotation.ApiResource;
+import org.praxisplatform.uischema.annotation.UiSurface;
 import com.example.praxis.apiquickstart.core.controller.base.AbstractQuickstartCrudController;
+import org.praxisplatform.uischema.surface.SurfaceKind;
+import org.praxisplatform.uischema.surface.SurfaceScope;
 import org.springframework.beans.factory.annotation.Autowired;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -29,7 +32,14 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import java.util.List;
 
-@ApiResource(value = ApiPaths.Assets.EQUIPAMENTOS, resourceKey = "assets.equipamentos")
+@ApiResource(
+        value = ApiPaths.Assets.EQUIPAMENTOS,
+        resourceKey = "assets.equipamentos",
+        title = "Equipamentos",
+        description = "Inventario de equipamentos operacionais, disponibilidade, resistencia, custodiante e elegibilidade para alocacao.",
+        icon = "package",
+        visualTone = "assets"
+)
 @ApiGroup("assets")
 /**
  * Controller de referência para inventário de equipamentos.
@@ -67,6 +77,16 @@ public class EquipamentoController extends AbstractQuickstartCrudController<Equi
     protected Integer getDtoId(EquipamentoDTO dto) { return dto.getId(); }
 
     @PostMapping("/filter")
+    @UiSurface(
+            id = "equipment-inventory-board",
+            kind = SurfaceKind.VIEW,
+            scope = SurfaceScope.COLLECTION,
+            title = "Inventario de equipamentos",
+            description = "Mostra equipamentos por tipo, custodiante, resistencia e status para planejar alocacoes e auditoria patrimonial.",
+            intent = "assets-equipment-inventory",
+            order = 10,
+            tags = {"assets", "equipment", "inventory", "lookup"}
+    )
     @Operation(summary = "Filtrar equipamentos operacionais", description = "Lista equipamentos por tipo, capacidade, proprietário, disponibilidade e status de uso para inventário operacional e preparo de campo.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Lista filtrada retornada com sucesso."),
@@ -188,7 +208,6 @@ public class EquipamentoController extends AbstractQuickstartCrudController<Equi
         return super.deleteBatch(ids);
     }
 }
-
 
 
 

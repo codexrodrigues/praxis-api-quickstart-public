@@ -10,7 +10,10 @@ import com.example.praxis.apiquickstart.operationalassets.mapper.VeiculoMapper;
 import com.example.praxis.apiquickstart.operationalassets.service.VeiculoService;
 import org.praxisplatform.uischema.annotation.ApiGroup;
 import org.praxisplatform.uischema.annotation.ApiResource;
+import org.praxisplatform.uischema.annotation.UiSurface;
 import com.example.praxis.apiquickstart.core.controller.base.AbstractQuickstartCrudController;
+import org.praxisplatform.uischema.surface.SurfaceKind;
+import org.praxisplatform.uischema.surface.SurfaceScope;
 import org.springframework.beans.factory.annotation.Autowired;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -36,7 +39,14 @@ import java.util.List;
  * restante da plataforma: CRUD canonico, options, locate, cursor e hypermedia sem necessidade de
  * tratamento especial por ser um ativo fisico.</p>
  */
-@ApiResource(value = ApiPaths.Assets.VEICULOS, resourceKey = "assets.veiculos")
+@ApiResource(
+        value = ApiPaths.Assets.VEICULOS,
+        resourceKey = "assets.veiculos",
+        title = "Veiculos",
+        description = "Frota operacional, disponibilidade, capacidade, custodiante e elegibilidade para uso em missoes.",
+        icon = "local-shipping",
+        visualTone = "assets"
+)
 @ApiGroup("assets")
 public class VeiculoController extends AbstractQuickstartCrudController<Veiculo, VeiculoDTO, Integer, VeiculoFilterDTO, CreateVeiculoDTO, UpdateVeiculoDTO> {
 
@@ -65,6 +75,16 @@ public class VeiculoController extends AbstractQuickstartCrudController<Veiculo,
     protected Integer getDtoId(VeiculoDTO dto) { return dto.getId(); }
 
     @PostMapping("/filter")
+    @UiSurface(
+            id = "fleet-readiness-board",
+            kind = SurfaceKind.VIEW,
+            scope = SurfaceScope.COLLECTION,
+            title = "Prontidao da frota",
+            description = "Mostra veiculos por tipo, capacidade, custodiante e status para decidir disponibilidade logistica de missoes.",
+            intent = "assets-fleet-readiness",
+            order = 30,
+            tags = {"assets", "vehicle", "fleet", "mission"}
+    )
     @Operation(summary = "Filtrar veículos operacionais", description = "Lista veículos por tipo, capacidade, proprietário, disponibilidade e status para planejamento logístico, transporte e apoio de campo.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Lista filtrada retornada com sucesso."),
@@ -186,7 +206,6 @@ public class VeiculoController extends AbstractQuickstartCrudController<Veiculo,
         return super.deleteBatch(ids);
     }
 }
-
 
 
 

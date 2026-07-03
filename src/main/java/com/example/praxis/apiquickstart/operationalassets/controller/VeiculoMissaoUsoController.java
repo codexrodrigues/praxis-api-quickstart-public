@@ -10,7 +10,10 @@ import com.example.praxis.apiquickstart.operationalassets.mapper.VeiculoMissaoUs
 import com.example.praxis.apiquickstart.operationalassets.service.VeiculoMissaoUsoService;
 import org.praxisplatform.uischema.annotation.ApiGroup;
 import org.praxisplatform.uischema.annotation.ApiResource;
+import org.praxisplatform.uischema.annotation.UiSurface;
 import com.example.praxis.apiquickstart.core.controller.base.AbstractQuickstartCrudController;
+import org.praxisplatform.uischema.surface.SurfaceKind;
+import org.praxisplatform.uischema.surface.SurfaceScope;
 import org.springframework.beans.factory.annotation.Autowired;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -37,7 +40,14 @@ import java.util.List;
  * plataforma. Isso ajuda a mostrar como modelar relacoes operacionais sem criar endpoints
  * excepcionais.</p>
  */
-@ApiResource(value = ApiPaths.Assets.VEICULO_MISSAO_USOS, resourceKey = "assets.veiculo-missao-usos")
+@ApiResource(
+        value = ApiPaths.Assets.VEICULO_MISSAO_USOS,
+        resourceKey = "assets.veiculo-missao-usos",
+        title = "Uso de veiculos em missao",
+        description = "Sorties e usos de frota conectando veiculos, missoes, pilotos, partida, retorno e observacoes operacionais.",
+        icon = "route",
+        visualTone = "assets"
+)
 @ApiGroup("assets")
 public class VeiculoMissaoUsoController extends AbstractQuickstartCrudController<VeiculoMissaoUso, VeiculoMissaoUsoDTO, Integer, VeiculoMissaoUsoFilterDTO, CreateVeiculoMissaoUsoDTO, UpdateVeiculoMissaoUsoDTO> {
 
@@ -66,6 +76,16 @@ public class VeiculoMissaoUsoController extends AbstractQuickstartCrudController
     protected Integer getDtoId(VeiculoMissaoUsoDTO dto) { return dto.getId(); }
 
     @PostMapping("/filter")
+    @UiSurface(
+            id = "mission-fleet-usage-board",
+            kind = SurfaceKind.VIEW,
+            scope = SurfaceScope.COLLECTION,
+            title = "Frota em missao",
+            description = "Conecta veiculos a missoes, pilotos e janelas de uso para rastrear disponibilidade e historico logistico.",
+            intent = "assets-mission-fleet-usage",
+            order = 40,
+            tags = {"assets", "vehicle", "mission", "timeline"}
+    )
     @Operation(summary = "Filtrar uso de veículos em missão", description = "Lista alocações de veículos por missão, piloto, período de uso e status para acompanhar disponibilidade e consumo da frota em campo.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Lista filtrada retornada com sucesso."),
@@ -187,7 +207,6 @@ public class VeiculoMissaoUsoController extends AbstractQuickstartCrudController
         return super.deleteBatch(ids);
     }
 }
-
 
 
 

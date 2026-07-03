@@ -305,6 +305,30 @@ class OperationalAssetsEntityLookupPilotIntegrationTest {
         );
     }
 
+    @Test
+    void shouldExposeOperationalAssetsCockpitSurfaces() throws Exception {
+        assertAssetSurface(
+                "assets.equipamentos",
+                "equipment-inventory-board",
+                "Inventario de equipamentos"
+        );
+        assertAssetSurface(
+                "assets.equipamento-alocacoes",
+                "equipment-custody-board",
+                "Cadeia de custodia"
+        );
+        assertAssetSurface(
+                "assets.veiculos",
+                "fleet-readiness-board",
+                "Prontidao da frota"
+        );
+        assertAssetSurface(
+                "assets.veiculo-missao-usos",
+                "mission-fleet-usage-board",
+                "Frota em missao"
+        );
+    }
+
     private JsonNode body(ResponseEntity<String> response) throws Exception {
         assertEquals(HttpStatus.OK, response.getStatusCode(), response.getBody());
         assertNotNull(response.getBody());
@@ -332,5 +356,28 @@ class OperationalAssetsEntityLookupPilotIntegrationTest {
         assertEquals("ativo", optionSource.path("selectionPolicy").path("selectablePropertyPath").asText());
         assertTrue(optionSource.path("capabilities").path("filter").asBoolean());
         assertTrue(optionSource.path("capabilities").path("byIds").asBoolean());
+    }
+
+    private void assertAssetSurface(String resourceKey, String surfaceId, String title) throws Exception {
+        JsonNode surfacesCatalog = body(restTemplate.getForEntity(
+                "/schemas/surfaces?resource={resourceKey}",
+                String.class,
+                resourceKey
+        ));
+        assertEquals(resourceKey, surfacesCatalog.path("resourceKey").asText());
+        JsonNode surface = findById(surfacesCatalog.path("surfaces"), surfaceId);
+        assertNotNull(surface);
+        assertEquals("VIEW", surface.path("kind").asText());
+        assertEquals("COLLECTION", surface.path("scope").asText());
+        assertEquals(title, surface.path("title").asText());
+    }
+
+    private JsonNode findById(JsonNode items, String id) {
+        for (JsonNode item : items) {
+            if (id.equals(item.path("id").asText())) {
+                return item;
+            }
+        }
+        return null;
     }
 }
