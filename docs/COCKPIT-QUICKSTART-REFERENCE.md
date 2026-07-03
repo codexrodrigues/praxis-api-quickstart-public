@@ -111,7 +111,7 @@ Exemplos atuais mais fortes:
 - `procurement.suppliers`: surface de homologacao, risco e elegibilidade;
 - `procurement.contracts`: surface de governanca contratual;
 - `procurement.products`: surface de catalogo de produtos contratados;
-- `procurement.purchase-orders`: surfaces de controle e actions de aprovar, cancelar e receber pedido;
+- `procurement.purchase-orders`: surface de jornada governada empresa -> fornecedor -> contrato -> produto -> pedido, com actions de aprovar, cancelar e receber pedido;
 - `assets.equipamento-alocacoes`: surface de cadeia de custodia e actions de devolucao, perda e dano;
 - `human-resources.funcionarios`: surfaces de perfil e gestao de pessoas;
 - `operations.base-acessos`: revisao e governanca de acesso.
@@ -229,9 +229,10 @@ Materializacao esperada:
    `vw-indicadores-incidentes` como leitura analitica.
 2. `human-resources`: ampliar exemplo de ciclo de vida alem de folha, como
    afastamento, reputacao ou habilidade, se houver comando real de dominio.
-3. `procurement`: agora ja publica charts de compras; a proxima evolucao e criar
-   surfaces de acompanhamento que contem a jornada empresa -> fornecedor ->
-   contrato -> produto -> pedido em uma experiencia composta.
+3. `procurement`: ja publica charts de compras e uma surface de jornada
+   governada em `procurement.purchase-orders`; a proxima evolucao e ampliar
+   dados demonstrativos para o cockpit evidenciar gargalos, fornecedores
+   bloqueados, contratos vencendo e pedidos em risco.
 4. `assets`: evoluir amostras de dados para evidenciar perdas, danos,
    manutencoes e devolucoes em volume suficiente para o cockpit demonstrar
    outliers e comparativos reais.

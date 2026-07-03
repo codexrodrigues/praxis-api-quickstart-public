@@ -71,11 +71,11 @@ public class ProcurementPurchaseOrderController extends AbstractQuickstartCrudCo
             id = "purchase-order-control-board",
             kind = SurfaceKind.VIEW,
             scope = SurfaceScope.COLLECTION,
-            title = "Controle de pedidos de compra",
-            description = "Acompanha pedidos por empresa, fornecedor, contrato, produto, data e moeda para evidenciar a jornada de suprimentos no cockpit.",
-            intent = "procurement-purchase-order-control",
+            title = "Jornada governada de suprimentos",
+            description = "Reconstrói a cadeia empresa compradora -> fornecedor homologado -> contrato assinado -> produto contratado -> pedido de compra, mostrando onde filtros, charts, lookups e workflow actions governam aprovação, cancelamento e recebimento.",
+            intent = "procurement-governed-supply-journey",
             order = 30,
-            tags = {"procurement", "purchase-order", "supplier", "contract"}
+            tags = {"procurement", "journey", "company", "supplier", "contract", "product", "purchase-order", "workflow", "chart", "lookup"}
     )
     @Operation(
             summary = "Filtrar pedidos de compra",

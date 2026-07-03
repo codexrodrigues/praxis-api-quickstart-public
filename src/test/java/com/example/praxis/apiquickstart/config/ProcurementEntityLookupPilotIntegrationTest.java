@@ -409,7 +409,14 @@ class ProcurementEntityLookupPilotIntegrationTest {
                 String.class
         ));
         assertEquals("procurement.purchase-orders", purchaseOrderSurfaces.path("resourceKey").asText());
-        assertNotNull(findById(purchaseOrderSurfaces.path("surfaces"), "purchase-order-control-board"));
+        JsonNode journeySurface = findById(purchaseOrderSurfaces.path("surfaces"), "purchase-order-control-board");
+        assertNotNull(journeySurface);
+        assertEquals("Jornada governada de suprimentos", journeySurface.path("title").asText());
+        assertEquals("procurement-governed-supply-journey", journeySurface.path("intent").asText());
+        assertTrue(journeySurface.path("description").asText().contains("empresa compradora -> fornecedor homologado -> contrato assinado -> produto contratado -> pedido de compra"));
+        assertTrue(journeySurface.path("tags").toString().contains("journey"));
+        assertTrue(journeySurface.path("tags").toString().contains("workflow"));
+        assertTrue(journeySurface.path("tags").toString().contains("chart"));
 
         JsonNode issueSurface = findById(purchaseOrderSurfaces.path("surfaces"), "issue-purchase-order");
         assertNotNull(issueSurface);
