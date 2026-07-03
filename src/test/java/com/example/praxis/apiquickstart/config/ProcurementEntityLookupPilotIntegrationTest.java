@@ -366,6 +366,16 @@ class ProcurementEntityLookupPilotIntegrationTest {
 
     @Test
     void shouldExposeProcurementCockpitSurfaces() throws Exception {
+        JsonNode companySurfaces = body(restTemplate.getForEntity(
+                "/schemas/surfaces?resource=procurement.companies",
+                String.class
+        ));
+        assertEquals("procurement.companies", companySurfaces.path("resourceKey").asText());
+        JsonNode companyScope = findById(companySurfaces.path("surfaces"), "buying-company-scope-board");
+        assertNotNull(companyScope);
+        assertEquals("VIEW", companyScope.path("kind").asText());
+        assertEquals("COLLECTION", companyScope.path("scope").asText());
+
         JsonNode supplierSurfaces = body(restTemplate.getForEntity(
                 "/schemas/surfaces?resource=procurement.suppliers",
                 String.class
@@ -384,6 +394,15 @@ class ProcurementEntityLookupPilotIntegrationTest {
         assertNotNull(contractBoard);
         assertEquals("VIEW", contractBoard.path("kind").asText());
         assertEquals("COLLECTION", contractBoard.path("scope").asText());
+
+        JsonNode productSurfaces = body(restTemplate.getForEntity(
+                "/schemas/surfaces?resource=procurement.products",
+                String.class
+        ));
+        JsonNode productCatalog = findById(productSurfaces.path("surfaces"), "contract-product-catalog-board");
+        assertNotNull(productCatalog);
+        assertEquals("VIEW", productCatalog.path("kind").asText());
+        assertEquals("COLLECTION", productCatalog.path("scope").asText());
 
         JsonNode purchaseOrderSurfaces = body(restTemplate.getForEntity(
                 "/schemas/surfaces?resource=procurement.purchase-orders",

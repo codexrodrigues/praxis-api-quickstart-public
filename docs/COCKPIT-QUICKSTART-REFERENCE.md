@@ -107,6 +107,10 @@ Uso esperado:
 Exemplos atuais mais fortes:
 
 - `operations.missoes`: surfaces para acompanhamento, analytics e operacao;
+- `procurement.companies`: surface de escopo de empresas compradoras;
+- `procurement.suppliers`: surface de homologacao, risco e elegibilidade;
+- `procurement.contracts`: surface de governanca contratual;
+- `procurement.products`: surface de catalogo de produtos contratados;
 - `procurement.purchase-orders`: surfaces de controle e actions de aprovar, cancelar e receber pedido;
 - `assets.equipamento-alocacoes`: surface de cadeia de custodia e actions de devolucao, perda e dano;
 - `human-resources.funcionarios`: surfaces de perfil e gestao de pessoas;
