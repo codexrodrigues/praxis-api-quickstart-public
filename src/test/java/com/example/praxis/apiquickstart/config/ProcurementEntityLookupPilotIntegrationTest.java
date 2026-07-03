@@ -329,6 +329,40 @@ class ProcurementEntityLookupPilotIntegrationTest {
         );
     }
 
+    @Test
+    void shouldExposeProcurementCockpitSurfaces() throws Exception {
+        JsonNode supplierSurfaces = body(restTemplate.getForEntity(
+                "/schemas/surfaces?resource=procurement.suppliers",
+                String.class
+        ));
+        assertEquals("procurement.suppliers", supplierSurfaces.path("resourceKey").asText());
+        JsonNode homologationBoard = findById(supplierSurfaces.path("surfaces"), "supplier-homologation-board");
+        assertNotNull(homologationBoard);
+        assertEquals("VIEW", homologationBoard.path("kind").asText());
+        assertEquals("COLLECTION", homologationBoard.path("scope").asText());
+
+        JsonNode contractSurfaces = body(restTemplate.getForEntity(
+                "/schemas/surfaces?resource=procurement.contracts",
+                String.class
+        ));
+        JsonNode contractBoard = findById(contractSurfaces.path("surfaces"), "contract-governance-board");
+        assertNotNull(contractBoard);
+        assertEquals("VIEW", contractBoard.path("kind").asText());
+        assertEquals("COLLECTION", contractBoard.path("scope").asText());
+
+        JsonNode purchaseOrderSurfaces = body(restTemplate.getForEntity(
+                "/schemas/surfaces?resource=procurement.purchase-orders",
+                String.class
+        ));
+        assertEquals("procurement.purchase-orders", purchaseOrderSurfaces.path("resourceKey").asText());
+        assertNotNull(findById(purchaseOrderSurfaces.path("surfaces"), "purchase-order-control-board"));
+
+        JsonNode issueSurface = findById(purchaseOrderSurfaces.path("surfaces"), "issue-purchase-order");
+        assertNotNull(issueSurface);
+        assertEquals("FORM", issueSurface.path("kind").asText());
+        assertEquals("COLLECTION", issueSurface.path("scope").asText());
+    }
+
     private JsonNode body(ResponseEntity<String> response) throws Exception {
         assertEquals(HttpStatus.OK, response.getStatusCode(), response.getBody());
         assertNotNull(response.getBody());
@@ -372,6 +406,15 @@ class ProcurementEntityLookupPilotIntegrationTest {
     private JsonNode findByLabel(JsonNode items, String label) {
         for (JsonNode item : items) {
             if (label.equals(item.path("label").asText())) {
+                return item;
+            }
+        }
+        return null;
+    }
+
+    private JsonNode findById(JsonNode items, String id) {
+        for (JsonNode item : items) {
+            if (id.equals(item.path("id").asText())) {
                 return item;
             }
         }

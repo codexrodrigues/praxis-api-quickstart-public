@@ -49,7 +49,7 @@ producao.
 | --- | --- | ---: | ---: | ---: | --- |
 | Pessoas e RH | `human-resources` | 20 | 6 | 4 | `suportado-parcialmente`: boa documentacao de campos, actions em folha e surfaces de funcionarios, mas ainda pode ganhar mais exemplos de workflows de ciclo de vida. |
 | Operacoes | `operations` | 12 | 9 | 10 | `ja-suportado-mal-nomeado-ou-mal-materializado`: e o melhor dominio para demonstrar actions/surfaces; cockpit deve usar esse dominio como referencia visual de workflows. |
-| Suprimentos | `procurement` | 5 | 0 | 0 | `suportado-parcialmente`: recursos, schemas e option sources existem; falta exemplaridade explicita de surfaces/actions para compra, contrato e fornecedor. |
+| Suprimentos | `procurement` | 5 | 4 | 0 | `suportado-parcialmente`: recursos, schemas, option sources e surfaces de compra/contrato/fornecedor existem; falta action de workflow somente quando houver comando real de negocio. |
 | Ativos Operacionais | `assets` | 4 | 0 | 0 | `suportado-parcialmente`: recursos conectam equipamentos, veiculos, missoes e alocacoes; falta surface/action exemplar para movimentacao e alocacao. |
 | Inteligencia de Risco | `risk-intelligence` | 2 | 0 | 0 | `suportado-parcialmente`: bom potencial analitico; falta surface de painel/serie e action de triagem ou revisao de ameaca. |
 
@@ -166,9 +166,9 @@ Materializacao esperada:
 
 ## Prioridades recomendadas de melhoria no Quickstart
 
-1. `procurement`: publicar surfaces para jornada de fornecedor, contrato e ordem
-   de compra; adicionar actions de negocio como revisar contrato, aprovar pedido
-   ou bloquear fornecedor quando houver regra governada demonstravel.
+1. `procurement`: evoluir de surfaces declarativas para actions de negocio como
+   revisar contrato, aprovar pedido ou bloquear fornecedor apenas quando houver
+   endpoint/service real que execute o comando governado.
 2. `assets`: publicar surface de alocacao operacional conectando equipamento,
    veiculo e missao; adicionar action de reservar, liberar ou transferir ativo
    quando o service ja suportar comando claro.
