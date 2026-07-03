@@ -8,7 +8,12 @@ import com.example.praxis.apiquickstart.operationalassets.entity.VeiculoMissaoUs
 import com.example.praxis.apiquickstart.operationalassets.mapper.VeiculoMissaoUsoMapper;
 import com.example.praxis.apiquickstart.operationalassets.repository.VeiculoMissaoUsoRepository;
 import com.example.praxis.apiquickstart.core.service.base.AbstractQuickstartCrudService;
+import org.praxisplatform.uischema.stats.StatsFieldRegistry;
+import org.praxisplatform.uischema.stats.StatsMetric;
+import org.praxisplatform.uischema.stats.StatsSupportMode;
 import org.springframework.stereotype.Service;
+
+import java.util.Set;
 
 /**
  * Service de vinculacao entre missoes e veiculos.
@@ -19,6 +24,13 @@ import org.springframework.stereotype.Service;
  */
 @Service
 public class VeiculoMissaoUsoService extends AbstractQuickstartCrudService<VeiculoMissaoUso, VeiculoMissaoUsoDTO, Integer, VeiculoMissaoUsoFilterDTO, CreateVeiculoMissaoUsoDTO, UpdateVeiculoMissaoUsoDTO> {
+    private static final StatsFieldRegistry STATS_FIELDS = StatsFieldRegistry.builder()
+            .groupByBucket("veiculoId", "veiculo.id", Set.of(StatsMetric.COUNT))
+            .groupByBucket("missaoId", "missao.id", Set.of(StatsMetric.COUNT))
+            .groupByBucket("pilotoId", "piloto.id", Set.of(StatsMetric.COUNT))
+            .temporalTimeSeriesField("partida", "partida")
+            .temporalTimeSeriesField("chegada", "chegada")
+            .build();
 
     private final VeiculoMissaoUsoMapper mapper;
 
@@ -32,8 +44,27 @@ public class VeiculoMissaoUsoService extends AbstractQuickstartCrudService<Veicu
         mapper.updateEntity(fromPayload, existing);
         return existing;
     }
-}
 
+    @Override
+    public StatsSupportMode getGroupByStatsSupportMode() {
+        return StatsSupportMode.AUTO;
+    }
+
+    @Override
+    public StatsSupportMode getTimeSeriesStatsSupportMode() {
+        return StatsSupportMode.AUTO;
+    }
+
+    @Override
+    public StatsSupportMode getDistributionStatsSupportMode() {
+        return StatsSupportMode.AUTO;
+    }
+
+    @Override
+    public StatsFieldRegistry getStatsFieldRegistry() {
+        return STATS_FIELDS;
+    }
+}
 
 
 

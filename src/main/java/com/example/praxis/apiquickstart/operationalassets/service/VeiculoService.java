@@ -22,12 +22,16 @@ import org.praxisplatform.uischema.options.OptionSourceDescriptor;
 import org.praxisplatform.uischema.options.OptionSourcePolicy;
 import org.praxisplatform.uischema.options.OptionSourceRegistry;
 import org.praxisplatform.uischema.options.OptionSourceType;
+import org.praxisplatform.uischema.stats.StatsFieldRegistry;
+import org.praxisplatform.uischema.stats.StatsMetric;
+import org.praxisplatform.uischema.stats.StatsSupportMode;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
+import java.util.Set;
 
 import static org.springframework.http.HttpStatus.CONFLICT;
 
@@ -42,6 +46,11 @@ import static org.springframework.http.HttpStatus.CONFLICT;
 public class VeiculoService extends AbstractQuickstartCrudService<Veiculo, VeiculoDTO, Integer, VeiculoFilterDTO, CreateVeiculoDTO, UpdateVeiculoDTO> {
     private static final String RESOURCE_KEY = "assets.veiculos";
     private static final String WORKFLOW_POLICY_TARGET_PREFIX = RESOURCE_KEY + ":";
+    private static final StatsFieldRegistry STATS_FIELDS = StatsFieldRegistry.builder()
+            .groupByBucket("status", "status", Set.of(StatsMetric.COUNT))
+            .groupByBucket("tipo", "tipo", Set.of(StatsMetric.COUNT))
+            .numericHistogramMeasureField("capacidade", "capacidade")
+            .build();
     private static final OptionSourceRegistry OPTION_SOURCES = OptionSourceRegistry.builder()
             .add(Veiculo.class, new OptionSourceDescriptor(
                     ApiPaths.Assets.VEICULOS_VEHICLE_LOOKUP_SOURCE,
@@ -102,6 +111,21 @@ public class VeiculoService extends AbstractQuickstartCrudService<Veiculo, Veicu
     public Veiculo mergeUpdate(Veiculo existing, Veiculo fromPayload) {
         mapper.updateEntity(fromPayload, existing);
         return existing;
+    }
+
+    @Override
+    public StatsSupportMode getGroupByStatsSupportMode() {
+        return StatsSupportMode.AUTO;
+    }
+
+    @Override
+    public StatsSupportMode getDistributionStatsSupportMode() {
+        return StatsSupportMode.AUTO;
+    }
+
+    @Override
+    public StatsFieldRegistry getStatsFieldRegistry() {
+        return STATS_FIELDS;
     }
 
     @Transactional
@@ -191,7 +215,6 @@ public class VeiculoService extends AbstractQuickstartCrudService<Veiculo, Veicu
         );
     }
 }
-
 
 
 

@@ -146,10 +146,31 @@ Recursos atuais com maior potencial:
 - `human-resources.vw-analytics-folha-pagamento`;
 - `operations.vw-resumo-missoes`;
 - `risk-intelligence.vw-indicadores-incidentes`.
+- `assets.equipamentos`;
+- `assets.equipamento-alocacoes`;
+- `assets.veiculos`;
+- `assets.veiculo-missao-usos`.
 
 O cockpit deve preferir explicar charts por pergunta de negocio, por exemplo:
 "Como a severidade de incidentes evolui por base?" em vez de apenas listar que
 um endpoint `stats` existe.
+
+Em `assets`, as perguntas ja materializadas pelo host exemplar sao:
+
+- "Quantos equipamentos estao em estoque, uso, manutencao, quebrados ou perdidos?"
+  via `POST /api/assets/equipamentos/stats/group-by` com `field=status`;
+- "Qual a distribuicao de resistencia do inventario?" via
+  `POST /api/assets/equipamentos/stats/distribution` com `field=resistencia`;
+- "Quantas custodias estao ativas, devolvidas, perdidas ou danificadas?" via
+  `POST /api/assets/equipamento-alocacoes/stats/group-by` com `field=status`;
+- "Quando as custodias foram abertas ou encerradas?" via
+  `POST /api/assets/equipamento-alocacoes/stats/timeseries` com `field=inicio`
+  ou `field=fim`;
+- "Como esta a prontidao da frota?" via
+  `POST /api/assets/veiculos/stats/group-by` com `field=status`;
+- "Quais veiculos, missoes ou pilotos concentram uso de frota?" via
+  `POST /api/assets/veiculo-missao-usos/stats/group-by` com `field=veiculoId`,
+  `field=missaoId` ou `field=pilotoId`.
 
 ### Relacionamentos navegaveis
 
@@ -177,8 +198,9 @@ Materializacao esperada:
    afastamento, reputacao ou habilidade, se houver comando real de dominio.
 3. `procurement`: adicionar charts e surfaces de acompanhamento de pedidos por
    status, fornecedor e prazo quando houver pergunta operacional clara para isso.
-4. `assets`: adicionar charts de disponibilidade por status, custodia ativa e
-   perdas/danos quando houver pergunta operacional clara para isso.
+4. `assets`: evoluir amostras de dados para evidenciar perdas, danos,
+   manutencoes e devolucoes em volume suficiente para o cockpit demonstrar
+   outliers e comparativos reais.
 5. `operations`: usar como benchmark visual e documental para os demais dominios,
    evitando copiar actions sem comportamento real.
 

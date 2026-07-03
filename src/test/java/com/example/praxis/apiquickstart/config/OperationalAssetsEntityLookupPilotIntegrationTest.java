@@ -382,6 +382,77 @@ class OperationalAssetsEntityLookupPilotIntegrationTest {
     }
 
     @Test
+    void shouldServeOperationalAssetsStatsForCockpitCharts() throws Exception {
+        JsonNode equipmentAvailability = body(restTemplate.postForEntity(
+                "/api/assets/equipamentos/stats/group-by",
+                authorizedJson("""
+                        {
+                          "filter": {},
+                          "field": "status",
+                          "metric": { "operation": "COUNT", "alias": "equipamentos" },
+                          "orderBy": "KEY_ASC"
+                        }
+                        """),
+                String.class
+        ));
+        assertEquals("status", equipmentAvailability.path("data").path("field").asText());
+        assertBucketCount(equipmentAvailability.path("data").path("buckets"), "EM_USO", 3);
+        assertBucketCount(equipmentAvailability.path("data").path("buckets"), "ESTOQUE", 1);
+        assertBucketCount(equipmentAvailability.path("data").path("buckets"), "QUEBRADO", 1);
+
+        JsonNode equipmentDurability = body(restTemplate.postForEntity(
+                "/api/assets/equipamentos/stats/distribution",
+                authorizedJson("""
+                        {
+                          "filter": {},
+                          "field": "resistencia",
+                          "mode": "HISTOGRAM",
+                          "metric": { "operation": "COUNT", "alias": "equipamentos" },
+                          "bucketSize": 25,
+                          "orderBy": "KEY_ASC"
+                        }
+                        """),
+                String.class
+        ));
+        assertEquals("resistencia", equipmentDurability.path("data").path("field").asText());
+        assertEquals("HISTOGRAM", equipmentDurability.path("data").path("mode").asText());
+        assertTrue(equipmentDurability.path("data").path("buckets").size() > 0);
+
+        JsonNode custodyStatus = body(restTemplate.postForEntity(
+                "/api/assets/equipamento-alocacoes/stats/group-by",
+                authorizedJson("""
+                        {
+                          "filter": {},
+                          "field": "status",
+                          "metric": { "operation": "COUNT", "alias": "custodias" },
+                          "orderBy": "KEY_ASC"
+                        }
+                        """),
+                String.class
+        ));
+        assertEquals("status", custodyStatus.path("data").path("field").asText());
+        assertBucketCount(custodyStatus.path("data").path("buckets"), "ATIVO", 3);
+
+        JsonNode custodyTimeline = body(restTemplate.postForEntity(
+                "/api/assets/equipamento-alocacoes/stats/timeseries",
+                authorizedJson("""
+                        {
+                          "filter": {},
+                          "field": "inicio",
+                          "granularity": "DAY",
+                          "metric": { "operation": "COUNT", "alias": "custodias" },
+                          "fillGaps": false,
+                          "orderBy": "KEY_ASC"
+                        }
+                        """),
+                String.class
+        ));
+        assertEquals("inicio", custodyTimeline.path("data").path("field").asText());
+        assertEquals("DAY", custodyTimeline.path("data").path("granularity").asText());
+        assertEquals(3, custodyTimeline.path("data").path("points").size());
+    }
+
+    @Test
     void shouldExposeAndExecuteAssetAvailabilityWorkflowActions() throws Exception {
         JsonNode equipmentActions = body(restTemplate.getForEntity(
                 "/schemas/actions?resource=assets.equipamentos",
@@ -591,6 +662,12 @@ class OperationalAssetsEntityLookupPilotIntegrationTest {
         assertEquals(path, action.path("path").asText());
     }
 
+    private void assertBucketCount(JsonNode buckets, String key, int expectedCount) {
+        JsonNode bucket = findByKey(buckets, key);
+        assertNotNull(bucket, "Bucket nao encontrado: " + key + " em " + buckets);
+        assertEquals(expectedCount, bucket.path("count").asInt());
+    }
+
     private void assertEquipmentSelectable(int id, boolean expectedSelectable) throws Exception {
         JsonNode selectedEquipment = objectMapper.readTree(restTemplate.getForObject(
                 "/api/assets/equipamentos/option-sources/equipment/options/by-ids?ids={id}",
@@ -612,6 +689,15 @@ class OperationalAssetsEntityLookupPilotIntegrationTest {
     private JsonNode findById(JsonNode items, String id) {
         for (JsonNode item : items) {
             if (id.equals(item.path("id").asText())) {
+                return item;
+            }
+        }
+        return null;
+    }
+
+    private JsonNode findByKey(JsonNode items, String key) {
+        for (JsonNode item : items) {
+            if (key.equals(item.path("key").asText()) || key.equals(item.path("label").asText())) {
                 return item;
             }
         }

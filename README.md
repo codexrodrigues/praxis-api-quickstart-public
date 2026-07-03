@@ -377,6 +377,11 @@ Smoke local opcional dos endpoints de `stats/*`:
 PRAXIS_EXTERNAL_SMOKE_TESTS=true ./mvnw test -Dtest=VwStatsSmokeHttpTest
 ```
 
+Smoke focal em memoria para provar o cockpit de Ativos Operacionais:
+```
+./mvnw test -Dtest=OperationalAssetsEntityLookupPilotIntegrationTest
+```
+
 Notas:
 - esse smoke sobe o contexto completo e depende da infraestrutura externa configurada para banco/config-store;
 - ele e destinado a validacao local/manual e nao faz parte da suite padrao de CI;
@@ -530,6 +535,15 @@ Exemplos de referencia no quickstart:
   `POST /api/assets/equipamentos/option-sources/equipment/options/filter`; equipamentos `ESTOQUE`
   e `EM_USO` sao selecionaveis, enquanto `MANUTENCAO`, `QUEBRADO` e `PERDIDO` permanecem
   reidrataveis para custodias existentes, mas bloqueados para novas alocacoes.
+- `assets.equipamentos` publica stats governados para graficos de disponibilidade
+  (`/stats/group-by`, `field=status`), tipo de equipamento (`field=tipo`) e resistencia
+  (`/stats/distribution`, `field=resistencia`).
+- `assets.equipamento-alocacoes` publica stats para custodia operacional:
+  status de custodia (`/stats/group-by`, `field=status`), concentracao por equipamento
+  ou funcionario (`field=equipamentoId` e `field=funcionarioId`) e timeline de abertura
+  ou encerramento (`/stats/timeseries`, `field=inicio` ou `field=fim`).
+- `assets.veiculos` e `assets.veiculo-missao-usos` completam a leitura de frota com
+  prontidao por status/tipo, capacidade em distribuicao e uso por veiculo, missao ou piloto.
 - Em `assets`, os campos de pessoa operacional (`proprietarioId`, `pilotoId` e `funcionarioId`)
   consomem a fonte governada `employee` em vez do endpoint generico de funcionarios.
 - Em `procurement`, as fontes `company`, `supplier`, `contract` e `product` demonstram uma cadeia

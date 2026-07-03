@@ -16,6 +16,9 @@ import com.example.praxis.apiquickstart.operationalassets.mapper.EquipamentoAloc
 import com.example.praxis.apiquickstart.operationalassets.repository.EquipamentoAlocacaoRepository;
 import com.example.praxis.apiquickstart.operationalassets.repository.EquipamentoRepository;
 import com.example.praxis.apiquickstart.core.service.base.AbstractQuickstartCrudService;
+import org.praxisplatform.uischema.stats.StatsFieldRegistry;
+import org.praxisplatform.uischema.stats.StatsMetric;
+import org.praxisplatform.uischema.stats.StatsSupportMode;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,6 +27,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Set;
 
 @Service
 /**
@@ -38,6 +42,13 @@ import java.util.List;
 public class EquipamentoAlocacaoService extends AbstractQuickstartCrudService<EquipamentoAlocacao, EquipamentoAlocacaoDTO, Integer, EquipamentoAlocacaoFilterDTO, CreateEquipamentoAlocacaoDTO, UpdateEquipamentoAlocacaoDTO> {
     private static final String RESOURCE_KEY = "assets.equipamento-alocacoes";
     private static final String WORKFLOW_POLICY_TARGET_PREFIX = RESOURCE_KEY + ":";
+    private static final StatsFieldRegistry STATS_FIELDS = StatsFieldRegistry.builder()
+            .groupByBucket("status", "status", Set.of(StatsMetric.COUNT))
+            .groupByBucket("equipamentoId", "equipamento.id", Set.of(StatsMetric.COUNT))
+            .groupByBucket("funcionarioId", "funcionario.id", Set.of(StatsMetric.COUNT))
+            .temporalTimeSeriesField("inicio", "inicio")
+            .temporalTimeSeriesField("fim", "fim")
+            .build();
 
     private final EquipamentoAlocacaoMapper mapper;
     private final EquipamentoRepository equipamentoRepository;
@@ -58,6 +69,26 @@ public class EquipamentoAlocacaoService extends AbstractQuickstartCrudService<Eq
     public EquipamentoAlocacao mergeUpdate(EquipamentoAlocacao existing, EquipamentoAlocacao fromPayload) {
         mapper.updateEntity(fromPayload, existing);
         return existing;
+    }
+
+    @Override
+    public StatsSupportMode getGroupByStatsSupportMode() {
+        return StatsSupportMode.AUTO;
+    }
+
+    @Override
+    public StatsSupportMode getTimeSeriesStatsSupportMode() {
+        return StatsSupportMode.AUTO;
+    }
+
+    @Override
+    public StatsSupportMode getDistributionStatsSupportMode() {
+        return StatsSupportMode.AUTO;
+    }
+
+    @Override
+    public StatsFieldRegistry getStatsFieldRegistry() {
+        return STATS_FIELDS;
     }
 
     @Transactional
@@ -169,7 +200,6 @@ public class EquipamentoAlocacaoService extends AbstractQuickstartCrudService<Eq
         return dto.getMotivo().trim();
     }
 }
-
 
 
 
