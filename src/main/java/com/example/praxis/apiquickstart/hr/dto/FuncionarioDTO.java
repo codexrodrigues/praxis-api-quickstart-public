@@ -33,6 +33,21 @@ import java.time.LocalDate;
 )
 public class FuncionarioDTO {
     @Schema(description = "Identificador interno do colaborador no servico de RH.", example = "1")
+    @UISchema(
+        label = "Código",
+        readOnly = true,
+        formHidden = true,
+        group = "Identificação",
+        order = 1,
+        icon = "pin",
+        extraProperties = {
+            @ExtensionProperty(name = "presentation.presenter", value = "iconValue"),
+            @ExtensionProperty(name = "presentation.icon", value = "pin"),
+            @ExtensionProperty(name = "presentation.prefix", value = "#"),
+            @ExtensionProperty(name = "presentation.appearance", value = "soft"),
+            @ExtensionProperty(name = "presentation.tooltip", value = "Código interno do colaborador")
+        }
+    )
     private Integer id;
 
     @UISchema(
@@ -246,7 +261,21 @@ public class FuncionarioDTO {
 
     @NotNull
     @Schema(description = "Indica se o colaborador esta ativo no cadastro; inativos podem ser retidos por auditoria sem aparecer em operacoes de rotina.")
-    @UISchema(label = "Ativo", type = FieldDataType.BOOLEAN, controlType = FieldControlType.CHECKBOX, group = "Profissional", order = 30, helpText = "Indica se o colaborador está ativo no sistema.", icon = "toggle_on")
+    @UISchema(
+        label = "Ativo",
+        type = FieldDataType.BOOLEAN,
+        controlType = FieldControlType.CHECKBOX,
+        group = "Profissional",
+        order = 30,
+        helpText = "Indica se o colaborador está ativo no sistema.",
+        icon = "toggle_on",
+        extraProperties = {
+            @ExtensionProperty(name = "presentation.presenter", value = "status"),
+            @ExtensionProperty(name = "presentation.icon", value = "toggle_on"),
+            @ExtensionProperty(name = "presentation.appearance", value = "soft"),
+            @ExtensionProperty(name = "presentation.tone", value = "success")
+        }
+    )
     private Boolean ativo;
 
     @NotNull
@@ -284,7 +313,19 @@ public class FuncionarioDTO {
     private String fotoPerfilUrl;
 
     @Schema(description = "Situacao civil informada para beneficios, dependentes e, quando exigido, relatorios regulatorios.")
-    @UISchema(label = "Estado Civil", controlType = FieldControlType.SELECT, group = "Identificação", order = 35, helpText = "Situação civil atual.", icon = "family_restroom")
+    @UISchema(
+        label = "Estado Civil",
+        controlType = FieldControlType.SELECT,
+        group = "Identificação",
+        order = 35,
+        helpText = "Situação civil atual.",
+        icon = "family_restroom",
+        extraProperties = {
+            @ExtensionProperty(name = "presentation.presenter", value = "chip"),
+            @ExtensionProperty(name = "presentation.icon", value = "family_restroom"),
+            @ExtensionProperty(name = "presentation.appearance", value = "soft")
+        }
+    )
     private EstadoCivil estadoCivil;
 
     public Integer getId() { return id; }
