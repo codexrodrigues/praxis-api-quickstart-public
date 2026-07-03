@@ -21,7 +21,8 @@ Use uma credencial owner/admin ou uma credencial tecnica de migracao com permiss
 javac scripts/JdbcSqlRunner.java
 java -cp "scripts:$POSTGRES_JDBC_JAR" JdbcSqlRunner \
   db/operational-migrations/V20260702_001__legacy_pay_codes.sql \
-  db/operational-migrations/V20260702_002__eventos_folha_status.sql
+  db/operational-migrations/V20260702_002__eventos_folha_status.sql \
+  db/operational-migrations/V20260703_001__purchase_order_lifecycle.sql
 ```
 
 Antes de executar, configure no shell as tres variaveis de ambiente do datasource operacional declaradas em `application.properties`: URL JDBC, usuario e senha do `spring.datasource.*`. `POSTGRES_JDBC_JAR` deve apontar para o driver PostgreSQL local. Em ambientes automatizados, prefira usar o classpath Maven ou a ferramenta oficial de migracao do provedor, mantendo a ordem dos arquivos.
@@ -42,6 +43,8 @@ O check falha com exit code diferente de zero quando um objeto operacional essen
 - tabela `public.legacy_pay_codes`
 - colunas de contrato de `public.legacy_pay_codes`
 - coluna `public.eventos_folha.status`
+- tabela `public.procurement_purchase_orders`
+- colunas de ciclo de vida de `public.procurement_purchase_orders`
 
 Esse conjunto deve crescer sempre que o Quickstart publicar um novo recurso JPA cujo schema operacional nao esteja coberto por dump, migration ou teste de bootstrap.
 

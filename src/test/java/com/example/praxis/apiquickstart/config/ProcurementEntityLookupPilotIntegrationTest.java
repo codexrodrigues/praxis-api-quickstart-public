@@ -164,7 +164,12 @@ class ProcurementEntityLookupPilotIntegrationTest {
                     product_id integer not null,
                     order_date date,
                     currency varchar(10),
-                    quantity integer
+                    quantity integer,
+                    status varchar(40) not null default 'DRAFT',
+                    disabled_reason varchar(255),
+                    approved_at date,
+                    cancelled_at date,
+                    received_at date
                 )
                 """);
 
@@ -197,6 +202,14 @@ class ProcurementEntityLookupPilotIntegrationTest {
                 values
                     (30, 1, 20, 'PRD-00123', 'Notebook Dell Latitude', 'Equipamentos', 12, 'UN', 'ACTIVE', null),
                     (31, 1, 20, 'PRD-00444', 'Docking Station Legacy', 'Equipamentos', 0, 'UN', 'BLOCKED', 'Produto sem estoque liberado')
+                """);
+        jdbcTemplate.update("""
+                insert into public.procurement_purchase_orders
+                    (id, company_id, supplier_id, contract_id, product_id, order_date, currency, quantity, status, disabled_reason, approved_at, cancelled_at, received_at)
+                values
+                    (40, 1, 10, 20, 30, DATE '2026-04-15', 'BRL', 2, 'DRAFT', null, null, null, null),
+                    (41, 1, 10, 20, 30, DATE '2026-04-16', 'BRL', 3, 'APPROVED', null, DATE '2026-04-17', null, null),
+                    (42, 1, 10, 20, 30, DATE '2026-04-18', 'BRL', 1, 'DRAFT', null, null, null, null)
                 """);
     }
 
@@ -470,6 +483,87 @@ class ProcurementEntityLookupPilotIntegrationTest {
         assertTrue(activeContract.get(0).path("extra").path("disabledReason").isMissingNode()
                 || activeContract.get(0).path("extra").path("disabledReason").isNull()
                 || activeContract.get(0).path("extra").path("disabledReason").asText().isBlank());
+    }
+
+    @Test
+    void shouldExposeAndExecutePurchaseOrderLifecycleWorkflowActions() throws Exception {
+        JsonNode schema = body(restTemplate.getForEntity(
+                "/schemas/filtered?path={path}&operation=post&schemaType=request",
+                String.class,
+                ApiPaths.Procurement.PURCHASE_ORDERS + "/filter"
+        ));
+        assertEquals("Status do pedido", schema.path("properties").path("status").path("x-ui").path("label").asText());
+
+        JsonNode actionsCatalog = body(restTemplate.getForEntity(
+                "/schemas/actions?resource=procurement.purchase-orders",
+                String.class
+        ));
+        assertEquals("procurement.purchase-orders", actionsCatalog.path("resourceKey").asText());
+        JsonNode approve = findById(actionsCatalog.path("actions"), "approve");
+        JsonNode cancel = findById(actionsCatalog.path("actions"), "cancel");
+        JsonNode receive = findById(actionsCatalog.path("actions"), "receive");
+        assertNotNull(approve);
+        assertNotNull(cancel);
+        assertNotNull(receive);
+        assertEquals("ITEM", approve.path("scope").asText());
+        assertEquals("/api/procurement/purchase-orders/{id}/actions/approve", approve.path("path").asText());
+
+        ResponseEntity<String> approveResponse = restTemplate.exchange(
+                "/api/procurement/purchase-orders/40/actions/approve",
+                HttpMethod.POST,
+                authorizedJson("""
+                        {
+                          "motivo": "Compra aprovada pela area solicitante"
+                        }
+                        """),
+                String.class
+        );
+        JsonNode approved = body(approveResponse);
+        assertEquals("DRAFT", approved.path("data").path("statusAnterior").asText());
+        assertEquals("APPROVED", approved.path("data").path("statusAtual").asText());
+        assertFalse(approved.path("data").path("approvedAt").asText().isBlank());
+
+        ResponseEntity<String> receiveResponse = restTemplate.exchange(
+                "/api/procurement/purchase-orders/41/actions/receive",
+                HttpMethod.POST,
+                authorizedJson("""
+                        {
+                          "motivo": "Material recebido no almoxarifado"
+                        }
+                        """),
+                String.class
+        );
+        JsonNode received = body(receiveResponse);
+        assertEquals("APPROVED", received.path("data").path("statusAnterior").asText());
+        assertEquals("RECEIVED", received.path("data").path("statusAtual").asText());
+        assertFalse(received.path("data").path("receivedAt").asText().isBlank());
+
+        ResponseEntity<String> cancelResponse = restTemplate.exchange(
+                "/api/procurement/purchase-orders/42/actions/cancel",
+                HttpMethod.POST,
+                authorizedJson("""
+                        {
+                          "motivo": "Pedido substituido por contrato consolidado"
+                        }
+                        """),
+                String.class
+        );
+        JsonNode cancelled = body(cancelResponse);
+        assertEquals("DRAFT", cancelled.path("data").path("statusAnterior").asText());
+        assertEquals("CANCELLED", cancelled.path("data").path("statusAtual").asText());
+        assertEquals("Pedido substituido por contrato consolidado", cancelled.path("data").path("motivo").asText());
+
+        ResponseEntity<String> duplicateCancel = restTemplate.exchange(
+                "/api/procurement/purchase-orders/42/actions/cancel",
+                HttpMethod.POST,
+                authorizedJson("""
+                        {
+                          "motivo": "Tentativa duplicada"
+                        }
+                        """),
+                String.class
+        );
+        assertEquals(HttpStatus.CONFLICT, duplicateCancel.getStatusCode());
     }
 
     @Test

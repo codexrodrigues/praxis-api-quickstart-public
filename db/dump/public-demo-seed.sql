@@ -1234,7 +1234,12 @@ CREATE TABLE public.procurement_purchase_orders (
     product_id integer NOT NULL,
     order_date date,
     currency character varying(255),
-    quantity integer
+    quantity integer,
+    status character varying(40) DEFAULT 'DRAFT'::character varying NOT NULL,
+    disabled_reason character varying(255),
+    approved_at date,
+    cancelled_at date,
+    received_at date
 );
 
 
@@ -26363,17 +26368,17 @@ COPY public.procurement_products (id, company_id, contract_id, sku, name, catego
 -- Data for Name: procurement_purchase_orders; Type: TABLE DATA; Schema: public; Owner: praxis_demo_owner
 --
 
-COPY public.procurement_purchase_orders (id, company_id, supplier_id, contract_id, product_id, order_date, currency, quantity) FROM stdin;
-40	1	10	20	30	2026-04-15	BRL	2
-41	1	13	22	32	2026-04-16	BRL	12
-42	1	13	23	34	2026-04-18	USD	3
-43	1	14	24	35	2026-04-20	BRL	1
-44	3	17	27	37	2026-04-17	BRL	4
-45	3	18	29	39	2026-04-22	BRL	20
-46	4	20	31	41	2026-04-21	BRL	8
-47	5	22	33	43	2026-04-19	BRL	10
-48	5	23	34	45	2026-04-25	BRL	1
-49	6	24	35	46	2026-04-24	BRL	2
+COPY public.procurement_purchase_orders (id, company_id, supplier_id, contract_id, product_id, order_date, currency, quantity, status, disabled_reason, approved_at, cancelled_at, received_at) FROM stdin;
+40	1	10	20	30	2026-04-15	BRL	2	DRAFT	\N	\N	\N	\N
+41	1	13	22	32	2026-04-16	BRL	12	APPROVED	\N	2026-04-17	\N	\N
+42	1	13	23	34	2026-04-18	USD	3	RECEIVED	\N	2026-04-19	\N	2026-04-22
+43	1	14	24	35	2026-04-20	BRL	1	CANCELLED	Demanda cancelada pela area solicitante	\N	2026-04-21	\N
+44	3	17	27	37	2026-04-17	BRL	4	APPROVED	\N	2026-04-18	\N	\N
+45	3	18	29	39	2026-04-22	BRL	20	DRAFT	\N	\N	\N	\N
+46	4	20	31	41	2026-04-21	BRL	8	APPROVED	\N	2026-04-22	\N	\N
+47	5	22	33	43	2026-04-19	BRL	10	RECEIVED	\N	2026-04-20	\N	2026-04-24
+48	5	23	34	45	2026-04-25	BRL	1	DRAFT	\N	\N	\N	\N
+49	6	24	35	46	2026-04-24	BRL	2	CANCELLED	Fornecedor solicitou replanejamento logistico	\N	2026-04-25	\N
 \.
 
 
@@ -27412,6 +27417,13 @@ CREATE INDEX idx_procurement_contracts_company_supplier ON public.procurement_co
 --
 
 CREATE INDEX idx_procurement_products_company_contract ON public.procurement_products USING btree (company_id, contract_id);
+
+
+--
+-- Name: idx_procurement_purchase_orders_status; Type: INDEX; Schema: public; Owner: praxis_demo_owner
+--
+
+CREATE INDEX idx_procurement_purchase_orders_status ON public.procurement_purchase_orders USING btree (status);
 
 
 --

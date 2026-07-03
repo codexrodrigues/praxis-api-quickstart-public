@@ -31,6 +31,12 @@ public final class ApiOperationalSchemaDriftCheck {
             checkColumn(connection, "public", "legacy_pay_codes", "status", failures);
             checkColumn(connection, "public", "legacy_pay_codes", "active", failures);
             checkColumn(connection, "public", "eventos_folha", "status", failures);
+            checkTable(connection, "public", "procurement_purchase_orders", failures);
+            checkColumn(connection, "public", "procurement_purchase_orders", "status", failures);
+            checkColumn(connection, "public", "procurement_purchase_orders", "disabled_reason", failures);
+            checkColumn(connection, "public", "procurement_purchase_orders", "approved_at", failures);
+            checkColumn(connection, "public", "procurement_purchase_orders", "cancelled_at", failures);
+            checkColumn(connection, "public", "procurement_purchase_orders", "received_at", failures);
 
             if (!failures.isEmpty()) {
                 System.err.println("API operational datasource drift detected:");

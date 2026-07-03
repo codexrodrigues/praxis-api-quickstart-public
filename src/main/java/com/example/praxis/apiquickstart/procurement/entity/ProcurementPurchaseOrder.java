@@ -39,4 +39,19 @@ public class ProcurementPurchaseOrder {
 
     @Column(name = "quantity")
     private Integer quantity;
+
+    @Column(name = "status")
+    private String status;
+
+    @Column(name = "disabled_reason")
+    private String disabledReason;
+
+    @Column(name = "approved_at")
+    private LocalDate approvedAt;
+
+    @Column(name = "cancelled_at")
+    private LocalDate cancelledAt;
+
+    @Column(name = "received_at")
+    private LocalDate receivedAt;
 }

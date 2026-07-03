@@ -2,6 +2,7 @@ package com.example.praxis.apiquickstart.procurement.service;
 
 import com.example.praxis.apiquickstart.config.DomainRuleBackendValidationPolicy;
 import com.example.praxis.apiquickstart.config.DomainRuleBackendValidationPolicyResolver;
+import com.example.praxis.apiquickstart.config.DomainRuleWorkflowActionPolicyResolver;
 import com.example.praxis.apiquickstart.procurement.entity.ProcurementSupplier;
 import com.example.praxis.apiquickstart.procurement.mapper.ProcurementPurchaseOrderMapper;
 import com.example.praxis.apiquickstart.procurement.repository.ProcurementPurchaseOrderRepository;
@@ -36,6 +37,9 @@ class ProcurementPurchaseOrderServiceTest {
 
     @Mock
     private DomainRuleBackendValidationPolicyResolver backendValidationPolicyResolver;
+
+    @Mock
+    private DomainRuleWorkflowActionPolicyResolver workflowActionPolicyResolver;
 
     @Test
     void shouldBlockSupplierWhenPublishedBackendValidationPolicyBlocksStatus() {
@@ -97,7 +101,8 @@ class ProcurementPurchaseOrderServiceTest {
                 repository,
                 mapper,
                 supplierRepository,
-                backendValidationPolicyResolver);
+                backendValidationPolicyResolver,
+                workflowActionPolicyResolver);
     }
 
     private static DomainRuleBackendValidationPolicy policy(String message) {

@@ -93,4 +93,29 @@ public class ProcurementPurchaseOrderDTO {
     @Schema(description = "Quantidade encomendada na unidade de medida do produto, sujeita a minimo e multiplos de embalagem.")
     @UISchema(label = "Quantidade", type = FieldDataType.NUMBER, order = 70, icon = "format_list_numbered")
     private Integer quantity;
+
+    @Schema(description = "Estado operacional do pedido no ciclo de suprimentos: rascunho, aprovado, cancelado ou recebido.")
+    @UISchema(
+            label = "Status do pedido",
+            controlType = FieldControlType.SELECT,
+            order = 80,
+            icon = "published_with_changes"
+    )
+    private String status;
+
+    @Schema(description = "Motivo que explica por que o pedido deixou de estar elegivel para execucao.")
+    @UISchema(label = "Motivo de bloqueio", controlType = FieldControlType.TEXTAREA, order = 90, icon = "notes")
+    private String disabledReason;
+
+    @Schema(description = "Data em que o pedido foi aprovado para execucao operacional.")
+    @UISchema(label = "Aprovado em", type = FieldDataType.DATE, controlType = FieldControlType.DATE_PICKER, order = 100, icon = "verified")
+    private LocalDate approvedAt;
+
+    @Schema(description = "Data em que o pedido foi cancelado e retirado do fluxo de compra.")
+    @UISchema(label = "Cancelado em", type = FieldDataType.DATE, controlType = FieldControlType.DATE_PICKER, order = 110, icon = "cancel")
+    private LocalDate cancelledAt;
+
+    @Schema(description = "Data em que o pedido foi recebido, materializando fechamento do fluxo de suprimentos.")
+    @UISchema(label = "Recebido em", type = FieldDataType.DATE, controlType = FieldControlType.DATE_PICKER, order = 120, icon = "inventory")
+    private LocalDate receivedAt;
 }

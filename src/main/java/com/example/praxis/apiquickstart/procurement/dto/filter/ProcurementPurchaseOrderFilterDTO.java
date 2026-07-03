@@ -51,4 +51,12 @@ public class ProcurementPurchaseOrderFilterDTO implements GenericFilterDTO {
     @Schema(
             description = "Produto ou servico requisitado pelo pedido de compra.")
     private Integer productId;
+
+    @UISchema(label = "Status do pedido", controlType = FieldControlType.SELECT, order = 50,
+            helpText = "Filtra pedidos por etapa do ciclo de compra: rascunho, aprovado, cancelado ou recebido.",
+            icon = "published_with_changes")
+    @Filterable(operation = Filterable.FilterOperation.EQUAL)
+    @Schema(
+            description = "Estado operacional do pedido no fluxo de suprimentos: DRAFT, APPROVED, CANCELLED ou RECEIVED.")
+    private String status;
 }
