@@ -66,6 +66,37 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v5
+        with:
+          fetch-depth: 2
+
+      - name: Classify runtime rollout expectation
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [[ "${WAIT_FOR_RUNTIME_ROLLOUT}" != "true" || -z "${EXPECTED_BUILD_AFTER}" ]]; then
+            echo "RUNTIME_ROLLOUT_REQUIRED=false" >> "${GITHUB_ENV}"
+            echo "Runtime rollout wait disabled by input or non-workflow_run event."
+            exit 0
+          fi
+
+          if ! git rev-parse HEAD^ >/dev/null 2>&1; then
+            echo "RUNTIME_ROLLOUT_REQUIRED=true" >> "${GITHUB_ENV}"
+            echo "Previous commit unavailable; keeping rollout wait enabled."
+            exit 0
+          fi
+
+          changed_files="$(git diff --name-only HEAD^ HEAD)"
+          printf 'Changed files for rollout classification:\n%s\n' "${changed_files}"
+
+          runtime_files="$(printf '%s\n' "${changed_files}" | grep -E '^(src/main/|pom\.xml|mvnw|\.mvn/|system\.properties|Dockerfile|render\.yaml)$' || true)"
+          if [[ -n "${runtime_files}" ]]; then
+            echo "RUNTIME_ROLLOUT_REQUIRED=true" >> "${GITHUB_ENV}"
+            printf 'Runtime rollout required by:\n%s\n' "${runtime_files}"
+          else
+            echo "RUNTIME_ROLLOUT_REQUIRED=false" >> "${GITHUB_ENV}"
+            echo "No runtime-impacting files changed; skipping rollout timestamp wait."
+          fi
 
       - name: Install runtime smoke dependencies
         shell: bash
@@ -91,7 +122,7 @@ jobs:
         run: |
           set -euo pipefail
 
-          if [[ "${WAIT_FOR_RUNTIME_ROLLOUT}" != "true" || -z "${EXPECTED_BUILD_AFTER}" ]]; then
+          if [[ "${WAIT_FOR_RUNTIME_ROLLOUT}" != "true" || -z "${EXPECTED_BUILD_AFTER}" || "${RUNTIME_ROLLOUT_REQUIRED}" != "true" ]]; then
             echo "Skipping runtime rollout wait."
             exit 0
           fi
