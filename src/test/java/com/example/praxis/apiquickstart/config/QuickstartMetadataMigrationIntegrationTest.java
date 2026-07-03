@@ -395,8 +395,14 @@ class QuickstartMetadataMigrationIntegrationTest {
                 "/api/human-resources/funcionarios/{id}/profile"
         ));
         assertTrue(patchSchema.path("properties").has("nomeCompleto"));
+        assertEquals("Novo nome de exibição pública do colaborador.",
+                patchSchema.path("properties").path("nomeCompleto").path("x-ui").path("helpText").asText());
         assertTrue(patchSchema.path("properties").has("email"));
+        assertEquals("Novo endereço de e-mail operacional.",
+                patchSchema.path("properties").path("email").path("x-ui").path("helpText").asText());
         assertTrue(patchSchema.path("properties").has("telefone"));
+        assertEquals("Novo telefone de contato de emergência.",
+                patchSchema.path("properties").path("telefone").path("x-ui").path("helpText").asText());
         assertFalse(patchSchema.path("properties").has("salario"));
     }
 

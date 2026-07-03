@@ -192,6 +192,23 @@ class FolhasPagamentoPilotIntegrationTest {
         assertNotNull(findById(actionsCatalog.path("actions"), "approve-events"));
         assertNotNull(findById(actionsCatalog.path("actions"), "mark-paid"));
 
+        JsonNode scheduleRequestSchema = body(restTemplate.getForEntity(
+                "/schemas/filtered?path={path}&operation=patch&schemaType=request",
+                String.class,
+                "/api/human-resources/folhas-pagamento/{id}/payment-schedule"
+        ));
+        JsonNode paymentDateUi = scheduleRequestSchema.path("properties").path("dataPagamento").path("x-ui");
+        assertEquals("Data de pagamento", paymentDateUi.path("label").asText());
+        assertEquals("Data programada para execução da folha.", paymentDateUi.path("helpText").asText());
+
+        JsonNode approveEventsRequestSchema = body(restTemplate.getForEntity(
+                "/schemas/filtered?path={path}&operation=post&schemaType=request",
+                String.class,
+                "/api/human-resources/folhas-pagamento/{id}/actions/approve-events"
+        ));
+        assertEquals("Justificativa",
+                approveEventsRequestSchema.path("properties").path("justificativa").path("x-ui").path("label").asText());
+
         JsonNode awaitingCapabilities = body(restTemplate.getForEntity(
                 "/api/human-resources/folhas-pagamento/1/capabilities",
                 String.class

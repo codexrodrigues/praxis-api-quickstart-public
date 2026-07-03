@@ -17,12 +17,12 @@ public class ScheduleFolhaPagamentoDTO {
 
     @NotNull
     @UISchema(
-            label = "Payment date",
+            label = "Data de pagamento",
             type = FieldDataType.DATE,
             controlType = FieldControlType.DATE_PICKER,
             required = true,
             order = 10,
-            helpText = "Data programada para execuÃ§Ã£o da folha.",
+            helpText = "Data programada para execução da folha.",
             icon = "event"
     )
     @Schema(

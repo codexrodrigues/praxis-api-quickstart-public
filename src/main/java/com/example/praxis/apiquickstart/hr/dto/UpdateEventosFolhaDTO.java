@@ -19,14 +19,14 @@ public class UpdateEventosFolhaDTO {
 
     @NotBlank
     @Size(max = 255)
-    @UISchema(label = "DescriÃ§Ã£o", required = true, maxLength = 255, group = "Principal", order = 10, helpText = "Novo motivo ou nome do evento.", icon = "description")
+    @UISchema(label = "Descrição", required = true, maxLength = 255, group = "Principal", order = 10, helpText = "Novo motivo ou nome do evento.", icon = "description")
     @Schema(
             description = "Historico ou rubrica do lancamento (ex. correcao de lancamento anterior).")
     private String descricao;
 
     @NotBlank
     @Size(max = 100)
-    @UISchema(label = "Tipo", required = true, maxLength = 100, group = "Principal", order = 20, helpText = "Nova classificaÃ§Ã£o (provento ou desconto).", icon = "category")
+    @UISchema(label = "Tipo", required = true, maxLength = 100, group = "Principal", order = 20, helpText = "Nova classificação (provento ou desconto).", icon = "category")
     @Schema(
             description = "Categoria provento ou desconto (texto do dominio).")
     private String tipo;
@@ -48,7 +48,7 @@ public class UpdateEventosFolhaDTO {
             displayField = "label",
             endpoint = com.example.praxis.apiquickstart.constants.ApiPaths.HumanResources.FOLHAS_PAGAMENTO_PAYROLL_LOOKUP_OPTIONS,
             tableHidden = true,
-            helpText = "Nova folha Ã  qual o evento pertence.",
+            helpText = "Nova folha à qual o evento pertence.",
             icon = "receipt_long"
     )
     @Schema(

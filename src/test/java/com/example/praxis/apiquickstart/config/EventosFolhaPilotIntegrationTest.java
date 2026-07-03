@@ -209,6 +209,7 @@ class EventosFolhaPilotIntegrationTest {
                 "/api/human-resources/eventos-folha"
         ));
         assertTrue(requestSchema.path("properties").has("descricao"));
+        assertEquals("Descrição", requestSchema.path("properties").path("descricao").path("x-ui").path("label").asText());
         assertTrue(requestSchema.path("properties").has("tipo"));
         assertTrue(requestSchema.path("properties").has("valor"));
         assertTrue(requestSchema.path("properties").has("folhaPagamentoId"));
@@ -216,6 +217,7 @@ class EventosFolhaPilotIntegrationTest {
         assertFalse(requestSchema.path("properties").has("folhaPagamentoNome"));
         JsonNode folhaUi = requestSchema.path("properties").path("folhaPagamentoId").path("x-ui");
         JsonNode payrollOptionSource = folhaUi.path("optionSource");
+        assertEquals("Folha à qual o evento pertence.", folhaUi.path("helpText").asText());
         assertEquals("entityLookup", folhaUi.path("controlType").asText());
         assertEquals("/api/human-resources/folhas-pagamento/option-sources/payroll/options/filter",
                 folhaUi.path("endpoint").asText());
@@ -225,6 +227,15 @@ class EventosFolhaPilotIntegrationTest {
         assertEquals("payroll", payrollOptionSource.path("entityKey").asText());
         assertTrue(payrollOptionSource.path("capabilities").path("filter").asBoolean());
         assertTrue(payrollOptionSource.path("capabilities").path("byIds").asBoolean());
+
+        JsonNode bulkApproveRequestSchema = body(restTemplate.getForEntity(
+                "/schemas/filtered?path={path}&operation=post&schemaType=request",
+                String.class,
+                "/api/human-resources/eventos-folha/actions/bulk-approve"
+        ));
+        JsonNode idsUi = bulkApproveRequestSchema.path("properties").path("ids").path("x-ui");
+        assertEquals("IDs dos eventos", idsUi.path("label").asText());
+        assertEquals("Ação", idsUi.path("group").asText());
 
         JsonNode payrollOptions = body(restTemplate.postForEntity(
                 "/api/human-resources/folhas-pagamento/option-sources/payroll/options/filter",

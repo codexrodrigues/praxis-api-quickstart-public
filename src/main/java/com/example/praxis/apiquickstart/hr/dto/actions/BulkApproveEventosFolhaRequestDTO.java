@@ -23,7 +23,7 @@ public class BulkApproveEventosFolhaRequestDTO {
 
     @NotEmpty
     @Size(max = 200)
-    @UISchema(label = "IDs dos eventos", required = true, group = "A??o", order = 10, helpText = "Lista de identificadores dos eventos a aprovar.", icon = "format_list_numbered")
+    @UISchema(label = "IDs dos eventos", required = true, group = "Ação", order = 10, helpText = "Lista de identificadores dos eventos a aprovar.", icon = "format_list_numbered")
     @Schema(
             description = "Lista de chaves de EventosFolha a submeter; nao vazia, ate 200 itens. Duplicatas ou inexistentes podem ser ignoradas ou falhar por item (ver resultado). Ex.: 101, 102, 105 como ids distintos.")
     private List<@NotNull Integer> ids;

@@ -19,7 +19,7 @@ import org.praxisplatform.uischema.extension.annotation.UISchema;
 public class FolhaPagamentoWorkflowRequestDTO {
 
     @Size(max = 500)
-    @UISchema(label = "Justification", controlType = FieldControlType.TEXTAREA, maxLength = 500, order = 10, helpText = "Motivo da aprovação ou rejeição da folha.", icon = "notes")
+    @UISchema(label = "Justificativa", controlType = FieldControlType.TEXTAREA, maxLength = 500, order = 10, helpText = "Motivo da aprovação ou rejeição da folha.", icon = "notes")
     @Schema(
             description = "Texto operacional explicando a decisao; opcional no schema, mas a politica de aprovacao pode exigi-la; maximo 500 caracteres.",
             example = "Ciente do impacto de folha, aprovo processamento com competencia 04-2025.")

@@ -27,7 +27,7 @@ public class UpdateFuncionarioProfileDTO {
 
     @NotBlank
     @Size(max = 200)
-    @UISchema(label = "Nome completo", required = true, maxLength = 200, group = "Perfil", order = 10, helpText = "Novo nome de exibiÃ§Ã£o pÃºblica do colaborador.", icon = "badge")
+    @UISchema(label = "Nome completo", required = true, maxLength = 200, group = "Perfil", order = 10, helpText = "Novo nome de exibição pública do colaborador.", icon = "badge")
     @Schema(
             description = "Nome civil ou como o heroi deseja aparecer em listas e identificacao de missao.")
     private String nomeCompleto;
@@ -35,7 +35,7 @@ public class UpdateFuncionarioProfileDTO {
     @NotBlank
     @Email
     @Size(max = 200)
-    @UISchema(label = "Email", type = FieldDataType.EMAIL, required = true, maxLength = 200, group = "Perfil", order = 20, helpText = "Novo endereÃ§o de e-mail operacional.", icon = "email")
+    @UISchema(label = "Email", type = FieldDataType.EMAIL, required = true, maxLength = 200, group = "Perfil", order = 20, helpText = "Novo endereço de e-mail operacional.", icon = "email")
     @Schema(
             description = "Endereco de correio operacional; ancora convocacoes e alertas.")
     private String email;
@@ -56,7 +56,7 @@ public class UpdateFuncionarioProfileDTO {
                     @ExtensionProperty(name = "defaultCountry", value = "BR"),
                     @ExtensionProperty(name = "autoFormat", value = "true")
             },
-            helpText = "Novo telefone de contato de emergÃªncia.",
+            helpText = "Novo telefone de contato de emergência.",
             icon = "phone"
     )
     @Schema(
@@ -69,7 +69,7 @@ public class UpdateFuncionarioProfileDTO {
             description = "URL publica da foto de perfil (armazenamento ja resolvido pelo cliente de upload).")
     private String fotoPerfilUrl;
 
-    @UISchema(label = "Estado civil", controlType = FieldControlType.SELECT, group = "Perfil", order = 50, helpText = "Nova situaÃ§Ã£o civil.", icon = "family_restroom")
+    @UISchema(label = "Estado civil", controlType = FieldControlType.SELECT, group = "Perfil", order = 50, helpText = "Nova situação civil.", icon = "family_restroom")
     @Schema(
             description = "Estado civil para beneficio e documentacao; EstadoCivil.")
     private EstadoCivil estadoCivil;
