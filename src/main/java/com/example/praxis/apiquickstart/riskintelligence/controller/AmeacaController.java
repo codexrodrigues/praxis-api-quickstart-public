@@ -4,6 +4,8 @@ import com.example.praxis.apiquickstart.constants.ApiPaths;
 import com.example.praxis.apiquickstart.riskintelligence.dto.AmeacaDTO;
 import com.example.praxis.apiquickstart.riskintelligence.dto.CreateAmeacaDTO;
 import com.example.praxis.apiquickstart.riskintelligence.dto.UpdateAmeacaDTO;
+import com.example.praxis.apiquickstart.riskintelligence.dto.actions.ThreatTriageWorkflowRequestDTO;
+import com.example.praxis.apiquickstart.riskintelligence.dto.actions.ThreatTriageWorkflowResultDTO;
 import com.example.praxis.apiquickstart.riskintelligence.dto.filter.AmeacaFilterDTO;
 import com.example.praxis.apiquickstart.riskintelligence.entity.Ameaca;
 import com.example.praxis.apiquickstart.riskintelligence.mapper.AmeacaMapper;
@@ -11,6 +13,8 @@ import com.example.praxis.apiquickstart.riskintelligence.service.AmeacaService;
 import org.praxisplatform.uischema.annotation.ApiGroup;
 import org.praxisplatform.uischema.annotation.ApiResource;
 import org.praxisplatform.uischema.annotation.UiSurface;
+import org.praxisplatform.uischema.annotation.WorkflowAction;
+import org.praxisplatform.uischema.action.ActionScope;
 import org.praxisplatform.uischema.surface.SurfaceKind;
 import org.praxisplatform.uischema.surface.SurfaceScope;
 import com.example.praxis.apiquickstart.core.controller.base.AbstractQuickstartCrudController;
@@ -21,6 +25,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import org.praxisplatform.uischema.rest.response.RestApiResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.hateoas.EntityModel;
+import org.springframework.hateoas.Links;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -183,6 +188,44 @@ public class AmeacaController extends AbstractQuickstartCrudController<Ameaca, A
         return super.update(id, dto);
     }
 
+    @PostMapping("/{id}/actions/mark-under-observation")
+    @Operation(summary = "Colocar ameaça em observação", description = "Move uma ameaça livre ou em confronto para observação ativa, preservando-a como risco operacional selecionável.")
+    @WorkflowAction(
+            id = "mark-under-observation",
+            title = "Colocar em observacao",
+            description = "Reclassifica a ameaça para observação ativa quando a inteligência precisa acompanhar sinais sem encerrar o risco.",
+            scope = ActionScope.ITEM,
+            order = 100,
+            successMessage = "Ameaça colocada em observação",
+            allowedStates = {"LIVRE", "CONFRONTO"},
+            tags = {"workflow", "risk-intelligence", "threat", "triage"}
+    )
+    public ResponseEntity<RestApiResponse<ThreatTriageWorkflowResultDTO>> markUnderObservation(
+            @PathVariable Integer id,
+            @jakarta.validation.Valid @RequestBody ThreatTriageWorkflowRequestDTO dto
+    ) {
+        return workflowResponse(id, "/{id}/actions/mark-under-observation", service.markUnderObservation(id, dto));
+    }
+
+    @PostMapping("/{id}/actions/mark-captured")
+    @Operation(summary = "Marcar ameaça como capturada", description = "Encerra uma ameaça ativa como capturada, removendo sua elegibilidade em novas seleções operacionais.")
+    @WorkflowAction(
+            id = "mark-captured",
+            title = "Marcar como capturada",
+            description = "Registra captura ou neutralização operacional da ameaça e a remove de novas seleções de risco ativo.",
+            scope = ActionScope.ITEM,
+            order = 110,
+            successMessage = "Ameaça marcada como capturada",
+            allowedStates = {"LIVRE", "EM_OBSERVACAO", "CONFRONTO"},
+            tags = {"workflow", "risk-intelligence", "threat", "resolution"}
+    )
+    public ResponseEntity<RestApiResponse<ThreatTriageWorkflowResultDTO>> markCaptured(
+            @PathVariable Integer id,
+            @jakarta.validation.Valid @RequestBody ThreatTriageWorkflowRequestDTO dto
+    ) {
+        return workflowResponse(id, "/{id}/actions/mark-captured", service.markCaptured(id, dto));
+    }
+
     @DeleteMapping("/{id}")
     @Operation(summary = "Remover ameaça monitorada", description = "Exclui uma ameaça quando ela deixa de compor o catálogo de risco monitorado e não deve mais aparecer em novos fluxos.")
     @ApiResponses({
@@ -202,8 +245,23 @@ public class AmeacaController extends AbstractQuickstartCrudController<Ameaca, A
     public ResponseEntity<Void> deleteBatch(@RequestBody List<Integer> ids) {
         return super.deleteBatch(ids);
     }
-}
 
+    private ResponseEntity<RestApiResponse<ThreatTriageWorkflowResultDTO>> workflowResponse(
+            Integer id,
+            String operationPath,
+            ThreatTriageWorkflowResultDTO result
+    ) {
+        Links links = Links.of(
+                linkToSelf(id),
+                linkToAll(),
+                linkToFilter(),
+                linkToFilterCursor(),
+                linkToUiSchema(operationPath, "post", "request"),
+                linkToUiSchema(operationPath, "post", "response")
+        );
+        return withVersion(ResponseEntity.ok(), RestApiResponse.success(result, hateoasOrNull(links)));
+    }
+}
 
 
 

@@ -51,7 +51,7 @@ producao.
 | Operacoes | `operations` | 12 | 9 | 10 | `ja-suportado-mal-nomeado-ou-mal-materializado`: e o melhor dominio para demonstrar actions/surfaces; cockpit deve usar esse dominio como referencia visual de workflows. |
 | Suprimentos | `procurement` | 5 | 4 | 2 | `suportado-parcialmente`: recursos, schemas, option sources, surfaces e actions de elegibilidade de fornecedor existem; ainda pode evoluir actions de contrato/pedido quando houver comando real de negocio. |
 | Ativos Operacionais | `assets` | 4 | 4 | 4 | `suportado-parcialmente`: recursos, lookups, surfaces e actions de disponibilidade existem; ainda pode evoluir actions de custodia quando houver comando real de movimentacao. |
-| Inteligencia de Risco | `risk-intelligence` | 2 | 3 | 0 | `suportado-parcialmente`: recurso de ameacas e view analitica de incidentes publicam surfaces de monitoramento, painel e chart; falta action apenas quando houver comando real de triagem ou revisao. |
+| Inteligencia de Risco | `risk-intelligence` | 2 | 3 | 2 | `suportado-parcialmente`: recurso de ameacas e view analitica de incidentes publicam surfaces de monitoramento, painel, chart e actions reais de triagem; ainda pode evoluir comandos sobre incidentes quando houver recurso transacional dedicado. |
 
 Nenhum item acima exige contrato novo neste momento. A plataforma ja sabe expor
 `@ApiResource`, `@Operation`, `@Schema`, `@UISchema`, stats, options, surfaces,
@@ -172,9 +172,9 @@ Materializacao esperada:
 2. `assets`: evoluir actions de disponibilidade para comandos de custodia,
    reservar, liberar ou transferir ativo apenas quando existir endpoint/service
    real que execute a decisao operacional.
-3. `risk-intelligence`: evoluir as surfaces de ameacas e incidentes para actions
-   de revisar severidade, marcar ameaca monitorada ou abrir investigacao apenas
-   quando houver endpoint/service real que execute o comando governado.
+3. `risk-intelligence`: evoluir actions de ameacas para comandos sobre
+   incidentes quando houver recurso transacional dedicado, preservando a view
+   `vw-indicadores-incidentes` como leitura analitica.
 4. `human-resources`: ampliar exemplo de ciclo de vida alem de folha, como
    afastamento, reputacao ou habilidade, se houver comando real de dominio.
 5. `operations`: usar como benchmark visual e documental para os demais dominios,
