@@ -85,9 +85,17 @@ class ProcurementEntityLookupPilotIntegrationTest {
     @MockBean
     private DomainRuleWorkflowActionPolicyResolver workflowActionPolicyResolver;
 
+    @MockBean
+    private DomainRuleBackendValidationPolicyResolver backendValidationPolicyResolver;
+
+    @MockBean
+    private DomainRuleOptionSourcePolicyResolver optionSourcePolicyResolver;
+
     @BeforeEach
     void seedProcurementTables() {
         when(workflowActionPolicyResolver.resolveAppliedPolicy(anyString())).thenReturn(Optional.empty());
+        when(backendValidationPolicyResolver.resolveAppliedPolicy(anyString())).thenReturn(Optional.empty());
+        when(optionSourcePolicyResolver.resolveAppliedSelectionPolicy(anyString())).thenReturn(Optional.empty());
 
         jdbcTemplate.execute("drop table if exists public.procurement_purchase_orders");
         jdbcTemplate.execute("drop table if exists public.procurement_products");
@@ -180,7 +188,8 @@ class ProcurementEntityLookupPilotIntegrationTest {
                     (id, company_id, supplier_id, number, supplier_name, currency, valid_until, status, disabled_reason)
                 values
                     (20, 1, 10, 'CTR-2026-001', 'ACME Suprimentos Ltda', 'BRL', DATE '2026-12-31', 'SIGNED', null),
-                    (21, 1, 10, 'CTR-2025-009', 'ACME Suprimentos Ltda', 'BRL', DATE '2025-12-31', 'EXPIRED', 'Contrato expirado em 31/12/2025')
+                    (21, 1, 10, 'CTR-2025-009', 'ACME Suprimentos Ltda', 'BRL', DATE '2025-12-31', 'EXPIRED', 'Contrato expirado em 31/12/2025'),
+                    (22, 1, 10, 'CTR-2026-002', 'ACME Suprimentos Ltda', 'BRL', DATE '2026-11-30', 'DRAFT', null)
                 """);
         jdbcTemplate.update("""
                 insert into public.procurement_products
@@ -253,13 +262,16 @@ class ProcurementEntityLookupPilotIntegrationTest {
                         """),
                 String.class
         ));
-        assertEquals(2, contracts.path("content").size());
+        assertEquals(3, contracts.path("content").size());
         JsonNode activeContract = findByLabel(contracts.path("content"), "CTR-2026-001");
         JsonNode expiredContract = findByLabel(contracts.path("content"), "CTR-2025-009");
+        JsonNode draftContract = findByLabel(contracts.path("content"), "CTR-2026-002");
         assertNotNull(activeContract);
         assertNotNull(expiredContract);
+        assertNotNull(draftContract);
         assertTrue(activeContract.path("extra").path("selectable").asBoolean());
         assertFalse(expiredContract.path("extra").path("selectable").asBoolean());
+        assertFalse(draftContract.path("extra").path("selectable").asBoolean());
     }
 
     @Test
@@ -371,6 +383,93 @@ class ProcurementEntityLookupPilotIntegrationTest {
         assertNotNull(issueSurface);
         assertEquals("FORM", issueSurface.path("kind").asText());
         assertEquals("COLLECTION", issueSurface.path("scope").asText());
+    }
+
+    @Test
+    void shouldExposeAndExecuteContractLifecycleWorkflowActions() throws Exception {
+        JsonNode actionsCatalog = body(restTemplate.getForEntity(
+                "/schemas/actions?resource=procurement.contracts",
+                String.class
+        ));
+        assertEquals("procurement.contracts", actionsCatalog.path("resourceKey").asText());
+        JsonNode sign = findById(actionsCatalog.path("actions"), "sign");
+        JsonNode suspend = findById(actionsCatalog.path("actions"), "suspend");
+        JsonNode reactivate = findById(actionsCatalog.path("actions"), "reactivate");
+        assertNotNull(sign);
+        assertNotNull(suspend);
+        assertNotNull(reactivate);
+        assertEquals("ITEM", sign.path("scope").asText());
+        assertEquals("/api/procurement/contracts/{id}/actions/sign", sign.path("path").asText());
+
+        ResponseEntity<String> signResponse = restTemplate.exchange(
+                "/api/procurement/contracts/22/actions/sign",
+                HttpMethod.POST,
+                authorizedJson("""
+                        {
+                          "motivo": "Contrato revisado pelo time juridico"
+                        }
+                        """),
+                String.class
+        );
+        JsonNode signed = body(signResponse);
+        assertEquals("DRAFT", signed.path("data").path("statusAnterior").asText());
+        assertEquals("SIGNED", signed.path("data").path("statusAtual").asText());
+
+        ResponseEntity<String> suspendResponse = restTemplate.exchange(
+                "/api/procurement/contracts/20/actions/suspend",
+                HttpMethod.POST,
+                authorizedJson("""
+                        {
+                          "motivo": "Auditoria de fornecedor pendente"
+                        }
+                        """),
+                String.class
+        );
+        JsonNode suspended = body(suspendResponse);
+        assertEquals("SIGNED", suspended.path("data").path("statusAnterior").asText());
+        assertEquals("SUSPENDED", suspended.path("data").path("statusAtual").asText());
+
+        JsonNode suspendedContract = objectMapper.readTree(restTemplate.getForObject(
+                "/api/procurement/contracts/option-sources/contract/options/by-ids?ids=20",
+                String.class
+        ));
+        assertFalse(suspendedContract.get(0).path("extra").path("selectable").asBoolean());
+        assertEquals("Auditoria de fornecedor pendente", suspendedContract.get(0).path("extra").path("disabledReason").asText());
+
+        ResponseEntity<String> duplicateSuspend = restTemplate.exchange(
+                "/api/procurement/contracts/20/actions/suspend",
+                HttpMethod.POST,
+                authorizedJson("""
+                        {
+                          "motivo": "Tentativa duplicada"
+                        }
+                        """),
+                String.class
+        );
+        assertEquals(HttpStatus.CONFLICT, duplicateSuspend.getStatusCode());
+
+        ResponseEntity<String> reactivateResponse = restTemplate.exchange(
+                "/api/procurement/contracts/20/actions/reactivate",
+                HttpMethod.POST,
+                authorizedJson("""
+                        {
+                          "motivo": "Auditoria concluida"
+                        }
+                        """),
+                String.class
+        );
+        JsonNode reactivated = body(reactivateResponse);
+        assertEquals("SUSPENDED", reactivated.path("data").path("statusAnterior").asText());
+        assertEquals("SIGNED", reactivated.path("data").path("statusAtual").asText());
+
+        JsonNode activeContract = objectMapper.readTree(restTemplate.getForObject(
+                "/api/procurement/contracts/option-sources/contract/options/by-ids?ids=20",
+                String.class
+        ));
+        assertTrue(activeContract.get(0).path("extra").path("selectable").asBoolean());
+        assertTrue(activeContract.get(0).path("extra").path("disabledReason").isMissingNode()
+                || activeContract.get(0).path("extra").path("disabledReason").isNull()
+                || activeContract.get(0).path("extra").path("disabledReason").asText().isBlank());
     }
 
     @Test

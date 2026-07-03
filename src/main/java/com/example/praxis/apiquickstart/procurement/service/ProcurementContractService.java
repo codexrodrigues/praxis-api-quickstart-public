@@ -1,10 +1,14 @@
 package com.example.praxis.apiquickstart.procurement.service;
 
 import com.example.praxis.apiquickstart.constants.ApiPaths;
+import com.example.praxis.apiquickstart.config.DomainRuleWorkflowActionPolicy;
+import com.example.praxis.apiquickstart.config.DomainRuleWorkflowActionPolicyResolver;
 import com.example.praxis.apiquickstart.core.service.base.AbstractQuickstartCrudService;
 import com.example.praxis.apiquickstart.procurement.dto.CreateProcurementContractDTO;
 import com.example.praxis.apiquickstart.procurement.dto.ProcurementContractDTO;
 import com.example.praxis.apiquickstart.procurement.dto.UpdateProcurementContractDTO;
+import com.example.praxis.apiquickstart.procurement.dto.actions.ProcurementContractWorkflowRequestDTO;
+import com.example.praxis.apiquickstart.procurement.dto.actions.ProcurementContractWorkflowResultDTO;
 import com.example.praxis.apiquickstart.procurement.dto.filter.ProcurementContractFilterDTO;
 import com.example.praxis.apiquickstart.procurement.entity.ProcurementContract;
 import com.example.praxis.apiquickstart.procurement.mapper.ProcurementContractMapper;
@@ -17,13 +21,20 @@ import org.praxisplatform.uischema.options.OptionSourceDescriptor;
 import org.praxisplatform.uischema.options.OptionSourcePolicy;
 import org.praxisplatform.uischema.options.OptionSourceRegistry;
 import org.praxisplatform.uischema.options.OptionSourceType;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 @Service
 public class ProcurementContractService extends AbstractQuickstartCrudService<ProcurementContract, ProcurementContractDTO, Integer, ProcurementContractFilterDTO, CreateProcurementContractDTO, UpdateProcurementContractDTO> {
+    private static final String RESOURCE_KEY = "procurement.contracts";
+    private static final String WORKFLOW_POLICY_TARGET_PREFIX = RESOURCE_KEY + ":";
     private static final Map<String, String> DEPENDENCIES = Map.of(
             "companyId", "companyId",
             "supplierId", "supplierId"
@@ -50,7 +61,7 @@ public class ProcurementContractService extends AbstractQuickstartCrudService<Pr
                             "disabledReason",
                             List.of("number", "supplierName", "currency"),
                             DEPENDENCIES,
-                            new LookupSelectionPolicy(null, "status", List.of("ACTIVE", "SIGNED"), List.of("EXPIRED", "CANCELLED"), true, null, null),
+                            new LookupSelectionPolicy(null, "status", List.of("ACTIVE", "SIGNED"), List.of("EXPIRED", "CANCELLED", "SUSPENDED"), true, null, null),
                             new LookupCapabilities(true, true, true, false, false, true, false, false, false, true),
                             new LookupDetailDescriptor(ApiPaths.Procurement.CONTRACTS + "/{id}", "/procurement/contracts/{id}", "route")
                     )
@@ -58,10 +69,15 @@ public class ProcurementContractService extends AbstractQuickstartCrudService<Pr
             .build();
 
     private final ProcurementContractMapper mapper;
+    private final DomainRuleWorkflowActionPolicyResolver workflowActionPolicyResolver;
 
-    public ProcurementContractService(ProcurementContractRepository repository, ProcurementContractMapper mapper) {
+    public ProcurementContractService(
+            ProcurementContractRepository repository,
+            ProcurementContractMapper mapper,
+            DomainRuleWorkflowActionPolicyResolver workflowActionPolicyResolver) {
         super(repository, ProcurementContract.class, mapper::toDto, mapper::toEntity, mapper::toEntity, ProcurementContract::getId);
         this.mapper = mapper;
+        this.workflowActionPolicyResolver = workflowActionPolicyResolver;
     }
 
     public static OptionSourceRegistry optionSources() {
@@ -77,6 +93,97 @@ public class ProcurementContractService extends AbstractQuickstartCrudService<Pr
     public ProcurementContract mergeUpdate(ProcurementContract existing, ProcurementContract fromPayload) {
         mapper.updateEntity(fromPayload, existing);
         return existing;
+    }
+
+    @Transactional
+    public ProcurementContractWorkflowResultDTO sign(Integer id, ProcurementContractWorkflowRequestDTO dto) {
+        return transitionStatus(
+                id,
+                "sign",
+                List.of("DRAFT", "ACTIVE"),
+                "SIGNED",
+                null,
+                dto,
+                "Contract signed for governed procurement"
+        );
+    }
+
+    @Transactional
+    public ProcurementContractWorkflowResultDTO suspend(Integer id, ProcurementContractWorkflowRequestDTO dto) {
+        return transitionStatus(
+                id,
+                "suspend",
+                List.of("SIGNED", "ACTIVE"),
+                "SUSPENDED",
+                requiredReason(dto, "Suspending a contract requires a business or compliance reason."),
+                dto,
+                "Contract suspended for governed procurement"
+        );
+    }
+
+    @Transactional
+    public ProcurementContractWorkflowResultDTO reactivate(Integer id, ProcurementContractWorkflowRequestDTO dto) {
+        return transitionStatus(
+                id,
+                "reactivate",
+                List.of("SUSPENDED"),
+                "SIGNED",
+                null,
+                dto,
+                "Contract reactivated for governed procurement"
+        );
+    }
+
+    private ProcurementContractWorkflowResultDTO transitionStatus(
+            Integer id,
+            String actionId,
+            List<String> allowedStates,
+            String targetStatus,
+            String targetDisabledReason,
+            ProcurementContractWorkflowRequestDTO dto,
+            String message
+    ) {
+        ProcurementContract contract = getRepository().findById(id).orElseThrow(this::getNotFoundException);
+        String previousStatus = normalized(contract.getStatus());
+        enforceWorkflowActionPolicy(actionId, previousStatus);
+        if (!allowedStates.contains(previousStatus)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "State not allowed: " + previousStatus);
+        }
+
+        contract.setStatus(targetStatus);
+        contract.setDisabledReason(targetDisabledReason);
+        ProcurementContract saved = getRepository().save(contract);
+
+        ProcurementContractWorkflowResultDTO result = new ProcurementContractWorkflowResultDTO();
+        result.setId(saved.getId());
+        result.setContractNumber(saved.getNumber());
+        result.setSupplierName(saved.getSupplierName());
+        result.setStatusAnterior(previousStatus);
+        result.setStatusAtual(saved.getStatus());
+        result.setMotivo(dto == null ? null : dto.getMotivo());
+        result.setMensagem(message);
+        return result;
+    }
+
+    private void enforceWorkflowActionPolicy(String actionId, String currentStatus) {
+        workflowActionPolicyResolver.resolveAppliedPolicy(WORKFLOW_POLICY_TARGET_PREFIX + actionId)
+                .filter(policy -> policy.appliesToState(currentStatus))
+                .map(DomainRuleWorkflowActionPolicy::message)
+                .filter(StringUtils::hasText)
+                .ifPresent(message -> {
+                    throw new ResponseStatusException(HttpStatus.CONFLICT, message);
+                });
+    }
+
+    private static String requiredReason(ProcurementContractWorkflowRequestDTO dto, String fallbackMessage) {
+        if (dto == null || !StringUtils.hasText(dto.getMotivo())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, fallbackMessage);
+        }
+        return dto.getMotivo().trim();
+    }
+
+    private static String normalized(String status) {
+        return StringUtils.hasText(status) ? status.trim().toUpperCase(Locale.ROOT) : "";
     }
 
     private static OptionSourcePolicy lookupPolicy() {

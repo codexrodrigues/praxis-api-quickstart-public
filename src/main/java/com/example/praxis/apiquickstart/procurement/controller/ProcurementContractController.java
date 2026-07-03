@@ -5,6 +5,8 @@ import com.example.praxis.apiquickstart.core.controller.base.AbstractQuickstartC
 import com.example.praxis.apiquickstart.procurement.dto.CreateProcurementContractDTO;
 import com.example.praxis.apiquickstart.procurement.dto.ProcurementContractDTO;
 import com.example.praxis.apiquickstart.procurement.dto.UpdateProcurementContractDTO;
+import com.example.praxis.apiquickstart.procurement.dto.actions.ProcurementContractWorkflowRequestDTO;
+import com.example.praxis.apiquickstart.procurement.dto.actions.ProcurementContractWorkflowResultDTO;
 import com.example.praxis.apiquickstart.procurement.dto.filter.ProcurementContractFilterDTO;
 import com.example.praxis.apiquickstart.procurement.entity.ProcurementContract;
 import com.example.praxis.apiquickstart.procurement.mapper.ProcurementContractMapper;
@@ -13,13 +15,17 @@ import io.swagger.v3.oas.annotations.Operation;
 import org.praxisplatform.uischema.annotation.ApiGroup;
 import org.praxisplatform.uischema.annotation.ApiResource;
 import org.praxisplatform.uischema.annotation.UiSurface;
+import org.praxisplatform.uischema.annotation.WorkflowAction;
+import org.praxisplatform.uischema.action.ActionScope;
 import org.praxisplatform.uischema.rest.response.RestApiResponse;
 import org.praxisplatform.uischema.surface.SurfaceKind;
 import org.praxisplatform.uischema.surface.SurfaceScope;
 import org.springframework.data.domain.Page;
+import org.springframework.hateoas.Links;
 import org.springframework.hateoas.EntityModel;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.MultiValueMap;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -83,5 +89,87 @@ public class ProcurementContractController extends AbstractQuickstartCrudControl
             @RequestParam MultiValueMap<String, String> queryParams
     ) {
         return super.filter(filterDTO, page, size, includeIds, queryParams);
+    }
+
+    @PostMapping("/{id}/actions/sign")
+    @Operation(
+            summary = "Assinar contrato de fornecimento",
+            description = "Promove um contrato em rascunho ou ativo para assinado, tornando-o elegivel para pedidos governados quando fornecedor e produto tambem estiverem liberados."
+    )
+    @WorkflowAction(
+            id = "sign",
+            title = "Assinar contrato",
+            description = "Confirma o contrato como fonte governada para compras e libera sua selecao em pedidos.",
+            scope = ActionScope.ITEM,
+            order = 100,
+            successMessage = "Contrato assinado",
+            allowedStates = {"DRAFT", "ACTIVE"},
+            tags = {"workflow", "procurement", "contract", "purchase-order"}
+    )
+    public ResponseEntity<RestApiResponse<ProcurementContractWorkflowResultDTO>> sign(
+            @PathVariable Integer id,
+            @jakarta.validation.Valid @RequestBody ProcurementContractWorkflowRequestDTO dto
+    ) {
+        return workflowResponse(id, "/{id}/actions/sign", service.sign(id, dto));
+    }
+
+    @PostMapping("/{id}/actions/suspend")
+    @Operation(
+            summary = "Suspender contrato de fornecimento",
+            description = "Suspende temporariamente um contrato assinado ou ativo, registrando motivo e removendo sua elegibilidade em lookups de pedidos."
+    )
+    @WorkflowAction(
+            id = "suspend",
+            title = "Suspender contrato",
+            description = "Bloqueia o contrato para novos pedidos por revisao comercial, risco, compliance ou expiracao antecipada.",
+            scope = ActionScope.ITEM,
+            order = 110,
+            successMessage = "Contrato suspenso",
+            allowedStates = {"SIGNED", "ACTIVE"},
+            tags = {"workflow", "procurement", "contract", "compliance"}
+    )
+    public ResponseEntity<RestApiResponse<ProcurementContractWorkflowResultDTO>> suspend(
+            @PathVariable Integer id,
+            @jakarta.validation.Valid @RequestBody ProcurementContractWorkflowRequestDTO dto
+    ) {
+        return workflowResponse(id, "/{id}/actions/suspend", service.suspend(id, dto));
+    }
+
+    @PostMapping("/{id}/actions/reactivate")
+    @Operation(
+            summary = "Reativar contrato suspenso",
+            description = "Reativa um contrato suspenso apos revisao de negocio, limpando o motivo de bloqueio e devolvendo elegibilidade operacional."
+    )
+    @WorkflowAction(
+            id = "reactivate",
+            title = "Reativar contrato",
+            description = "Restaura a elegibilidade do contrato quando a revisao libera novas compras.",
+            scope = ActionScope.ITEM,
+            order = 120,
+            successMessage = "Contrato reativado",
+            allowedStates = {"SUSPENDED"},
+            tags = {"workflow", "procurement", "contract", "compliance"}
+    )
+    public ResponseEntity<RestApiResponse<ProcurementContractWorkflowResultDTO>> reactivate(
+            @PathVariable Integer id,
+            @jakarta.validation.Valid @RequestBody ProcurementContractWorkflowRequestDTO dto
+    ) {
+        return workflowResponse(id, "/{id}/actions/reactivate", service.reactivate(id, dto));
+    }
+
+    private ResponseEntity<RestApiResponse<ProcurementContractWorkflowResultDTO>> workflowResponse(
+            Integer id,
+            String operationPath,
+            ProcurementContractWorkflowResultDTO result
+    ) {
+        Links links = Links.of(
+                linkToSelf(id),
+                linkToAll(),
+                linkToFilter(),
+                linkToFilterCursor(),
+                linkToUiSchema(operationPath, "post", "request"),
+                linkToUiSchema(operationPath, "post", "response")
+        );
+        return withVersion(ResponseEntity.ok(), RestApiResponse.success(result, hateoasOrNull(links)));
     }
 }
