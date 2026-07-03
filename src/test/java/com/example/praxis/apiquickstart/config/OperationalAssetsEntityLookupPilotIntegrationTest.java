@@ -88,6 +88,7 @@ class OperationalAssetsEntityLookupPilotIntegrationTest {
     void seedTables() {
         when(workflowActionPolicyResolver.resolveAppliedPolicy(anyString())).thenReturn(Optional.empty());
 
+        jdbcTemplate.execute("drop table if exists public.equipamento_alocacoes");
         jdbcTemplate.execute("drop table if exists public.equipamentos");
         jdbcTemplate.execute("drop table if exists public.veiculos");
         jdbcTemplate.execute("drop table if exists public.funcionarios");
@@ -130,7 +131,23 @@ class OperationalAssetsEntityLookupPilotIntegrationTest {
                     status varchar(40) not null
                 )
                 """);
+        jdbcTemplate.execute("""
+                create table public.equipamento_alocacoes (
+                    id integer primary key,
+                    equipamento_id integer not null,
+                    funcionario_id integer not null,
+                    inicio timestamp with time zone not null,
+                    fim timestamp with time zone,
+                    status varchar(40)
+                )
+                """);
 
+        jdbcTemplate.update("""
+                insert into public.funcionarios (id, nome_completo, cpf, email, telefone, ativo)
+                values
+                    (10, 'Diana Prince', '000.000.000-10', 'diana@example.com', '1111-1111', true),
+                    (11, 'Steve Trevor', '000.000.000-11', 'steve@example.com', '2222-2222', true)
+                """);
         jdbcTemplate.update("""
                 insert into public.veiculos (id, nome, tipo, capacidade, proprietario_id, status)
                 values (1, 'Invisible Jet', 'AEREO', 6, null, 'OPERACIONAL')
@@ -146,6 +163,20 @@ class OperationalAssetsEntityLookupPilotIntegrationTest {
         jdbcTemplate.update("""
                 insert into public.equipamentos (id, nome, tipo, resistencia, proprietario_id, status)
                 values (2, 'Cracked Grapple', 'GADGET', 20, null, 'QUEBRADO')
+                """);
+        jdbcTemplate.update("""
+                insert into public.equipamentos (id, nome, tipo, resistencia, proprietario_id, status)
+                values
+                    (3, 'Field Scanner', 'GADGET', 70, null, 'EM_USO'),
+                    (4, 'Signal Beacon', 'GADGET', 55, null, 'EM_USO'),
+                    (5, 'Portable Shield', 'ARTEFATO', 80, null, 'EM_USO')
+                """);
+        jdbcTemplate.update("""
+                insert into public.equipamento_alocacoes (id, equipamento_id, funcionario_id, inicio, fim, status)
+                values
+                    (10, 3, 10, TIMESTAMP WITH TIME ZONE '2026-04-15 10:00:00+00', null, 'ATIVO'),
+                    (11, 4, 10, TIMESTAMP WITH TIME ZONE '2026-04-16 10:00:00+00', null, 'ATIVO'),
+                    (12, 5, 11, TIMESTAMP WITH TIME ZONE '2026-04-17 10:00:00+00', null, 'ATIVO')
                 """);
     }
 
@@ -439,6 +470,75 @@ class OperationalAssetsEntityLookupPilotIntegrationTest {
         assertEquals("MANUTENCAO", operationalVehicle.path("data").path("statusAnterior").asText());
         assertEquals("OPERACIONAL", operationalVehicle.path("data").path("statusAtual").asText());
         assertVehicleSelectable(1, true);
+    }
+
+    @Test
+    void shouldExposeAndExecuteEquipmentCustodyWorkflowActions() throws Exception {
+        JsonNode actionsCatalog = body(restTemplate.getForEntity(
+                "/schemas/actions?resource=assets.equipamento-alocacoes",
+                String.class
+        ));
+        assertEquals("assets.equipamento-alocacoes", actionsCatalog.path("resourceKey").asText());
+        assertAction(actionsCatalog, "return-custody", "/api/assets/equipamento-alocacoes/{id}/actions/return-custody");
+        assertAction(actionsCatalog, "report-lost", "/api/assets/equipamento-alocacoes/{id}/actions/report-lost");
+        assertAction(actionsCatalog, "report-damaged", "/api/assets/equipamento-alocacoes/{id}/actions/report-damaged");
+
+        ResponseEntity<String> returnResponse = restTemplate.exchange(
+                "/api/assets/equipamento-alocacoes/10/actions/return-custody",
+                HttpMethod.POST,
+                authorizedJson("""
+                        {
+                          "motivo": "Equipamento devolvido apos missao"
+                        }
+                        """),
+                String.class
+        );
+        JsonNode returned = body(returnResponse);
+        assertEquals("ATIVO", returned.path("data").path("statusAnterior").asText());
+        assertEquals("DEVOLVIDO", returned.path("data").path("statusAtual").asText());
+        assertEquipmentSelectable(3, true);
+
+        ResponseEntity<String> lostResponse = restTemplate.exchange(
+                "/api/assets/equipamento-alocacoes/11/actions/report-lost",
+                HttpMethod.POST,
+                authorizedJson("""
+                        {
+                          "motivo": "Item perdido durante deslocamento operacional"
+                        }
+                        """),
+                String.class
+        );
+        JsonNode lost = body(lostResponse);
+        assertEquals("ATIVO", lost.path("data").path("statusAnterior").asText());
+        assertEquals("PERDIDO", lost.path("data").path("statusAtual").asText());
+        assertEquipmentSelectable(4, false);
+
+        ResponseEntity<String> damagedResponse = restTemplate.exchange(
+                "/api/assets/equipamento-alocacoes/12/actions/report-damaged",
+                HttpMethod.POST,
+                authorizedJson("""
+                        {
+                          "motivo": "Dano confirmado na vistoria de retorno"
+                        }
+                        """),
+                String.class
+        );
+        JsonNode damaged = body(damagedResponse);
+        assertEquals("ATIVO", damaged.path("data").path("statusAnterior").asText());
+        assertEquals("DANIFICADO", damaged.path("data").path("statusAtual").asText());
+        assertEquipmentSelectable(5, false);
+
+        ResponseEntity<String> duplicateLost = restTemplate.exchange(
+                "/api/assets/equipamento-alocacoes/11/actions/report-lost",
+                HttpMethod.POST,
+                authorizedJson("""
+                        {
+                          "motivo": "Tentativa duplicada"
+                        }
+                        """),
+                String.class
+        );
+        assertEquals(HttpStatus.CONFLICT, duplicateLost.getStatusCode());
     }
 
     private JsonNode body(ResponseEntity<String> response) throws Exception {

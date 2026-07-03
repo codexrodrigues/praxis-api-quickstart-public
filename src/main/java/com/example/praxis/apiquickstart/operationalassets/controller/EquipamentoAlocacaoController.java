@@ -4,6 +4,8 @@ import com.example.praxis.apiquickstart.constants.ApiPaths;
 import com.example.praxis.apiquickstart.operationalassets.dto.EquipamentoAlocacaoDTO;
 import com.example.praxis.apiquickstart.operationalassets.dto.CreateEquipamentoAlocacaoDTO;
 import com.example.praxis.apiquickstart.operationalassets.dto.UpdateEquipamentoAlocacaoDTO;
+import com.example.praxis.apiquickstart.operationalassets.dto.actions.AssetAvailabilityWorkflowRequestDTO;
+import com.example.praxis.apiquickstart.operationalassets.dto.actions.AssetAvailabilityWorkflowResultDTO;
 import com.example.praxis.apiquickstart.operationalassets.dto.filter.EquipamentoAlocacaoFilterDTO;
 import com.example.praxis.apiquickstart.operationalassets.entity.EquipamentoAlocacao;
 import com.example.praxis.apiquickstart.operationalassets.mapper.EquipamentoAlocacaoMapper;
@@ -11,7 +13,9 @@ import com.example.praxis.apiquickstart.operationalassets.service.EquipamentoAlo
 import org.praxisplatform.uischema.annotation.ApiGroup;
 import org.praxisplatform.uischema.annotation.ApiResource;
 import org.praxisplatform.uischema.annotation.UiSurface;
+import org.praxisplatform.uischema.annotation.WorkflowAction;
 import com.example.praxis.apiquickstart.core.controller.base.AbstractQuickstartCrudController;
+import org.praxisplatform.uischema.action.ActionScope;
 import org.praxisplatform.uischema.surface.SurfaceKind;
 import org.praxisplatform.uischema.surface.SurfaceScope;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,6 +25,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import org.praxisplatform.uischema.rest.response.RestApiResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.hateoas.EntityModel;
+import org.springframework.hateoas.Links;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -188,6 +193,63 @@ public class EquipamentoAlocacaoController extends AbstractQuickstartCrudControl
         return super.update(id, dto);
     }
 
+    @PostMapping("/{id}/actions/return-custody")
+    @Operation(summary = "Devolver equipamento em custódia", description = "Encerra uma custodia ativa, registra fim da responsabilidade e devolve o equipamento ao estoque operacional.")
+    @WorkflowAction(
+            id = "return-custody",
+            title = "Devolver custodia",
+            description = "Confirma que o colaborador devolveu o equipamento e que o ativo volta a ficar elegivel para nova alocacao.",
+            scope = ActionScope.ITEM,
+            order = 100,
+            successMessage = "Custodia devolvida",
+            allowedStates = {"ATIVO"},
+            tags = {"workflow", "assets", "equipment", "custody", "return"}
+    )
+    public ResponseEntity<RestApiResponse<AssetAvailabilityWorkflowResultDTO>> returnCustody(
+            @PathVariable Integer id,
+            @jakarta.validation.Valid @RequestBody AssetAvailabilityWorkflowRequestDTO dto
+    ) {
+        return workflowResponse(id, "/{id}/actions/return-custody", service.returnCustody(id, dto));
+    }
+
+    @PostMapping("/{id}/actions/report-lost")
+    @Operation(summary = "Reportar perda de equipamento", description = "Encerra uma custodia ativa como perda patrimonial, registrando motivo e removendo o equipamento da disponibilidade.")
+    @WorkflowAction(
+            id = "report-lost",
+            title = "Reportar perda",
+            description = "Registra perda do equipamento durante a custodia e bloqueia novas alocacoes do ativo.",
+            scope = ActionScope.ITEM,
+            order = 110,
+            successMessage = "Perda registrada",
+            allowedStates = {"ATIVO"},
+            tags = {"workflow", "assets", "equipment", "custody", "loss"}
+    )
+    public ResponseEntity<RestApiResponse<AssetAvailabilityWorkflowResultDTO>> reportLost(
+            @PathVariable Integer id,
+            @jakarta.validation.Valid @RequestBody AssetAvailabilityWorkflowRequestDTO dto
+    ) {
+        return workflowResponse(id, "/{id}/actions/report-lost", service.reportLost(id, dto));
+    }
+
+    @PostMapping("/{id}/actions/report-damaged")
+    @Operation(summary = "Reportar dano de equipamento", description = "Encerra uma custodia ativa como dano operacional, registrando motivo e bloqueando o equipamento para reparo ou baixa.")
+    @WorkflowAction(
+            id = "report-damaged",
+            title = "Reportar dano",
+            description = "Registra dano ocorrido durante a custodia e retira o equipamento de novas alocacoes.",
+            scope = ActionScope.ITEM,
+            order = 120,
+            successMessage = "Dano registrado",
+            allowedStates = {"ATIVO"},
+            tags = {"workflow", "assets", "equipment", "custody", "damage"}
+    )
+    public ResponseEntity<RestApiResponse<AssetAvailabilityWorkflowResultDTO>> reportDamaged(
+            @PathVariable Integer id,
+            @jakarta.validation.Valid @RequestBody AssetAvailabilityWorkflowRequestDTO dto
+    ) {
+        return workflowResponse(id, "/{id}/actions/report-damaged", service.reportDamaged(id, dto));
+    }
+
     @DeleteMapping("/{id}")
     @Operation(summary = "Remover alocação de equipamento", description = "Exclui uma cessão quando ela não deve mais compor o histórico patrimonial publicado nem alimentar novos fluxos.")
     @ApiResponses({
@@ -207,8 +269,23 @@ public class EquipamentoAlocacaoController extends AbstractQuickstartCrudControl
     public ResponseEntity<Void> deleteBatch(@RequestBody List<Integer> ids) {
         return super.deleteBatch(ids);
     }
-}
 
+    private ResponseEntity<RestApiResponse<AssetAvailabilityWorkflowResultDTO>> workflowResponse(
+            Integer id,
+            String operationPath,
+            AssetAvailabilityWorkflowResultDTO result
+    ) {
+        Links links = Links.of(
+                linkToSelf(id),
+                linkToAll(),
+                linkToFilter(),
+                linkToFilterCursor(),
+                linkToUiSchema(operationPath, "post", "request"),
+                linkToUiSchema(operationPath, "post", "response")
+        );
+        return withVersion(ResponseEntity.ok(), RestApiResponse.success(result, hateoasOrNull(links)));
+    }
+}
 
 
 
