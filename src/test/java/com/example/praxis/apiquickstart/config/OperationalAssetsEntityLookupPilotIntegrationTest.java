@@ -158,18 +158,18 @@ class OperationalAssetsEntityLookupPilotIntegrationTest {
                 """);
         jdbcTemplate.update("""
                 insert into public.equipamentos (id, nome, tipo, resistencia, proprietario_id, status)
-                values (1, 'Vibranium Shield', 'ARTEFATO', 95, null, 'ESTOQUE')
+                values (1, 'Vibranium Shield', 'ARTEFATO', 9, null, 'ESTOQUE')
                 """);
         jdbcTemplate.update("""
                 insert into public.equipamentos (id, nome, tipo, resistencia, proprietario_id, status)
-                values (2, 'Cracked Grapple', 'GADGET', 20, null, 'QUEBRADO')
+                values (2, 'Cracked Grapple', 'GADGET', 2, null, 'QUEBRADO')
                 """);
         jdbcTemplate.update("""
                 insert into public.equipamentos (id, nome, tipo, resistencia, proprietario_id, status)
                 values
-                    (3, 'Field Scanner', 'GADGET', 70, null, 'EM_USO'),
-                    (4, 'Signal Beacon', 'GADGET', 55, null, 'EM_USO'),
-                    (5, 'Portable Shield', 'ARTEFATO', 80, null, 'EM_USO')
+                    (3, 'Field Scanner', 'GADGET', 7, null, 'EM_USO'),
+                    (4, 'Signal Beacon', 'GADGET', 5, null, 'EM_USO'),
+                    (5, 'Portable Shield', 'ARTEFATO', 8, null, 'EM_USO')
                 """);
         jdbcTemplate.update("""
                 insert into public.equipamento_alocacoes (id, equipamento_id, funcionario_id, inicio, fim, status)
@@ -302,7 +302,7 @@ class OperationalAssetsEntityLookupPilotIntegrationTest {
         JsonNode shield = equipment.path("content").get(0);
         assertEquals(1, shield.path("id").asInt());
         assertEquals("Vibranium Shield", shield.path("label").asText());
-        assertEquals("ARTEFATO - 95", shield.path("extra").path("description").asText());
+        assertEquals("ARTEFATO - 9", shield.path("extra").path("description").asText());
         assertEquals("ESTOQUE", shield.path("extra").path("status").asText());
         assertTrue(shield.path("extra").path("selectable").asBoolean());
 
@@ -408,7 +408,7 @@ class OperationalAssetsEntityLookupPilotIntegrationTest {
                           "field": "resistencia",
                           "mode": "HISTOGRAM",
                           "metric": { "operation": "COUNT", "alias": "equipamentos" },
-                          "bucketSize": 25,
+                          "bucketSize": 2,
                           "orderBy": "KEY_ASC"
                         }
                         """),
@@ -416,7 +416,7 @@ class OperationalAssetsEntityLookupPilotIntegrationTest {
         ));
         assertEquals("resistencia", equipmentDurability.path("data").path("field").asText());
         assertEquals("HISTOGRAM", equipmentDurability.path("data").path("mode").asText());
-        assertTrue(equipmentDurability.path("data").path("buckets").size() > 0);
+        assertTrue(equipmentDurability.path("data").path("buckets").size() > 1);
 
         JsonNode custodyStatus = body(restTemplate.postForEntity(
                 "/api/assets/equipamento-alocacoes/stats/group-by",

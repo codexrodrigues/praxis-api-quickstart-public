@@ -22,7 +22,8 @@ javac scripts/JdbcSqlRunner.java
 java -cp "scripts:$POSTGRES_JDBC_JAR" JdbcSqlRunner \
   db/operational-migrations/V20260702_001__legacy_pay_codes.sql \
   db/operational-migrations/V20260702_002__eventos_folha_status.sql \
-  db/operational-migrations/V20260703_001__purchase_order_lifecycle.sql
+  db/operational-migrations/V20260703_001__purchase_order_lifecycle.sql \
+  db/operational-migrations/V20260703_002__assets_cockpit_demo_seed.sql
 ```
 
 Antes de executar, configure no shell as tres variaveis de ambiente do datasource operacional declaradas em `application.properties`: URL JDBC, usuario e senha do `spring.datasource.*`. `POSTGRES_JDBC_JAR` deve apontar para o driver PostgreSQL local. Em ambientes automatizados, prefira usar o classpath Maven ou a ferramenta oficial de migracao do provedor, mantendo a ordem dos arquivos.
@@ -54,8 +55,9 @@ Ao criar ou promover um recurso JPA publico:
 
 1. Confirme se a fonte operacional ja existe no dump ou no banco de referencia.
 2. Se houver mudanca de schema/seed minimo, adicione migration em `db/operational-migrations`.
-3. Atualize o drift check quando a ausencia do objeto puder quebrar endpoint, capabilities ou workflow action no ambiente publicado.
-4. Adicione teste focal H2 para provar o contrato HTTP/schema/actions do recurso.
-5. Depois do deploy, valide o recurso publicado por HTTP real antes de tratar o cockpit como evidencia final.
+3. Seeds demonstrativas devem ser idempotentes e conservadoras: nao sobrescreva linhas por ID sem reconhecer que sao dados demo esperados, e prefira pular a insercao quando uma base corporativa ja usa aquele identificador para outro ativo.
+4. Atualize o drift check quando a ausencia do objeto puder quebrar endpoint, capabilities ou workflow action no ambiente publicado.
+5. Adicione teste focal H2 para provar o contrato HTTP/schema/actions do recurso.
+6. Depois do deploy, valide o recurso publicado por HTTP real antes de tratar o cockpit como evidencia final.
 
 O app runtime nao deve executar DDL automaticamente no datasource operacional. Essa separacao preserva o principio de menor privilegio e deixa claro quando o problema e contrato semantico, drift de banco ou permissao operacional.
