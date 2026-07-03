@@ -51,7 +51,7 @@ producao.
 | Operacoes | `operations` | 12 | 9 | 10 | `ja-suportado-mal-nomeado-ou-mal-materializado`: e o melhor dominio para demonstrar actions/surfaces; cockpit deve usar esse dominio como referencia visual de workflows. |
 | Suprimentos | `procurement` | 5 | 4 | 0 | `suportado-parcialmente`: recursos, schemas, option sources e surfaces de compra/contrato/fornecedor existem; falta action de workflow somente quando houver comando real de negocio. |
 | Ativos Operacionais | `assets` | 4 | 4 | 0 | `suportado-parcialmente`: recursos, lookups e surfaces de inventario/frota/custodia existem; falta action de workflow somente quando houver comando real de movimentacao. |
-| Inteligencia de Risco | `risk-intelligence` | 2 | 0 | 0 | `suportado-parcialmente`: bom potencial analitico; falta surface de painel/serie e action de triagem ou revisao de ameaca. |
+| Inteligencia de Risco | `risk-intelligence` | 2 | 3 | 0 | `suportado-parcialmente`: recurso de ameacas e view analitica de incidentes publicam surfaces de monitoramento, painel e chart; falta action apenas quando houver comando real de triagem ou revisao. |
 
 Nenhum item acima exige contrato novo neste momento. A plataforma ja sabe expor
 `@ApiResource`, `@Operation`, `@Schema`, `@UISchema`, stats, options, surfaces,
@@ -172,8 +172,9 @@ Materializacao esperada:
 2. `assets`: evoluir surfaces de inventario, custodia e frota para actions de
    reservar, liberar ou transferir ativo apenas quando existir endpoint/service
    real que execute a decisao operacional.
-3. `risk-intelligence`: publicar surface analitica para incidentes/ameacas e
-   action de revisar severidade, marcar ameaca monitorada ou abrir investigacao.
+3. `risk-intelligence`: evoluir as surfaces de ameacas e incidentes para actions
+   de revisar severidade, marcar ameaca monitorada ou abrir investigacao apenas
+   quando houver endpoint/service real que execute o comando governado.
 4. `human-resources`: ampliar exemplo de ciclo de vida alem de folha, como
    afastamento, reputacao ou habilidade, se houver comando real de dominio.
 5. `operations`: usar como benchmark visual e documental para os demais dominios,

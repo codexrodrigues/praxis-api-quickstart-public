@@ -18,8 +18,11 @@ import org.praxisplatform.uischema.annotation.AnalyticsMetricBinding;
 import org.praxisplatform.uischema.annotation.AnalyticsOperation;
 import org.praxisplatform.uischema.annotation.AnalyticsPresentationFamily;
 import org.praxisplatform.uischema.annotation.AnalyticsProjection;
+import org.praxisplatform.uischema.annotation.UiSurface;
 import org.praxisplatform.uischema.annotation.UiAnalytics;
 import com.example.praxis.apiquickstart.core.controller.base.AbstractQuickstartReadOnlyController;
+import org.praxisplatform.uischema.surface.SurfaceKind;
+import org.praxisplatform.uischema.surface.SurfaceScope;
 import org.springframework.beans.factory.annotation.Autowired;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -47,7 +50,14 @@ import java.util.List;
  * depois do dado transacional, a plataforma pode publicar uma view agregada com filter, options,
  * stats e hypermedia sem abrir semantica de escrita.</p>
  */
-@ApiResource(value = ApiPaths.RiskIntelligence.VW_INDICADORES_INCIDENTES, resourceKey = "risk-intelligence.vw-indicadores-incidentes")
+@ApiResource(
+        value = ApiPaths.RiskIntelligence.VW_INDICADORES_INCIDENTES,
+        resourceKey = "risk-intelligence.vw-indicadores-incidentes",
+        title = "Indicadores de incidentes",
+        description = "Visao analitica de incidentes por severidade, impacto, periodo, base operacional e contexto de risco.",
+        icon = "chart-no-axes-combined",
+        visualTone = "risk-intelligence"
+)
 @ApiGroup("risk-intelligence")
 public class VwIndicadoresIncidenteController extends AbstractQuickstartReadOnlyController<VwIndicadoresIncidente, VwIndicadoresIncidenteDTO, Integer, VwIndicadoresIncidenteFilterDTO> {
 
@@ -103,6 +113,13 @@ public class VwIndicadoresIncidenteController extends AbstractQuickstartReadOnly
     protected Integer getDtoId(VwIndicadoresIncidenteDTO dto) { return dto.getIncidenteId(); }
 
     @PostMapping("/filter")
+    @UiSurface(
+            id = "incident-intelligence-board",
+            title = "Inteligencia de incidentes",
+            kind = SurfaceKind.VIEW,
+            scope = SurfaceScope.COLLECTION,
+            description = "Explora incidentes por severidade, periodo, impacto e base para apoiar dashboards, comparacoes e investigacao analitica."
+    )
     @Operation(summary = "Filtrar indicadores de incidentes", description = "Lista visões agregadas por severidade, impacto financeiro, período, base e contexto para dashboards de risco, leitura executiva e comparação analítica entre incidentes.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Lista filtrada retornada com sucesso."),
@@ -173,6 +190,13 @@ public class VwIndicadoresIncidenteController extends AbstractQuickstartReadOnly
 
     @Override
     @PostMapping("/stats/timeseries")
+    @UiSurface(
+            id = "incident-trend-chart",
+            title = "Evolucao de incidentes",
+            kind = SurfaceKind.READ_PROJECTION,
+            scope = SurfaceScope.COLLECTION,
+            description = "Materializa a serie temporal de incidentes para visualizar tendencia, sazonalidade e picos de severidade."
+    )
     @UiAnalytics(
             projections = {
                     @AnalyticsProjection(
@@ -228,9 +252,6 @@ public class VwIndicadoresIncidenteController extends AbstractQuickstartReadOnly
         return super.getById(id);
     }
 }
-
-
-
 
 
 

@@ -10,6 +10,9 @@ import com.example.praxis.apiquickstart.riskintelligence.mapper.AmeacaMapper;
 import com.example.praxis.apiquickstart.riskintelligence.service.AmeacaService;
 import org.praxisplatform.uischema.annotation.ApiGroup;
 import org.praxisplatform.uischema.annotation.ApiResource;
+import org.praxisplatform.uischema.annotation.UiSurface;
+import org.praxisplatform.uischema.surface.SurfaceKind;
+import org.praxisplatform.uischema.surface.SurfaceScope;
 import com.example.praxis.apiquickstart.core.controller.base.AbstractQuickstartCrudController;
 import org.springframework.beans.factory.annotation.Autowired;
 import io.swagger.v3.oas.annotations.Operation;
@@ -72,6 +75,13 @@ public class AmeacaController extends AbstractQuickstartCrudController<Ameaca, A
     protected Integer getDtoId(AmeacaDTO dto) { return dto.getId(); }
 
     @PostMapping("/filter")
+    @UiSurface(
+            id = "threat-monitoring-board",
+            title = "Monitoramento de ameacas",
+            kind = SurfaceKind.VIEW,
+            scope = SurfaceScope.COLLECTION,
+            description = "Centraliza ameacas por classe, nivel, status e origem para priorizar leitura de risco e correlacao com incidentes."
+    )
     @Operation(summary = "Filtrar ameaças monitoradas", description = "Lista ameaças por classificação, nível, status, origem e risco associado para triagem de risco, monitoramento contínuo e priorização em painéis de inteligência.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Lista filtrada retornada com sucesso."),
@@ -193,8 +203,6 @@ public class AmeacaController extends AbstractQuickstartCrudController<Ameaca, A
         return super.deleteBatch(ids);
     }
 }
-
-
 
 
 
