@@ -16,14 +16,19 @@ import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.JdbcTemplate;
+
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.when;
 
 @SpringBootTest(
         classes = ApiQuickstartApplication.class,
@@ -77,8 +82,13 @@ class ProcurementEntityLookupPilotIntegrationTest {
     @MockBean(name = "ragVectorStore")
     private VectorStore ragVectorStore;
 
+    @MockBean
+    private DomainRuleWorkflowActionPolicyResolver workflowActionPolicyResolver;
+
     @BeforeEach
     void seedProcurementTables() {
+        when(workflowActionPolicyResolver.resolveAppliedPolicy(anyString())).thenReturn(Optional.empty());
+
         jdbcTemplate.execute("drop table if exists public.procurement_purchase_orders");
         jdbcTemplate.execute("drop table if exists public.procurement_products");
         jdbcTemplate.execute("drop table if exists public.procurement_contracts");
@@ -361,6 +371,77 @@ class ProcurementEntityLookupPilotIntegrationTest {
         assertNotNull(issueSurface);
         assertEquals("FORM", issueSurface.path("kind").asText());
         assertEquals("COLLECTION", issueSurface.path("scope").asText());
+    }
+
+    @Test
+    void shouldExposeAndExecuteSupplierEligibilityWorkflowActions() throws Exception {
+        JsonNode actionsCatalog = body(restTemplate.getForEntity(
+                "/schemas/actions?resource=procurement.suppliers",
+                String.class
+        ));
+        assertEquals("procurement.suppliers", actionsCatalog.path("resourceKey").asText());
+        JsonNode block = findById(actionsCatalog.path("actions"), "block");
+        JsonNode reinstate = findById(actionsCatalog.path("actions"), "reinstate");
+        assertNotNull(block);
+        assertNotNull(reinstate);
+        assertEquals("ITEM", block.path("scope").asText());
+        assertEquals("/api/procurement/suppliers/{id}/actions/block", block.path("path").asText());
+
+        ResponseEntity<String> blockResponse = restTemplate.exchange(
+                "/api/procurement/suppliers/10/actions/block",
+                HttpMethod.POST,
+                authorizedJson("""
+                        {
+                          "motivo": "Risco de compliance confirmado"
+                        }
+                        """),
+                String.class
+        );
+        JsonNode blocked = body(blockResponse);
+        assertEquals("ACTIVE", blocked.path("data").path("statusAnterior").asText());
+        assertEquals("BLOCKED", blocked.path("data").path("statusAtual").asText());
+
+        JsonNode blockedSupplier = objectMapper.readTree(restTemplate.getForObject(
+                "/api/procurement/suppliers/option-sources/supplier/options/by-ids?ids=10",
+                String.class
+        ));
+        assertFalse(blockedSupplier.get(0).path("extra").path("selectable").asBoolean());
+        assertEquals("Risco de compliance confirmado", blockedSupplier.get(0).path("extra").path("disabledReason").asText());
+
+        ResponseEntity<String> duplicateBlock = restTemplate.exchange(
+                "/api/procurement/suppliers/10/actions/block",
+                HttpMethod.POST,
+                authorizedJson("""
+                        {
+                          "motivo": "Tentativa duplicada"
+                        }
+                        """),
+                String.class
+        );
+        assertEquals(HttpStatus.CONFLICT, duplicateBlock.getStatusCode());
+
+        ResponseEntity<String> reinstateResponse = restTemplate.exchange(
+                "/api/procurement/suppliers/10/actions/reinstate",
+                HttpMethod.POST,
+                authorizedJson("""
+                        {
+                          "motivo": "Fornecedor reavaliado e liberado"
+                        }
+                        """),
+                String.class
+        );
+        JsonNode reinstated = body(reinstateResponse);
+        assertEquals("BLOCKED", reinstated.path("data").path("statusAnterior").asText());
+        assertEquals("ACTIVE", reinstated.path("data").path("statusAtual").asText());
+
+        JsonNode activeSupplier = objectMapper.readTree(restTemplate.getForObject(
+                "/api/procurement/suppliers/option-sources/supplier/options/by-ids?ids=10",
+                String.class
+        ));
+        assertTrue(activeSupplier.get(0).path("extra").path("selectable").asBoolean());
+        assertTrue(activeSupplier.get(0).path("extra").path("disabledReason").isMissingNode()
+                || activeSupplier.get(0).path("extra").path("disabledReason").isNull()
+                || activeSupplier.get(0).path("extra").path("disabledReason").asText().isBlank());
     }
 
     private JsonNode body(ResponseEntity<String> response) throws Exception {

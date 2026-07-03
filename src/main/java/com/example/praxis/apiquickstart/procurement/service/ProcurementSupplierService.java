@@ -1,11 +1,15 @@
 package com.example.praxis.apiquickstart.procurement.service;
 
 import com.example.praxis.apiquickstart.constants.ApiPaths;
+import com.example.praxis.apiquickstart.config.DomainRuleWorkflowActionPolicy;
+import com.example.praxis.apiquickstart.config.DomainRuleWorkflowActionPolicyResolver;
 import com.example.praxis.apiquickstart.config.DomainRuleOptionSourcePolicyResolver;
 import com.example.praxis.apiquickstart.core.service.base.AbstractQuickstartCrudService;
 import com.example.praxis.apiquickstart.procurement.dto.CreateProcurementSupplierDTO;
 import com.example.praxis.apiquickstart.procurement.dto.ProcurementSupplierDTO;
 import com.example.praxis.apiquickstart.procurement.dto.UpdateProcurementSupplierDTO;
+import com.example.praxis.apiquickstart.procurement.dto.actions.ProcurementSupplierWorkflowRequestDTO;
+import com.example.praxis.apiquickstart.procurement.dto.actions.ProcurementSupplierWorkflowResultDTO;
 import com.example.praxis.apiquickstart.procurement.dto.filter.ProcurementSupplierFilterDTO;
 import com.example.praxis.apiquickstart.procurement.entity.ProcurementSupplier;
 import com.example.praxis.apiquickstart.procurement.mapper.ProcurementSupplierMapper;
@@ -20,13 +24,20 @@ import org.praxisplatform.uischema.options.OptionSourcePolicy;
 import org.praxisplatform.uischema.options.OptionSourceRegistry;
 import org.praxisplatform.uischema.options.OptionSourceType;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import static org.springframework.http.HttpStatus.CONFLICT;
+
 @Service
 public class ProcurementSupplierService extends AbstractQuickstartCrudService<ProcurementSupplier, ProcurementSupplierDTO, Integer, ProcurementSupplierFilterDTO, CreateProcurementSupplierDTO, UpdateProcurementSupplierDTO> {
+    private static final String RESOURCE_KEY = "procurement.suppliers";
+    private static final String WORKFLOW_POLICY_TARGET_PREFIX = RESOURCE_KEY + ":";
     private static final Map<String, String> DEPENDENCIES = Map.of("companyId", "companyId");
     private static final LookupSelectionPolicy STATIC_SUPPLIER_SELECTION_POLICY =
             new LookupSelectionPolicy(null, "status", List.of("ACTIVE", "APPROVED"), List.of("INACTIVE", "BLOCKED"), true, null, null);
@@ -63,14 +74,17 @@ public class ProcurementSupplierService extends AbstractQuickstartCrudService<Pr
 
     private final ProcurementSupplierMapper mapper;
     private final DomainRuleOptionSourcePolicyResolver optionSourcePolicyResolver;
+    private final DomainRuleWorkflowActionPolicyResolver workflowActionPolicyResolver;
 
     public ProcurementSupplierService(
             ProcurementSupplierRepository repository,
             ProcurementSupplierMapper mapper,
-            DomainRuleOptionSourcePolicyResolver optionSourcePolicyResolver) {
+            DomainRuleOptionSourcePolicyResolver optionSourcePolicyResolver,
+            DomainRuleWorkflowActionPolicyResolver workflowActionPolicyResolver) {
         super(repository, ProcurementSupplier.class, mapper::toDto, mapper::toEntity, mapper::toEntity, ProcurementSupplier::getId);
         this.mapper = mapper;
         this.optionSourcePolicyResolver = optionSourcePolicyResolver;
+        this.workflowActionPolicyResolver = workflowActionPolicyResolver;
     }
 
     public static OptionSourceRegistry optionSources() {
@@ -108,6 +122,84 @@ public class ProcurementSupplierService extends AbstractQuickstartCrudService<Pr
     public ProcurementSupplier mergeUpdate(ProcurementSupplier existing, ProcurementSupplier fromPayload) {
         mapper.updateEntity(fromPayload, existing);
         return existing;
+    }
+
+    @Transactional
+    public ProcurementSupplierWorkflowResultDTO block(Integer id, ProcurementSupplierWorkflowRequestDTO dto) {
+        return transitionEligibility(
+                id,
+                "block",
+                List.of("ACTIVE", "APPROVED"),
+                "BLOCKED",
+                requiredReason(dto, "Blocking a supplier requires a compliance reason."),
+                dto,
+                "Supplier blocked for governed procurement"
+        );
+    }
+
+    @Transactional
+    public ProcurementSupplierWorkflowResultDTO reinstate(Integer id, ProcurementSupplierWorkflowRequestDTO dto) {
+        return transitionEligibility(
+                id,
+                "reinstate",
+                List.of("BLOCKED", "INACTIVE"),
+                "ACTIVE",
+                null,
+                dto,
+                "Supplier reinstated for governed procurement"
+        );
+    }
+
+    private ProcurementSupplierWorkflowResultDTO transitionEligibility(
+            Integer id,
+            String actionId,
+            List<String> allowedStates,
+            String targetStatus,
+            String targetDisabledReason,
+            ProcurementSupplierWorkflowRequestDTO dto,
+            String message
+    ) {
+        ProcurementSupplier supplier = getRepository().findById(id).orElseThrow(this::getNotFoundException);
+        String previousStatus = normalized(supplier.getStatus());
+        enforceWorkflowActionPolicy(actionId, previousStatus);
+        if (!allowedStates.contains(previousStatus)) {
+            throw new ResponseStatusException(CONFLICT, "State not allowed: " + previousStatus);
+        }
+
+        supplier.setStatus(targetStatus);
+        supplier.setDisabledReason(targetDisabledReason);
+        ProcurementSupplier saved = getRepository().save(supplier);
+
+        ProcurementSupplierWorkflowResultDTO result = new ProcurementSupplierWorkflowResultDTO();
+        result.setId(saved.getId());
+        result.setSupplierCode(saved.getCode());
+        result.setLegalName(saved.getLegalName());
+        result.setStatusAnterior(previousStatus);
+        result.setStatusAtual(saved.getStatus());
+        result.setMotivo(dto == null ? null : dto.getMotivo());
+        result.setMensagem(message);
+        return result;
+    }
+
+    private void enforceWorkflowActionPolicy(String actionId, String currentStatus) {
+        workflowActionPolicyResolver.resolveAppliedPolicy(WORKFLOW_POLICY_TARGET_PREFIX + actionId)
+                .filter(policy -> policy.appliesToState(currentStatus))
+                .map(DomainRuleWorkflowActionPolicy::message)
+                .filter(StringUtils::hasText)
+                .ifPresent(message -> {
+                    throw new ResponseStatusException(CONFLICT, message);
+                });
+    }
+
+    private static String requiredReason(ProcurementSupplierWorkflowRequestDTO dto, String fallbackMessage) {
+        if (dto == null || !StringUtils.hasText(dto.getMotivo())) {
+            throw new ResponseStatusException(CONFLICT, fallbackMessage);
+        }
+        return dto.getMotivo().trim();
+    }
+
+    private static String normalized(String status) {
+        return StringUtils.hasText(status) ? status.trim().toUpperCase(java.util.Locale.ROOT) : "";
     }
 
     private static OptionSourcePolicy lookupPolicy() {

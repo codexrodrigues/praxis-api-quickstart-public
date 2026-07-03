@@ -1,6 +1,7 @@
 package com.example.praxis.apiquickstart.procurement.service;
 
 import com.example.praxis.apiquickstart.config.DomainRuleOptionSourcePolicyResolver;
+import com.example.praxis.apiquickstart.config.DomainRuleWorkflowActionPolicyResolver;
 import com.example.praxis.apiquickstart.procurement.entity.ProcurementSupplier;
 import com.example.praxis.apiquickstart.procurement.mapper.ProcurementSupplierMapper;
 import com.example.praxis.apiquickstart.procurement.repository.ProcurementSupplierRepository;
@@ -28,6 +29,9 @@ class ProcurementSupplierServiceTest {
     @Mock
     private DomainRuleOptionSourcePolicyResolver optionSourcePolicyResolver;
 
+    @Mock
+    private DomainRuleWorkflowActionPolicyResolver workflowActionPolicyResolver;
+
     @Test
     void shouldUsePublishedSelectionPolicyWhenAvailable() {
         when(optionSourcePolicyResolver.resolveAppliedSelectionPolicy("supplier"))
@@ -42,7 +46,7 @@ class ProcurementSupplierServiceTest {
                 )));
 
         ProcurementSupplierService service =
-                new ProcurementSupplierService(repository, mapper, optionSourcePolicyResolver);
+                new ProcurementSupplierService(repository, mapper, optionSourcePolicyResolver, workflowActionPolicyResolver);
 
         LookupSelectionPolicy policy = service.getOptionSourceRegistry()
                 .resolve(ProcurementSupplier.class, "supplier")
@@ -59,7 +63,7 @@ class ProcurementSupplierServiceTest {
         when(optionSourcePolicyResolver.resolveAppliedSelectionPolicy("supplier")).thenReturn(Optional.empty());
 
         ProcurementSupplierService service =
-                new ProcurementSupplierService(repository, mapper, optionSourcePolicyResolver);
+                new ProcurementSupplierService(repository, mapper, optionSourcePolicyResolver, workflowActionPolicyResolver);
 
         LookupSelectionPolicy policy = service.getOptionSourceRegistry()
                 .resolve(ProcurementSupplier.class, "supplier")

@@ -5,6 +5,8 @@ import com.example.praxis.apiquickstart.core.controller.base.AbstractQuickstartC
 import com.example.praxis.apiquickstart.procurement.dto.CreateProcurementSupplierDTO;
 import com.example.praxis.apiquickstart.procurement.dto.ProcurementSupplierDTO;
 import com.example.praxis.apiquickstart.procurement.dto.UpdateProcurementSupplierDTO;
+import com.example.praxis.apiquickstart.procurement.dto.actions.ProcurementSupplierWorkflowRequestDTO;
+import com.example.praxis.apiquickstart.procurement.dto.actions.ProcurementSupplierWorkflowResultDTO;
 import com.example.praxis.apiquickstart.procurement.dto.filter.ProcurementSupplierFilterDTO;
 import com.example.praxis.apiquickstart.procurement.entity.ProcurementSupplier;
 import com.example.praxis.apiquickstart.procurement.mapper.ProcurementSupplierMapper;
@@ -13,13 +15,17 @@ import io.swagger.v3.oas.annotations.Operation;
 import org.praxisplatform.uischema.annotation.ApiGroup;
 import org.praxisplatform.uischema.annotation.ApiResource;
 import org.praxisplatform.uischema.annotation.UiSurface;
+import org.praxisplatform.uischema.annotation.WorkflowAction;
+import org.praxisplatform.uischema.action.ActionScope;
 import org.praxisplatform.uischema.rest.response.RestApiResponse;
 import org.praxisplatform.uischema.surface.SurfaceKind;
 import org.praxisplatform.uischema.surface.SurfaceScope;
+import org.springframework.hateoas.Links;
 import org.springframework.data.domain.Page;
 import org.springframework.hateoas.EntityModel;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.MultiValueMap;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -83,5 +89,65 @@ public class ProcurementSupplierController extends AbstractQuickstartCrudControl
             @RequestParam MultiValueMap<String, String> queryParams
     ) {
         return super.filter(filterDTO, page, size, includeIds, queryParams);
+    }
+
+    @PostMapping("/{id}/actions/block")
+    @Operation(
+            summary = "Bloquear fornecedor",
+            description = "Bloqueia um fornecedor para novos pedidos, preservando motivo de compliance e refletindo a inelegibilidade em option sources governadas."
+    )
+    @WorkflowAction(
+            id = "block",
+            title = "Bloquear fornecedor",
+            description = "Remove temporariamente a elegibilidade de compra do fornecedor por risco, compliance ou auditoria.",
+            scope = ActionScope.ITEM,
+            order = 100,
+            successMessage = "Fornecedor bloqueado",
+            allowedStates = {"ACTIVE", "APPROVED"},
+            tags = {"workflow", "procurement", "supplier", "compliance"}
+    )
+    public ResponseEntity<RestApiResponse<ProcurementSupplierWorkflowResultDTO>> block(
+            @PathVariable Integer id,
+            @jakarta.validation.Valid @RequestBody ProcurementSupplierWorkflowRequestDTO dto
+    ) {
+        return workflowResponse(id, "/{id}/actions/block", service.block(id, dto));
+    }
+
+    @PostMapping("/{id}/actions/reinstate")
+    @Operation(
+            summary = "Reabilitar fornecedor",
+            description = "Reabilita um fornecedor bloqueado ou inativo para compras, limpando o motivo de bloqueio e republicando elegibilidade operacional."
+    )
+    @WorkflowAction(
+            id = "reinstate",
+            title = "Reabilitar fornecedor",
+            description = "Restaura a elegibilidade de compra quando a revisao de compliance libera o fornecedor.",
+            scope = ActionScope.ITEM,
+            order = 110,
+            successMessage = "Fornecedor reabilitado",
+            allowedStates = {"BLOCKED", "INACTIVE"},
+            tags = {"workflow", "procurement", "supplier", "compliance"}
+    )
+    public ResponseEntity<RestApiResponse<ProcurementSupplierWorkflowResultDTO>> reinstate(
+            @PathVariable Integer id,
+            @jakarta.validation.Valid @RequestBody ProcurementSupplierWorkflowRequestDTO dto
+    ) {
+        return workflowResponse(id, "/{id}/actions/reinstate", service.reinstate(id, dto));
+    }
+
+    private ResponseEntity<RestApiResponse<ProcurementSupplierWorkflowResultDTO>> workflowResponse(
+            Integer id,
+            String operationPath,
+            ProcurementSupplierWorkflowResultDTO result
+    ) {
+        Links links = Links.of(
+                linkToSelf(id),
+                linkToAll(),
+                linkToFilter(),
+                linkToFilterCursor(),
+                linkToUiSchema(operationPath, "post", "request"),
+                linkToUiSchema(operationPath, "post", "response")
+        );
+        return withVersion(ResponseEntity.ok(), RestApiResponse.success(result, hateoasOrNull(links)));
     }
 }
