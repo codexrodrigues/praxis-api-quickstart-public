@@ -109,6 +109,50 @@ insert into public.equipamento_alocacoes (equipamento_id, funcionario_id, inicio
 select equipamento_id, funcionario_id, inicio, fim, status
 from alloc_to_insert;
 
+insert into public.veiculos (id, nome, tipo, capacidade, proprietario_id, status)
+values
+    (1, 'Quinjet', 'AEREO', 12, 1, 'OPERACIONAL'),
+    (2, 'Batmovel', 'TERRESTRE', 2, 3, 'OPERACIONAL'),
+    (3, 'Batwing em Revisao', 'AEREO', 2, 3, 'MANUTENCAO'),
+    (4, 'Helicarrier-01', 'AEREO', 300, 37, 'OPERACIONAL'),
+    (5, 'Submersivel Atlante Bloqueado', 'MARITIMO', 6, 34, 'INOPERANTE'),
+    (6, 'Nave Guardioes Milano', 'ESPACIAL', 8, 45, 'OPERACIONAL'),
+    (7, 'Rover de Campo Sokovia', 'TERRESTRE', 4, 48, 'MANUTENCAO'),
+    (8, 'Interceptor Wakanda', 'AEREO', 2, 28, 'OPERACIONAL')
+on conflict (id) do update
+set nome = excluded.nome,
+    tipo = excluded.tipo,
+    capacidade = excluded.capacidade,
+    proprietario_id = excluded.proprietario_id,
+    status = excluded.status;
+
+insert into public.veiculo_missao_usos (id, veiculo_id, missao_id, piloto_id, partida, chegada, observacao)
+values
+    (1, 1, 1, 47, timestamp with time zone '2025-10-18 10:41:43.995048+00', null, 'Deslocamento de reforcos SHIELD'),
+    (2, 4, 32, 37, timestamp with time zone '2026-04-05 09:00:00+00', null, 'Comando aereo de suporte ao Escudo de Atlantis'),
+    (3, 6, 33, 45, timestamp with time zone '2026-04-12 06:30:00+00', null, 'Escolta diplomatica Kree-Skrull'),
+    (4, 7, 35, 48, timestamp with time zone '2026-05-02 10:00:00+00', timestamp with time zone '2026-05-03 18:00:00+00', 'Rover recolhido para manutencao apos auditoria remota'),
+    (5, 8, 34, 28, timestamp with time zone '2026-01-10 12:00:00+00', timestamp with time zone '2026-01-21 16:00:00+00', 'Transporte de cristais para custodia controlada')
+on conflict (id) do update
+set veiculo_id = excluded.veiculo_id,
+    missao_id = excluded.missao_id,
+    piloto_id = excluded.piloto_id,
+    partida = excluded.partida,
+    chegada = excluded.chegada,
+    observacao = excluded.observacao;
+
+select nextval('public.veiculos_id_seq')
+from generate_series(
+    1,
+    greatest(0, (select coalesce(max(id), 1) from public.veiculos) - (select last_value from public.veiculos_id_seq)::integer)
+);
+
+select nextval('public.veiculo_missao_usos_id_seq')
+from generate_series(
+    1,
+    greatest(0, (select coalesce(max(id), 1) from public.veiculo_missao_usos) - (select last_value from public.veiculo_missao_usos_id_seq)::integer)
+);
+
 update public.ameacas
 set status = 'CONFRONTO',
     recompensa = greatest(coalesce(recompensa, 0), 1250000.00)

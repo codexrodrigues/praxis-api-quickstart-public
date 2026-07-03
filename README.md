@@ -537,13 +537,16 @@ Exemplos de referencia no quickstart:
   reidrataveis para custodias existentes, mas bloqueados para novas alocacoes.
 - `assets.equipamentos` publica stats governados para graficos de disponibilidade
   (`/stats/group-by`, `field=status`), tipo de equipamento (`field=tipo`) e resistencia
-  (`/stats/distribution`, `field=resistencia`).
+  (`/stats/distribution`, `field=resistencia`). Como a resistencia e uma escala 1-10,
+  exemplos e cockpits devem usar buckets pequenos, como `bucketSize=2`.
 - `assets.equipamento-alocacoes` publica stats para custodia operacional:
   status de custodia (`/stats/group-by`, `field=status`), concentracao por equipamento
   ou funcionario (`field=equipamentoId` e `field=funcionarioId`) e timeline de abertura
   ou encerramento (`/stats/timeseries`, `field=inicio` ou `field=fim`).
 - `assets.veiculos` e `assets.veiculo-missao-usos` completam a leitura de frota com
   prontidao por status/tipo, capacidade em distribuicao e uso por veiculo, missao ou piloto.
+  O seed publico cobre frota operacional, em manutencao e inoperante para deixar o
+  cockpit visualmente expressivo.
 - Em `assets`, os campos de pessoa operacional (`proprietarioId`, `pilotoId` e `funcionarioId`)
   consomem a fonte governada `employee` em vez do endpoint generico de funcionarios.
 - Em `procurement`, as fontes `company`, `supplier`, `contract` e `product` demonstram uma cadeia

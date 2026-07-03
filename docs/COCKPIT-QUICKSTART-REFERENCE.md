@@ -160,14 +160,17 @@ Em `assets`, as perguntas ja materializadas pelo host exemplar sao:
 - "Quantos equipamentos estao em estoque, uso, manutencao, quebrados ou perdidos?"
   via `POST /api/assets/equipamentos/stats/group-by` com `field=status`;
 - "Qual a distribuicao de resistencia do inventario?" via
-  `POST /api/assets/equipamentos/stats/distribution` com `field=resistencia`;
+  `POST /api/assets/equipamentos/stats/distribution` com `field=resistencia`.
+  A escala publicada e 1-10; use buckets pequenos, como `bucketSize=2`, para
+  evitar colapsar toda a serie em uma unica faixa;
 - "Quantas custodias estao ativas, devolvidas, perdidas ou danificadas?" via
   `POST /api/assets/equipamento-alocacoes/stats/group-by` com `field=status`;
 - "Quando as custodias foram abertas ou encerradas?" via
   `POST /api/assets/equipamento-alocacoes/stats/timeseries` com `field=inicio`
   ou `field=fim`;
 - "Como esta a prontidao da frota?" via
-  `POST /api/assets/veiculos/stats/group-by` com `field=status`;
+  `POST /api/assets/veiculos/stats/group-by` com `field=status`. O seed publico
+  cobre veiculos operacionais, em manutencao e inoperantes;
 - "Quais veiculos, missoes ou pilotos concentram uso de frota?" via
   `POST /api/assets/veiculo-missao-usos/stats/group-by` com `field=veiculoId`,
   `field=missaoId` ou `field=pilotoId`.

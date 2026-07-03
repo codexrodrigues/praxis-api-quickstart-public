@@ -26539,6 +26539,10 @@ COPY public.sinais_socorro (id, origem, local, nivel_ameaca, status, aberto_em, 
 
 COPY public.veiculo_missao_usos (id, veiculo_id, missao_id, piloto_id, partida, chegada, observacao) FROM stdin;
 1	1	1	47	2025-10-18 10:41:43.995048+00	\N	Deslocamento de reforços SHIELD
+2	4	32	37	2026-04-05 09:00:00+00	\N	Comando aéreo de suporte ao Escudo de Atlantis
+3	6	33	45	2026-04-12 06:30:00+00	\N	Escolta diplomática Kree-Skrull
+4	7	35	48	2026-05-02 10:00:00+00	2026-05-03 18:00:00+00	Rover recolhido para manutenção após auditoria remota
+5	8	34	28	2026-01-10 12:00:00+00	2026-01-21 16:00:00+00	Transporte de cristais para custódia controlada
 \.
 
 
@@ -26549,8 +26553,12 @@ COPY public.veiculo_missao_usos (id, veiculo_id, missao_id, piloto_id, partida, 
 COPY public.veiculos (id, nome, tipo, capacidade, proprietario_id, status) FROM stdin;
 1	Quinjet	AEREO	12	1	OPERACIONAL
 2	Batmóvel	TERRESTRE	2	3	OPERACIONAL
-3	Batwing	AEREO	2	3	OPERACIONAL
+3	Batwing em Revisão	AEREO	2	3	MANUTENCAO
 4	Helicarrier-01	AEREO	300	37	OPERACIONAL
+5	Submersível Atlante Bloqueado	MARITIMO	6	34	INOPERANTE
+6	Nave Guardiões Milano	ESPACIAL	8	45	OPERACIONAL
+7	Rover de Campo Sokovia	TERRESTRE	4	48	MANUTENCAO
+8	Interceptor Wakanda	AEREO	2	28	OPERACIONAL
 \.
 
 
@@ -26614,14 +26622,14 @@ SELECT pg_catalog.setval('public.enderecos_id_seq', 50, true);
 -- Name: equipamento_alocacoes_id_seq; Type: SEQUENCE SET; Schema: public; Owner: praxis_demo_owner
 --
 
-SELECT pg_catalog.setval('public.equipamento_alocacoes_id_seq', 3, true);
+SELECT pg_catalog.setval('public.equipamento_alocacoes_id_seq', 59, true);
 
 
 --
 -- Name: equipamentos_id_seq; Type: SEQUENCE SET; Schema: public; Owner: praxis_demo_owner
 --
 
-SELECT pg_catalog.setval('public.equipamentos_id_seq', 6, true);
+SELECT pg_catalog.setval('public.equipamentos_id_seq', 62, true);
 
 
 --
@@ -26810,14 +26818,14 @@ SELECT pg_catalog.setval('public.sinais_socorro_id_seq', 2, true);
 -- Name: veiculo_missao_usos_id_seq; Type: SEQUENCE SET; Schema: public; Owner: praxis_demo_owner
 --
 
-SELECT pg_catalog.setval('public.veiculo_missao_usos_id_seq', 1, true);
+SELECT pg_catalog.setval('public.veiculo_missao_usos_id_seq', 5, true);
 
 
 --
 -- Name: veiculos_id_seq; Type: SEQUENCE SET; Schema: public; Owner: praxis_demo_owner
 --
 
-SELECT pg_catalog.setval('public.veiculos_id_seq', 4, true);
+SELECT pg_catalog.setval('public.veiculos_id_seq', 8, true);
 
 
 --
