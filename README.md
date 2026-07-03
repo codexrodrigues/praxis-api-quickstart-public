@@ -17,6 +17,8 @@
 
 O [Praxis Cockpit](https://praxis-api-quickstart.onrender.com/praxis/cockpit) e a forma mais rapida de entender este host sem clonar o projeto. Ele e servido automaticamente pelo `praxis-metadata-starter`, nao por HTML copiado no Quickstart, e mostra como o dominio publicado pelo backend vira inventario navegavel: areas de negocio, recursos, endpoints, filtros, tabelas, formularios, graficos, workflow actions, prontidao semantica e relacionamentos entre recursos.
 
+Compartilhe sempre a URL canonica `/praxis/cockpit`. Parametros como `release`, `published` e `qa` sao cache-busters temporarios para validacao; o topo do cockpit mostra o release solicitado e o `build.time` real de `/actuator/info` para confirmar se o Render ja serviu o build esperado.
+
 ## Sobre o Praxis (visao geral)
 
 O Praxis e uma plataforma de decisoes semanticas authoradas por IA. Em vez de tratar a IA como geradora de JSON, patches ou configuracao incidental de componente, o backend publica intencao, vocabulario de dominio, governanca, capacidades e evidencias em runtime; a camada de config governa simulacao, aprovacao, publicacao e materializacoes derivadas.
@@ -340,6 +342,7 @@ curl -i -b cookies.txt -c cookies.txt \
 - Home publica: https://praxis-api-quickstart.onrender.com/
 - Praxis Cockpit publico: https://praxis-api-quickstart.onrender.com/praxis/cockpit
 - Build info publico para diagnosticar rollout por HTTP: `/actuator/info`
+- Para links permanentes do cockpit, evite parametros `release`, `published` ou `qa`; eles servem apenas para validacao momentanea de rollout/cache.
 - A documentacao OpenAPI usada pelo UI tambem esta publica: `/v3/api-docs` e `/v3/api-docs/**`.
 - Endpoints de configuracao/IA (`/api/praxis/config/**`) sao publicos por desenho; acesso as demais rotas depende das flags de seguranca (`read-open` e whitelist).
 - O endpoint `/actuator/info` deve expor ao menos `build.artifact` e `build.version`; use esse payload para confirmar se o Render realmente subiu o artefato esperado antes de diagnosticar endpoints faltando.
