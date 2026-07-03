@@ -48,6 +48,12 @@ Endpoints utilitarios fornecidos pelo starter integram com o Praxis UI para gera
 - Suporte a dashboards e relatorios com views agregadas
 - Contratos versionaveis e com ETag para cache eficiente
 
+## Migrations operacionais
+
+O banco de demonstracao tem duas fronteiras: o datasource operacional da API (`spring.datasource.*`) e o datasource do Praxis Config Starter (`config.datasource.*`). O Flyway do host aponta para o config/RAG store; mudancas do schema operacional da API sao versionadas separadamente em `db/operational-migrations`.
+
+Consulte [`OPERATIONAL-DATASOURCE-MIGRATIONS.md`](OPERATIONAL-DATASOURCE-MIGRATIONS.md) para aplicar a trilha e rodar o drift check antes de usar o cockpit publicado como evidencia final.
+
 ## Tecnologias principais
 
 - Spring Boot 3.x (Java 21), Spring Data JPA / Hibernate

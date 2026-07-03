@@ -74,6 +74,11 @@ Observacao: este Quickstart agora separa os recursos por dominio de rota, em vez
 
 Para uma visao detalhada (tabelas, views e cenarios), veja: `docs/DEMO-DATABASE.md`.
 
+Migrations operacionais da API:
+- O datasource de dominio do Quickstart (`spring.datasource.*`) e separado do datasource config/RAG (`config.datasource.*`).
+- A trilha versionada de schema/seed operacional fica em [`db/operational-migrations`](db/operational-migrations).
+- O processo de aplicacao e o drift check estao em [`docs/OPERATIONAL-DATASOURCE-MIGRATIONS.md`](docs/OPERATIONAL-DATASOURCE-MIGRATIONS.md).
+
 ## Ecossistema (pecas e papeis)
 
 - Praxis Metadata Starter (biblioteca)
@@ -742,7 +747,8 @@ Seguranca (POST):
 
 Persistencia de status (DB migration)
 - Adicione a coluna `status` na tabela `eventos_folha` (default `PENDENTE`) para permitir `bulk-approve` com validacao real de estado:
-  - Script e instrucoes: `docs/DB-MIGRATIONS.md`
+  - Trilha operacional versionada: `db/operational-migrations`
+  - Processo e drift check: `docs/OPERATIONAL-DATASOURCE-MIGRATIONS.md`
 
 ### Schemas enriquecidos (/schemas/filtered)
 - Solicita o schema do endpoint informando `path`, `operation` (get|post|put|delete) e `schemaType` (request|response).

@@ -1,4 +1,8 @@
-Database migrations (manual) — Eventos de Folha (status)
+Database migrations (manual) - Eventos de Folha (status)
+
+> Nota canonica: a trilha versionada do datasource operacional da API agora fica em
+> [`db/operational-migrations`](../db/operational-migrations). O processo completo esta em
+> [`docs/OPERATIONAL-DATASOURCE-MIGRATIONS.md`](OPERATIONAL-DATASOURCE-MIGRATIONS.md).
 
 Para habilitar a persistência da action tipada `bulk-approve` em `eventos_folha`, adicione a coluna `status` (enum textual) com default `PENDENTE`:
 
@@ -17,4 +21,3 @@ Observações:
 - A action `POST /api/human-resources/eventos-folha/actions/bulk-approve` agora exige essa coluna para validar `allowedStates=PENDENTE` e persistir a transição para `APROVADO`.
 - Sem a coluna, o endpoint continua respondendo `200`, mas cada item retorna falha com a mensagem `Workflow requires public.eventos_folha.status column`; não há aprovação simulada.
 - O host reavalia a existência da coluna a cada nova chamada enquanto ela estiver ausente; depois da migration aplicada, não é necessário reiniciar a aplicação para o workflow voltar a operar.
-
