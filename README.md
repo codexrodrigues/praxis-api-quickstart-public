@@ -19,6 +19,8 @@ O [Praxis Cockpit](https://praxis-api-quickstart.onrender.com/praxis/cockpit) e 
 
 Compartilhe sempre a URL canonica `/praxis/cockpit`. Parametros como `release`, `published` e `qa` sao cache-busters temporarios para validacao; o topo do cockpit mostra o release solicitado e o `build.time` real de `/actuator/info` para confirmar se o Render ja serviu o build esperado.
 
+Leia tambem [`docs/COCKPIT-QUICKSTART-REFERENCE.md`](docs/COCKPIT-QUICKSTART-REFERENCE.md) para entender como o cockpit deve ser usado como evidencia do host exemplar: cobertura por dominio, surfaces, workflow actions, charts, relacionamentos navegaveis e prioridades de evolucao do Quickstart.
+
 ## Sobre o Praxis (visao geral)
 
 O Praxis e uma plataforma de decisoes semanticas authoradas por IA. Em vez de tratar a IA como geradora de JSON, patches ou configuracao incidental de componente, o backend publica intencao, vocabulario de dominio, governanca, capacidades e evidencias em runtime; a camada de config governa simulacao, aprovacao, publicacao e materializacoes derivadas.
@@ -341,6 +343,7 @@ curl -i -b cookies.txt -c cookies.txt \
 - URL publica do Swagger UI: https://praxis-api-quickstart.onrender.com/swagger-ui/index.html
 - Home publica: https://praxis-api-quickstart.onrender.com/
 - Praxis Cockpit publico: https://praxis-api-quickstart.onrender.com/praxis/cockpit
+- Guia do cockpit no Quickstart: `docs/COCKPIT-QUICKSTART-REFERENCE.md`
 - Build info publico para diagnosticar rollout por HTTP: `/actuator/info`
 - Para links permanentes do cockpit, evite parametros `release`, `published` ou `qa`; eles servem apenas para validacao momentanea de rollout/cache.
 - A documentacao OpenAPI usada pelo UI tambem esta publica: `/v3/api-docs` e `/v3/api-docs/**`.
