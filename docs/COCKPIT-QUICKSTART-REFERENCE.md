@@ -230,9 +230,11 @@ Materializacao esperada:
 2. `human-resources`: ampliar exemplo de ciclo de vida alem de folha, como
    afastamento, reputacao ou habilidade, se houver comando real de dominio.
 3. `procurement`: ja publica charts de compras e uma surface de jornada
-   governada em `procurement.purchase-orders`; a proxima evolucao e ampliar
-   dados demonstrativos para o cockpit evidenciar gargalos, fornecedores
-   bloqueados, contratos vencendo e pedidos em risco.
+   governada em `procurement.purchase-orders`; a migration operacional
+   `V20260703_003__procurement_cockpit_lifecycle_seed.sql` reidrata o ciclo
+   aprovado/cancelado/recebido dos pedidos demonstrativos para que os charts
+   evidenciem gargalos, fornecedores bloqueados, contratos vencendo e pedidos
+   em risco tambem em bancos ja existentes.
 4. `assets`: evoluir amostras de dados para evidenciar perdas, danos,
    manutencoes e devolucoes em volume suficiente para o cockpit demonstrar
    outliers e comparativos reais.

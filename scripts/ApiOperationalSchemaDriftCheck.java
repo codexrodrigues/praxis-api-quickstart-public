@@ -37,6 +37,14 @@ public final class ApiOperationalSchemaDriftCheck {
             checkColumn(connection, "public", "procurement_purchase_orders", "approved_at", failures);
             checkColumn(connection, "public", "procurement_purchase_orders", "cancelled_at", failures);
             checkColumn(connection, "public", "procurement_purchase_orders", "received_at", failures);
+            checkDistinctCount(
+                    connection,
+                    "public.procurement_purchase_orders",
+                    "status",
+                    2,
+                    "Expected procurement purchase orders to expose more than one lifecycle status for cockpit charts.",
+                    failures
+            );
 
             if (!failures.isEmpty()) {
                 System.err.println("API operational datasource drift detected:");
@@ -82,6 +90,23 @@ public final class ApiOperationalSchemaDriftCheck {
             }
             try (ResultSet resultSet = statement.executeQuery()) {
                 return resultSet.next();
+            }
+        }
+    }
+
+    private static void checkDistinctCount(
+            Connection connection,
+            String table,
+            String column,
+            int minimum,
+            String message,
+            List<String> failures
+    ) throws SQLException {
+        String sql = "select count(distinct " + column + ") from " + table;
+        try (PreparedStatement statement = connection.prepareStatement(sql);
+             ResultSet resultSet = statement.executeQuery()) {
+            if (resultSet.next() && resultSet.getInt(1) < minimum) {
+                failures.add(message);
             }
         }
     }
