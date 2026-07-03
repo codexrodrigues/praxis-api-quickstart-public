@@ -193,7 +193,7 @@ public class VwIndicadoresIncidenteController extends AbstractQuickstartReadOnly
     @UiSurface(
             id = "incident-trend-chart",
             title = "Evolucao de incidentes",
-            kind = SurfaceKind.READ_PROJECTION,
+            kind = SurfaceKind.CHART,
             scope = SurfaceScope.COLLECTION,
             description = "Materializa a serie temporal de incidentes para visualizar tendencia, sazonalidade e picos de severidade."
     )
@@ -252,7 +252,6 @@ public class VwIndicadoresIncidenteController extends AbstractQuickstartReadOnly
         return super.getById(id);
     }
 }
-
 
 
 

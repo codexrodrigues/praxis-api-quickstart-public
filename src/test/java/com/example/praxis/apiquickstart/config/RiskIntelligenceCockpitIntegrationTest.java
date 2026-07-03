@@ -124,7 +124,7 @@ class RiskIntelligenceCockpitIntegrationTest {
         assertRiskSurface(
                 "risk-intelligence.vw-indicadores-incidentes",
                 "incident-trend-chart",
-                "READ_PROJECTION",
+                "CHART",
                 "Evolucao de incidentes"
         );
     }
