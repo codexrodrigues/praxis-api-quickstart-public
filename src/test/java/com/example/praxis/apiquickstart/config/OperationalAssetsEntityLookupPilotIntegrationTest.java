@@ -15,6 +15,7 @@ import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -89,6 +90,26 @@ class OperationalAssetsEntityLookupPilotIntegrationTest {
 
         jdbcTemplate.execute("drop table if exists public.equipamentos");
         jdbcTemplate.execute("drop table if exists public.veiculos");
+        jdbcTemplate.execute("drop table if exists public.funcionarios");
+        jdbcTemplate.execute("""
+                create table public.funcionarios (
+                    id integer primary key,
+                    nome_completo varchar(200),
+                    cpf varchar(20),
+                    email varchar(200),
+                    telefone varchar(40),
+                    data_nascimento date,
+                    cidade_nascimento varchar(120),
+                    pais_nascimento varchar(120),
+                    estado_civil varchar(40),
+                    data_admissao date,
+                    salario numeric(19, 2),
+                    foto_perfil_url varchar(500),
+                    ativo boolean,
+                    cargo_id integer,
+                    departamento_id integer
+                )
+                """);
         jdbcTemplate.execute("""
                 create table public.equipamentos (
                     id integer primary key,
@@ -329,6 +350,97 @@ class OperationalAssetsEntityLookupPilotIntegrationTest {
         );
     }
 
+    @Test
+    void shouldExposeAndExecuteAssetAvailabilityWorkflowActions() throws Exception {
+        JsonNode equipmentActions = body(restTemplate.getForEntity(
+                "/schemas/actions?resource=assets.equipamentos",
+                String.class
+        ));
+        assertEquals("assets.equipamentos", equipmentActions.path("resourceKey").asText());
+        assertAction(equipmentActions, "send-to-maintenance", "/api/assets/equipamentos/{id}/actions/send-to-maintenance");
+        assertAction(equipmentActions, "return-to-stock", "/api/assets/equipamentos/{id}/actions/return-to-stock");
+
+        ResponseEntity<String> maintenanceEquipmentResponse = restTemplate.exchange(
+                "/api/assets/equipamentos/1/actions/send-to-maintenance",
+                HttpMethod.POST,
+                authorizedJson("""
+                        {
+                          "motivo": "Inspecao preventiva"
+                        }
+                        """),
+                String.class
+        );
+        JsonNode maintenanceEquipment = body(maintenanceEquipmentResponse);
+        assertEquals("ESTOQUE", maintenanceEquipment.path("data").path("statusAnterior").asText());
+        assertEquals("MANUTENCAO", maintenanceEquipment.path("data").path("statusAtual").asText());
+        assertEquipmentSelectable(1, false);
+
+        ResponseEntity<String> duplicateEquipmentResponse = restTemplate.exchange(
+                "/api/assets/equipamentos/1/actions/send-to-maintenance",
+                HttpMethod.POST,
+                authorizedJson("""
+                        {
+                          "motivo": "Tentativa duplicada"
+                        }
+                        """),
+                String.class
+        );
+        assertEquals(HttpStatus.CONFLICT, duplicateEquipmentResponse.getStatusCode());
+
+        ResponseEntity<String> stockEquipmentResponse = restTemplate.exchange(
+                "/api/assets/equipamentos/1/actions/return-to-stock",
+                HttpMethod.POST,
+                authorizedJson("""
+                        {
+                          "motivo": "Inspecao concluida"
+                        }
+                        """),
+                String.class
+        );
+        JsonNode stockEquipment = body(stockEquipmentResponse);
+        assertEquals("MANUTENCAO", stockEquipment.path("data").path("statusAnterior").asText());
+        assertEquals("ESTOQUE", stockEquipment.path("data").path("statusAtual").asText());
+        assertEquipmentSelectable(1, true);
+
+        JsonNode vehicleActions = body(restTemplate.getForEntity(
+                "/schemas/actions?resource=assets.veiculos",
+                String.class
+        ));
+        assertEquals("assets.veiculos", vehicleActions.path("resourceKey").asText());
+        assertAction(vehicleActions, "send-to-maintenance", "/api/assets/veiculos/{id}/actions/send-to-maintenance");
+        assertAction(vehicleActions, "return-to-operation", "/api/assets/veiculos/{id}/actions/return-to-operation");
+
+        ResponseEntity<String> maintenanceVehicleResponse = restTemplate.exchange(
+                "/api/assets/veiculos/1/actions/send-to-maintenance",
+                HttpMethod.POST,
+                authorizedJson("""
+                        {
+                          "motivo": "Revisao da frota"
+                        }
+                        """),
+                String.class
+        );
+        JsonNode maintenanceVehicle = body(maintenanceVehicleResponse);
+        assertEquals("OPERACIONAL", maintenanceVehicle.path("data").path("statusAnterior").asText());
+        assertEquals("MANUTENCAO", maintenanceVehicle.path("data").path("statusAtual").asText());
+        assertVehicleSelectable(1, false);
+
+        ResponseEntity<String> operationalVehicleResponse = restTemplate.exchange(
+                "/api/assets/veiculos/1/actions/return-to-operation",
+                HttpMethod.POST,
+                authorizedJson("""
+                        {
+                          "motivo": "Liberado pela manutencao"
+                        }
+                        """),
+                String.class
+        );
+        JsonNode operationalVehicle = body(operationalVehicleResponse);
+        assertEquals("MANUTENCAO", operationalVehicle.path("data").path("statusAnterior").asText());
+        assertEquals("OPERACIONAL", operationalVehicle.path("data").path("statusAtual").asText());
+        assertVehicleSelectable(1, true);
+    }
+
     private JsonNode body(ResponseEntity<String> response) throws Exception {
         assertEquals(HttpStatus.OK, response.getStatusCode(), response.getBody());
         assertNotNull(response.getBody());
@@ -370,6 +482,31 @@ class OperationalAssetsEntityLookupPilotIntegrationTest {
         assertEquals("VIEW", surface.path("kind").asText());
         assertEquals("COLLECTION", surface.path("scope").asText());
         assertEquals(title, surface.path("title").asText());
+    }
+
+    private void assertAction(JsonNode actionsCatalog, String actionId, String path) {
+        JsonNode action = findById(actionsCatalog.path("actions"), actionId);
+        assertNotNull(action);
+        assertEquals("ITEM", action.path("scope").asText());
+        assertEquals(path, action.path("path").asText());
+    }
+
+    private void assertEquipmentSelectable(int id, boolean expectedSelectable) throws Exception {
+        JsonNode selectedEquipment = objectMapper.readTree(restTemplate.getForObject(
+                "/api/assets/equipamentos/option-sources/equipment/options/by-ids?ids={id}",
+                String.class,
+                id
+        ));
+        assertEquals(expectedSelectable, selectedEquipment.get(0).path("extra").path("selectable").asBoolean());
+    }
+
+    private void assertVehicleSelectable(int id, boolean expectedSelectable) throws Exception {
+        JsonNode selectedVehicle = objectMapper.readTree(restTemplate.getForObject(
+                "/api/assets/veiculos/option-sources/vehicle/options/by-ids?ids={id}",
+                String.class,
+                id
+        ));
+        assertEquals(expectedSelectable, selectedVehicle.get(0).path("extra").path("selectable").asBoolean());
     }
 
     private JsonNode findById(JsonNode items, String id) {

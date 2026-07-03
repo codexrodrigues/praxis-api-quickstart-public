@@ -50,7 +50,7 @@ producao.
 | Pessoas e RH | `human-resources` | 20 | 6 | 4 | `suportado-parcialmente`: boa documentacao de campos, actions em folha e surfaces de funcionarios, mas ainda pode ganhar mais exemplos de workflows de ciclo de vida. |
 | Operacoes | `operations` | 12 | 9 | 10 | `ja-suportado-mal-nomeado-ou-mal-materializado`: e o melhor dominio para demonstrar actions/surfaces; cockpit deve usar esse dominio como referencia visual de workflows. |
 | Suprimentos | `procurement` | 5 | 4 | 2 | `suportado-parcialmente`: recursos, schemas, option sources, surfaces e actions de elegibilidade de fornecedor existem; ainda pode evoluir actions de contrato/pedido quando houver comando real de negocio. |
-| Ativos Operacionais | `assets` | 4 | 4 | 0 | `suportado-parcialmente`: recursos, lookups e surfaces de inventario/frota/custodia existem; falta action de workflow somente quando houver comando real de movimentacao. |
+| Ativos Operacionais | `assets` | 4 | 4 | 4 | `suportado-parcialmente`: recursos, lookups, surfaces e actions de disponibilidade existem; ainda pode evoluir actions de custodia quando houver comando real de movimentacao. |
 | Inteligencia de Risco | `risk-intelligence` | 2 | 3 | 0 | `suportado-parcialmente`: recurso de ameacas e view analitica de incidentes publicam surfaces de monitoramento, painel e chart; falta action apenas quando houver comando real de triagem ou revisao. |
 
 Nenhum item acima exige contrato novo neste momento. A plataforma ja sabe expor
@@ -169,7 +169,7 @@ Materializacao esperada:
 1. `procurement`: evoluir actions de fornecedor para comandos de contrato ou
    pedido, como revisar contrato ou aprovar pedido, apenas quando houver
    endpoint/service real que execute o comando governado.
-2. `assets`: evoluir surfaces de inventario, custodia e frota para actions de
+2. `assets`: evoluir actions de disponibilidade para comandos de custodia,
    reservar, liberar ou transferir ativo apenas quando existir endpoint/service
    real que execute a decisao operacional.
 3. `risk-intelligence`: evoluir as surfaces de ameacas e incidentes para actions

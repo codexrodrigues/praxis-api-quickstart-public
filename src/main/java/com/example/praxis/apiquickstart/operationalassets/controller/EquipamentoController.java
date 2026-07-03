@@ -4,6 +4,8 @@ import com.example.praxis.apiquickstart.constants.ApiPaths;
 import com.example.praxis.apiquickstart.operationalassets.dto.EquipamentoDTO;
 import com.example.praxis.apiquickstart.operationalassets.dto.CreateEquipamentoDTO;
 import com.example.praxis.apiquickstart.operationalassets.dto.UpdateEquipamentoDTO;
+import com.example.praxis.apiquickstart.operationalassets.dto.actions.AssetAvailabilityWorkflowRequestDTO;
+import com.example.praxis.apiquickstart.operationalassets.dto.actions.AssetAvailabilityWorkflowResultDTO;
 import com.example.praxis.apiquickstart.operationalassets.dto.filter.EquipamentoFilterDTO;
 import com.example.praxis.apiquickstart.operationalassets.entity.Equipamento;
 import com.example.praxis.apiquickstart.operationalassets.mapper.EquipamentoMapper;
@@ -11,7 +13,9 @@ import com.example.praxis.apiquickstart.operationalassets.service.EquipamentoSer
 import org.praxisplatform.uischema.annotation.ApiGroup;
 import org.praxisplatform.uischema.annotation.ApiResource;
 import org.praxisplatform.uischema.annotation.UiSurface;
+import org.praxisplatform.uischema.annotation.WorkflowAction;
 import com.example.praxis.apiquickstart.core.controller.base.AbstractQuickstartCrudController;
+import org.praxisplatform.uischema.action.ActionScope;
 import org.praxisplatform.uischema.surface.SurfaceKind;
 import org.praxisplatform.uischema.surface.SurfaceScope;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,6 +25,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import org.praxisplatform.uischema.rest.response.RestApiResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.hateoas.EntityModel;
+import org.springframework.hateoas.Links;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -188,6 +193,44 @@ public class EquipamentoController extends AbstractQuickstartCrudController<Equi
         return super.update(id, dto);
     }
 
+    @PostMapping("/{id}/actions/send-to-maintenance")
+    @Operation(summary = "Enviar equipamento para manutenção", description = "Move um equipamento em estoque ou uso para manutenção, removendo sua elegibilidade em novas alocações.")
+    @WorkflowAction(
+            id = "send-to-maintenance",
+            title = "Enviar para manutencao",
+            description = "Retira o equipamento da disponibilidade operacional para inspeção, reparo ou bloqueio técnico.",
+            scope = ActionScope.ITEM,
+            order = 100,
+            successMessage = "Equipamento enviado para manutenção",
+            allowedStates = {"ESTOQUE", "EM_USO"},
+            tags = {"workflow", "assets", "equipment", "maintenance"}
+    )
+    public ResponseEntity<RestApiResponse<AssetAvailabilityWorkflowResultDTO>> sendToMaintenance(
+            @PathVariable Integer id,
+            @jakarta.validation.Valid @RequestBody AssetAvailabilityWorkflowRequestDTO dto
+    ) {
+        return workflowResponse(id, "/{id}/actions/send-to-maintenance", service.sendToMaintenance(id, dto));
+    }
+
+    @PostMapping("/{id}/actions/return-to-stock")
+    @Operation(summary = "Devolver equipamento ao estoque", description = "Reabilita um equipamento em manutenção para estoque operacional, tornando-o elegível em novas alocações.")
+    @WorkflowAction(
+            id = "return-to-stock",
+            title = "Devolver ao estoque",
+            description = "Libera o equipamento revisado para voltar ao inventario operacional disponível.",
+            scope = ActionScope.ITEM,
+            order = 110,
+            successMessage = "Equipamento devolvido ao estoque",
+            allowedStates = {"MANUTENCAO"},
+            tags = {"workflow", "assets", "equipment", "inventory"}
+    )
+    public ResponseEntity<RestApiResponse<AssetAvailabilityWorkflowResultDTO>> returnToStock(
+            @PathVariable Integer id,
+            @jakarta.validation.Valid @RequestBody AssetAvailabilityWorkflowRequestDTO dto
+    ) {
+        return workflowResponse(id, "/{id}/actions/return-to-stock", service.returnToStock(id, dto));
+    }
+
     @DeleteMapping("/{id}")
     @Operation(summary = "Remover equipamento operacional", description = "Exclui um equipamento quando ele deixa de compor o catálogo de ativos disponíveis para operação.")
     @ApiResponses({
@@ -207,8 +250,23 @@ public class EquipamentoController extends AbstractQuickstartCrudController<Equi
     public ResponseEntity<Void> deleteBatch(@RequestBody List<Integer> ids) {
         return super.deleteBatch(ids);
     }
-}
 
+    private ResponseEntity<RestApiResponse<AssetAvailabilityWorkflowResultDTO>> workflowResponse(
+            Integer id,
+            String operationPath,
+            AssetAvailabilityWorkflowResultDTO result
+    ) {
+        Links links = Links.of(
+                linkToSelf(id),
+                linkToAll(),
+                linkToFilter(),
+                linkToFilterCursor(),
+                linkToUiSchema(operationPath, "post", "request"),
+                linkToUiSchema(operationPath, "post", "response")
+        );
+        return withVersion(ResponseEntity.ok(), RestApiResponse.success(result, hateoasOrNull(links)));
+    }
+}
 
 
 
