@@ -121,6 +121,7 @@ jobs:
           bash -n scripts/verify-assets-runtime.sh
           bash -n scripts/verify-human-resources-runtime.sh
           bash -n scripts/verify-operations-runtime.sh
+          bash -n scripts/verify-cockpit-inventory-doc.sh
 
       - name: Wait for published runtime rollout
         shell: bash
@@ -219,3 +220,7 @@ jobs:
       - name: Run operations runtime smoke
         shell: bash
         run: scripts/verify-operations-runtime.sh
+
+      - name: Verify cockpit inventory documentation
+        shell: bash
+        run: scripts/verify-cockpit-inventory-doc.sh
