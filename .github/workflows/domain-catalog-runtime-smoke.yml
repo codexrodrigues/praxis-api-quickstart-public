@@ -89,7 +89,7 @@ jobs:
           changed_files="$(git diff --name-only HEAD^ HEAD)"
           printf 'Changed files for rollout classification:\n%s\n' "${changed_files}"
 
-          runtime_files="$(printf '%s\n' "${changed_files}" | grep -E '^(src/main/|pom\.xml|mvnw|\.mvn/|system\.properties|Dockerfile|render\.yaml)$' || true)"
+          runtime_files="$(printf '%s\n' "${changed_files}" | grep -E '^(src/main/|pom\.xml$|mvnw$|\.mvn/|system\.properties$|Dockerfile$|render\.yaml$)' || true)"
           if [[ -n "${runtime_files}" ]]; then
             echo "RUNTIME_ROLLOUT_REQUIRED=true" >> "${GITHUB_ENV}"
             printf 'Runtime rollout required by:\n%s\n' "${runtime_files}"
