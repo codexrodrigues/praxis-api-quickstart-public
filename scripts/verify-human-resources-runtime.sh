@@ -96,6 +96,26 @@ assert_action_exists() {
   fi
 }
 
+assert_openapi_action_contract() {
+  local output_file="$1"
+  local path="$2"
+  local request_schema="$3"
+  local response_schema="$4"
+
+  if ! jq -e \
+    --arg path "$path" \
+    --arg request_schema "#/components/schemas/${request_schema}" \
+    --arg response_schema "#/components/schemas/${response_schema}" \
+    '
+      .paths[$path].post.requestBody.content["application/json"].schema["$ref"] == $request_schema
+      and .paths[$path].post.responses["200"].content["application/json"].schema["$ref"] == $response_schema
+    ' "$output_file" >/dev/null; then
+    echo "Expected OpenAPI action contract for '${path}' to expose request '${request_schema}' and response '${response_schema}'." >&2
+    jq --arg path "$path" '.paths[$path].post | {summary, requestBody, responses}' "$output_file" >&2
+    return 1
+  fi
+}
+
 assert_bucket_count_at_least() {
   local output_file="$1"
   local key="$2"
@@ -176,6 +196,14 @@ assert_surface_exists "$absence_surfaces" "absence-calendar-board"
 absence_actions="$TMPDIR_RUN/absence-actions.json"
 get_json "/schemas/actions?resource=human-resources.ferias-afastamentos" "$absence_actions"
 assert_action_exists "$absence_actions" "plan-coverage"
+
+hr_openapi="$TMPDIR_RUN/human-resources-openapi.json"
+get_json "/v3/api-docs/human-resources" "$hr_openapi"
+assert_openapi_action_contract \
+  "$hr_openapi" \
+  "/api/human-resources/ferias-afastamentos/{id}/actions/plan-coverage" \
+  "AbsenceCoverageWorkflowRequestDTO" \
+  "RestApiResponseAbsenceCoverageWorkflowResultDTO"
 
 reputation_ranking_surfaces="$TMPDIR_RUN/reputation-ranking-surfaces.json"
 get_json "/schemas/surfaces?resource=human-resources.vw-ranking-reputacao" "$reputation_ranking_surfaces"
