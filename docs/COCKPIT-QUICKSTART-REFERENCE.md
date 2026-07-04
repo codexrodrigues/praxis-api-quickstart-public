@@ -277,12 +277,16 @@ Em risco e incidentes, as perguntas ja materializadas pelo host exemplar sao:
   `POST /api/operations/incidentes/stats/timeseries` com `field=ocorridoEm`;
 - "Quais ameacas estao ativas, em confronto, observacao ou capturadas?" via
   `POST /api/risk-intelligence/ameacas/stats/group-by` com `field=status`;
+- "Quais comandos reais de triagem existem para ameacas?" via
+  `/schemas/actions?resource=risk-intelligence.ameacas`, incluindo
+  `mark-under-observation` e `mark-captured`;
 - "A leitura analitica bate com a ocorrencia transacional?" via
   `POST /api/risk-intelligence/vw-indicadores-incidentes/stats/group-by` com
   `field=severidade`.
 
 O smoke `scripts/verify-risk-intelligence-runtime.sh` protege essas evidencias
-no host publicado e confirma tambem a surface `incident-investigation-board`.
+no host publicado e confirma as surfaces `threat-monitoring-board` e
+`incident-investigation-board`, alem das actions reais de triagem de ameacas.
 
 ### Relacionamentos navegaveis
 
@@ -303,12 +307,12 @@ Materializacao esperada:
 
 ## Prioridades recomendadas de melhoria no Quickstart
 
-1. `risk-intelligence`: o recurso transacional dedicado ja existe em
-   `operations.incidentes` e agora publica surface/stats para investigacao; a
-   proxima evolucao correta e modelar comandos reais de ciclo de vida de
-   incidente apenas quando houver regra de negocio canonica para triagem,
-   escalonamento ou encerramento, preservando `vw-indicadores-incidentes` como
-   leitura analitica.
+1. `risk-intelligence`: ameacas ja publicam monitoramento, stats e actions reais
+   de triagem; incidentes ja existem em `operations.incidentes` como recurso
+   transacional com surface/stats de investigacao. A proxima evolucao correta
+   e modelar comandos reais de ciclo de vida de incidente apenas quando houver
+   regra de negocio canonica para triagem, escalonamento ou encerramento,
+   preservando `vw-indicadores-incidentes` como leitura analitica.
 2. `human-resources`: o cockpit agora materializa disponibilidade por
    ferias/afastamentos e ranking reputacional como leitura executiva. A proxima
    expansao deve ser um comando real de ciclo de vida, como aprovacao de ausencia

@@ -68,6 +68,17 @@ assert_surface_exists() {
   fi
 }
 
+assert_action_exists() {
+  local output_file="$1"
+  local action_id="$2"
+
+  if ! jq -e --arg action_id "$action_id" '.actions[] | select(.id == $action_id)' "$output_file" >/dev/null; then
+    echo "Expected action '${action_id}' to be published." >&2
+    jq '{resourceKey, actions: [.actions[] | {id, scope, title, allowedStates}]}' "$output_file" >&2
+    return 1
+  fi
+}
+
 assert_stats_field_exists() {
   local output_file="$1"
   local field="$2"
@@ -122,6 +133,15 @@ assert_time_series_count_at_least() {
 incident_surfaces="$TMPDIR_RUN/incident-surfaces.json"
 get_json "/schemas/surfaces?resource=operations.incidentes" "$incident_surfaces"
 assert_surface_exists "$incident_surfaces" "incident-investigation-board"
+
+threat_surfaces="$TMPDIR_RUN/threat-surfaces.json"
+get_json "/schemas/surfaces?resource=risk-intelligence.ameacas" "$threat_surfaces"
+assert_surface_exists "$threat_surfaces" "threat-monitoring-board"
+
+threat_actions="$TMPDIR_RUN/threat-actions.json"
+get_json "/schemas/actions?resource=risk-intelligence.ameacas" "$threat_actions"
+assert_action_exists "$threat_actions" "mark-under-observation"
+assert_action_exists "$threat_actions" "mark-captured"
 
 incident_capabilities="$TMPDIR_RUN/incident-capabilities.json"
 get_json "/api/operations/incidentes/capabilities" "$incident_capabilities"
