@@ -529,6 +529,9 @@ Exemplos de referencia no quickstart:
   governados por severidade, local, missao, periodo, danos civis e impacto humano. No cockpit,
   essa e a ponte operacional entre a ocorrencia registrada em campo e a leitura analitica
   `risk-intelligence.vw-indicadores-incidentes`.
+- O smoke `scripts/verify-risk-intelligence-runtime.sh` valida essa ponte no host publicado:
+  surface de investigacao, stats de incidentes, stats de ameacas e consistencia da view analitica
+  de indicadores por severidade.
 - `assets.veiculo-missao-usos.veiculoId` usa a fonte `vehicle`.
 - A fonte `vehicle` e publicada por `assets.veiculos` em
   `POST /api/assets/veiculos/option-sources/vehicle/options/filter`; veiculos `OPERACIONAL`

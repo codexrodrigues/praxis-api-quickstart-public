@@ -205,6 +205,21 @@ Em `procurement`, as perguntas ja materializadas pelo host exemplar sao:
   `POST /api/procurement/companies/stats/group-by` com `field=state`, `field=city`
   ou `field=status`.
 
+Em risco e incidentes, as perguntas ja materializadas pelo host exemplar sao:
+
+- "Quais severidades concentram incidentes operacionais?" via
+  `POST /api/operations/incidentes/stats/group-by` com `field=severidade`;
+- "Como incidentes evoluem no tempo?" via
+  `POST /api/operations/incidentes/stats/timeseries` com `field=ocorridoEm`;
+- "Quais ameacas estao ativas, em confronto, observacao ou capturadas?" via
+  `POST /api/risk-intelligence/ameacas/stats/group-by` com `field=status`;
+- "A leitura analitica bate com a ocorrencia transacional?" via
+  `POST /api/risk-intelligence/vw-indicadores-incidentes/stats/group-by` com
+  `field=severidade`.
+
+O smoke `scripts/verify-risk-intelligence-runtime.sh` protege essas evidencias
+no host publicado e confirma tambem a surface `incident-investigation-board`.
+
 ### Relacionamentos navegaveis
 
 Fonte no Quickstart:
