@@ -116,6 +116,7 @@ jobs:
           bash -n scripts/verify-domain-catalog-context.sh
           bash -n scripts/verify-domain-catalog-ingest-resilience.sh
           bash -n scripts/verify-domain-catalog-authoring-runtime.sh
+          bash -n scripts/verify-procurement-analytics-runtime.sh
 
       - name: Wait for published runtime rollout
         shell: bash
@@ -194,3 +195,7 @@ jobs:
       - name: Run domain catalog runtime authoring smoke
         shell: bash
         run: scripts/verify-domain-catalog-authoring-runtime.sh
+
+      - name: Run procurement analytics runtime smoke
+        shell: bash
+        run: scripts/verify-procurement-analytics-runtime.sh

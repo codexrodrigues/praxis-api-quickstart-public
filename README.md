@@ -557,6 +557,9 @@ Exemplos de referencia no quickstart:
   status/estado/cidade, fornecedores por homologacao/risco/status, contratos por fornecedor,
   moeda, status e vencimento, produtos por categoria/status/estoque e pedidos por status,
   fornecedor, contrato, produto, datas de aprovacao/cancelamento/recebimento e quantidade.
+- O smoke `scripts/verify-procurement-analytics-runtime.sh` valida no host publicado que
+  essa massa continua expressiva para o cockpit: pedidos em mais de um status, fornecedores
+  bloqueados e de alto risco, contratos vencidos/assinados e produtos bloqueados.
 
 Catalogos leves com `LIGHT_LOOKUP`:
 

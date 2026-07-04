@@ -234,7 +234,9 @@ Materializacao esperada:
    `V20260703_003__procurement_cockpit_lifecycle_seed.sql` reidrata o ciclo
    aprovado/cancelado/recebido dos pedidos demonstrativos para que os charts
    evidenciem gargalos, fornecedores bloqueados, contratos vencendo e pedidos
-   em risco tambem em bancos ja existentes.
+   em risco tambem em bancos ja existentes. O smoke
+   `scripts/verify-procurement-analytics-runtime.sh` protege essa evidencia no
+   host publicado.
 4. `assets`: evoluir amostras de dados para evidenciar perdas, danos,
    manutencoes e devolucoes em volume suficiente para o cockpit demonstrar
    outliers e comparativos reais.
