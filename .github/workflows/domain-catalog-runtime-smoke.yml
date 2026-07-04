@@ -120,6 +120,7 @@ jobs:
           bash -n scripts/verify-risk-intelligence-runtime.sh
           bash -n scripts/verify-assets-runtime.sh
           bash -n scripts/verify-human-resources-runtime.sh
+          bash -n scripts/verify-operations-runtime.sh
 
       - name: Wait for published runtime rollout
         shell: bash
@@ -214,3 +215,7 @@ jobs:
       - name: Run human resources runtime smoke
         shell: bash
         run: scripts/verify-human-resources-runtime.sh
+
+      - name: Run operations runtime smoke
+        shell: bash
+        run: scripts/verify-operations-runtime.sh

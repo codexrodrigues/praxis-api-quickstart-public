@@ -186,6 +186,32 @@ O smoke `scripts/verify-human-resources-runtime.sh` protege essas evidencias no
 host publicado e confirma as surfaces de perfil 360, historico de folha,
 participacoes em missoes, agenda de pagamento e actions de folha/eventos.
 
+Em `operations`, as perguntas ja materializadas pelo host exemplar sao:
+
+- "Como missoes se distribuem por status e prioridade?" via
+  `POST /api/operations/vw-resumo-missoes/stats/group-by` com `field=status`
+  ou `field=prioridade`;
+- "Quando as primeiras acoes das missoes ocorreram?" via
+  `POST /api/operations/vw-resumo-missoes/stats/timeseries` com
+  `field=primeiraAcao`;
+- "Que tipos de eventos compoem a linha do tempo operacional?" via
+  `POST /api/operations/missao-eventos/stats/group-by` com `field=tipo`;
+- "Como eventos evoluem no tempo?" via
+  `POST /api/operations/missao-eventos/stats/timeseries` com
+  `field=ocorridoEm`;
+- "Quais papeis compoem as equipes de missao?" via
+  `POST /api/operations/missao-participantes/stats/group-by` com
+  `field=papel`;
+- "Quais comandos existem no ciclo de missao, acesso e acordo?" via
+  `/schemas/actions?resource=operations.missoes`,
+  `/schemas/actions?resource=operations.base-acessos` e
+  `/schemas/actions?resource=operations.acordos-regulatorios`.
+
+O smoke `scripts/verify-operations-runtime.sh` protege essas evidencias no host
+publicado e confirma surfaces de acompanhamento de missao, revisao de acesso,
+governanca de acordo, actions de ciclo operacional e charts de status, prioridade,
+eventos, equipe e timeline.
+
 Em `assets`, as perguntas ja materializadas pelo host exemplar sao:
 
 - "Quantos equipamentos estao em estoque, uso, manutencao, quebrados ou perdidos?"
@@ -285,8 +311,10 @@ Materializacao esperada:
 4. `assets`: evoluir amostras de dados para evidenciar perdas, danos,
    manutencoes e devolucoes em volume suficiente para o cockpit demonstrar
    outliers e comparativos reais.
-5. `operations`: usar como benchmark visual e documental para os demais dominios,
-   evitando copiar actions sem comportamento real.
+5. `operations`: manter como benchmark visual e documental para os demais dominios.
+   O smoke `scripts/verify-operations-runtime.sh` agora protege a evidencia publica
+   de workflows, surfaces, charts e relacionamentos; a proxima evolucao deve ser
+   novo comportamento real de negocio, nao actions copiadas por simetria.
 
 Essas prioridades sao melhoria de host exemplar, nao lacuna de contrato. Se, ao
 implementar uma delas, faltar capacidade no starter para descrever uma action,

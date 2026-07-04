@@ -522,6 +522,16 @@ Exemplos de referencia no quickstart:
   reidrataveis para historico, mas bloqueadas para novas selecoes.
 - Como a fonte `mission` e reutilizada por filtros unitarios, filtros multi-select e formularios de
   dominios distintos, ela nao publica `filterField`; cada DTO consumidor mantem seu proprio binding.
+- `operations.missoes` publica surfaces compostas de replanejamento, plano de equipe, resumo,
+  time e linha do tempo, alem das actions `start`, `pause`, `resume`, `complete` e `fail`.
+- `operations.vw-resumo-missoes`, `operations.missao-eventos` e
+  `operations.missao-participantes` materializam a leitura operacional do cockpit: missoes por
+  status/prioridade/primeira acao, eventos por tipo/periodo e composicao de equipe por papel.
+- `operations.base-acessos` e `operations.acordos-regulatorios` completam a vitrine de
+  governanca com surfaces de revisao e actions de ativacao, suspensao, reintegracao ou revogacao.
+- O smoke `scripts/verify-operations-runtime.sh` valida essa vitrine no host publicado:
+  surfaces de missao, acesso e acordo; actions de ciclo operacional; stats de missoes, eventos
+  e participantes; e series temporais que alimentam charts e diagramas navegaveis do cockpit.
 - `human-resources.indenizacoes.incidenteId` e `risk-intelligence.vw-indicadores-incidentes.incidenteId`
   usam a fonte `incident` para selecionar o incidente transacional que ancora cobertura financeira
   e indicadores agregados.
