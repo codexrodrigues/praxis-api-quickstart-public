@@ -11,6 +11,9 @@ import com.example.praxis.apiquickstart.hr.service.FeriasAfastamentoService;
 import org.praxisplatform.uischema.annotation.ApiGroup;
 import org.praxisplatform.uischema.annotation.ApiResource;
 import com.example.praxis.apiquickstart.core.controller.base.AbstractQuickstartCrudController;
+import org.praxisplatform.uischema.annotation.UiSurface;
+import org.praxisplatform.uischema.surface.SurfaceKind;
+import org.praxisplatform.uischema.surface.SurfaceScope;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.RestController;
 import io.swagger.v3.oas.annotations.Operation;
@@ -60,6 +63,16 @@ public class FeriasAfastamentoController extends AbstractQuickstartCrudControlle
     protected Integer getDtoId(FeriasAfastamentoDTO dto) { return dto.getId(); }
 
     @PostMapping("/filter")
+    @UiSurface(
+            id = "absence-calendar-board",
+            kind = SurfaceKind.VIEW,
+            scope = SurfaceScope.COLLECTION,
+            title = "Calendario de disponibilidade",
+            description = "Mostra ferias, licencas e afastamentos por colaborador, tipo e periodo para planejar cobertura operacional, impacto em missoes e calendario de folha.",
+            intent = "hr-absence-availability-calendar",
+            order = 30,
+            tags = {"human-resources", "absence", "availability", "calendar", "capacity-planning", "privacy"}
+    )
     @Operation(summary = "Filtrar férias e afastamentos por funcionário, tipo e período", description = "Lista períodos de ausência por colaborador, natureza do afastamento, data de início, data de fim e observações para planejamento de capacidade, calendário de RH e acompanhamento de disponibilidade operacional.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Lista filtrada retornada com sucesso."),
@@ -181,7 +194,6 @@ public class FeriasAfastamentoController extends AbstractQuickstartCrudControlle
         return super.deleteBatch(ids);
     }
 }
-
 
 
 

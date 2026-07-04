@@ -489,6 +489,14 @@ Exemplos de referencia no quickstart:
 - O smoke `scripts/verify-human-resources-runtime.sh` valida a vitrine de RH no host publicado:
   surfaces de perfil 360, historico de folha e participacoes em missoes; actions de folha e
   eventos; stats de quadro ativo, cargos, salarios, analytics de folha e universos de perfil.
+- `human-resources.ferias-afastamentos` publica a surface `absence-calendar-board` e stats por
+  tipo, colaborador e periodo de inicio/fim. No cockpit, isso materializa perguntas de
+  disponibilidade corporativa: quem esta fora, por que tipo de ausencia e em que janela de
+  cobertura operacional.
+- `human-resources.vw-ranking-reputacao` publica a surface `reputation-ranking-board` e stats por
+  equipe, score publico, score governamental, media e posicao. Essa leitura transforma reputacao
+  em painel executivo comparavel, sem tratar score reputacional como decisao legal ou regra
+  primaria de negocio.
 - `human-resources.eventos-folha.folhaPagamentoId` usa a fonte `payroll`.
 - A fonte `payroll` e publicada por `human-resources.folhas-pagamento` em
   `POST /api/human-resources/folhas-pagamento/option-sources/payroll/options/filter`; eventos de

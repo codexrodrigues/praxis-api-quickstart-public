@@ -181,10 +181,21 @@ Em `human-resources`, as perguntas ja materializadas pelo host exemplar sao:
 - "Quais comandos operacionais existem na folha?" via
   `/schemas/actions?resource=human-resources.folhas-pagamento` e
   `/schemas/actions?resource=human-resources.eventos-folha`.
+- "Quem esta fora da operacao e em que janela de cobertura?" via
+  `POST /api/human-resources/ferias-afastamentos/stats/group-by` com
+  `field=tipo` ou `field=funcionarioId` e
+  `POST /api/human-resources/ferias-afastamentos/stats/timeseries` com
+  `field=dataInicio` ou `field=dataFim`;
+- "Como reputacao se distribui por equipe, score e posicao?" via
+  `POST /api/human-resources/vw-ranking-reputacao/stats/group-by` com
+  `field=equipe` e `POST /api/human-resources/vw-ranking-reputacao/stats/distribution`
+  com `field=scorePublico`, `field=scoreGovernamental`, `field=media` ou
+  `field=posicao`.
 
 O smoke `scripts/verify-human-resources-runtime.sh` protege essas evidencias no
 host publicado e confirma as surfaces de perfil 360, historico de folha,
-participacoes em missoes, agenda de pagamento e actions de folha/eventos.
+participacoes em missoes, agenda de pagamento, calendario de disponibilidade,
+ranking reputacional e actions de folha/eventos.
 
 Em `operations`, as perguntas ja materializadas pelo host exemplar sao:
 
@@ -298,8 +309,11 @@ Materializacao esperada:
    incidente apenas quando houver regra de negocio canonica para triagem,
    escalonamento ou encerramento, preservando `vw-indicadores-incidentes` como
    leitura analitica.
-2. `human-resources`: ampliar exemplo de ciclo de vida alem de folha, como
-   afastamento, reputacao ou habilidade, se houver comando real de dominio.
+2. `human-resources`: o cockpit agora materializa disponibilidade por
+   ferias/afastamentos e ranking reputacional como leitura executiva. A proxima
+   expansao deve ser um comando real de ciclo de vida, como aprovacao de ausencia
+   ou revisao reputacional, apenas quando houver estado persistido e regra de
+   negocio canonica para sustentar a action.
 3. `procurement`: ja publica charts de compras e uma surface de jornada
    governada em `procurement.purchase-orders`; a migration operacional
    `V20260703_003__procurement_cockpit_lifecycle_seed.sql` reidrata o ciclo

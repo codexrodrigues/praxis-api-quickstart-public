@@ -8,10 +8,22 @@ import com.example.praxis.apiquickstart.hr.entity.FeriasAfastamento;
 import com.example.praxis.apiquickstart.hr.mapper.FeriasAfastamentoMapper;
 import com.example.praxis.apiquickstart.hr.repository.FeriasAfastamentoRepository;
 import com.example.praxis.apiquickstart.core.service.base.AbstractQuickstartCrudService;
+import org.praxisplatform.uischema.stats.StatsFieldRegistry;
+import org.praxisplatform.uischema.stats.StatsMetric;
+import org.praxisplatform.uischema.stats.StatsSupportMode;
 import org.springframework.stereotype.Service;
+
+import java.util.Set;
 
 @Service
 public class FeriasAfastamentoService extends AbstractQuickstartCrudService<FeriasAfastamento, FeriasAfastamentoDTO, Integer, FeriasAfastamentoFilterDTO, CreateFeriasAfastamentoDTO, UpdateFeriasAfastamentoDTO> {
+
+    private static final StatsFieldRegistry STATS_FIELDS = StatsFieldRegistry.builder()
+            .groupByBucket("tipo", "tipo", Set.of(StatsMetric.COUNT))
+            .groupByBucket("funcionarioId", "funcionario.id", Set.of(StatsMetric.COUNT))
+            .temporalTimeSeriesField("dataInicio", "dataInicio")
+            .temporalTimeSeriesField("dataFim", "dataFim")
+            .build();
 
     private final FeriasAfastamentoMapper mapper;
 
@@ -31,7 +43,21 @@ public class FeriasAfastamentoService extends AbstractQuickstartCrudService<Feri
         long count = getRepository().count();
         return java.util.Optional.of(getEntityClass().getSimpleName() + ":" + count);
     }
-}
 
+    @Override
+    public StatsSupportMode getGroupByStatsSupportMode() {
+        return StatsSupportMode.AUTO;
+    }
+
+    @Override
+    public StatsSupportMode getTimeSeriesStatsSupportMode() {
+        return StatsSupportMode.AUTO;
+    }
+
+    @Override
+    public StatsFieldRegistry getStatsFieldRegistry() {
+        return STATS_FIELDS;
+    }
+}
 
 

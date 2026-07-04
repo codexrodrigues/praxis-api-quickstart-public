@@ -169,6 +169,14 @@ payroll_event_actions="$TMPDIR_RUN/payroll-event-actions.json"
 get_json "/schemas/actions?resource=human-resources.eventos-folha" "$payroll_event_actions"
 assert_action_exists "$payroll_event_actions" "bulk-approve"
 
+absence_surfaces="$TMPDIR_RUN/absence-surfaces.json"
+get_json "/schemas/surfaces?resource=human-resources.ferias-afastamentos" "$absence_surfaces"
+assert_surface_exists "$absence_surfaces" "absence-calendar-board"
+
+reputation_ranking_surfaces="$TMPDIR_RUN/reputation-ranking-surfaces.json"
+get_json "/schemas/surfaces?resource=human-resources.vw-ranking-reputacao" "$reputation_ranking_surfaces"
+assert_surface_exists "$reputation_ranking_surfaces" "reputation-ranking-board"
+
 employee_active="$TMPDIR_RUN/employee-active.json"
 group_by_count "/api/human-resources/funcionarios" "ativo" "$employee_active"
 assert_bucket_count_at_least "$employee_active" "true" 1
@@ -204,6 +212,26 @@ hero_universe="$TMPDIR_RUN/hero-universe.json"
 group_by_count "/api/human-resources/vw-perfil-heroi" "universo" "$hero_universe"
 assert_bucket_diversity_at_least "$hero_universe" 4
 
+absence_type="$TMPDIR_RUN/absence-type.json"
+group_by_count "/api/human-resources/ferias-afastamentos" "tipo" "$absence_type"
+assert_bucket_diversity_at_least "$absence_type" 2
+assert_bucket_count_at_least "$absence_type" "FERIAS" 1
+assert_bucket_count_at_least "$absence_type" "AFASTAMENTO" 1
+
+absence_timeline="$TMPDIR_RUN/absence-timeline.json"
+time_series_count "/api/human-resources/ferias-afastamentos" "dataInicio" "MONTH" "$absence_timeline"
+assert_time_series_points_at_least "$absence_timeline" 12
+
+reputation_team="$TMPDIR_RUN/reputation-team.json"
+group_by_count "/api/human-resources/vw-ranking-reputacao" "equipe" "$reputation_team"
+assert_bucket_diversity_at_least "$reputation_team" 5
+assert_bucket_count_at_least "$reputation_team" "S.H.I.E.L.D." 1
+assert_bucket_count_at_least "$reputation_team" "Liga da Justiça" 1
+
+reputation_media="$TMPDIR_RUN/reputation-media.json"
+histogram_count "/api/human-resources/vw-ranking-reputacao" "media" 10 "$reputation_media"
+assert_histogram_diversity_at_least "$reputation_media" 4
+
 jq -n \
   --slurpfile employeeActive "$employee_active" \
   --slurpfile employeeRoles "$employee_roles" \
@@ -213,6 +241,10 @@ jq -n \
   --slurpfile payrollTimeline "$payroll_timeline" \
   --slurpfile payrollNetSalary "$payroll_net_salary" \
   --slurpfile heroUniverse "$hero_universe" \
+  --slurpfile absenceType "$absence_type" \
+  --slurpfile absenceTimeline "$absence_timeline" \
+  --slurpfile reputationTeam "$reputation_team" \
+  --slurpfile reputationMedia "$reputation_media" \
   '{
     status: "human-resources-runtime-ready",
     backendUrl: env.BACKEND_URL,
@@ -223,5 +255,9 @@ jq -n \
     payrollProfiles: $payrollProfiles[0].data.buckets | map({key, count}),
     payrollTimelinePoints: ($payrollTimeline[0].data.points | length),
     payrollNetSalaryBuckets: ($payrollNetSalary[0].data.buckets | length),
-    heroUniverse: $heroUniverse[0].data.buckets | map({key, count})
+    heroUniverse: $heroUniverse[0].data.buckets | map({key, count}),
+    absenceType: $absenceType[0].data.buckets | map({key, count}),
+    absenceTimelinePoints: ($absenceTimeline[0].data.points | length),
+    reputationTeams: $reputationTeam[0].data.buckets | map({key, count}),
+    reputationMediaBuckets: ($reputationMedia[0].data.buckets | length)
   }'

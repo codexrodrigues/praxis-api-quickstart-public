@@ -13,7 +13,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import org.praxisplatform.uischema.annotation.UiSurface;
 import org.praxisplatform.uischema.rest.response.RestApiResponse;
+import org.praxisplatform.uischema.surface.SurfaceKind;
+import org.praxisplatform.uischema.surface.SurfaceScope;
 import org.springframework.data.domain.Page;
 import org.springframework.hateoas.EntityModel;
 import org.springframework.http.ResponseEntity;
@@ -56,6 +59,16 @@ public class VwRankingReputacaoController extends AbstractQuickstartReadOnlyCont
     protected Integer getDtoId(VwRankingReputacaoDTO dto) { return dto.getFuncionarioId(); }
 
     @PostMapping("/filter")
+    @UiSurface(
+            id = "reputation-ranking-board",
+            kind = SurfaceKind.VIEW,
+            scope = SurfaceScope.COLLECTION,
+            title = "Ranking reputacional",
+            description = "Compara colaboradores por equipe, score publico, score governamental, media composta e posicao para leitura executiva de exposicao e confianca institucional.",
+            intent = "hr-reputation-ranking-intelligence",
+            order = 40,
+            tags = {"human-resources", "reputation", "ranking", "executive-dashboard", "analytics"}
+    )
     @Operation(summary = "Filtrar ranking de reputação por colaborador, equipe e scores", description = "Lista a visão comparativa de reputação por funcionário, codinome, equipe, score público, score governamental, média composta e posição para rankings, comparação de perfis e acompanhamento de exposição.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Lista filtrada retornada com sucesso."),
@@ -134,7 +147,6 @@ public class VwRankingReputacaoController extends AbstractQuickstartReadOnlyCont
         return super.getById(id);
     }
 }
-
 
 
 
