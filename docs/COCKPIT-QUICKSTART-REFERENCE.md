@@ -164,6 +164,28 @@ O cockpit deve preferir explicar charts por pergunta de negocio, por exemplo:
 "Como a severidade de incidentes evolui por base?" em vez de apenas listar que
 um endpoint `stats` existe.
 
+Em `human-resources`, as perguntas ja materializadas pelo host exemplar sao:
+
+- "Como a força de trabalho se distribui por status e cargo?" via
+  `POST /api/human-resources/funcionarios/stats/group-by` com `field=ativo` ou
+  `field=cargoNome`;
+- "Qual a distribuição salarial do quadro?" via
+  `POST /api/human-resources/funcionarios/stats/distribution` com
+  `field=salario`;
+- "Como a folha se comporta por departamento, perfil e competência?" via
+  `POST /api/human-resources/vw-analytics-folha-pagamento/stats/group-by` e
+  `POST /api/human-resources/vw-analytics-folha-pagamento/stats/timeseries`;
+- "Quais universos e perfis 360 aparecem na base?" via
+  `POST /api/human-resources/vw-perfil-heroi/stats/group-by` com
+  `field=universo`;
+- "Quais comandos operacionais existem na folha?" via
+  `/schemas/actions?resource=human-resources.folhas-pagamento` e
+  `/schemas/actions?resource=human-resources.eventos-folha`.
+
+O smoke `scripts/verify-human-resources-runtime.sh` protege essas evidencias no
+host publicado e confirma as surfaces de perfil 360, historico de folha,
+participacoes em missoes, agenda de pagamento e actions de folha/eventos.
+
 Em `assets`, as perguntas ja materializadas pelo host exemplar sao:
 
 - "Quantos equipamentos estao em estoque, uso, manutencao, quebrados ou perdidos?"

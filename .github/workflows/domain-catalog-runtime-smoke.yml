@@ -119,6 +119,7 @@ jobs:
           bash -n scripts/verify-procurement-analytics-runtime.sh
           bash -n scripts/verify-risk-intelligence-runtime.sh
           bash -n scripts/verify-assets-runtime.sh
+          bash -n scripts/verify-human-resources-runtime.sh
 
       - name: Wait for published runtime rollout
         shell: bash
@@ -209,3 +210,7 @@ jobs:
       - name: Run assets runtime smoke
         shell: bash
         run: scripts/verify-assets-runtime.sh
+
+      - name: Run human resources runtime smoke
+        shell: bash
+        run: scripts/verify-human-resources-runtime.sh

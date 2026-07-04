@@ -1,0 +1,227 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+BACKEND_URL="${BACKEND_URL:-https://praxis-api-quickstart.onrender.com}"
+export BACKEND_URL
+
+TMPDIR_RUN="$(mktemp -d)"
+cleanup() {
+  rm -rf "$TMPDIR_RUN"
+}
+trap cleanup EXIT
+
+get_json() {
+  local resource_path="$1"
+  local output_file="$2"
+
+  curl -fsS "${BACKEND_URL%/}${resource_path}" \
+    -H "Accept: application/json" \
+    -o "$output_file"
+}
+
+post_json() {
+  local resource_path="$1"
+  local payload="$2"
+  local output_file="$3"
+
+  curl -fsS "${BACKEND_URL%/}${resource_path}" \
+    -H "Content-Type: application/json" \
+    --data-binary "$payload" \
+    -o "$output_file"
+}
+
+group_by_count() {
+  local resource_path="$1"
+  local field="$2"
+  local output_file="$3"
+
+  jq -n --arg field "$field" '{
+    filter: {},
+    field: $field,
+    metrics: [{operation: "COUNT"}],
+    limit: 20
+  }' | post_json "${resource_path}/stats/group-by" @- "$output_file"
+}
+
+time_series_count() {
+  local resource_path="$1"
+  local field="$2"
+  local granularity="$3"
+  local output_file="$4"
+
+  jq -n --arg field "$field" --arg granularity "$granularity" '{
+    filter: {},
+    field: $field,
+    granularity: $granularity,
+    metrics: [{operation: "COUNT"}],
+    fillGaps: false
+  }' | post_json "${resource_path}/stats/timeseries" @- "$output_file"
+}
+
+histogram_count() {
+  local resource_path="$1"
+  local field="$2"
+  local bucket_size="$3"
+  local output_file="$4"
+
+  jq -n --arg field "$field" --argjson bucket_size "$bucket_size" '{
+    filter: {},
+    field: $field,
+    mode: "HISTOGRAM",
+    metric: {operation: "COUNT"},
+    bucketSize: $bucket_size,
+    orderBy: "KEY_ASC"
+  }' | post_json "${resource_path}/stats/distribution" @- "$output_file"
+}
+
+assert_surface_exists() {
+  local output_file="$1"
+  local surface_id="$2"
+
+  if ! jq -e --arg surface_id "$surface_id" '.surfaces[] | select(.id == $surface_id)' "$output_file" >/dev/null; then
+    echo "Expected surface '${surface_id}' to be published." >&2
+    jq '{resourceKey, surfaces: [.surfaces[] | {id, kind, title}]}' "$output_file" >&2
+    return 1
+  fi
+}
+
+assert_action_exists() {
+  local output_file="$1"
+  local action_id="$2"
+
+  if ! jq -e --arg action_id "$action_id" '.actions[] | select(.id == $action_id)' "$output_file" >/dev/null; then
+    echo "Expected action '${action_id}' to be published." >&2
+    jq '{resourceKey, actions: [.actions[] | {id, scope, title, path}]}' "$output_file" >&2
+    return 1
+  fi
+}
+
+assert_bucket_count_at_least() {
+  local output_file="$1"
+  local key="$2"
+  local minimum="$3"
+  local actual
+
+  actual="$(jq --arg key "$key" '[.data.buckets[] | select((.key | tostring) == $key) | .count] | add // 0' "$output_file")"
+  if [[ "$actual" -lt "$minimum" ]]; then
+    echo "Expected bucket '${key}' to have count >= ${minimum}, got ${actual}." >&2
+    jq '{field: .data.field, buckets: [.data.buckets[] | {key, count}]}' "$output_file" >&2
+    return 1
+  fi
+}
+
+assert_bucket_diversity_at_least() {
+  local output_file="$1"
+  local minimum="$2"
+  local actual
+
+  actual="$(jq '.data.buckets | length' "$output_file")"
+  if [[ "$actual" -lt "$minimum" ]]; then
+    echo "Expected at least ${minimum} buckets, got ${actual}." >&2
+    jq '{field: .data.field, buckets: [.data.buckets[] | {key, count}]}' "$output_file" >&2
+    return 1
+  fi
+}
+
+assert_histogram_diversity_at_least() {
+  local output_file="$1"
+  local minimum="$2"
+  local actual
+
+  actual="$(jq '.data.buckets | length' "$output_file")"
+  if [[ "$actual" -lt "$minimum" ]]; then
+    echo "Expected at least ${minimum} histogram buckets, got ${actual}." >&2
+    jq '{field: .data.field, mode: .data.mode, buckets: [.data.buckets[] | {from, to, count}]}' "$output_file" >&2
+    return 1
+  fi
+}
+
+assert_time_series_points_at_least() {
+  local output_file="$1"
+  local minimum="$2"
+  local actual
+
+  actual="$(jq '.data.points | length' "$output_file")"
+  if [[ "$actual" -lt "$minimum" ]]; then
+    echo "Expected at least ${minimum} time-series points, got ${actual}." >&2
+    jq '{field: .data.field, points: [.data.points[] | {label, count}]}' "$output_file" >&2
+    return 1
+  fi
+}
+
+employee_surfaces="$TMPDIR_RUN/employee-surfaces.json"
+get_json "/schemas/surfaces?resource=human-resources.funcionarios" "$employee_surfaces"
+assert_surface_exists "$employee_surfaces" "profile"
+assert_surface_exists "$employee_surfaces" "hero-profile"
+assert_surface_exists "$employee_surfaces" "payroll-history"
+assert_surface_exists "$employee_surfaces" "mission-participations"
+
+payroll_surfaces="$TMPDIR_RUN/payroll-surfaces.json"
+get_json "/schemas/surfaces?resource=human-resources.folhas-pagamento" "$payroll_surfaces"
+assert_surface_exists "$payroll_surfaces" "payment-schedule"
+
+payroll_actions="$TMPDIR_RUN/payroll-actions.json"
+get_json "/schemas/actions?resource=human-resources.folhas-pagamento" "$payroll_actions"
+assert_action_exists "$payroll_actions" "approve-events"
+assert_action_exists "$payroll_actions" "mark-paid"
+
+payroll_event_actions="$TMPDIR_RUN/payroll-event-actions.json"
+get_json "/schemas/actions?resource=human-resources.eventos-folha" "$payroll_event_actions"
+assert_action_exists "$payroll_event_actions" "bulk-approve"
+
+employee_active="$TMPDIR_RUN/employee-active.json"
+group_by_count "/api/human-resources/funcionarios" "ativo" "$employee_active"
+assert_bucket_count_at_least "$employee_active" "true" 1
+assert_bucket_count_at_least "$employee_active" "false" 1
+
+employee_roles="$TMPDIR_RUN/employee-roles.json"
+group_by_count "/api/human-resources/funcionarios" "cargoNome" "$employee_roles"
+assert_bucket_diversity_at_least "$employee_roles" 8
+
+employee_salary="$TMPDIR_RUN/employee-salary.json"
+histogram_count "/api/human-resources/funcionarios" "salario" 5000 "$employee_salary"
+assert_histogram_diversity_at_least "$employee_salary" 8
+
+payroll_departments="$TMPDIR_RUN/payroll-departments.json"
+group_by_count "/api/human-resources/vw-analytics-folha-pagamento" "departamento" "$payroll_departments"
+assert_bucket_diversity_at_least "$payroll_departments" 10
+
+payroll_profiles="$TMPDIR_RUN/payroll-profiles.json"
+group_by_count "/api/human-resources/vw-analytics-folha-pagamento" "payrollProfile" "$payroll_profiles"
+assert_bucket_diversity_at_least "$payroll_profiles" 5
+assert_bucket_count_at_least "$payroll_profiles" "RND" 1
+assert_bucket_count_at_least "$payroll_profiles" "SECURITY" 1
+
+payroll_timeline="$TMPDIR_RUN/payroll-timeline.json"
+time_series_count "/api/human-resources/vw-analytics-folha-pagamento" "competencia" "MONTH" "$payroll_timeline"
+assert_time_series_points_at_least "$payroll_timeline" 24
+
+payroll_net_salary="$TMPDIR_RUN/payroll-net-salary.json"
+histogram_count "/api/human-resources/vw-analytics-folha-pagamento" "salarioLiquido" 5000 "$payroll_net_salary"
+assert_histogram_diversity_at_least "$payroll_net_salary" 10
+
+hero_universe="$TMPDIR_RUN/hero-universe.json"
+group_by_count "/api/human-resources/vw-perfil-heroi" "universo" "$hero_universe"
+assert_bucket_diversity_at_least "$hero_universe" 4
+
+jq -n \
+  --slurpfile employeeActive "$employee_active" \
+  --slurpfile employeeRoles "$employee_roles" \
+  --slurpfile employeeSalary "$employee_salary" \
+  --slurpfile payrollDepartments "$payroll_departments" \
+  --slurpfile payrollProfiles "$payroll_profiles" \
+  --slurpfile payrollTimeline "$payroll_timeline" \
+  --slurpfile payrollNetSalary "$payroll_net_salary" \
+  --slurpfile heroUniverse "$hero_universe" \
+  '{
+    status: "human-resources-runtime-ready",
+    backendUrl: env.BACKEND_URL,
+    employeeActive: $employeeActive[0].data.buckets | map({key, count}),
+    employeeRoleBuckets: ($employeeRoles[0].data.buckets | length),
+    employeeSalaryBuckets: ($employeeSalary[0].data.buckets | length),
+    payrollDepartmentBuckets: ($payrollDepartments[0].data.buckets | length),
+    payrollProfiles: $payrollProfiles[0].data.buckets | map({key, count}),
+    payrollTimelinePoints: ($payrollTimeline[0].data.points | length),
+    payrollNetSalaryBuckets: ($payrollNetSalary[0].data.buckets | length),
+    heroUniverse: $heroUniverse[0].data.buckets | map({key, count})
+  }'
