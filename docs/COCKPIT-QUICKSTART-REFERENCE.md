@@ -47,17 +47,18 @@ producao.
 
 | Dominio no cockpit | Grupo OpenAPI | Recursos | Surfaces explicitas | Workflow actions explicitas | Leitura de aderencia |
 | --- | --- | ---: | ---: | ---: | --- |
-| Pessoas e RH | `human-resources` | 20 | 6 | 4 | `suportado-parcialmente`: boa documentacao de campos, actions em folha e surfaces de funcionarios, mas ainda pode ganhar mais exemplos de workflows de ciclo de vida. |
+| Pessoas e RH | `human-resources` | 20 | 8 | 4 | `ja-suportado-mal-nomeado-ou-mal-materializado`: perfil 360, folha, participacoes em missoes, disponibilidade por afastamentos e ranking reputacional ja existem; a proxima melhoria deve ser action real de ciclo de vida, nao surface decorativa. |
 | Operacoes | `operations` | 12 | 9 | 10 | `ja-suportado-mal-nomeado-ou-mal-materializado`: e o melhor dominio para demonstrar actions/surfaces; cockpit deve usar esse dominio como referencia visual de workflows. |
 | Suprimentos | `procurement` | 5 | 4 | 8 | `ja-suportado-mal-nomeado-ou-mal-materializado`: recursos, schemas, option sources, surfaces e actions de fornecedor, contrato e pedido existem; o cockpit deve materializar a jornada compra -> contrato -> pedido -> recebimento como fluxo navegavel. |
 | Ativos Operacionais | `assets` | 4 | 4 | 7 | `ja-suportado-mal-nomeado-ou-mal-materializado`: recursos, lookups, surfaces, actions de disponibilidade e actions de custodia existem; o cockpit deve materializar inventario -> custodia -> devolucao/perda/dano como fluxo navegavel. |
-| Inteligencia de Risco | `risk-intelligence` | 2 | 3 | 2 | `ja-suportado-mal-nomeado-ou-mal-materializado`: ameacas publicam surface, actions e stats; incidentes ja existem como recurso transacional em `operations.incidentes`, com surface e stats proprios, enquanto `risk-intelligence.vw-indicadores-incidentes` permanece como leitura analitica e chart de tendencia. |
+| Inteligencia de Risco | `risk-intelligence` | 2 | 3 | 2 | `ja-suportado-mal-nomeado-ou-mal-materializado`: ameacas publicam surface, actions reais de triagem e stats; incidentes ja existem como recurso transacional em `operations.incidentes`, com surface e stats proprios, enquanto `risk-intelligence.vw-indicadores-incidentes` permanece como leitura analitica e chart de tendencia. |
 
 Nenhum item acima exige contrato novo neste momento. A plataforma ja sabe expor
 `@ApiResource`, `@Operation`, `@Schema`, `@UISchema`, stats, options, surfaces,
-actions e capabilities. A lacuna principal e de exemplaridade no host: alguns
-dominios ainda nao publicam annotations suficientes para o cockpit revelar todo
-o potencial da plataforma.
+actions e capabilities. A lacuna principal e de exemplaridade no host: quando um
+dominio ainda parecer fraco no cockpit, a primeira pergunta deve ser se ja existe
+semantica publicada que o dashboard ainda nao esta materializando bem antes de
+criar novos comandos ou campos.
 
 ## Como cada camada aparece no cockpit
 
