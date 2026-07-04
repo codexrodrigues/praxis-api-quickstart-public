@@ -184,6 +184,11 @@ Em `assets`, as perguntas ja materializadas pelo host exemplar sao:
   `POST /api/assets/veiculo-missao-usos/stats/group-by` com `field=veiculoId`,
   `field=missaoId` ou `field=pilotoId`.
 
+O smoke `scripts/verify-assets-runtime.sh` protege essas evidencias no host
+publicado e confirma as surfaces `equipment-inventory-board`,
+`equipment-custody-board`, `fleet-readiness-board` e
+`mission-fleet-usage-board`.
+
 Em `procurement`, as perguntas ja materializadas pelo host exemplar sao:
 
 - "Como os pedidos se distribuem por status, fornecedor, contrato, produto ou moeda?" via

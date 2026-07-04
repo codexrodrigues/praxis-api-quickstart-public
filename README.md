@@ -554,6 +554,9 @@ Exemplos de referencia no quickstart:
   prontidao por status/tipo, capacidade em distribuicao e uso por veiculo, missao ou piloto.
   O seed publico cobre frota operacional, em manutencao e inoperante para deixar o
   cockpit visualmente expressivo.
+- O smoke `scripts/verify-assets-runtime.sh` valida essa vitrine no host publicado:
+  surfaces de inventario/custodia/frota/uso em missao, stats de disponibilidade,
+  distribuicao de resistencia, timeline de custodia e concentracao de frota por missao.
 - Em `assets`, os campos de pessoa operacional (`proprietarioId`, `pilotoId` e `funcionarioId`)
   consomem a fonte governada `employee` em vez do endpoint generico de funcionarios.
 - Em `procurement`, as fontes `company`, `supplier`, `contract` e `product` demonstram uma cadeia
