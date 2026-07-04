@@ -173,6 +173,10 @@ absence_surfaces="$TMPDIR_RUN/absence-surfaces.json"
 get_json "/schemas/surfaces?resource=human-resources.ferias-afastamentos" "$absence_surfaces"
 assert_surface_exists "$absence_surfaces" "absence-calendar-board"
 
+absence_actions="$TMPDIR_RUN/absence-actions.json"
+get_json "/schemas/actions?resource=human-resources.ferias-afastamentos" "$absence_actions"
+assert_action_exists "$absence_actions" "plan-coverage"
+
 reputation_ranking_surfaces="$TMPDIR_RUN/reputation-ranking-surfaces.json"
 get_json "/schemas/surfaces?resource=human-resources.vw-ranking-reputacao" "$reputation_ranking_surfaces"
 assert_surface_exists "$reputation_ranking_surfaces" "reputation-ranking-board"

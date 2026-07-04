@@ -47,7 +47,7 @@ producao.
 
 | Dominio no cockpit | Grupo OpenAPI | Recursos | Surfaces explicitas | Workflow actions explicitas | Leitura de aderencia |
 | --- | --- | ---: | ---: | ---: | --- |
-| Pessoas e RH | `human-resources` | 20 | 8 | 3 | `ja-suportado-mal-nomeado-ou-mal-materializado`: perfil 360, folha, participacoes em missoes, disponibilidade por afastamentos e ranking reputacional ja existem; a proxima melhoria deve ser action real de ciclo de vida, nao surface decorativa. |
+| Pessoas e RH | `human-resources` | 20 | 8 | 4 | `ja-suportado-mal-nomeado-ou-mal-materializado`: perfil 360, folha, participacoes em missoes, disponibilidade por afastamentos, action de cobertura e ranking reputacional ja existem; a proxima melhoria deve aprofundar governanca de ciclo de vida sem criar surface decorativa. |
 | Operacoes | `operations` | 12 | 10 | 10 | `ja-suportado-mal-nomeado-ou-mal-materializado`: e o melhor dominio para demonstrar actions/surfaces; cockpit deve usar esse dominio como referencia visual de workflows. |
 | Suprimentos | `procurement` | 5 | 6 | 8 | `ja-suportado-mal-nomeado-ou-mal-materializado`: recursos, schemas, option sources, surfaces e actions de fornecedor, contrato e pedido existem; o cockpit deve materializar a jornada compra -> contrato -> pedido -> recebimento como fluxo navegavel. |
 | Ativos Operacionais | `assets` | 4 | 4 | 7 | `ja-suportado-mal-nomeado-ou-mal-materializado`: recursos, lookups, surfaces, actions de disponibilidade e actions de custodia existem; o cockpit deve materializar inventario -> custodia -> devolucao/perda/dano como fluxo navegavel. |
@@ -189,6 +189,9 @@ Em `human-resources`, as perguntas ja materializadas pelo host exemplar sao:
   `field=tipo` ou `field=funcionarioId` e
   `POST /api/human-resources/ferias-afastamentos/stats/timeseries` com
   `field=dataInicio` ou `field=dataFim`;
+- "Como a ausencia sera coberta operacionalmente?" via
+  `/schemas/actions?resource=human-resources.ferias-afastamentos` e
+  `POST /api/human-resources/ferias-afastamentos/{id}/actions/plan-coverage`;
 - "Como reputacao se distribui por equipe, score e posicao?" via
   `POST /api/human-resources/vw-ranking-reputacao/stats/group-by` com
   `field=equipe` e `POST /api/human-resources/vw-ranking-reputacao/stats/distribution`
@@ -198,7 +201,7 @@ Em `human-resources`, as perguntas ja materializadas pelo host exemplar sao:
 O smoke `scripts/verify-human-resources-runtime.sh` protege essas evidencias no
 host publicado e confirma as surfaces de perfil 360, historico de folha,
 participacoes em missoes, agenda de pagamento, calendario de disponibilidade,
-ranking reputacional e actions de folha/eventos.
+action de cobertura, ranking reputacional e actions de folha/eventos.
 
 Em `operations`, as perguntas ja materializadas pelo host exemplar sao:
 

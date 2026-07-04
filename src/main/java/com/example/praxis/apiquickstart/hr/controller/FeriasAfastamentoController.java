@@ -4,17 +4,22 @@ import com.example.praxis.apiquickstart.constants.ApiPaths;
 import com.example.praxis.apiquickstart.hr.dto.FeriasAfastamentoDTO;
 import com.example.praxis.apiquickstart.hr.dto.CreateFeriasAfastamentoDTO;
 import com.example.praxis.apiquickstart.hr.dto.UpdateFeriasAfastamentoDTO;
+import com.example.praxis.apiquickstart.hr.dto.actions.AbsenceCoverageWorkflowRequestDTO;
+import com.example.praxis.apiquickstart.hr.dto.actions.AbsenceCoverageWorkflowResultDTO;
 import com.example.praxis.apiquickstart.hr.dto.filter.FeriasAfastamentoFilterDTO;
 import com.example.praxis.apiquickstart.hr.entity.FeriasAfastamento;
 import com.example.praxis.apiquickstart.hr.mapper.FeriasAfastamentoMapper;
 import com.example.praxis.apiquickstart.hr.service.FeriasAfastamentoService;
+import org.praxisplatform.uischema.action.ActionScope;
 import org.praxisplatform.uischema.annotation.ApiGroup;
 import org.praxisplatform.uischema.annotation.ApiResource;
 import com.example.praxis.apiquickstart.core.controller.base.AbstractQuickstartCrudController;
 import org.praxisplatform.uischema.annotation.UiSurface;
+import org.praxisplatform.uischema.annotation.WorkflowAction;
 import org.praxisplatform.uischema.surface.SurfaceKind;
 import org.praxisplatform.uischema.surface.SurfaceScope;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.hateoas.Links;
 import org.springframework.web.bind.annotation.RestController;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -174,6 +179,39 @@ public class FeriasAfastamentoController extends AbstractQuickstartCrudControlle
         return super.update(id, dto);
     }
 
+    @PostMapping("/{id}/actions/plan-coverage")
+    @Operation(summary = "Planejar cobertura de férias ou afastamento", description = "Registra a decisão operacional de cobertura para uma ausência, vinculando plano, substituto opcional e justificativa sem alterar o contrato estrutural do cadastro.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Cobertura registrada com sucesso."),
+            @ApiResponse(responseCode = "400", description = "Requisição inválida ou plano de cobertura ausente."),
+            @ApiResponse(responseCode = "404", description = "Período de ausência não encontrado."),
+            @ApiResponse(responseCode = "409", description = "A decisão não pôde ser registrada no estado atual do registro.")
+    })
+    @WorkflowAction(
+            id = "plan-coverage",
+            title = "Planejar cobertura",
+            description = "Registra como uma ausencia sera coberta operacionalmente, com substituto opcional e justificativa auditavel.",
+            scope = ActionScope.ITEM,
+            order = 100,
+            successMessage = "Cobertura registrada",
+            tags = {"human-resources", "absence", "availability", "coverage-planning", "item-action"}
+    )
+    public ResponseEntity<RestApiResponse<AbsenceCoverageWorkflowResultDTO>> planCoverage(
+            @PathVariable Integer id,
+            @jakarta.validation.Valid @RequestBody AbsenceCoverageWorkflowRequestDTO dto
+    ) {
+        AbsenceCoverageWorkflowResultDTO result = service.planCoverage(id, dto);
+        Links links = Links.of(
+                linkToSelf(id),
+                linkToAll(),
+                linkToFilter(),
+                linkToFilterCursor(),
+                linkToUiSchema("/{id}/actions/plan-coverage", "post", "request"),
+                linkToUiSchema("/{id}/actions/plan-coverage", "post", "response")
+        );
+        return withVersion(ResponseEntity.ok(), RestApiResponse.success(result, hateoasOrNull(links)));
+    }
+
     @DeleteMapping("/{id}")
     @Operation(summary = "Remover férias ou afastamento do cadastro", description = "Remove um período de ausência do cadastro administrativo quando a agenda de RH exige saneamento, revisão de dados ou retirada de registros obsoletos.")
     @ApiResponses({
@@ -194,7 +232,6 @@ public class FeriasAfastamentoController extends AbstractQuickstartCrudControlle
         return super.deleteBatch(ids);
     }
 }
-
 
 
 
