@@ -10,7 +10,10 @@ import com.example.praxis.apiquickstart.operations.mapper.IncidenteMapper;
 import com.example.praxis.apiquickstart.operations.service.IncidenteService;
 import org.praxisplatform.uischema.annotation.ApiGroup;
 import org.praxisplatform.uischema.annotation.ApiResource;
+import org.praxisplatform.uischema.annotation.UiSurface;
 import com.example.praxis.apiquickstart.core.controller.base.AbstractQuickstartCrudController;
+import org.praxisplatform.uischema.surface.SurfaceKind;
+import org.praxisplatform.uischema.surface.SurfaceScope;
 import org.springframework.beans.factory.annotation.Autowired;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -36,7 +39,14 @@ import java.util.List;
  * de campo. E um bom exemplo de recurso cujo valor pedagogico esta em alimentar views e dashboards
  * posteriores sem perder o baseline CRUD canonico da plataforma.</p>
  */
-@ApiResource(value = ApiPaths.Operations.INCIDENTES, resourceKey = "operations.incidentes")
+@ApiResource(
+        value = ApiPaths.Operations.INCIDENTES,
+        resourceKey = "operations.incidentes",
+        title = "Incidentes",
+        description = "Ocorrencias operacionais ligadas a missoes, severidade, impacto humano, danos civis e leitura analitica de risco.",
+        icon = "siren",
+        visualTone = "risk-intelligence"
+)
 @ApiGroup("operations")
 public class IncidenteController extends AbstractQuickstartCrudController<Incidente, IncidenteDTO, Integer, IncidenteFilterDTO, CreateIncidenteDTO, UpdateIncidenteDTO> {
 
@@ -65,6 +75,16 @@ public class IncidenteController extends AbstractQuickstartCrudController<Incide
     protected Integer getDtoId(IncidenteDTO dto) { return dto.getId(); }
 
     @PostMapping("/filter")
+    @UiSurface(
+            id = "incident-investigation-board",
+            kind = SurfaceKind.VIEW,
+            scope = SurfaceScope.COLLECTION,
+            title = "Mesa de investigacao de incidentes",
+            description = "Conecta ocorrencias de missao, severidade, local, danos civis e impacto humano com indenizacoes e a view analitica risk-intelligence.vw-indicadores-incidentes.",
+            intent = "operations-incident-risk-investigation",
+            order = 35,
+            tags = {"operations", "risk-intelligence", "incident", "mission", "severity", "impact", "analytics", "lookup"}
+    )
     @Operation(summary = "Filtrar incidentes de missão", description = "Lista incidentes por missão, severidade, impacto, local, data e status para investigação operacional e análise de risco em campo.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Lista filtrada retornada com sucesso."),
@@ -186,7 +206,6 @@ public class IncidenteController extends AbstractQuickstartCrudController<Incide
         return super.deleteBatch(ids);
     }
 }
-
 
 
 

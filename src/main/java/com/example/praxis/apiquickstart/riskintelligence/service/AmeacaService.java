@@ -22,12 +22,16 @@ import org.praxisplatform.uischema.options.OptionSourceDescriptor;
 import org.praxisplatform.uischema.options.OptionSourcePolicy;
 import org.praxisplatform.uischema.options.OptionSourceRegistry;
 import org.praxisplatform.uischema.options.OptionSourceType;
+import org.praxisplatform.uischema.stats.StatsFieldRegistry;
+import org.praxisplatform.uischema.stats.StatsMetric;
+import org.praxisplatform.uischema.stats.StatsSupportMode;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
+import java.util.Set;
 
 import static org.springframework.http.HttpStatus.CONFLICT;
 
@@ -42,6 +46,13 @@ import static org.springframework.http.HttpStatus.CONFLICT;
 public class AmeacaService extends AbstractQuickstartCrudService<Ameaca, AmeacaDTO, Integer, AmeacaFilterDTO, CreateAmeacaDTO, UpdateAmeacaDTO> {
     private static final String RESOURCE_KEY = "risk-intelligence.ameacas";
     private static final String WORKFLOW_POLICY_TARGET_PREFIX = RESOURCE_KEY + ":";
+    private static final StatsFieldRegistry STATS_FIELDS = StatsFieldRegistry.builder()
+            .groupByBucket("classe", "classe", Set.of(StatsMetric.COUNT))
+            .groupByBucket("status", "status", Set.of(StatsMetric.COUNT))
+            .groupByBucket("planeta", "planeta", Set.of(StatsMetric.COUNT))
+            .numericHistogramMeasureField("nivel", "nivel")
+            .numericHistogramMeasureField("recompensa", "recompensa")
+            .build();
     private static final OptionSourceRegistry OPTION_SOURCES = OptionSourceRegistry.builder()
             .add(Ameaca.class, new OptionSourceDescriptor(
                     ApiPaths.RiskIntelligence.AMEACAS_THREAT_LOOKUP_SOURCE,
@@ -96,6 +107,21 @@ public class AmeacaService extends AbstractQuickstartCrudService<Ameaca, AmeacaD
     @Override
     public OptionSourceRegistry getOptionSourceRegistry() {
         return OPTION_SOURCES;
+    }
+
+    @Override
+    public StatsSupportMode getGroupByStatsSupportMode() {
+        return StatsSupportMode.AUTO;
+    }
+
+    @Override
+    public StatsSupportMode getDistributionStatsSupportMode() {
+        return StatsSupportMode.AUTO;
+    }
+
+    @Override
+    public StatsFieldRegistry getStatsFieldRegistry() {
+        return STATS_FIELDS;
     }
 
     @Override
@@ -181,7 +207,6 @@ public class AmeacaService extends AbstractQuickstartCrudService<Ameaca, AmeacaD
         return new OptionSourcePolicy(true, true, "contains", 0, 25, 100, true, false, "label");
     }
 }
-
 
 
 

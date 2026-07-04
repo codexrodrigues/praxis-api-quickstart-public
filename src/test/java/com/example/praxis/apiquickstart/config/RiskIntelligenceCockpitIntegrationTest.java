@@ -127,6 +127,12 @@ class RiskIntelligenceCockpitIntegrationTest {
                 "CHART",
                 "Evolucao de incidentes"
         );
+        assertRiskSurface(
+                "operations.incidentes",
+                "incident-investigation-board",
+                "VIEW",
+                "Mesa de investigacao de incidentes"
+        );
     }
 
     @Test

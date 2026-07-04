@@ -525,6 +525,10 @@ Exemplos de referencia no quickstart:
 - A fonte `incident` e publicada por `operations.incidentes` em
   `POST /api/operations/incidentes/option-sources/incident/options/filter`; ela tambem oferece
   `/by-ids` para reidratar valores existentes em formularios e filtros corporativos.
+- `operations.incidentes` tambem publica a surface `incident-investigation-board` e stats
+  governados por severidade, local, missao, periodo, danos civis e impacto humano. No cockpit,
+  essa e a ponte operacional entre a ocorrencia registrada em campo e a leitura analitica
+  `risk-intelligence.vw-indicadores-incidentes`.
 - `assets.veiculo-missao-usos.veiculoId` usa a fonte `vehicle`.
 - A fonte `vehicle` e publicada por `assets.veiculos` em
   `POST /api/assets/veiculos/option-sources/vehicle/options/filter`; veiculos `OPERACIONAL`

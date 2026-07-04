@@ -51,7 +51,7 @@ producao.
 | Operacoes | `operations` | 12 | 9 | 10 | `ja-suportado-mal-nomeado-ou-mal-materializado`: e o melhor dominio para demonstrar actions/surfaces; cockpit deve usar esse dominio como referencia visual de workflows. |
 | Suprimentos | `procurement` | 5 | 4 | 8 | `ja-suportado-mal-nomeado-ou-mal-materializado`: recursos, schemas, option sources, surfaces e actions de fornecedor, contrato e pedido existem; o cockpit deve materializar a jornada compra -> contrato -> pedido -> recebimento como fluxo navegavel. |
 | Ativos Operacionais | `assets` | 4 | 4 | 7 | `ja-suportado-mal-nomeado-ou-mal-materializado`: recursos, lookups, surfaces, actions de disponibilidade e actions de custodia existem; o cockpit deve materializar inventario -> custodia -> devolucao/perda/dano como fluxo navegavel. |
-| Inteligencia de Risco | `risk-intelligence` | 2 | 3 | 2 | `suportado-parcialmente`: recurso de ameacas e view analitica de incidentes publicam surfaces de monitoramento, painel, chart e actions reais de triagem; ainda pode evoluir comandos sobre incidentes quando houver recurso transacional dedicado. |
+| Inteligencia de Risco | `risk-intelligence` | 2 | 3 | 2 | `ja-suportado-mal-nomeado-ou-mal-materializado`: ameacas publicam surface, actions e stats; incidentes ja existem como recurso transacional em `operations.incidentes`, com surface e stats proprios, enquanto `risk-intelligence.vw-indicadores-incidentes` permanece como leitura analitica e chart de tendencia. |
 
 Nenhum item acima exige contrato novo neste momento. A plataforma ja sabe expor
 `@ApiResource`, `@Operation`, `@Schema`, `@UISchema`, stats, options, surfaces,
@@ -224,9 +224,12 @@ Materializacao esperada:
 
 ## Prioridades recomendadas de melhoria no Quickstart
 
-1. `risk-intelligence`: evoluir actions de ameacas para comandos sobre
-   incidentes quando houver recurso transacional dedicado, preservando a view
-   `vw-indicadores-incidentes` como leitura analitica.
+1. `risk-intelligence`: o recurso transacional dedicado ja existe em
+   `operations.incidentes` e agora publica surface/stats para investigacao; a
+   proxima evolucao correta e modelar comandos reais de ciclo de vida de
+   incidente apenas quando houver regra de negocio canonica para triagem,
+   escalonamento ou encerramento, preservando `vw-indicadores-incidentes` como
+   leitura analitica.
 2. `human-resources`: ampliar exemplo de ciclo de vida alem de folha, como
    afastamento, reputacao ou habilidade, se houver comando real de dominio.
 3. `procurement`: ja publica charts de compras e uma surface de jornada

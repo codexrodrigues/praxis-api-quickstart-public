@@ -16,9 +16,13 @@ import org.praxisplatform.uischema.options.OptionSourceDescriptor;
 import org.praxisplatform.uischema.options.OptionSourcePolicy;
 import org.praxisplatform.uischema.options.OptionSourceRegistry;
 import org.praxisplatform.uischema.options.OptionSourceType;
+import org.praxisplatform.uischema.stats.StatsFieldRegistry;
+import org.praxisplatform.uischema.stats.StatsMetric;
+import org.praxisplatform.uischema.stats.StatsSupportMode;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Set;
 
 /**
  * Service basico de incidentes usado para representar o lado transacional do risco operacional.
@@ -29,6 +33,16 @@ import java.util.List;
  */
 @Service
 public class IncidenteService extends AbstractQuickstartCrudService<Incidente, IncidenteDTO, Integer, IncidenteFilterDTO, CreateIncidenteDTO, UpdateIncidenteDTO> {
+
+    private static final StatsFieldRegistry STATS_FIELDS = StatsFieldRegistry.builder()
+            .groupByBucket("severidade", "severidade", Set.of(StatsMetric.COUNT))
+            .groupByBucket("local", "local", Set.of(StatsMetric.COUNT))
+            .groupByBucket("missaoId", "missao.id", Set.of(StatsMetric.COUNT))
+            .temporalTimeSeriesField("ocorridoEm", "ocorridoEm")
+            .numericHistogramMeasureField("danosCivis", "danosCivis")
+            .numericHistogramMeasureField("feridos", "feridos")
+            .numericHistogramMeasureField("mortos", "mortos")
+            .build();
 
     private static final OptionSourceRegistry OPTION_SOURCES = OptionSourceRegistry.builder()
             .add(Incidente.class, new OptionSourceDescriptor(
@@ -74,6 +88,26 @@ public class IncidenteService extends AbstractQuickstartCrudService<Incidente, I
     }
 
     @Override
+    public StatsSupportMode getGroupByStatsSupportMode() {
+        return StatsSupportMode.AUTO;
+    }
+
+    @Override
+    public StatsSupportMode getTimeSeriesStatsSupportMode() {
+        return StatsSupportMode.AUTO;
+    }
+
+    @Override
+    public StatsSupportMode getDistributionStatsSupportMode() {
+        return StatsSupportMode.AUTO;
+    }
+
+    @Override
+    public StatsFieldRegistry getStatsFieldRegistry() {
+        return STATS_FIELDS;
+    }
+
+    @Override
     public Incidente mergeUpdate(Incidente existing, Incidente fromPayload) {
         mapper.updateEntity(fromPayload, existing);
         return existing;
@@ -93,7 +127,6 @@ public class IncidenteService extends AbstractQuickstartCrudService<Incidente, I
         );
     }
 }
-
 
 
 
