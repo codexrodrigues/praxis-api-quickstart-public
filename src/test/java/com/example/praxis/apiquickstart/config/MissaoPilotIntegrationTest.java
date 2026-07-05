@@ -453,8 +453,22 @@ class MissaoPilotIntegrationTest {
         assertEquals("PATCH", teamPlan.path("method").asText());
         assertEquals("/api/operations/missoes/{id}/team-plan", teamPlan.path("path").asText());
         assertEquals("READ_PROJECTION", findById(surfacesCatalog.path("surfaces"), "summary").path("kind").asText());
-        assertEquals("READ_PROJECTION", findById(surfacesCatalog.path("surfaces"), "team").path("kind").asText());
-        assertEquals("READ_PROJECTION", findById(surfacesCatalog.path("surfaces"), "timeline").path("kind").asText());
+        JsonNode teamSurface = findById(surfacesCatalog.path("surfaces"), "team");
+        assertEquals("READ_PROJECTION", teamSurface.path("kind").asText());
+        assertEquals("operations.missao-participantes", teamSurface.path("relatedResource").path("childResourceKey").asText());
+        assertEquals("/api/operations/missao-participantes", teamSurface.path("relatedResource").path("childResourcePath").asText());
+        assertEquals("missaoId", teamSurface.path("relatedResource").path("childParentField").asText());
+        assertTrue(teamSurface.path("relatedResource").path("selectable").asBoolean());
+        assertEquals("id", teamSurface.path("relatedResource").path("selectionKeyField").asText());
+        assertEquals("[\"FILTER\",\"LIST\",\"CREATE\",\"UPDATE\",\"DELETE\"]",
+                teamSurface.path("relatedResource").path("childOperations").toString());
+        JsonNode timelineSurface = findById(surfacesCatalog.path("surfaces"), "timeline");
+        assertEquals("READ_PROJECTION", timelineSurface.path("kind").asText());
+        assertEquals("operations.missao-eventos", timelineSurface.path("relatedResource").path("childResourceKey").asText());
+        assertEquals("/api/operations/missao-eventos", timelineSurface.path("relatedResource").path("childResourcePath").asText());
+        assertEquals("missaoId", timelineSurface.path("relatedResource").path("childParentField").asText());
+        assertEquals("[\"FILTER\",\"LIST\",\"CREATE\",\"UPDATE\",\"DELETE\"]",
+                timelineSurface.path("relatedResource").path("childOperations").toString());
 
         JsonNode actionsCatalog = body(restTemplate.getForEntity(
                 "/schemas/actions?resource=operations.missoes",

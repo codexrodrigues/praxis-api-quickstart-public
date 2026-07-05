@@ -795,8 +795,15 @@ canonica continua vindo do starter; o adapter local apenas simula a integracao c
 
 O endpoint `audit-lines` prova related resource surface em item-level: `/schemas/surfaces` publica
 `relatedResource.childResourceKey`, `childResourcePath`, `childParentField`, selecao por
-`auditLineId` e `childOperations = [LIST]` para a colecao filha. O schema das linhas continua vindo de
+`auditLineId` e a projection legada aninhada. O schema das linhas continua vindo de
 `/schemas/filtered?path=/api/human-resources/legacy-pay-codes/{id}/audit-lines&operation=get&schemaType=response`.
+
+As surfaces `team` e `timeline` de `operations.missoes` demonstram o related resource completo para
+runtime metadata-driven: elas apontam para recursos filhos reais (`operations.missao-participantes` e
+`operations.missao-eventos`), publicam `childParentField = missaoId` e expõem `childOperations`
+filtradas contra capabilities canonicas dos recursos filhos. Esse e o exemplo recomendado para
+clientes que precisam abrir uma tabela filha pronta a partir do item pai sem codificar filtro manual
+no host Angular.
 
 Seguranca (POST):
 - Em ambientes com `app.security.write-disabled=true`, POST e negado por padrao.

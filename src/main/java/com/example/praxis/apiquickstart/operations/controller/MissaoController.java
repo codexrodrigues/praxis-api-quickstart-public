@@ -42,6 +42,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.praxisplatform.uischema.surface.RelatedResourceChildOperation;
 import org.praxisplatform.uischema.surface.SurfaceKind;
 import org.praxisplatform.uischema.surface.SurfaceScope;
 import java.util.List;
@@ -326,7 +327,19 @@ public class MissaoController extends AbstractQuickstartCrudController<Missao, M
             description = "Lista participantes, papéis e resultados associados à missão",
             intent = "mission-command-center",
             order = 50,
-            tags = {"mission", "team", "read-projection"}
+            tags = {"mission", "team", "read-projection", "related-resource"},
+            relatedChildResourceKey = "operations.missao-participantes",
+            relatedChildResourcePath = ApiPaths.Operations.MISSAO_PARTICIPANTES,
+            relatedChildParentField = "missaoId",
+            relatedSelectable = true,
+            relatedSelectionKeyField = "id",
+            relatedChildOperations = {
+                    RelatedResourceChildOperation.FILTER,
+                    RelatedResourceChildOperation.LIST,
+                    RelatedResourceChildOperation.CREATE,
+                    RelatedResourceChildOperation.UPDATE,
+                    RelatedResourceChildOperation.DELETE
+            }
     )
     @Operation(summary = "Obter equipe da missão", description = "Retorna os participantes vinculados à missão para compor superfícies de comando operacional.")
     @ApiResponses({
@@ -352,7 +365,19 @@ public class MissaoController extends AbstractQuickstartCrudController<Missao, M
             description = "Lista eventos recentes da missão em ordem cronológica operacional",
             intent = "mission-command-center",
             order = 60,
-            tags = {"mission", "timeline", "read-projection"}
+            tags = {"mission", "timeline", "read-projection", "related-resource"},
+            relatedChildResourceKey = "operations.missao-eventos",
+            relatedChildResourcePath = ApiPaths.Operations.MISSAO_EVENTOS,
+            relatedChildParentField = "missaoId",
+            relatedSelectable = true,
+            relatedSelectionKeyField = "id",
+            relatedChildOperations = {
+                    RelatedResourceChildOperation.FILTER,
+                    RelatedResourceChildOperation.LIST,
+                    RelatedResourceChildOperation.CREATE,
+                    RelatedResourceChildOperation.UPDATE,
+                    RelatedResourceChildOperation.DELETE
+            }
     )
     @Operation(summary = "Obter linha do tempo da missão", description = "Retorna os eventos recentes da missão para leitura temporal e auditoria operacional.")
     @ApiResponses({
