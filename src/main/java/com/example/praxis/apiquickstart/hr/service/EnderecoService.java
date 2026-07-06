@@ -14,9 +14,11 @@ import org.springframework.stereotype.Service;
 public class EnderecoService extends AbstractQuickstartCrudService<Endereco, EnderecoDTO, Integer, EnderecoFilterDTO, CreateEnderecoDTO, UpdateEnderecoDTO> {
 
     private final EnderecoMapper mapper;
+    private final EnderecoRepository repository;
 
     public EnderecoService(EnderecoRepository repository, EnderecoMapper mapper) {
         super(repository, Endereco.class, mapper::toDto, mapper::toEntity, mapper::toEntity, Endereco::getId);
+        this.repository = repository;
         this.mapper = mapper;
     }
 
@@ -26,12 +28,18 @@ public class EnderecoService extends AbstractQuickstartCrudService<Endereco, End
         return existing;
     }
 
+    public java.util.List<EnderecoDTO> findByFuncionarioIdForEmployeeSurface(Integer funcionarioId) {
+        return repository.findByFuncionarioIdOrderByCidadeAscLogradouroAsc(funcionarioId)
+                .stream()
+                .map(mapper::toDto)
+                .toList();
+    }
+
     @Override
     public java.util.Optional<String> getDatasetVersion() {
         long count = getRepository().count();
         return java.util.Optional.of(getEntityClass().getSimpleName() + ":" + count);
     }
 }
-
 
 

@@ -86,6 +86,8 @@ class QuickstartMetadataMigrationIntegrationTest {
         jdbcTemplate.execute("drop table if exists public.vw_analytics_folha_pagamento");
         jdbcTemplate.execute("drop table if exists public.missao_participantes");
         jdbcTemplate.execute("drop table if exists public.missoes");
+        jdbcTemplate.execute("drop table if exists public.dependentes");
+        jdbcTemplate.execute("drop table if exists public.enderecos");
         jdbcTemplate.execute("drop table if exists public.funcionarios");
         jdbcTemplate.execute("drop table if exists public.cargos");
         jdbcTemplate.execute("drop table if exists public.departamentos");
@@ -127,6 +129,30 @@ class QuickstartMetadataMigrationIntegrationTest {
                     estado_civil varchar(50),
                     pais_nascimento varchar(200),
                     cidade_nascimento varchar(200)
+                )
+                """);
+
+        jdbcTemplate.execute("""
+                create table public.dependentes (
+                    id integer primary key,
+                    nome_completo varchar(200) not null,
+                    parentesco varchar(100) not null,
+                    data_nascimento date not null,
+                    funcionario_id integer not null
+                )
+                """);
+
+        jdbcTemplate.execute("""
+                create table public.enderecos (
+                    id integer primary key,
+                    logradouro varchar(200) not null,
+                    numero varchar(50) not null,
+                    complemento varchar(200),
+                    bairro varchar(200) not null,
+                    cidade varchar(200) not null,
+                    estado varchar(2) not null,
+                    cep varchar(20) not null,
+                    funcionario_id integer not null
                 )
                 """);
 
@@ -245,6 +271,14 @@ class QuickstartMetadataMigrationIntegrationTest {
                 )
                 """);
         jdbcTemplate.update("""
+                insert into public.dependentes (id, nome_completo, parentesco, data_nascimento, funcionario_id)
+                values (10, 'Dick Grayson', 'dependente operacional', DATE '2009-03-20', 1)
+                """);
+        jdbcTemplate.update("""
+                insert into public.enderecos (id, logradouro, numero, complemento, bairro, cidade, estado, cep, funcionario_id)
+                values (10, 'Alameda das Mansões', '1', 'Mansão Wayne', 'Nobre', 'Gotham', 'GT', '54321-000', 1)
+                """);
+        jdbcTemplate.update("""
                 insert into public.vw_perfil_heroi (
                     funcionario_id, avatar_url, nome_completo, codinome, universo, exposicao_publica, cargo, departamento,
                     score_publico, score_governamental, score_medio, habilidades, equipe_principal, base_principal
@@ -322,6 +356,18 @@ class QuickstartMetadataMigrationIntegrationTest {
         assertEquals("/api/human-resources/funcionarios/{id}/mission-participations", missionParticipationsSurface.path("path").asText());
         assertEquals("COLLECTION", missionParticipationsSurface.path("responseCardinality").asText());
         assertTrue(missionParticipationsSurface.path("description").asText().contains("missões"));
+        JsonNode dependentsSurface = findById(surfacesCatalog.path("surfaces"), "dependents");
+        assertNotNull(dependentsSurface);
+        assertEquals("READ_PROJECTION", dependentsSurface.path("kind").asText());
+        assertEquals("/api/human-resources/funcionarios/{id}/dependents", dependentsSurface.path("path").asText());
+        assertEquals("COLLECTION", dependentsSurface.path("responseCardinality").asText());
+        assertTrue(dependentsSurface.path("description").asText().contains("benefícios"));
+        JsonNode addressSurface = findById(surfacesCatalog.path("surfaces"), "address");
+        assertNotNull(addressSurface);
+        assertEquals("READ_PROJECTION", addressSurface.path("kind").asText());
+        assertEquals("/api/human-resources/funcionarios/{id}/address", addressSurface.path("path").asText());
+        assertEquals("COLLECTION", addressSurface.path("responseCardinality").asText());
+        assertTrue(addressSurface.path("description").asText().contains("privacidade"));
 
         JsonNode itemSurfaces = body(restTemplate.getForEntity(
                 "/api/human-resources/funcionarios/1/surfaces",
@@ -333,6 +379,8 @@ class QuickstartMetadataMigrationIntegrationTest {
         assertTrue(findById(itemSurfaces.path("surfaces"), "hero-profile").path("availability").path("allowed").asBoolean());
         assertTrue(findById(itemSurfaces.path("surfaces"), "payroll-history").path("availability").path("allowed").asBoolean());
         assertTrue(findById(itemSurfaces.path("surfaces"), "mission-participations").path("availability").path("allowed").asBoolean());
+        assertTrue(findById(itemSurfaces.path("surfaces"), "dependents").path("availability").path("allowed").asBoolean());
+        assertTrue(findById(itemSurfaces.path("surfaces"), "address").path("availability").path("allowed").asBoolean());
 
         JsonNode itemCapabilities = body(restTemplate.getForEntity(
                 "/api/human-resources/funcionarios/1/capabilities",
@@ -347,6 +395,8 @@ class QuickstartMetadataMigrationIntegrationTest {
         assertNotNull(findById(itemCapabilities.path("surfaces"), "hero-profile"));
         assertNotNull(findById(itemCapabilities.path("surfaces"), "payroll-history"));
         assertNotNull(findById(itemCapabilities.path("surfaces"), "mission-participations"));
+        assertNotNull(findById(itemCapabilities.path("surfaces"), "dependents"));
+        assertNotNull(findById(itemCapabilities.path("surfaces"), "address"));
         assertEquals(0, itemCapabilities.path("actions").size());
 
         JsonNode heroProfile = body(restTemplate.getForEntity(
@@ -382,6 +432,24 @@ class QuickstartMetadataMigrationIntegrationTest {
         assertEquals("Gotham Shield", missionParticipations.path("data").path(0).path("missaoTitulo").asText());
         assertEquals("LIDER", missionParticipations.path("data").path(0).path("papel").asText());
         assertNotNull(findLinkHref(missionParticipations, "schema"));
+
+        JsonNode dependents = body(restTemplate.getForEntity(
+                "/api/human-resources/funcionarios/1/dependents",
+                String.class
+        ));
+        assertEquals(1, dependents.path("data").size());
+        assertEquals("Dick Grayson", dependents.path("data").path(0).path("nomeCompleto").asText());
+        assertEquals(1, dependents.path("data").path(0).path("funcionarioId").asInt());
+        assertNotNull(findLinkHref(dependents, "schema"));
+
+        JsonNode address = body(restTemplate.getForEntity(
+                "/api/human-resources/funcionarios/1/address",
+                String.class
+        ));
+        assertEquals(1, address.path("data").size());
+        assertEquals("Gotham", address.path("data").path(0).path("cidade").asText());
+        assertEquals(1, address.path("data").path(0).path("funcionarioId").asInt());
+        assertNotNull(findLinkHref(address, "schema"));
 
         ResponseEntity<String> missingActionsCatalog = restTemplate.getForEntity(
                 "/schemas/actions?resource=human-resources.funcionarios",

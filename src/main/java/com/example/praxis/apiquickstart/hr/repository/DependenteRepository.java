@@ -13,6 +13,9 @@ import java.util.Optional;
 
 public interface DependenteRepository extends BaseCrudRepository<Dependente, Integer> {
 
+    @EntityGraph(value = "Dependente.detail")
+    List<Dependente> findByFuncionarioIdOrderByDataNascimentoAsc(Integer funcionarioId);
+
     @Override
     @EntityGraph(value = "Dependente.detail")
     Optional<Dependente> findById(Integer id);

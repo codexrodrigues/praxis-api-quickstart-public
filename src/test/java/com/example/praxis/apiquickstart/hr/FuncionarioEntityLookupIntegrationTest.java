@@ -269,6 +269,34 @@ class FuncionarioEntityLookupIntegrationTest {
         assertEquals("[\"FILTER\",\"LIST\",\"CREATE\",\"UPDATE\",\"DELETE\"]",
                 missionParticipations.path("relatedResource").path("childOperations").toString());
         assertRelatedResourceFieldsExistInResponseSchema(missionParticipations);
+
+        JsonNode dependents = findById(surfacesCatalog.path("surfaces"), "dependents");
+        assertNotNull(dependents);
+        assertEquals("READ_PROJECTION", dependents.path("kind").asText());
+        assertEquals("human-resources.dependentes",
+                dependents.path("relatedResource").path("childResourceKey").asText());
+        assertEquals(ApiPaths.HumanResources.DEPENDENTES,
+                dependents.path("relatedResource").path("childResourcePath").asText());
+        assertEquals("funcionarioId", dependents.path("relatedResource").path("childParentField").asText());
+        assertTrue(dependents.path("relatedResource").path("selectable").asBoolean());
+        assertEquals("id", dependents.path("relatedResource").path("selectionKeyField").asText());
+        assertEquals("[\"FILTER\",\"LIST\",\"CREATE\",\"UPDATE\",\"DELETE\"]",
+                dependents.path("relatedResource").path("childOperations").toString());
+        assertRelatedResourceFieldsExistInResponseSchema(dependents);
+
+        JsonNode address = findById(surfacesCatalog.path("surfaces"), "address");
+        assertNotNull(address);
+        assertEquals("READ_PROJECTION", address.path("kind").asText());
+        assertEquals("human-resources.enderecos",
+                address.path("relatedResource").path("childResourceKey").asText());
+        assertEquals(ApiPaths.HumanResources.ENDERECOS,
+                address.path("relatedResource").path("childResourcePath").asText());
+        assertEquals("funcionarioId", address.path("relatedResource").path("childParentField").asText());
+        assertTrue(address.path("relatedResource").path("selectable").asBoolean());
+        assertEquals("id", address.path("relatedResource").path("selectionKeyField").asText());
+        assertEquals("[\"FILTER\",\"LIST\",\"CREATE\",\"UPDATE\",\"DELETE\"]",
+                address.path("relatedResource").path("childOperations").toString());
+        assertRelatedResourceFieldsExistInResponseSchema(address);
     }
 
     private JsonNode body(ResponseEntity<String> response) throws Exception {

@@ -13,6 +13,9 @@ import java.util.Optional;
 
 public interface EnderecoRepository extends BaseCrudRepository<Endereco, Integer> {
 
+    @EntityGraph(value = "Endereco.detail")
+    List<Endereco> findByFuncionarioIdOrderByCidadeAscLogradouroAsc(Integer funcionarioId);
+
     @Override
     @EntityGraph(value = "Endereco.detail")
     Optional<Endereco> findById(Integer id);

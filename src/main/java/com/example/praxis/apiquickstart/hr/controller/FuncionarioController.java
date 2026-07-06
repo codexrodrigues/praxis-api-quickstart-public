@@ -3,6 +3,8 @@ package com.example.praxis.apiquickstart.hr.controller;
 import com.example.praxis.apiquickstart.constants.ApiPaths;
 import com.example.praxis.apiquickstart.hr.dto.FuncionarioDTO;
 import com.example.praxis.apiquickstart.hr.dto.CreateFuncionarioDTO;
+import com.example.praxis.apiquickstart.hr.dto.DependenteDTO;
+import com.example.praxis.apiquickstart.hr.dto.EnderecoDTO;
 import com.example.praxis.apiquickstart.hr.dto.UpdateFuncionarioDTO;
 import com.example.praxis.apiquickstart.hr.dto.UpdateFuncionarioProfileDTO;
 import com.example.praxis.apiquickstart.hr.dto.VwAnalyticsFolhaPagamentoDTO;
@@ -11,6 +13,8 @@ import com.example.praxis.apiquickstart.hr.dto.filter.FuncionarioFilterDTO;
 import com.example.praxis.apiquickstart.core.controller.base.AbstractQuickstartCrudController;
 import com.example.praxis.apiquickstart.hr.entity.Funcionario;
 import com.example.praxis.apiquickstart.hr.mapper.FuncionarioMapper;
+import com.example.praxis.apiquickstart.hr.service.DependenteService;
+import com.example.praxis.apiquickstart.hr.service.EnderecoService;
 import com.example.praxis.apiquickstart.hr.service.FuncionarioService;
 import com.example.praxis.apiquickstart.hr.service.VwAnalyticsFolhaPagamentoService;
 import com.example.praxis.apiquickstart.hr.service.VwPerfilHeroiService;
@@ -71,6 +75,8 @@ public class FuncionarioController extends AbstractQuickstartCrudController<Func
     private final VwPerfilHeroiService perfilHeroiService;
     private final VwAnalyticsFolhaPagamentoService analyticsFolhaPagamentoService;
     private final MissaoParticipanteService missaoParticipanteService;
+    private final DependenteService dependenteService;
+    private final EnderecoService enderecoService;
 
     @Autowired
     public FuncionarioController(
@@ -78,13 +84,17 @@ public class FuncionarioController extends AbstractQuickstartCrudController<Func
             FuncionarioMapper mapper,
             VwPerfilHeroiService perfilHeroiService,
             VwAnalyticsFolhaPagamentoService analyticsFolhaPagamentoService,
-            MissaoParticipanteService missaoParticipanteService
+            MissaoParticipanteService missaoParticipanteService,
+            DependenteService dependenteService,
+            EnderecoService enderecoService
     ) {
         this.service = service;
         this.mapper = mapper;
         this.perfilHeroiService = perfilHeroiService;
         this.analyticsFolhaPagamentoService = analyticsFolhaPagamentoService;
         this.missaoParticipanteService = missaoParticipanteService;
+        this.dependenteService = dependenteService;
+        this.enderecoService = enderecoService;
     }
 
     @Override
@@ -364,6 +374,94 @@ public class FuncionarioController extends AbstractQuickstartCrudController<Func
         return withVersion(ResponseEntity.ok(), RestApiResponse.success(participations, hateoasOrNull(links)));
     }
 
+    @GetMapping("/{id}/dependents")
+    @UiSurface(
+            id = "dependents",
+            kind = SurfaceKind.READ_PROJECTION,
+            scope = SurfaceScope.ITEM,
+            title = "Dependentes e elegibilidade",
+            description = "Lista dependentes vinculados ao funcionário para benefícios, conferência cadastral, atendimento de RH e governança de dados pessoais.",
+            intent = "employee-dependent-governance",
+            order = 70,
+            tags = {"human-resources", "employee-governance", "dependents", "benefits", "privacy", "read-projection", "related-resource"},
+            relatedChildResourceKey = "human-resources.dependentes",
+            relatedChildResourcePath = ApiPaths.HumanResources.DEPENDENTES,
+            relatedChildParentField = "funcionarioId",
+            relatedSelectable = true,
+            relatedSelectionKeyField = "id",
+            relatedChildOperations = {
+                    RelatedResourceChildOperation.FILTER,
+                    RelatedResourceChildOperation.LIST,
+                    RelatedResourceChildOperation.CREATE,
+                    RelatedResourceChildOperation.UPDATE,
+                    RelatedResourceChildOperation.DELETE
+            }
+    )
+    @ResourceIntent(
+            id = "employee-dependent-governance",
+            title = "Governança de dependentes do funcionário",
+            description = "Mostra vínculos familiares e dependentes para validar benefícios, elegibilidade e cuidados de privacidade dentro do cadastro de RH.",
+            order = 70
+    )
+    @Operation(summary = "Obter dependentes do funcionário", description = "Retorna os dependentes vinculados ao funcionário selecionado para leitura de elegibilidade, benefícios e auditoria cadastral.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Dependentes retornados com sucesso.")
+    })
+    public ResponseEntity<RestApiResponse<List<DependenteDTO>>> getDependents(@PathVariable Integer id) {
+        List<DependenteDTO> dependents = dependenteService.findByFuncionarioIdForEmployeeSurface(id);
+        Links links = Links.of(
+                linkToSelf(id),
+                linkToAll(),
+                linkToFilter(),
+                linkToUiSchema("/{id}/dependents", "get", "response")
+        );
+        return withVersion(ResponseEntity.ok(), RestApiResponse.success(dependents, hateoasOrNull(links)));
+    }
+
+    @GetMapping("/{id}/address")
+    @UiSurface(
+            id = "address",
+            kind = SurfaceKind.READ_PROJECTION,
+            scope = SurfaceScope.ITEM,
+            title = "Endereço cadastral",
+            description = "Mostra a localização cadastral do funcionário para atendimento de RH, contato administrativo e análise territorial com cuidado de privacidade.",
+            intent = "employee-address-governance",
+            order = 80,
+            tags = {"human-resources", "employee-governance", "address", "territory", "privacy", "read-projection", "related-resource"},
+            relatedChildResourceKey = "human-resources.enderecos",
+            relatedChildResourcePath = ApiPaths.HumanResources.ENDERECOS,
+            relatedChildParentField = "funcionarioId",
+            relatedSelectable = true,
+            relatedSelectionKeyField = "id",
+            relatedChildOperations = {
+                    RelatedResourceChildOperation.FILTER,
+                    RelatedResourceChildOperation.LIST,
+                    RelatedResourceChildOperation.CREATE,
+                    RelatedResourceChildOperation.UPDATE,
+                    RelatedResourceChildOperation.DELETE
+            }
+    )
+    @ResourceIntent(
+            id = "employee-address-governance",
+            title = "Governança de endereço do funcionário",
+            description = "Expõe a composição cadastral de localização do funcionário preservando a leitura de privacidade e uso administrativo.",
+            order = 80
+    )
+    @Operation(summary = "Obter endereço do funcionário", description = "Retorna o endereço cadastral associado ao funcionário selecionado para atendimento administrativo e contexto territorial.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Endereço retornado com sucesso.")
+    })
+    public ResponseEntity<RestApiResponse<List<EnderecoDTO>>> getAddress(@PathVariable Integer id) {
+        List<EnderecoDTO> addresses = enderecoService.findByFuncionarioIdForEmployeeSurface(id);
+        Links links = Links.of(
+                linkToSelf(id),
+                linkToAll(),
+                linkToFilter(),
+                linkToUiSchema("/{id}/address", "get", "response")
+        );
+        return withVersion(ResponseEntity.ok(), RestApiResponse.success(addresses, hateoasOrNull(links)));
+    }
+
     @DeleteMapping("/{id}")
     @Operation(summary = "Remover funcionário", description = "Exclui o registro do funcionário do cadastro operacional de RH conforme política administrativa do host.")
     @ApiResponses({
@@ -384,7 +482,6 @@ public class FuncionarioController extends AbstractQuickstartCrudController<Func
         return super.deleteBatch(ids);
     }
 }
-
 
 
 
