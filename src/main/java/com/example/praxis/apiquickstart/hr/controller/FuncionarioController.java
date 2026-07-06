@@ -5,6 +5,8 @@ import com.example.praxis.apiquickstart.hr.dto.FuncionarioDTO;
 import com.example.praxis.apiquickstart.hr.dto.CreateFuncionarioDTO;
 import com.example.praxis.apiquickstart.hr.dto.DependenteDTO;
 import com.example.praxis.apiquickstart.hr.dto.EnderecoDTO;
+import com.example.praxis.apiquickstart.hr.dto.FuncionarioHabilidadeDTO;
+import com.example.praxis.apiquickstart.hr.dto.HistoricosCargoDTO;
 import com.example.praxis.apiquickstart.hr.dto.UpdateFuncionarioDTO;
 import com.example.praxis.apiquickstart.hr.dto.UpdateFuncionarioProfileDTO;
 import com.example.praxis.apiquickstart.hr.dto.VwAnalyticsFolhaPagamentoDTO;
@@ -15,7 +17,9 @@ import com.example.praxis.apiquickstart.hr.entity.Funcionario;
 import com.example.praxis.apiquickstart.hr.mapper.FuncionarioMapper;
 import com.example.praxis.apiquickstart.hr.service.DependenteService;
 import com.example.praxis.apiquickstart.hr.service.EnderecoService;
+import com.example.praxis.apiquickstart.hr.service.FuncionarioHabilidadeService;
 import com.example.praxis.apiquickstart.hr.service.FuncionarioService;
+import com.example.praxis.apiquickstart.hr.service.HistoricosCargoService;
 import com.example.praxis.apiquickstart.hr.service.VwAnalyticsFolhaPagamentoService;
 import com.example.praxis.apiquickstart.hr.service.VwPerfilHeroiService;
 import com.example.praxis.apiquickstart.operations.dto.MissaoParticipanteDTO;
@@ -77,6 +81,8 @@ public class FuncionarioController extends AbstractQuickstartCrudController<Func
     private final MissaoParticipanteService missaoParticipanteService;
     private final DependenteService dependenteService;
     private final EnderecoService enderecoService;
+    private final FuncionarioHabilidadeService funcionarioHabilidadeService;
+    private final HistoricosCargoService historicosCargoService;
 
     @Autowired
     public FuncionarioController(
@@ -86,7 +92,9 @@ public class FuncionarioController extends AbstractQuickstartCrudController<Func
             VwAnalyticsFolhaPagamentoService analyticsFolhaPagamentoService,
             MissaoParticipanteService missaoParticipanteService,
             DependenteService dependenteService,
-            EnderecoService enderecoService
+            EnderecoService enderecoService,
+            FuncionarioHabilidadeService funcionarioHabilidadeService,
+            HistoricosCargoService historicosCargoService
     ) {
         this.service = service;
         this.mapper = mapper;
@@ -95,6 +103,8 @@ public class FuncionarioController extends AbstractQuickstartCrudController<Func
         this.missaoParticipanteService = missaoParticipanteService;
         this.dependenteService = dependenteService;
         this.enderecoService = enderecoService;
+        this.funcionarioHabilidadeService = funcionarioHabilidadeService;
+        this.historicosCargoService = historicosCargoService;
     }
 
     @Override
@@ -462,6 +472,94 @@ public class FuncionarioController extends AbstractQuickstartCrudController<Func
         return withVersion(ResponseEntity.ok(), RestApiResponse.success(addresses, hateoasOrNull(links)));
     }
 
+    @GetMapping("/{id}/skills")
+    @UiSurface(
+            id = "skills",
+            kind = SurfaceKind.READ_PROJECTION,
+            scope = SurfaceScope.ITEM,
+            title = "Matriz de competências",
+            description = "Lista habilidades, proficiência e origem de formação do funcionário para alocação, sucessão, auditoria de capacidade e composição de equipes.",
+            intent = "employee-skill-matrix",
+            order = 90,
+            tags = {"human-resources", "employee-governance", "skills", "capability", "staffing", "read-projection", "related-resource"},
+            relatedChildResourceKey = "human-resources.funcionario-habilidades",
+            relatedChildResourcePath = ApiPaths.HumanResources.FUNCIONARIO_HABILIDADES,
+            relatedChildParentField = "funcionarioId",
+            relatedSelectable = true,
+            relatedSelectionKeyField = "id",
+            relatedChildOperations = {
+                    RelatedResourceChildOperation.FILTER,
+                    RelatedResourceChildOperation.LIST,
+                    RelatedResourceChildOperation.CREATE,
+                    RelatedResourceChildOperation.UPDATE,
+                    RelatedResourceChildOperation.DELETE
+            }
+    )
+    @ResourceIntent(
+            id = "employee-skill-matrix",
+            title = "Matriz de competências do funcionário",
+            description = "Mostra competências e proficiências que sustentam alocação operacional, sucessão e governança de capacidade.",
+            order = 90
+    )
+    @Operation(summary = "Obter competências do funcionário", description = "Retorna as habilidades vinculadas ao funcionário selecionado, ordenadas por proficiência para leitura de capacidade e alocação.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Competências retornadas com sucesso.")
+    })
+    public ResponseEntity<RestApiResponse<List<FuncionarioHabilidadeDTO>>> getSkills(@PathVariable Integer id) {
+        List<FuncionarioHabilidadeDTO> skills = funcionarioHabilidadeService.findByFuncionarioIdForEmployeeSurface(id);
+        Links links = Links.of(
+                linkToSelf(id),
+                linkToAll(),
+                linkToFilter(),
+                linkToUiSchema("/{id}/skills", "get", "response")
+        );
+        return withVersion(ResponseEntity.ok(), RestApiResponse.success(skills, hateoasOrNull(links)));
+    }
+
+    @GetMapping("/{id}/career-history")
+    @UiSurface(
+            id = "career-history",
+            kind = SurfaceKind.READ_PROJECTION,
+            scope = SurfaceScope.ITEM,
+            title = "Histórico de cargos",
+            description = "Mostra a trajetória funcional do funcionário por cargos, vigências e observações para leitura de carreira, promoção e movimentação interna.",
+            intent = "employee-career-history",
+            order = 100,
+            tags = {"human-resources", "employee-governance", "career", "job-history", "succession", "read-projection", "related-resource"},
+            relatedChildResourceKey = "human-resources.historicos-cargos",
+            relatedChildResourcePath = ApiPaths.HumanResources.HISTORICOS_CARGOS,
+            relatedChildParentField = "funcionarioId",
+            relatedSelectable = true,
+            relatedSelectionKeyField = "id",
+            relatedChildOperations = {
+                    RelatedResourceChildOperation.FILTER,
+                    RelatedResourceChildOperation.LIST,
+                    RelatedResourceChildOperation.CREATE,
+                    RelatedResourceChildOperation.UPDATE,
+                    RelatedResourceChildOperation.DELETE
+            }
+    )
+    @ResourceIntent(
+            id = "employee-career-history",
+            title = "Trajetória funcional do funcionário",
+            description = "Apresenta cargos e vigências para auditoria de carreira, sucessão, promoção e movimentação interna.",
+            order = 100
+    )
+    @Operation(summary = "Obter histórico de cargos do funcionário", description = "Retorna a trajetória de cargos do funcionário selecionado, com vigência e observações administrativas.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Histórico de cargos retornado com sucesso.")
+    })
+    public ResponseEntity<RestApiResponse<List<HistoricosCargoDTO>>> getCareerHistory(@PathVariable Integer id) {
+        List<HistoricosCargoDTO> careerHistory = historicosCargoService.findByFuncionarioIdForEmployeeSurface(id);
+        Links links = Links.of(
+                linkToSelf(id),
+                linkToAll(),
+                linkToFilter(),
+                linkToUiSchema("/{id}/career-history", "get", "response")
+        );
+        return withVersion(ResponseEntity.ok(), RestApiResponse.success(careerHistory, hateoasOrNull(links)));
+    }
+
     @DeleteMapping("/{id}")
     @Operation(summary = "Remover funcionário", description = "Exclui o registro do funcionário do cadastro operacional de RH conforme política administrativa do host.")
     @ApiResponses({
@@ -482,6 +580,5 @@ public class FuncionarioController extends AbstractQuickstartCrudController<Func
         return super.deleteBatch(ids);
     }
 }
-
 
 

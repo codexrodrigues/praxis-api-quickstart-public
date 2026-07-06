@@ -88,6 +88,9 @@ class QuickstartMetadataMigrationIntegrationTest {
         jdbcTemplate.execute("drop table if exists public.missoes");
         jdbcTemplate.execute("drop table if exists public.dependentes");
         jdbcTemplate.execute("drop table if exists public.enderecos");
+        jdbcTemplate.execute("drop table if exists public.funcionario_habilidades");
+        jdbcTemplate.execute("drop table if exists public.historicos_cargos");
+        jdbcTemplate.execute("drop table if exists public.habilidades");
         jdbcTemplate.execute("drop table if exists public.funcionarios");
         jdbcTemplate.execute("drop table if exists public.cargos");
         jdbcTemplate.execute("drop table if exists public.departamentos");
@@ -100,6 +103,16 @@ class QuickstartMetadataMigrationIntegrationTest {
                     descricao varchar(500),
                     salario_minimo numeric(19, 2),
                     salario_maximo numeric(19, 2)
+                )
+                """);
+
+        jdbcTemplate.execute("""
+                create table public.habilidades (
+                    id integer primary key,
+                    nome varchar(200) not null,
+                    categoria varchar(100),
+                    descricao varchar(500),
+                    nivel_poder integer
                 )
                 """);
 
@@ -153,6 +166,27 @@ class QuickstartMetadataMigrationIntegrationTest {
                     estado varchar(2) not null,
                     cep varchar(20) not null,
                     funcionario_id integer not null
+                )
+                """);
+
+        jdbcTemplate.execute("""
+                create table public.funcionario_habilidades (
+                    id integer primary key,
+                    funcionario_id integer not null,
+                    habilidade_id integer not null,
+                    proficiencia integer not null,
+                    origem varchar(120)
+                )
+                """);
+
+        jdbcTemplate.execute("""
+                create table public.historicos_cargos (
+                    id integer primary key,
+                    funcionario_id integer not null,
+                    cargo_id integer not null,
+                    data_inicio date not null,
+                    data_fim date,
+                    observacoes varchar(2000)
                 )
                 """);
 
@@ -258,6 +292,10 @@ class QuickstartMetadataMigrationIntegrationTest {
                 values (1, 'Analista', 'Senior', 'Analista principal', 8000.00, 15000.00)
                 """);
         jdbcTemplate.update("""
+                insert into public.habilidades (id, nome, categoria, descricao, nivel_poder)
+                values (1, 'Investigação estratégica', 'MENTAL', 'Análise e planejamento de campo', 9)
+                """);
+        jdbcTemplate.update("""
                 insert into public.departamentos (id, nome, codigo, responsavel_id)
                 values (1, 'Financeiro', 'FIN', null)
                 """);
@@ -277,6 +315,14 @@ class QuickstartMetadataMigrationIntegrationTest {
         jdbcTemplate.update("""
                 insert into public.enderecos (id, logradouro, numero, complemento, bairro, cidade, estado, cep, funcionario_id)
                 values (10, 'Alameda das Mansões', '1', 'Mansão Wayne', 'Nobre', 'Gotham', 'GT', '54321-000', 1)
+                """);
+        jdbcTemplate.update("""
+                insert into public.funcionario_habilidades (id, funcionario_id, habilidade_id, proficiencia, origem)
+                values (10, 1, 1, 9, 'Treinamento de campo')
+                """);
+        jdbcTemplate.update("""
+                insert into public.historicos_cargos (id, funcionario_id, cargo_id, data_inicio, data_fim, observacoes)
+                values (10, 1, 1, DATE '2024-01-10', null, 'Entrada no cargo de referência')
                 """);
         jdbcTemplate.update("""
                 insert into public.vw_perfil_heroi (
@@ -368,6 +414,18 @@ class QuickstartMetadataMigrationIntegrationTest {
         assertEquals("/api/human-resources/funcionarios/{id}/address", addressSurface.path("path").asText());
         assertEquals("COLLECTION", addressSurface.path("responseCardinality").asText());
         assertTrue(addressSurface.path("description").asText().contains("privacidade"));
+        JsonNode skillsSurface = findById(surfacesCatalog.path("surfaces"), "skills");
+        assertNotNull(skillsSurface);
+        assertEquals("READ_PROJECTION", skillsSurface.path("kind").asText());
+        assertEquals("/api/human-resources/funcionarios/{id}/skills", skillsSurface.path("path").asText());
+        assertEquals("COLLECTION", skillsSurface.path("responseCardinality").asText());
+        assertTrue(skillsSurface.path("description").asText().contains("proficiência"));
+        JsonNode careerHistorySurface = findById(surfacesCatalog.path("surfaces"), "career-history");
+        assertNotNull(careerHistorySurface);
+        assertEquals("READ_PROJECTION", careerHistorySurface.path("kind").asText());
+        assertEquals("/api/human-resources/funcionarios/{id}/career-history", careerHistorySurface.path("path").asText());
+        assertEquals("COLLECTION", careerHistorySurface.path("responseCardinality").asText());
+        assertTrue(careerHistorySurface.path("description").asText().contains("trajetória"));
 
         JsonNode itemSurfaces = body(restTemplate.getForEntity(
                 "/api/human-resources/funcionarios/1/surfaces",
@@ -381,6 +439,8 @@ class QuickstartMetadataMigrationIntegrationTest {
         assertTrue(findById(itemSurfaces.path("surfaces"), "mission-participations").path("availability").path("allowed").asBoolean());
         assertTrue(findById(itemSurfaces.path("surfaces"), "dependents").path("availability").path("allowed").asBoolean());
         assertTrue(findById(itemSurfaces.path("surfaces"), "address").path("availability").path("allowed").asBoolean());
+        assertTrue(findById(itemSurfaces.path("surfaces"), "skills").path("availability").path("allowed").asBoolean());
+        assertTrue(findById(itemSurfaces.path("surfaces"), "career-history").path("availability").path("allowed").asBoolean());
 
         JsonNode itemCapabilities = body(restTemplate.getForEntity(
                 "/api/human-resources/funcionarios/1/capabilities",
@@ -397,6 +457,8 @@ class QuickstartMetadataMigrationIntegrationTest {
         assertNotNull(findById(itemCapabilities.path("surfaces"), "mission-participations"));
         assertNotNull(findById(itemCapabilities.path("surfaces"), "dependents"));
         assertNotNull(findById(itemCapabilities.path("surfaces"), "address"));
+        assertNotNull(findById(itemCapabilities.path("surfaces"), "skills"));
+        assertNotNull(findById(itemCapabilities.path("surfaces"), "career-history"));
         assertEquals(0, itemCapabilities.path("actions").size());
 
         JsonNode heroProfile = body(restTemplate.getForEntity(
@@ -450,6 +512,24 @@ class QuickstartMetadataMigrationIntegrationTest {
         assertEquals("Gotham", address.path("data").path(0).path("cidade").asText());
         assertEquals(1, address.path("data").path(0).path("funcionarioId").asInt());
         assertNotNull(findLinkHref(address, "schema"));
+
+        JsonNode skills = body(restTemplate.getForEntity(
+                "/api/human-resources/funcionarios/1/skills",
+                String.class
+        ));
+        assertEquals(1, skills.path("data").size());
+        assertEquals("Investigação estratégica", skills.path("data").path(0).path("habilidadeNome").asText());
+        assertEquals(9, skills.path("data").path(0).path("proficiencia").asInt());
+        assertNotNull(findLinkHref(skills, "schema"));
+
+        JsonNode careerHistory = body(restTemplate.getForEntity(
+                "/api/human-resources/funcionarios/1/career-history",
+                String.class
+        ));
+        assertEquals(1, careerHistory.path("data").size());
+        assertEquals("Analista", careerHistory.path("data").path(0).path("cargoNome").asText());
+        assertEquals(1, careerHistory.path("data").path(0).path("funcionarioId").asInt());
+        assertNotNull(findLinkHref(careerHistory, "schema"));
 
         ResponseEntity<String> missingActionsCatalog = restTemplate.getForEntity(
                 "/schemas/actions?resource=human-resources.funcionarios",

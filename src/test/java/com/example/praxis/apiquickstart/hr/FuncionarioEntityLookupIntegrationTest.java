@@ -297,6 +297,34 @@ class FuncionarioEntityLookupIntegrationTest {
         assertEquals("[\"FILTER\",\"LIST\",\"CREATE\",\"UPDATE\",\"DELETE\"]",
                 address.path("relatedResource").path("childOperations").toString());
         assertRelatedResourceFieldsExistInResponseSchema(address);
+
+        JsonNode skills = findById(surfacesCatalog.path("surfaces"), "skills");
+        assertNotNull(skills);
+        assertEquals("READ_PROJECTION", skills.path("kind").asText());
+        assertEquals("human-resources.funcionario-habilidades",
+                skills.path("relatedResource").path("childResourceKey").asText());
+        assertEquals(ApiPaths.HumanResources.FUNCIONARIO_HABILIDADES,
+                skills.path("relatedResource").path("childResourcePath").asText());
+        assertEquals("funcionarioId", skills.path("relatedResource").path("childParentField").asText());
+        assertTrue(skills.path("relatedResource").path("selectable").asBoolean());
+        assertEquals("id", skills.path("relatedResource").path("selectionKeyField").asText());
+        assertEquals("[\"FILTER\",\"LIST\",\"CREATE\",\"UPDATE\",\"DELETE\"]",
+                skills.path("relatedResource").path("childOperations").toString());
+        assertRelatedResourceFieldsExistInResponseSchema(skills);
+
+        JsonNode careerHistory = findById(surfacesCatalog.path("surfaces"), "career-history");
+        assertNotNull(careerHistory);
+        assertEquals("READ_PROJECTION", careerHistory.path("kind").asText());
+        assertEquals("human-resources.historicos-cargos",
+                careerHistory.path("relatedResource").path("childResourceKey").asText());
+        assertEquals(ApiPaths.HumanResources.HISTORICOS_CARGOS,
+                careerHistory.path("relatedResource").path("childResourcePath").asText());
+        assertEquals("funcionarioId", careerHistory.path("relatedResource").path("childParentField").asText());
+        assertTrue(careerHistory.path("relatedResource").path("selectable").asBoolean());
+        assertEquals("id", careerHistory.path("relatedResource").path("selectionKeyField").asText());
+        assertEquals("[\"FILTER\",\"LIST\",\"CREATE\",\"UPDATE\",\"DELETE\"]",
+                careerHistory.path("relatedResource").path("childOperations").toString());
+        assertRelatedResourceFieldsExistInResponseSchema(careerHistory);
     }
 
     private JsonNode body(ResponseEntity<String> response) throws Exception {

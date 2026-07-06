@@ -13,6 +13,9 @@ import java.util.Optional;
 
 public interface HistoricosCargoRepository extends BaseCrudRepository<HistoricosCargo, Integer> {
 
+    @EntityGraph(value = "HistoricosCargo.detail")
+    List<HistoricosCargo> findByFuncionarioIdOrderByDataInicioDesc(Integer funcionarioId);
+
     @Override
     @EntityGraph(value = "HistoricosCargo.detail")
     Optional<HistoricosCargo> findById(Integer id);

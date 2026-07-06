@@ -10,13 +10,17 @@ import com.example.praxis.apiquickstart.hr.repository.FuncionarioHabilidadeRepos
 import com.example.praxis.apiquickstart.core.service.base.AbstractQuickstartCrudService;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 @Service
 public class FuncionarioHabilidadeService extends AbstractQuickstartCrudService<FuncionarioHabilidade, FuncionarioHabilidadeDTO, Integer, FuncionarioHabilidadeFilterDTO, CreateFuncionarioHabilidadeDTO, UpdateFuncionarioHabilidadeDTO> {
 
     private final FuncionarioHabilidadeMapper mapper;
+    private final FuncionarioHabilidadeRepository repository;
 
     public FuncionarioHabilidadeService(FuncionarioHabilidadeRepository repository, FuncionarioHabilidadeMapper mapper) {
         super(repository, FuncionarioHabilidade.class, mapper::toDto, mapper::toEntity, mapper::toEntity, FuncionarioHabilidade::getId);
+        this.repository = repository;
         this.mapper = mapper;
     }
 
@@ -25,8 +29,13 @@ public class FuncionarioHabilidadeService extends AbstractQuickstartCrudService<
         mapper.updateEntity(fromPayload, existing);
         return existing;
     }
+
+    public List<FuncionarioHabilidadeDTO> findByFuncionarioIdForEmployeeSurface(Integer funcionarioId) {
+        return repository.findByFuncionarioIdOrderByProficienciaDescHabilidadeNomeAsc(funcionarioId)
+                .stream()
+                .map(mapper::toDto)
+                .toList();
+    }
 }
-
-
 
 

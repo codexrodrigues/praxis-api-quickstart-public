@@ -47,7 +47,7 @@ producao.
 
 | Dominio no cockpit | Grupo OpenAPI | Recursos | Surfaces explicitas | Workflow actions explicitas | Leitura de aderencia |
 | --- | --- | ---: | ---: | ---: | --- |
-| Pessoas e RH | `human-resources` | 20 | 10 | 4 | `ja-suportado-mal-nomeado-ou-mal-materializado`: perfil 360, folha, participacoes em missoes, dependentes, endereco cadastral, disponibilidade por afastamentos, action de cobertura e ranking reputacional ja existem; a proxima melhoria deve aprofundar governanca de ciclo de vida sem criar surface decorativa. |
+| Pessoas e RH | `human-resources` | 20 | 12 | 4 | `ja-suportado-mal-nomeado-ou-mal-materializado`: perfil 360, folha, participacoes em missoes, dependentes, endereco cadastral, matriz de competencias, historico de cargos, disponibilidade por afastamentos, action de cobertura e ranking reputacional ja existem; a proxima melhoria deve aprofundar governanca de ciclo de vida sem criar surface decorativa. |
 | Operacoes | `operations` | 12 | 11 | 10 | `ja-suportado-mal-nomeado-ou-mal-materializado`: e o melhor dominio para demonstrar actions/surfaces; cockpit deve usar esse dominio como referencia visual de workflows e como ponte transacional para leituras analiticas derivadas. |
 | Suprimentos | `procurement` | 5 | 10 | 8 | `ja-suportado-mal-nomeado-ou-mal-materializado`: recursos, schemas, option sources, surfaces e actions de fornecedor, contrato e pedido existem; o cockpit deve materializar a jornada fornecedor -> contrato -> catalogo -> pedido -> recebimento como fluxo navegavel. |
 | Ativos Operacionais | `assets` | 4 | 6 | 7 | `ja-suportado-mal-nomeado-ou-mal-materializado`: recursos, lookups, surfaces, actions de disponibilidade e actions de custodia existem; o cockpit deve materializar inventario -> custodia -> frota -> missao -> devolucao/perda/dano como fluxo navegavel. |
@@ -138,7 +138,7 @@ Exemplos atuais mais fortes:
 - `assets.equipamentos`: surface de inventario e historico de custodia navegavel;
 - `assets.equipamento-alocacoes`: surface de cadeia de custodia e actions de devolucao, perda e dano;
 - `assets.veiculos`: surface de prontidao da frota e uso em missoes navegavel;
-- `human-resources.funcionarios`: perfil, folha, missoes, dependentes e endereco cadastral como composicao navegavel para gestao de pessoas, beneficios, atendimento de RH e privacidade;
+- `human-resources.funcionarios`: perfil, folha, missoes, dependentes, endereco cadastral, competencias e historico de cargos como composicao navegavel para gestao de pessoas, beneficios, atendimento de RH, capacidade, carreira e privacidade;
 - `operations.base-acessos`: revisao e governanca de acesso.
 
 ### Actions e workflows
@@ -222,9 +222,9 @@ Em `human-resources`, as perguntas ja materializadas pelo host exemplar sao:
 
 O smoke `scripts/verify-human-resources-runtime.sh` protege essas evidencias no
 host publicado e confirma as surfaces de perfil 360, historico de folha,
-participacoes em missoes, dependentes, endereco cadastral, agenda de pagamento,
-calendario de disponibilidade, action de cobertura, ranking reputacional e
-actions de folha/eventos.
+participacoes em missoes, dependentes, endereco cadastral, matriz de competencias,
+historico de cargos, agenda de pagamento, calendario de disponibilidade, action
+de cobertura, ranking reputacional e actions de folha/eventos.
 
 Em `operations`, as perguntas ja materializadas pelo host exemplar sao:
 
