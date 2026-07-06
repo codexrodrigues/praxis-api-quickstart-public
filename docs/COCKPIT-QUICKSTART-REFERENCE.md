@@ -60,10 +60,13 @@ actions e capabilities. Os numeros da tabela devem ser conferidos com
 as surfaces/actions publicadas no runtime. O contrato materializavel das actions
 deve ser conferido com `scripts/verify-cockpit-action-contracts.sh`, que garante
 path OpenAPI e schemas filtrados de request/response para cada workflow action
-publicada. A lacuna principal e de exemplaridade no host: quando um dominio ainda
-parecer fraco no cockpit, a primeira pergunta deve ser se ja existe semantica
-publicada que o dashboard ainda nao esta materializando bem antes de criar novos
-comandos ou campos.
+publicada. O contrato materializavel das surfaces semanticas deve ser conferido
+com `scripts/verify-cockpit-surface-contracts.sh`, que garante titulo, descricao,
+path OpenAPI e schema filtrado para cada experiencia composta que o cockpit deve
+conseguir abrir, explicar ou transformar em visao navegavel. A lacuna principal e
+de exemplaridade no host: quando um dominio ainda parecer fraco no cockpit, a
+primeira pergunta deve ser se ja existe semantica publicada que o dashboard ainda
+nao esta materializando bem antes de criar novos comandos ou campos.
 
 ## Como cada camada aparece no cockpit
 
