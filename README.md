@@ -21,6 +21,7 @@ Compartilhe sempre a URL canonica `/praxis/cockpit`. Parametros como `release`, 
 
 Leia tambem [`docs/COCKPIT-QUICKSTART-REFERENCE.md`](docs/COCKPIT-QUICKSTART-REFERENCE.md) para entender como o cockpit deve ser usado como evidencia do host exemplar: cobertura por dominio, surfaces, workflow actions, charts, relacionamentos navegaveis e prioridades de evolucao do Quickstart.
 O inventario desse guia e conferido contra o runtime publicado por `scripts/verify-cockpit-inventory-doc.sh`, evitando que numeros de recursos, surfaces e workflow actions fiquem obsoletos.
+Os contratos de actions tambem sao conferidos por `scripts/verify-cockpit-action-contracts.sh`, garantindo que cada workflow publicado tenha path OpenAPI e schemas filtrados de request/response para o cockpit materializar formulario e retorno.
 
 ## Sobre o Praxis (visao geral)
 

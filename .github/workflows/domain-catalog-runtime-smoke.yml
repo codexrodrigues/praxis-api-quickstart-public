@@ -122,6 +122,7 @@ jobs:
           bash -n scripts/verify-human-resources-runtime.sh
           bash -n scripts/verify-operations-runtime.sh
           bash -n scripts/verify-cockpit-inventory-doc.sh
+          bash -n scripts/verify-cockpit-action-contracts.sh
 
       - name: Wait for published runtime rollout
         shell: bash
@@ -224,3 +225,7 @@ jobs:
       - name: Verify cockpit inventory documentation
         shell: bash
         run: scripts/verify-cockpit-inventory-doc.sh
+
+      - name: Verify cockpit action contracts
+        shell: bash
+        run: scripts/verify-cockpit-action-contracts.sh

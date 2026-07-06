@@ -57,10 +57,13 @@ Nenhum item acima exige contrato novo neste momento. A plataforma ja sabe expor
 `@ApiResource`, `@Operation`, `@Schema`, `@UISchema`, stats, options, surfaces,
 actions e capabilities. Os numeros da tabela devem ser conferidos com
 `scripts/verify-cockpit-inventory-doc.sh`, que compara este guia com o OpenAPI e
-as surfaces/actions publicadas no runtime. A lacuna principal e de exemplaridade
-no host: quando um dominio ainda parecer fraco no cockpit, a primeira pergunta
-deve ser se ja existe semantica publicada que o dashboard ainda nao esta
-materializando bem antes de criar novos comandos ou campos.
+as surfaces/actions publicadas no runtime. O contrato materializavel das actions
+deve ser conferido com `scripts/verify-cockpit-action-contracts.sh`, que garante
+path OpenAPI e schemas filtrados de request/response para cada workflow action
+publicada. A lacuna principal e de exemplaridade no host: quando um dominio ainda
+parecer fraco no cockpit, a primeira pergunta deve ser se ja existe semantica
+publicada que o dashboard ainda nao esta materializando bem antes de criar novos
+comandos ou campos.
 
 ## Como cada camada aparece no cockpit
 
@@ -358,6 +361,7 @@ Antes de considerar um recurso "pronto para cockpit", valide:
 - `@UiSurface` quando existir experiencia composta materializavel.
 - `@WorkflowAction` quando existir comando de negocio materializavel.
 - Evidencia em `/schemas/catalog`, `/v3/api-docs/<grupo>` e cockpit.
+- Schemas filtrados de request/response para cada action em `/schemas/filtered`.
 - Teste focal quando a mudanca alterar comportamento publicado.
 
 ## Validacao rapida
