@@ -56,6 +56,7 @@ public class ProcurementPurchaseOrderService extends AbstractQuickstartCrudServi
             .build();
 
     private final ProcurementPurchaseOrderMapper mapper;
+    private final ProcurementPurchaseOrderRepository repository;
     private final ProcurementSupplierRepository supplierRepository;
     private final DomainRuleBackendValidationPolicyResolver backendValidationPolicyResolver;
     private final DomainRuleWorkflowActionPolicyResolver workflowActionPolicyResolver;
@@ -68,6 +69,7 @@ public class ProcurementPurchaseOrderService extends AbstractQuickstartCrudServi
             DomainRuleWorkflowActionPolicyResolver workflowActionPolicyResolver) {
         super(repository, ProcurementPurchaseOrder.class, mapper::toDto, mapper::toEntity, mapper::toEntity, ProcurementPurchaseOrder::getId);
         this.mapper = mapper;
+        this.repository = repository;
         this.supplierRepository = supplierRepository;
         this.backendValidationPolicyResolver = backendValidationPolicyResolver;
         this.workflowActionPolicyResolver = workflowActionPolicyResolver;
@@ -104,6 +106,20 @@ public class ProcurementPurchaseOrderService extends AbstractQuickstartCrudServi
         existing.setCancelledAt(cancelledAt);
         existing.setReceivedAt(receivedAt);
         return existing;
+    }
+
+    @Transactional(readOnly = true)
+    public List<ProcurementPurchaseOrderDTO> findBySupplierIdForSupplierSurface(Integer supplierId) {
+        return repository.findBySupplierId(supplierId).stream()
+                .map(mapper::toDto)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<ProcurementPurchaseOrderDTO> findByContractIdForContractSurface(Integer contractId) {
+        return repository.findByContractId(contractId).stream()
+                .map(mapper::toDto)
+                .toList();
     }
 
     @Override

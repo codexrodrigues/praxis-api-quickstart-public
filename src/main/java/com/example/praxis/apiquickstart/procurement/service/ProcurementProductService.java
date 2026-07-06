@@ -21,6 +21,7 @@ import org.praxisplatform.uischema.stats.StatsFieldRegistry;
 import org.praxisplatform.uischema.stats.StatsMetric;
 import org.praxisplatform.uischema.stats.StatsSupportMode;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Map;
@@ -70,10 +71,12 @@ public class ProcurementProductService extends AbstractQuickstartCrudService<Pro
             .build();
 
     private final ProcurementProductMapper mapper;
+    private final ProcurementProductRepository repository;
 
     public ProcurementProductService(ProcurementProductRepository repository, ProcurementProductMapper mapper) {
         super(repository, ProcurementProduct.class, mapper::toDto, mapper::toEntity, mapper::toEntity, ProcurementProduct::getId);
         this.mapper = mapper;
+        this.repository = repository;
     }
 
     public static OptionSourceRegistry optionSources() {
@@ -89,6 +92,13 @@ public class ProcurementProductService extends AbstractQuickstartCrudService<Pro
     public ProcurementProduct mergeUpdate(ProcurementProduct existing, ProcurementProduct fromPayload) {
         mapper.updateEntity(fromPayload, existing);
         return existing;
+    }
+
+    @Transactional(readOnly = true)
+    public List<ProcurementProductDTO> findByContractIdForContractSurface(Integer contractId) {
+        return repository.findByContractId(contractId).stream()
+                .map(mapper::toDto)
+                .toList();
     }
 
     @Override

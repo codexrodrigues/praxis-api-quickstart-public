@@ -4,6 +4,8 @@ import com.example.praxis.apiquickstart.constants.ApiPaths;
 import com.example.praxis.apiquickstart.core.controller.base.AbstractQuickstartCrudController;
 import com.example.praxis.apiquickstart.procurement.dto.CreateProcurementContractDTO;
 import com.example.praxis.apiquickstart.procurement.dto.ProcurementContractDTO;
+import com.example.praxis.apiquickstart.procurement.dto.ProcurementProductDTO;
+import com.example.praxis.apiquickstart.procurement.dto.ProcurementPurchaseOrderDTO;
 import com.example.praxis.apiquickstart.procurement.dto.UpdateProcurementContractDTO;
 import com.example.praxis.apiquickstart.procurement.dto.actions.ProcurementContractWorkflowRequestDTO;
 import com.example.praxis.apiquickstart.procurement.dto.actions.ProcurementContractWorkflowResultDTO;
@@ -11,13 +13,17 @@ import com.example.praxis.apiquickstart.procurement.dto.filter.ProcurementContra
 import com.example.praxis.apiquickstart.procurement.entity.ProcurementContract;
 import com.example.praxis.apiquickstart.procurement.mapper.ProcurementContractMapper;
 import com.example.praxis.apiquickstart.procurement.service.ProcurementContractService;
+import com.example.praxis.apiquickstart.procurement.service.ProcurementProductService;
+import com.example.praxis.apiquickstart.procurement.service.ProcurementPurchaseOrderService;
 import io.swagger.v3.oas.annotations.Operation;
 import org.praxisplatform.uischema.annotation.ApiGroup;
 import org.praxisplatform.uischema.annotation.ApiResource;
+import org.praxisplatform.uischema.annotation.ResourceIntent;
 import org.praxisplatform.uischema.annotation.UiSurface;
 import org.praxisplatform.uischema.annotation.WorkflowAction;
 import org.praxisplatform.uischema.action.ActionScope;
 import org.praxisplatform.uischema.rest.response.RestApiResponse;
+import org.praxisplatform.uischema.surface.RelatedResourceChildOperation;
 import org.praxisplatform.uischema.surface.SurfaceKind;
 import org.praxisplatform.uischema.surface.SurfaceScope;
 import org.springframework.data.domain.Page;
@@ -25,6 +31,7 @@ import org.springframework.hateoas.Links;
 import org.springframework.hateoas.EntityModel;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.MultiValueMap;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -44,10 +51,18 @@ import java.util.List;
 public class ProcurementContractController extends AbstractQuickstartCrudController<ProcurementContract, ProcurementContractDTO, Integer, ProcurementContractFilterDTO, CreateProcurementContractDTO, UpdateProcurementContractDTO> {
     private final ProcurementContractService service;
     private final ProcurementContractMapper mapper;
+    private final ProcurementProductService productService;
+    private final ProcurementPurchaseOrderService purchaseOrderService;
 
-    public ProcurementContractController(ProcurementContractService service, ProcurementContractMapper mapper) {
+    public ProcurementContractController(
+            ProcurementContractService service,
+            ProcurementContractMapper mapper,
+            ProcurementProductService productService,
+            ProcurementPurchaseOrderService purchaseOrderService) {
         this.service = service;
         this.mapper = mapper;
+        this.productService = productService;
+        this.purchaseOrderService = purchaseOrderService;
     }
 
     @Override
@@ -89,6 +104,88 @@ public class ProcurementContractController extends AbstractQuickstartCrudControl
             @RequestParam MultiValueMap<String, String> queryParams
     ) {
         return super.filter(filterDTO, page, size, includeIds, queryParams);
+    }
+
+    @GetMapping("/{id}/products")
+    @UiSurface(
+            id = "contract-products",
+            kind = SurfaceKind.READ_PROJECTION,
+            scope = SurfaceScope.ITEM,
+            title = "Produtos do contrato",
+            description = "Lista itens e servicos cobertos pelo contrato para entender disponibilidade, categoria, estoque e elegibilidade de requisicao.",
+            intent = "procurement-contract-products",
+            order = 35,
+            tags = {"procurement", "contract", "product", "catalog", "read-projection", "related-resource"},
+            relatedChildResourceKey = "procurement.products",
+            relatedChildResourcePath = ApiPaths.Procurement.PRODUCTS,
+            relatedChildParentField = "contractId",
+            relatedSelectable = true,
+            relatedSelectionKeyField = "id",
+            relatedChildOperations = {
+                    RelatedResourceChildOperation.FILTER,
+                    RelatedResourceChildOperation.LIST,
+                    RelatedResourceChildOperation.CREATE,
+                    RelatedResourceChildOperation.UPDATE,
+                    RelatedResourceChildOperation.DELETE
+            }
+    )
+    @ResourceIntent(
+            id = "procurement-contract-products",
+            title = "Catalogo governado do contrato",
+            description = "Mostra quais produtos ou servicos podem ser requisitados sob o contrato selecionado.",
+            order = 35
+    )
+    @Operation(summary = "Obter produtos do contrato", description = "Retorna produtos e servicos associados ao contrato selecionado para navegação contextual no cockpit.")
+    public ResponseEntity<RestApiResponse<List<ProcurementProductDTO>>> getContractProducts(@PathVariable Integer id) {
+        List<ProcurementProductDTO> products = productService.findByContractIdForContractSurface(id);
+        Links links = Links.of(
+                linkToSelf(id),
+                linkToAll(),
+                linkToFilter(),
+                linkToUiSchema("/{id}/products", "get", "response")
+        );
+        return withVersion(ResponseEntity.ok(), RestApiResponse.success(products, hateoasOrNull(links)));
+    }
+
+    @GetMapping("/{id}/purchase-orders")
+    @UiSurface(
+            id = "contract-purchase-orders",
+            kind = SurfaceKind.READ_PROJECTION,
+            scope = SurfaceScope.ITEM,
+            title = "Pedidos do contrato",
+            description = "Lista pedidos de compra emitidos sob o contrato para acompanhar execucao, aprovacao, recebimento e excecoes comerciais.",
+            intent = "procurement-contract-purchase-orders",
+            order = 45,
+            tags = {"procurement", "contract", "purchase-order", "workflow", "read-projection", "related-resource"},
+            relatedChildResourceKey = "procurement.purchase-orders",
+            relatedChildResourcePath = ApiPaths.Procurement.PURCHASE_ORDERS,
+            relatedChildParentField = "contractId",
+            relatedSelectable = true,
+            relatedSelectionKeyField = "id",
+            relatedChildOperations = {
+                    RelatedResourceChildOperation.FILTER,
+                    RelatedResourceChildOperation.LIST,
+                    RelatedResourceChildOperation.CREATE,
+                    RelatedResourceChildOperation.UPDATE,
+                    RelatedResourceChildOperation.DELETE
+            }
+    )
+    @ResourceIntent(
+            id = "procurement-contract-purchase-orders",
+            title = "Pedidos governados pelo contrato",
+            description = "Mostra a execucao operacional de compras vinculada ao contrato selecionado.",
+            order = 45
+    )
+    @Operation(summary = "Obter pedidos do contrato", description = "Retorna pedidos de compra associados ao contrato selecionado para navegação contextual no cockpit.")
+    public ResponseEntity<RestApiResponse<List<ProcurementPurchaseOrderDTO>>> getContractPurchaseOrders(@PathVariable Integer id) {
+        List<ProcurementPurchaseOrderDTO> purchaseOrders = purchaseOrderService.findByContractIdForContractSurface(id);
+        Links links = Links.of(
+                linkToSelf(id),
+                linkToAll(),
+                linkToFilter(),
+                linkToUiSchema("/{id}/purchase-orders", "get", "response")
+        );
+        return withVersion(ResponseEntity.ok(), RestApiResponse.success(purchaseOrders, hateoasOrNull(links)));
     }
 
     @PostMapping("/{id}/actions/sign")

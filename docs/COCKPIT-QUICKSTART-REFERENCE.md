@@ -49,7 +49,7 @@ producao.
 | --- | --- | ---: | ---: | ---: | --- |
 | Pessoas e RH | `human-resources` | 20 | 8 | 4 | `ja-suportado-mal-nomeado-ou-mal-materializado`: perfil 360, folha, participacoes em missoes, disponibilidade por afastamentos, action de cobertura e ranking reputacional ja existem; a proxima melhoria deve aprofundar governanca de ciclo de vida sem criar surface decorativa. |
 | Operacoes | `operations` | 12 | 10 | 10 | `ja-suportado-mal-nomeado-ou-mal-materializado`: e o melhor dominio para demonstrar actions/surfaces; cockpit deve usar esse dominio como referencia visual de workflows. |
-| Suprimentos | `procurement` | 5 | 6 | 8 | `ja-suportado-mal-nomeado-ou-mal-materializado`: recursos, schemas, option sources, surfaces e actions de fornecedor, contrato e pedido existem; o cockpit deve materializar a jornada compra -> contrato -> pedido -> recebimento como fluxo navegavel. |
+| Suprimentos | `procurement` | 5 | 10 | 8 | `ja-suportado-mal-nomeado-ou-mal-materializado`: recursos, schemas, option sources, surfaces e actions de fornecedor, contrato e pedido existem; o cockpit deve materializar a jornada fornecedor -> contrato -> catalogo -> pedido -> recebimento como fluxo navegavel. |
 | Ativos Operacionais | `assets` | 4 | 4 | 7 | `ja-suportado-mal-nomeado-ou-mal-materializado`: recursos, lookups, surfaces, actions de disponibilidade e actions de custodia existem; o cockpit deve materializar inventario -> custodia -> devolucao/perda/dano como fluxo navegavel. |
 | Inteligencia de Risco | `risk-intelligence` | 2 | 3 | 2 | `ja-suportado-mal-nomeado-ou-mal-materializado`: ameacas publicam surface, actions reais de triagem e stats; incidentes ja existem como recurso transacional em `operations.incidentes`, com surface e stats proprios, enquanto `risk-intelligence.vw-indicadores-incidentes` permanece como leitura analitica e chart de tendencia. |
 
@@ -130,8 +130,8 @@ Exemplos atuais mais fortes:
 
 - `operations.missoes`: surfaces para acompanhamento, analytics e operacao;
 - `procurement.companies`: surface de escopo de empresas compradoras;
-- `procurement.suppliers`: surface de homologacao, risco e elegibilidade;
-- `procurement.contracts`: surface de governanca contratual;
+- `procurement.suppliers`: surface de homologacao, risco, elegibilidade, contratos e pedidos vinculados;
+- `procurement.contracts`: surface de governanca contratual, produtos cobertos e pedidos emitidos sob o contrato;
 - `procurement.products`: surface de catalogo de produtos contratados;
 - `procurement.purchase-orders`: surface de jornada governada empresa -> fornecedor -> contrato -> produto -> pedido, com actions de aprovar, cancelar e receber pedido;
 - `assets.equipamento-alocacoes`: surface de cadeia de custodia e actions de devolucao, perda e dano;
@@ -343,8 +343,9 @@ Materializacao esperada:
    expansao deve ser um comando real de ciclo de vida, como aprovacao de ausencia
    ou revisao reputacional, apenas quando houver estado persistido e regra de
    negocio canonica para sustentar a action.
-3. `procurement`: ja publica charts de compras e uma surface de jornada
-   governada em `procurement.purchase-orders`; a migration operacional
+3. `procurement`: ja publica charts de compras, uma surface de jornada
+   governada em `procurement.purchase-orders` e relacionamentos navegaveis
+   fornecedor -> contratos/pedidos e contrato -> produtos/pedidos; a migration operacional
    `V20260703_003__procurement_cockpit_lifecycle_seed.sql` reidrata o ciclo
    aprovado/cancelado/recebido dos pedidos demonstrativos para que os charts
    evidenciem gargalos, fornecedores bloqueados, contratos vencendo e pedidos

@@ -81,6 +81,7 @@ public class ProcurementContractService extends AbstractQuickstartCrudService<Pr
             .build();
 
     private final ProcurementContractMapper mapper;
+    private final ProcurementContractRepository repository;
     private final DomainRuleWorkflowActionPolicyResolver workflowActionPolicyResolver;
 
     public ProcurementContractService(
@@ -89,6 +90,7 @@ public class ProcurementContractService extends AbstractQuickstartCrudService<Pr
             DomainRuleWorkflowActionPolicyResolver workflowActionPolicyResolver) {
         super(repository, ProcurementContract.class, mapper::toDto, mapper::toEntity, mapper::toEntity, ProcurementContract::getId);
         this.mapper = mapper;
+        this.repository = repository;
         this.workflowActionPolicyResolver = workflowActionPolicyResolver;
     }
 
@@ -105,6 +107,13 @@ public class ProcurementContractService extends AbstractQuickstartCrudService<Pr
     public ProcurementContract mergeUpdate(ProcurementContract existing, ProcurementContract fromPayload) {
         mapper.updateEntity(fromPayload, existing);
         return existing;
+    }
+
+    @Transactional(readOnly = true)
+    public List<ProcurementContractDTO> findBySupplierIdForSupplierSurface(Integer supplierId) {
+        return repository.findBySupplierId(supplierId).stream()
+                .map(mapper::toDto)
+                .toList();
     }
 
     @Override

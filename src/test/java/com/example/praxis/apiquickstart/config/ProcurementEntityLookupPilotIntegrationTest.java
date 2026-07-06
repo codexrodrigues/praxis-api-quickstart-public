@@ -385,6 +385,22 @@ class ProcurementEntityLookupPilotIntegrationTest {
         assertNotNull(homologationBoard);
         assertEquals("VIEW", homologationBoard.path("kind").asText());
         assertEquals("COLLECTION", homologationBoard.path("scope").asText());
+        assertRelatedSurface(
+                supplierSurfaces,
+                "supplier-contracts",
+                "procurement.contracts",
+                ApiPaths.Procurement.CONTRACTS,
+                "supplierId",
+                "id"
+        );
+        assertRelatedSurface(
+                supplierSurfaces,
+                "supplier-purchase-orders",
+                "procurement.purchase-orders",
+                ApiPaths.Procurement.PURCHASE_ORDERS,
+                "supplierId",
+                "id"
+        );
 
         JsonNode contractSurfaces = body(restTemplate.getForEntity(
                 "/schemas/surfaces?resource=procurement.contracts",
@@ -394,6 +410,22 @@ class ProcurementEntityLookupPilotIntegrationTest {
         assertNotNull(contractBoard);
         assertEquals("VIEW", contractBoard.path("kind").asText());
         assertEquals("COLLECTION", contractBoard.path("scope").asText());
+        assertRelatedSurface(
+                contractSurfaces,
+                "contract-products",
+                "procurement.products",
+                ApiPaths.Procurement.PRODUCTS,
+                "contractId",
+                "id"
+        );
+        assertRelatedSurface(
+                contractSurfaces,
+                "contract-purchase-orders",
+                "procurement.purchase-orders",
+                ApiPaths.Procurement.PURCHASE_ORDERS,
+                "contractId",
+                "id"
+        );
 
         JsonNode productSurfaces = body(restTemplate.getForEntity(
                 "/schemas/surfaces?resource=procurement.products",
@@ -701,6 +733,43 @@ class ProcurementEntityLookupPilotIntegrationTest {
         assertEquals("id", optionSource.path("valuePropertyPath").asText(), path + "#" + fieldName);
         assertTrue(optionSource.path("capabilities").path("filter").asBoolean(), path + "#" + fieldName);
         assertTrue(optionSource.path("capabilities").path("byIds").asBoolean(), path + "#" + fieldName);
+    }
+
+    private void assertRelatedSurface(
+            JsonNode surfacesCatalog,
+            String surfaceId,
+            String childResourceKey,
+            String childResourcePath,
+            String childParentField,
+            String selectionKeyField
+    ) throws Exception {
+        JsonNode surface = findById(surfacesCatalog.path("surfaces"), surfaceId);
+        assertNotNull(surface);
+        assertEquals("READ_PROJECTION", surface.path("kind").asText(), surfaceId);
+        assertEquals("ITEM", surface.path("scope").asText(), surfaceId);
+
+        JsonNode relatedResource = surface.path("relatedResource");
+        assertEquals(childResourceKey, relatedResource.path("childResourceKey").asText(), surfaceId);
+        assertEquals(childResourcePath, relatedResource.path("childResourcePath").asText(), surfaceId);
+        assertEquals(childParentField, relatedResource.path("childParentField").asText(), surfaceId);
+        assertTrue(relatedResource.path("selectable").asBoolean(), surfaceId);
+        assertEquals(selectionKeyField, relatedResource.path("selectionKeyField").asText(), surfaceId);
+        assertTrue(relatedResource.path("childOperations").toString().contains("FILTER"), surfaceId);
+        assertRelatedResourceFieldsExistInResponseSchema(surface);
+    }
+
+    private void assertRelatedResourceFieldsExistInResponseSchema(JsonNode surface) throws Exception {
+        JsonNode relatedResource = surface.path("relatedResource");
+        JsonNode properties = body(restTemplate.getForEntity(surface.path("schemaUrl").asText(), String.class))
+                .path("properties");
+
+        String childParentField = relatedResource.path("childParentField").asText();
+        assertTrue(properties.has(childParentField), surface.path("id").asText() + " childParentField");
+
+        if (relatedResource.path("selectable").asBoolean()) {
+            String selectionKeyField = relatedResource.path("selectionKeyField").asText();
+            assertTrue(properties.has(selectionKeyField), surface.path("id").asText() + " selectionKeyField");
+        }
     }
 
     private JsonNode findByLabel(JsonNode items, String label) {
