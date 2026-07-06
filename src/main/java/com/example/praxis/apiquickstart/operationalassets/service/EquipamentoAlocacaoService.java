@@ -51,6 +51,7 @@ public class EquipamentoAlocacaoService extends AbstractQuickstartCrudService<Eq
             .build();
 
     private final EquipamentoAlocacaoMapper mapper;
+    private final EquipamentoAlocacaoRepository repository;
     private final EquipamentoRepository equipamentoRepository;
     private final DomainRuleWorkflowActionPolicyResolver workflowActionPolicyResolver;
 
@@ -61,6 +62,7 @@ public class EquipamentoAlocacaoService extends AbstractQuickstartCrudService<Eq
             DomainRuleWorkflowActionPolicyResolver workflowActionPolicyResolver) {
         super(repository, EquipamentoAlocacao.class, mapper::toDto, mapper::toEntity, mapper::toEntity, EquipamentoAlocacao::getId);
         this.mapper = mapper;
+        this.repository = repository;
         this.equipamentoRepository = equipamentoRepository;
         this.workflowActionPolicyResolver = workflowActionPolicyResolver;
     }
@@ -69,6 +71,13 @@ public class EquipamentoAlocacaoService extends AbstractQuickstartCrudService<Eq
     public EquipamentoAlocacao mergeUpdate(EquipamentoAlocacao existing, EquipamentoAlocacao fromPayload) {
         mapper.updateEntity(fromPayload, existing);
         return existing;
+    }
+
+    @Transactional(readOnly = true)
+    public List<EquipamentoAlocacaoDTO> findByEquipamentoIdForEquipmentSurface(Integer equipamentoId) {
+        return repository.findByEquipamentoId(equipamentoId).stream()
+                .map(mapper::toDto)
+                .toList();
     }
 
     @Override
@@ -200,7 +209,6 @@ public class EquipamentoAlocacaoService extends AbstractQuickstartCrudService<Eq
         return dto.getMotivo().trim();
     }
 }
-
 
 
 

@@ -12,7 +12,9 @@ import org.praxisplatform.uischema.stats.StatsFieldRegistry;
 import org.praxisplatform.uischema.stats.StatsMetric;
 import org.praxisplatform.uischema.stats.StatsSupportMode;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -33,16 +35,25 @@ public class VeiculoMissaoUsoService extends AbstractQuickstartCrudService<Veicu
             .build();
 
     private final VeiculoMissaoUsoMapper mapper;
+    private final VeiculoMissaoUsoRepository repository;
 
     public VeiculoMissaoUsoService(VeiculoMissaoUsoRepository repository, VeiculoMissaoUsoMapper mapper) {
         super(repository, VeiculoMissaoUso.class, mapper::toDto, mapper::toEntity, mapper::toEntity, VeiculoMissaoUso::getId);
         this.mapper = mapper;
+        this.repository = repository;
     }
 
     @Override
     public VeiculoMissaoUso mergeUpdate(VeiculoMissaoUso existing, VeiculoMissaoUso fromPayload) {
         mapper.updateEntity(fromPayload, existing);
         return existing;
+    }
+
+    @Transactional(readOnly = true)
+    public List<VeiculoMissaoUsoDTO> findByVeiculoIdForVehicleSurface(Integer veiculoId) {
+        return repository.findByVeiculoId(veiculoId).stream()
+                .map(mapper::toDto)
+                .toList();
     }
 
     @Override
@@ -65,7 +76,6 @@ public class VeiculoMissaoUsoService extends AbstractQuickstartCrudService<Veicu
         return STATS_FIELDS;
     }
 }
-
 
 
 

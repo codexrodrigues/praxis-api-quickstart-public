@@ -1,6 +1,7 @@
 package com.example.praxis.apiquickstart.operationalassets.controller;
 
 import com.example.praxis.apiquickstart.constants.ApiPaths;
+import com.example.praxis.apiquickstart.operationalassets.dto.EquipamentoAlocacaoDTO;
 import com.example.praxis.apiquickstart.operationalassets.dto.EquipamentoDTO;
 import com.example.praxis.apiquickstart.operationalassets.dto.CreateEquipamentoDTO;
 import com.example.praxis.apiquickstart.operationalassets.dto.UpdateEquipamentoDTO;
@@ -9,13 +10,16 @@ import com.example.praxis.apiquickstart.operationalassets.dto.actions.AssetAvail
 import com.example.praxis.apiquickstart.operationalassets.dto.filter.EquipamentoFilterDTO;
 import com.example.praxis.apiquickstart.operationalassets.entity.Equipamento;
 import com.example.praxis.apiquickstart.operationalassets.mapper.EquipamentoMapper;
+import com.example.praxis.apiquickstart.operationalassets.service.EquipamentoAlocacaoService;
 import com.example.praxis.apiquickstart.operationalassets.service.EquipamentoService;
 import org.praxisplatform.uischema.annotation.ApiGroup;
 import org.praxisplatform.uischema.annotation.ApiResource;
+import org.praxisplatform.uischema.annotation.ResourceIntent;
 import org.praxisplatform.uischema.annotation.UiSurface;
 import org.praxisplatform.uischema.annotation.WorkflowAction;
 import com.example.praxis.apiquickstart.core.controller.base.AbstractQuickstartCrudController;
 import org.praxisplatform.uischema.action.ActionScope;
+import org.praxisplatform.uischema.surface.RelatedResourceChildOperation;
 import org.praxisplatform.uischema.surface.SurfaceKind;
 import org.praxisplatform.uischema.surface.SurfaceScope;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -59,11 +63,16 @@ public class EquipamentoController extends AbstractQuickstartCrudController<Equi
 
     private final EquipamentoService service;
     private final EquipamentoMapper mapper;
+    private final EquipamentoAlocacaoService alocacaoService;
 
     @Autowired
-    public EquipamentoController(EquipamentoService service, EquipamentoMapper mapper) {
+    public EquipamentoController(
+            EquipamentoService service,
+            EquipamentoMapper mapper,
+            EquipamentoAlocacaoService alocacaoService) {
         this.service = service;
         this.mapper = mapper;
+        this.alocacaoService = alocacaoService;
     }
 
     @Override
@@ -170,6 +179,47 @@ public class EquipamentoController extends AbstractQuickstartCrudController<Equi
         return super.getById(id);
     }
 
+    @GetMapping("/{id}/allocations")
+    @UiSurface(
+            id = "equipment-allocation-history",
+            kind = SurfaceKind.READ_PROJECTION,
+            scope = SurfaceScope.ITEM,
+            title = "Historico de custodia",
+            description = "Lista alocacoes do equipamento por responsavel, janela e status para auditoria patrimonial, devolucao, perda ou dano.",
+            intent = "assets-equipment-allocation-history",
+            order = 20,
+            tags = {"assets", "equipment", "custody", "audit", "read-projection", "related-resource"},
+            relatedChildResourceKey = "assets.equipamento-alocacoes",
+            relatedChildResourcePath = ApiPaths.Assets.EQUIPAMENTO_ALOCACOES,
+            relatedChildParentField = "equipamentoId",
+            relatedSelectable = true,
+            relatedSelectionKeyField = "id",
+            relatedChildOperations = {
+                    RelatedResourceChildOperation.FILTER,
+                    RelatedResourceChildOperation.LIST,
+                    RelatedResourceChildOperation.CREATE,
+                    RelatedResourceChildOperation.UPDATE,
+                    RelatedResourceChildOperation.DELETE
+            }
+    )
+    @ResourceIntent(
+            id = "assets-equipment-allocation-history",
+            title = "Cadeia de custodia do equipamento",
+            description = "Mostra como um equipamento circulou entre colaboradores, com status de custodia e evidencias para auditoria.",
+            order = 20
+    )
+    @Operation(summary = "Obter alocacoes do equipamento", description = "Retorna o historico de custodia associado ao equipamento selecionado para navegação contextual no cockpit.")
+    public ResponseEntity<RestApiResponse<List<EquipamentoAlocacaoDTO>>> getEquipmentAllocations(@PathVariable Integer id) {
+        List<EquipamentoAlocacaoDTO> allocations = alocacaoService.findByEquipamentoIdForEquipmentSurface(id);
+        Links links = Links.of(
+                linkToSelf(id),
+                linkToAll(),
+                linkToFilter(),
+                linkToUiSchema("/{id}/allocations", "get", "response")
+        );
+        return withVersion(ResponseEntity.ok(), RestApiResponse.success(allocations, hateoasOrNull(links)));
+    }
+
     @PostMapping
     @Operation(summary = "Cadastrar equipamento operacional", description = "Cadastra um novo ativo operacional com tipo, capacidade, proprietário e status para uso em campo.")
     @ApiResponses({
@@ -267,7 +317,6 @@ public class EquipamentoController extends AbstractQuickstartCrudController<Equi
         return withVersion(ResponseEntity.ok(), RestApiResponse.success(result, hateoasOrNull(links)));
     }
 }
-
 
 
 

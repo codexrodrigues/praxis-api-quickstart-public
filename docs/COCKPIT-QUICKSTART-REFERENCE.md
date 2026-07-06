@@ -50,7 +50,7 @@ producao.
 | Pessoas e RH | `human-resources` | 20 | 8 | 4 | `ja-suportado-mal-nomeado-ou-mal-materializado`: perfil 360, folha, participacoes em missoes, disponibilidade por afastamentos, action de cobertura e ranking reputacional ja existem; a proxima melhoria deve aprofundar governanca de ciclo de vida sem criar surface decorativa. |
 | Operacoes | `operations` | 12 | 10 | 10 | `ja-suportado-mal-nomeado-ou-mal-materializado`: e o melhor dominio para demonstrar actions/surfaces; cockpit deve usar esse dominio como referencia visual de workflows. |
 | Suprimentos | `procurement` | 5 | 10 | 8 | `ja-suportado-mal-nomeado-ou-mal-materializado`: recursos, schemas, option sources, surfaces e actions de fornecedor, contrato e pedido existem; o cockpit deve materializar a jornada fornecedor -> contrato -> catalogo -> pedido -> recebimento como fluxo navegavel. |
-| Ativos Operacionais | `assets` | 4 | 4 | 7 | `ja-suportado-mal-nomeado-ou-mal-materializado`: recursos, lookups, surfaces, actions de disponibilidade e actions de custodia existem; o cockpit deve materializar inventario -> custodia -> devolucao/perda/dano como fluxo navegavel. |
+| Ativos Operacionais | `assets` | 4 | 6 | 7 | `ja-suportado-mal-nomeado-ou-mal-materializado`: recursos, lookups, surfaces, actions de disponibilidade e actions de custodia existem; o cockpit deve materializar inventario -> custodia -> frota -> missao -> devolucao/perda/dano como fluxo navegavel. |
 | Inteligencia de Risco | `risk-intelligence` | 2 | 3 | 2 | `ja-suportado-mal-nomeado-ou-mal-materializado`: ameacas publicam surface, actions reais de triagem e stats; incidentes ja existem como recurso transacional em `operations.incidentes`, com surface e stats proprios, enquanto `risk-intelligence.vw-indicadores-incidentes` permanece como leitura analitica e chart de tendencia. |
 
 Nenhum item acima exige contrato novo neste momento. A plataforma ja sabe expor
@@ -134,7 +134,9 @@ Exemplos atuais mais fortes:
 - `procurement.contracts`: surface de governanca contratual, produtos cobertos e pedidos emitidos sob o contrato;
 - `procurement.products`: surface de catalogo de produtos contratados;
 - `procurement.purchase-orders`: surface de jornada governada empresa -> fornecedor -> contrato -> produto -> pedido, com actions de aprovar, cancelar e receber pedido;
+- `assets.equipamentos`: surface de inventario e historico de custodia navegavel;
 - `assets.equipamento-alocacoes`: surface de cadeia de custodia e actions de devolucao, perda e dano;
+- `assets.veiculos`: surface de prontidao da frota e uso em missoes navegavel;
 - `human-resources.funcionarios`: surfaces de perfil e gestao de pessoas;
 - `operations.base-acessos`: revisao e governanca de acesso.
 
@@ -352,9 +354,10 @@ Materializacao esperada:
    em risco tambem em bancos ja existentes. O smoke
    `scripts/verify-procurement-analytics-runtime.sh` protege essa evidencia no
    host publicado.
-4. `assets`: evoluir amostras de dados para evidenciar perdas, danos,
-   manutencoes e devolucoes em volume suficiente para o cockpit demonstrar
-   outliers e comparativos reais.
+4. `assets`: ja publica relacionamentos navegaveis equipamento -> custodias e
+   veiculo -> usos em missao; a proxima evolucao deve enriquecer amostras de
+   dados para evidenciar perdas, danos, manutencoes e devolucoes em volume
+   suficiente para o cockpit demonstrar outliers e comparativos reais.
 5. `operations`: manter como benchmark visual e documental para os demais dominios.
    O smoke `scripts/verify-operations-runtime.sh` agora protege a evidencia publica
    de workflows, surfaces, charts e relacionamentos; a proxima evolucao deve ser

@@ -1,6 +1,7 @@
 package com.example.praxis.apiquickstart.config;
 
 import com.example.praxis.apiquickstart.ApiQuickstartApplication;
+import com.example.praxis.apiquickstart.constants.ApiPaths;
 import com.example.praxis.apiquickstart.security.JwtTokenService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -359,20 +360,36 @@ class OperationalAssetsEntityLookupPilotIntegrationTest {
 
     @Test
     void shouldExposeOperationalAssetsCockpitSurfaces() throws Exception {
-        assertAssetSurface(
+        JsonNode equipmentSurfaces = assertAssetSurface(
                 "assets.equipamentos",
                 "equipment-inventory-board",
                 "Inventario de equipamentos"
+        );
+        assertRelatedSurface(
+                equipmentSurfaces,
+                "equipment-allocation-history",
+                "assets.equipamento-alocacoes",
+                ApiPaths.Assets.EQUIPAMENTO_ALOCACOES,
+                "equipamentoId",
+                "id"
         );
         assertAssetSurface(
                 "assets.equipamento-alocacoes",
                 "equipment-custody-board",
                 "Cadeia de custodia"
         );
-        assertAssetSurface(
+        JsonNode vehicleSurfaces = assertAssetSurface(
                 "assets.veiculos",
                 "fleet-readiness-board",
                 "Prontidao da frota"
+        );
+        assertRelatedSurface(
+                vehicleSurfaces,
+                "vehicle-mission-usages",
+                "assets.veiculo-missao-usos",
+                ApiPaths.Assets.VEICULO_MISSAO_USOS,
+                "veiculoId",
+                "id"
         );
         assertAssetSurface(
                 "assets.veiculo-missao-usos",
@@ -641,7 +658,7 @@ class OperationalAssetsEntityLookupPilotIntegrationTest {
         assertTrue(optionSource.path("capabilities").path("byIds").asBoolean());
     }
 
-    private void assertAssetSurface(String resourceKey, String surfaceId, String title) throws Exception {
+    private JsonNode assertAssetSurface(String resourceKey, String surfaceId, String title) throws Exception {
         JsonNode surfacesCatalog = body(restTemplate.getForEntity(
                 "/schemas/surfaces?resource={resourceKey}",
                 String.class,
@@ -653,6 +670,44 @@ class OperationalAssetsEntityLookupPilotIntegrationTest {
         assertEquals("VIEW", surface.path("kind").asText());
         assertEquals("COLLECTION", surface.path("scope").asText());
         assertEquals(title, surface.path("title").asText());
+        return surfacesCatalog;
+    }
+
+    private void assertRelatedSurface(
+            JsonNode surfacesCatalog,
+            String surfaceId,
+            String childResourceKey,
+            String childResourcePath,
+            String childParentField,
+            String selectionKeyField
+    ) throws Exception {
+        JsonNode surface = findById(surfacesCatalog.path("surfaces"), surfaceId);
+        assertNotNull(surface);
+        assertEquals("READ_PROJECTION", surface.path("kind").asText(), surfaceId);
+        assertEquals("ITEM", surface.path("scope").asText(), surfaceId);
+
+        JsonNode relatedResource = surface.path("relatedResource");
+        assertEquals(childResourceKey, relatedResource.path("childResourceKey").asText(), surfaceId);
+        assertEquals(childResourcePath, relatedResource.path("childResourcePath").asText(), surfaceId);
+        assertEquals(childParentField, relatedResource.path("childParentField").asText(), surfaceId);
+        assertTrue(relatedResource.path("selectable").asBoolean(), surfaceId);
+        assertEquals(selectionKeyField, relatedResource.path("selectionKeyField").asText(), surfaceId);
+        assertTrue(relatedResource.path("childOperations").toString().contains("FILTER"), surfaceId);
+        assertRelatedResourceFieldsExistInResponseSchema(surface);
+    }
+
+    private void assertRelatedResourceFieldsExistInResponseSchema(JsonNode surface) throws Exception {
+        JsonNode relatedResource = surface.path("relatedResource");
+        JsonNode properties = body(restTemplate.getForEntity(surface.path("schemaUrl").asText(), String.class))
+                .path("properties");
+
+        String childParentField = relatedResource.path("childParentField").asText();
+        assertTrue(properties.has(childParentField), surface.path("id").asText() + " childParentField");
+
+        if (relatedResource.path("selectable").asBoolean()) {
+            String selectionKeyField = relatedResource.path("selectionKeyField").asText();
+            assertTrue(properties.has(selectionKeyField), surface.path("id").asText() + " selectionKeyField");
+        }
     }
 
     private void assertAction(JsonNode actionsCatalog, String actionId, String path) {

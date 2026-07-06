@@ -13,6 +13,9 @@ import java.util.Optional;
 
 public interface VeiculoMissaoUsoRepository extends BaseCrudRepository<VeiculoMissaoUso, Integer> {
 
+    @EntityGraph(value = "VeiculoMissaoUso.detail")
+    List<VeiculoMissaoUso> findByVeiculoId(Integer veiculoId);
+
     @Override
     @EntityGraph(value = "VeiculoMissaoUso.detail")
     Optional<VeiculoMissaoUso> findById(Integer id);
@@ -33,6 +36,5 @@ public interface VeiculoMissaoUsoRepository extends BaseCrudRepository<VeiculoMi
     @EntityGraph(value = "VeiculoMissaoUso.detail")
     Page<VeiculoMissaoUso> findAll(Specification<VeiculoMissaoUso> spec, Pageable pageable);
 }
-
 
 

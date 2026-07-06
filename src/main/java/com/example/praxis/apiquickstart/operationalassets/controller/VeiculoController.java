@@ -4,18 +4,22 @@ import com.example.praxis.apiquickstart.constants.ApiPaths;
 import com.example.praxis.apiquickstart.operationalassets.dto.VeiculoDTO;
 import com.example.praxis.apiquickstart.operationalassets.dto.CreateVeiculoDTO;
 import com.example.praxis.apiquickstart.operationalassets.dto.UpdateVeiculoDTO;
+import com.example.praxis.apiquickstart.operationalassets.dto.VeiculoMissaoUsoDTO;
 import com.example.praxis.apiquickstart.operationalassets.dto.actions.AssetAvailabilityWorkflowRequestDTO;
 import com.example.praxis.apiquickstart.operationalassets.dto.actions.AssetAvailabilityWorkflowResultDTO;
 import com.example.praxis.apiquickstart.operationalassets.dto.filter.VeiculoFilterDTO;
 import com.example.praxis.apiquickstart.operationalassets.entity.Veiculo;
 import com.example.praxis.apiquickstart.operationalassets.mapper.VeiculoMapper;
+import com.example.praxis.apiquickstart.operationalassets.service.VeiculoMissaoUsoService;
 import com.example.praxis.apiquickstart.operationalassets.service.VeiculoService;
 import org.praxisplatform.uischema.annotation.ApiGroup;
 import org.praxisplatform.uischema.annotation.ApiResource;
+import org.praxisplatform.uischema.annotation.ResourceIntent;
 import org.praxisplatform.uischema.annotation.UiSurface;
 import org.praxisplatform.uischema.annotation.WorkflowAction;
 import com.example.praxis.apiquickstart.core.controller.base.AbstractQuickstartCrudController;
 import org.praxisplatform.uischema.action.ActionScope;
+import org.praxisplatform.uischema.surface.RelatedResourceChildOperation;
 import org.praxisplatform.uischema.surface.SurfaceKind;
 import org.praxisplatform.uischema.surface.SurfaceScope;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -57,11 +61,16 @@ public class VeiculoController extends AbstractQuickstartCrudController<Veiculo,
 
     private final VeiculoService service;
     private final VeiculoMapper mapper;
+    private final VeiculoMissaoUsoService missaoUsoService;
 
     @Autowired
-    public VeiculoController(VeiculoService service, VeiculoMapper mapper) {
+    public VeiculoController(
+            VeiculoService service,
+            VeiculoMapper mapper,
+            VeiculoMissaoUsoService missaoUsoService) {
         this.service = service;
         this.mapper = mapper;
+        this.missaoUsoService = missaoUsoService;
     }
 
     @Override
@@ -168,6 +177,47 @@ public class VeiculoController extends AbstractQuickstartCrudController<Veiculo,
         return super.getById(id);
     }
 
+    @GetMapping("/{id}/mission-usages")
+    @UiSurface(
+            id = "vehicle-mission-usages",
+            kind = SurfaceKind.READ_PROJECTION,
+            scope = SurfaceScope.ITEM,
+            title = "Uso em missoes",
+            description = "Lista sorties e usos do veiculo em missoes, com piloto, partida, chegada e contexto operacional.",
+            intent = "assets-vehicle-mission-usages",
+            order = 40,
+            tags = {"assets", "vehicle", "mission", "fleet", "read-projection", "related-resource"},
+            relatedChildResourceKey = "assets.veiculo-missao-usos",
+            relatedChildResourcePath = ApiPaths.Assets.VEICULO_MISSAO_USOS,
+            relatedChildParentField = "veiculoId",
+            relatedSelectable = true,
+            relatedSelectionKeyField = "id",
+            relatedChildOperations = {
+                    RelatedResourceChildOperation.FILTER,
+                    RelatedResourceChildOperation.LIST,
+                    RelatedResourceChildOperation.CREATE,
+                    RelatedResourceChildOperation.UPDATE,
+                    RelatedResourceChildOperation.DELETE
+            }
+    )
+    @ResourceIntent(
+            id = "assets-vehicle-mission-usages",
+            title = "Historico operacional do veiculo",
+            description = "Mostra em quais missoes o veiculo foi usado e como essa frota sustentou a operacao.",
+            order = 40
+    )
+    @Operation(summary = "Obter usos do veiculo em missoes", description = "Retorna os usos de frota associados ao veiculo selecionado para navegação contextual no cockpit.")
+    public ResponseEntity<RestApiResponse<List<VeiculoMissaoUsoDTO>>> getVehicleMissionUsages(@PathVariable Integer id) {
+        List<VeiculoMissaoUsoDTO> usages = missaoUsoService.findByVeiculoIdForVehicleSurface(id);
+        Links links = Links.of(
+                linkToSelf(id),
+                linkToAll(),
+                linkToFilter(),
+                linkToUiSchema("/{id}/mission-usages", "get", "response")
+        );
+        return withVersion(ResponseEntity.ok(), RestApiResponse.success(usages, hateoasOrNull(links)));
+    }
+
     @PostMapping
     @Operation(summary = "Cadastrar veículo operacional", description = "Cadastra um novo ativo de transporte com capacidade, proprietário e status para uso em logística e missões.")
     @ApiResponses({
@@ -265,7 +315,6 @@ public class VeiculoController extends AbstractQuickstartCrudController<Veiculo,
         return withVersion(ResponseEntity.ok(), RestApiResponse.success(result, hateoasOrNull(links)));
     }
 }
-
 
 
 
