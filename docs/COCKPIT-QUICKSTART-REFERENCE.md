@@ -63,8 +63,12 @@ path OpenAPI e schemas filtrados de request/response para cada workflow action
 publicada. O contrato materializavel das surfaces semanticas deve ser conferido
 com `scripts/verify-cockpit-surface-contracts.sh`, que garante titulo, descricao,
 path OpenAPI e schema filtrado para cada experiencia composta que o cockpit deve
-conseguir abrir, explicar ou transformar em visao navegavel. A lacuna principal e
-de exemplaridade no host: quando um dominio ainda parecer fraco no cockpit, a
+conseguir abrir, explicar ou transformar em visao navegavel. Os relacionamentos
+navegaveis usados pelo diagrama do cockpit devem ser conferidos com
+`scripts/verify-cockpit-related-resource-contracts.sh`, que valida `relatedResource`
+contra surface, schema, campo pai, chave de selecao e operacoes OpenAPI do recurso
+filho quando a surface aponta para um filho CRUD real. A lacuna principal e de
+exemplaridade no host: quando um dominio ainda parecer fraco no cockpit, a
 primeira pergunta deve ser se ja existe semantica publicada que o dashboard ainda
 nao esta materializando bem antes de criar novos comandos ou campos.
 
