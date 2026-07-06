@@ -21,6 +21,7 @@ import java.time.OffsetDateTime;
         description = "Linha de vista so-leitura: indicadores de sinistro/ incidente agregando impacto, severidade e trilha financeira (indenizacoes, pago, pendente). "
                 + "Cruza Operacoes, local e indicadores financeiros para painéis de risco e respostas assistidas, sem substituir o incidente transacional editavel.")
 public class VwIndicadoresIncidenteDTO {
+    @UISchema(label = "Incidente", type = FieldDataType.NUMBER, icon = "siren")
     @Schema(
             description = "Chave do incidente transacional que originou a linha materializada; liga o indicador ao cadastro e ao workflow de Operacoes.",
             example = "7")

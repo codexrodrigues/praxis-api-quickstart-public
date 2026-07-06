@@ -54,10 +54,19 @@ public class VwIndicadoresIncidenteService extends AbstractQuickstartReadOnlySer
             .build();
 
     private final VwIndicadoresIncidenteMapper mapper;
+    private final VwIndicadoresIncidenteRepository repository;
 
     public VwIndicadoresIncidenteService(VwIndicadoresIncidenteRepository repository, VwIndicadoresIncidenteMapper mapper) {
         super(repository, VwIndicadoresIncidente.class, mapper::toDto, VwIndicadoresIncidente::getIncidenteId);
         this.mapper = mapper;
+        this.repository = repository;
+    }
+
+    public List<VwIndicadoresIncidenteDTO> findByIncidenteIdForIncidentSurface(Integer incidenteId) {
+        return repository.findById(incidenteId)
+                .map(mapper::toDto)
+                .stream()
+                .toList();
     }
 
     @Override
@@ -90,6 +99,5 @@ public class VwIndicadoresIncidenteService extends AbstractQuickstartReadOnlySer
         return OPTION_SOURCES;
     }
 }
-
 
 

@@ -8,10 +8,14 @@ import com.example.praxis.apiquickstart.operations.dto.filter.IncidenteFilterDTO
 import com.example.praxis.apiquickstart.operations.entity.Incidente;
 import com.example.praxis.apiquickstart.operations.mapper.IncidenteMapper;
 import com.example.praxis.apiquickstart.operations.service.IncidenteService;
+import com.example.praxis.apiquickstart.riskintelligence.dto.VwIndicadoresIncidenteDTO;
+import com.example.praxis.apiquickstart.riskintelligence.service.VwIndicadoresIncidenteService;
 import org.praxisplatform.uischema.annotation.ApiGroup;
 import org.praxisplatform.uischema.annotation.ApiResource;
+import org.praxisplatform.uischema.annotation.ResourceIntent;
 import org.praxisplatform.uischema.annotation.UiSurface;
 import com.example.praxis.apiquickstart.core.controller.base.AbstractQuickstartCrudController;
+import org.praxisplatform.uischema.surface.RelatedResourceChildOperation;
 import org.praxisplatform.uischema.surface.SurfaceKind;
 import org.praxisplatform.uischema.surface.SurfaceScope;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,6 +25,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import org.praxisplatform.uischema.rest.response.RestApiResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.hateoas.EntityModel;
+import org.springframework.hateoas.Links;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -52,11 +57,17 @@ public class IncidenteController extends AbstractQuickstartCrudController<Incide
 
     private final IncidenteService service;
     private final IncidenteMapper mapper;
+    private final VwIndicadoresIncidenteService indicadoresIncidenteService;
 
     @Autowired
-    public IncidenteController(IncidenteService service, IncidenteMapper mapper) {
+    public IncidenteController(
+            IncidenteService service,
+            IncidenteMapper mapper,
+            VwIndicadoresIncidenteService indicadoresIncidenteService
+    ) {
         this.service = service;
         this.mapper = mapper;
+        this.indicadoresIncidenteService = indicadoresIncidenteService;
     }
 
     @Override
@@ -163,6 +174,44 @@ public class IncidenteController extends AbstractQuickstartCrudController<Incide
         return super.getById(id);
     }
 
+    @GetMapping("/{id}/risk-indicators")
+    @UiSurface(
+            id = "incident-risk-indicators",
+            kind = SurfaceKind.READ_PROJECTION,
+            scope = SurfaceScope.ITEM,
+            title = "Indicadores de risco do incidente",
+            description = "Abre a leitura analitica derivada do incidente, conectando a ocorrencia operacional a severidade, danos, indenizacoes e saldo pendente.",
+            intent = "operations-incident-risk-indicators",
+            order = 45,
+            tags = {"operations", "risk-intelligence", "incident", "analytics", "read-projection", "related-resource"},
+            relatedChildResourceKey = "risk-intelligence.vw-indicadores-incidentes",
+            relatedChildResourcePath = ApiPaths.RiskIntelligence.VW_INDICADORES_INCIDENTES,
+            relatedChildParentField = "incidenteId",
+            relatedSelectable = true,
+            relatedSelectionKeyField = "incidenteId",
+            relatedChildOperations = {
+                    RelatedResourceChildOperation.FILTER,
+                    RelatedResourceChildOperation.LIST
+            }
+    )
+    @ResourceIntent(
+            id = "operations-incident-risk-indicators",
+            title = "Leitura analitica do incidente",
+            description = "Mostra como o incidente transacional alimenta uma view de inteligencia de risco sem transformar a view em fonte editavel.",
+            order = 45
+    )
+    @Operation(summary = "Obter indicadores de risco do incidente", description = "Retorna a leitura analitica derivada de um incidente operacional para navegação contextual no cockpit.")
+    public ResponseEntity<RestApiResponse<List<VwIndicadoresIncidenteDTO>>> getRiskIndicators(@PathVariable Integer id) {
+        List<VwIndicadoresIncidenteDTO> indicators = indicadoresIncidenteService.findByIncidenteIdForIncidentSurface(id);
+        Links links = Links.of(
+                linkToSelf(id),
+                linkToAll(),
+                linkToFilter(),
+                linkToUiSchema("/{id}/risk-indicators", "get", "response")
+        );
+        return withVersion(ResponseEntity.ok(), RestApiResponse.success(indicators, hateoasOrNull(links)));
+    }
+
     @PostMapping
     @Operation(summary = "Cadastrar incidente de missão", description = "Cadastra uma nova ocorrência operacional com missão, severidade, impacto e localização para acompanhamento e resposta.")
     @ApiResponses({
@@ -206,7 +255,6 @@ public class IncidenteController extends AbstractQuickstartCrudController<Incide
         return super.deleteBatch(ids);
     }
 }
-
 
 
 

@@ -1,6 +1,7 @@
 package com.example.praxis.apiquickstart.config;
 
 import com.example.praxis.apiquickstart.ApiQuickstartApplication;
+import com.example.praxis.apiquickstart.constants.ApiPaths;
 import com.example.praxis.apiquickstart.security.JwtTokenService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -23,6 +24,7 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
@@ -133,6 +135,21 @@ class RiskIntelligenceCockpitIntegrationTest {
                 "VIEW",
                 "Mesa de investigacao de incidentes"
         );
+        JsonNode incidentSurfaces = assertRiskSurface(
+                "operations.incidentes",
+                "incident-risk-indicators",
+                "READ_PROJECTION",
+                "ITEM",
+                "Indicadores de risco do incidente"
+        );
+        assertRelatedSurface(
+                incidentSurfaces,
+                "incident-risk-indicators",
+                "risk-intelligence.vw-indicadores-incidentes",
+                ApiPaths.RiskIntelligence.VW_INDICADORES_INCIDENTES,
+                "incidenteId",
+                "incidenteId"
+        );
     }
 
     @Test
@@ -189,6 +206,16 @@ class RiskIntelligenceCockpitIntegrationTest {
     }
 
     private void assertRiskSurface(String resourceKey, String surfaceId, String kind, String title) throws Exception {
+        assertRiskSurface(resourceKey, surfaceId, kind, "COLLECTION", title);
+    }
+
+    private JsonNode assertRiskSurface(
+            String resourceKey,
+            String surfaceId,
+            String kind,
+            String scope,
+            String title
+    ) throws Exception {
         JsonNode surfacesCatalog = body(restTemplate.getForEntity(
                 "/schemas/surfaces?resource={resourceKey}",
                 String.class,
@@ -198,8 +225,67 @@ class RiskIntelligenceCockpitIntegrationTest {
         JsonNode surface = findById(surfacesCatalog.path("surfaces"), surfaceId);
         assertNotNull(surface);
         assertEquals(kind, surface.path("kind").asText());
-        assertEquals("COLLECTION", surface.path("scope").asText());
+        assertEquals(scope, surface.path("scope").asText());
         assertEquals(title, surface.path("title").asText());
+        return surfacesCatalog;
+    }
+
+    private void assertRelatedSurface(
+            JsonNode surfacesCatalog,
+            String surfaceId,
+            String childResourceKey,
+            String childResourcePath,
+            String childParentField,
+            String selectionKeyField
+    ) throws Exception {
+        JsonNode surface = findById(surfacesCatalog.path("surfaces"), surfaceId);
+        assertNotNull(surface);
+        JsonNode relatedResource = surface.path("relatedResource");
+        assertEquals(childResourceKey, relatedResource.path("childResourceKey").asText(), surfaceId);
+        assertEquals(childResourcePath, relatedResource.path("childResourcePath").asText(), surfaceId);
+        assertEquals(childParentField, relatedResource.path("childParentField").asText(), surfaceId);
+        assertTrue(relatedResource.path("selectable").asBoolean(), surfaceId);
+        assertEquals(selectionKeyField, relatedResource.path("selectionKeyField").asText(), surfaceId);
+        assertTrue(relatedResource.path("childOperations").toString().contains("FILTER"), surfaceId);
+        assertTrue(relatedResource.path("childOperations").toString().contains("LIST"), surfaceId);
+        assertRelatedResourceFieldsExistInResponseSchema(surface);
+    }
+
+    private void assertRelatedResourceFieldsExistInResponseSchema(JsonNode surface) throws Exception {
+        JsonNode relatedResource = surface.path("relatedResource");
+        String schemaUrl = surface.path("schemaUrl").asText();
+        assertTrue(schemaUrl.startsWith("/schemas/filtered?"), schemaUrl);
+        JsonNode schema = body(restTemplate.getForEntity(schemaUrl, String.class));
+        JsonNode schemaNode = schema.has("schema") ? schema.path("schema") : schema;
+
+        String childParentField = relatedResource.path("childParentField").asText();
+        assertTrue(hasPropertyNamed(schemaNode, childParentField),
+                () -> "Expected child parent field '%s' in schema %s. Schema: %s"
+                        .formatted(childParentField, schemaUrl, schema.toPrettyString()));
+
+        if (relatedResource.path("selectable").asBoolean()) {
+            String selectionKeyField = relatedResource.path("selectionKeyField").asText();
+            assertTrue(hasPropertyNamed(schemaNode, selectionKeyField),
+                    () -> "Expected selection key field '%s' in schema %s".formatted(selectionKeyField, schemaUrl));
+        }
+    }
+
+    private boolean hasPropertyNamed(JsonNode node, String fieldName) {
+        if (node == null || node.isMissingNode()) {
+            return false;
+        }
+        JsonNode properties = node.path("properties");
+        if (properties.has(fieldName)) {
+            return true;
+        }
+        if (node.isObject() || node.isArray()) {
+            for (JsonNode child : node) {
+                if (hasPropertyNamed(child, fieldName)) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     private JsonNode body(ResponseEntity<String> response) throws Exception {
