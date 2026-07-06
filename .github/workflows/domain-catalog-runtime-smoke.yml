@@ -127,6 +127,7 @@ jobs:
           bash -n scripts/verify-cockpit-related-resource-contracts.sh
           bash -n scripts/verify-cockpit-analytics-contracts.sh
           bash -n scripts/verify-cockpit-option-source-contracts.sh
+          bash -n scripts/verify-cockpit-structural-ui-contracts.sh
 
       - name: Wait for published runtime rollout
         shell: bash
@@ -249,3 +250,7 @@ jobs:
       - name: Verify cockpit option source contracts
         shell: bash
         run: scripts/verify-cockpit-option-source-contracts.sh
+
+      - name: Verify cockpit structural UI contracts
+        shell: bash
+        run: scripts/verify-cockpit-structural-ui-contracts.sh

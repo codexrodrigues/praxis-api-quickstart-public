@@ -73,10 +73,13 @@ valida endpoints `/stats/*`, schemas filtrados de request/response e surfaces
 `CHART` com projecoes `praxis.stats`. Os lookups governados devem ser conferidos
 com `scripts/verify-cockpit-option-source-contracts.sh`, que descobre
 `x-ui.optionSource` em schemas filtrados e valida endpoints de busca e reidratacao
-para filtros e formularios. A lacuna principal e de exemplaridade no host: quando
-um dominio ainda parecer fraco no cockpit, a primeira pergunta deve ser se ja
-existe semantica publicada que o dashboard ainda nao esta materializando bem antes
-de criar novos comandos ou campos.
+para filtros e formularios. Os contratos estruturais de UI devem ser conferidos
+com `scripts/verify-cockpit-structural-ui-contracts.sh`, que valida schemas
+filtrados materializaveis para leitura, filtros, tabelas, criacao e edicao quando
+essas operacoes existem no OpenAPI. A lacuna principal e de exemplaridade no
+host: quando um dominio ainda parecer fraco no cockpit, a primeira pergunta deve
+ser se ja existe semantica publicada que o dashboard ainda nao esta materializando
+bem antes de criar novos comandos ou campos.
 
 ## Como cada camada aparece no cockpit
 

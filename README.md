@@ -26,6 +26,7 @@ As surfaces semanticas explicitas sao conferidas por `scripts/verify-cockpit-sur
 Os relacionamentos navegaveis usados pelo diagrama do cockpit sao conferidos por `scripts/verify-cockpit-related-resource-contracts.sh`, garantindo que cada `relatedResource` aponte para surface, schema, campo pai, chave de selecao e, quando houver recurso filho real, operacoes OpenAPI coerentes.
 Os contratos de analytics e charts sao conferidos por `scripts/verify-cockpit-analytics-contracts.sh`, garantindo que endpoints `/stats/*` publiquem schemas filtrados de request/response e que surfaces `CHART` apontem para projecoes `praxis.stats`.
 Os lookups governados sao conferidos por `scripts/verify-cockpit-option-source-contracts.sh`, garantindo que `x-ui.optionSource` publicado em schemas filtrados tenha endpoints de busca e reidratacao materializaveis para filtros e formularios do cockpit.
+Os contratos estruturais de UI sao conferidos por `scripts/verify-cockpit-structural-ui-contracts.sh`, garantindo que recursos publicados tenham schemas filtrados materializaveis para leitura, filtros, tabelas, criacao e edicao sempre que essas operacoes existirem no OpenAPI.
 
 ## Sobre o Praxis (visao geral)
 
