@@ -28,7 +28,7 @@ get_required_json() {
   local path="$1"
   local output_file="$2"
 
-  curl --max-time 40 -fsS "${BACKEND_URL%/}${path}" \
+  curl --retry 6 --retry-all-errors --retry-delay 5 --retry-max-time 180 --max-time 40 -fsS "${BACKEND_URL%/}${path}" \
     -H "Accept: application/json" \
     -o "$output_file"
 }
@@ -38,7 +38,7 @@ get_optional_json() {
   local output_file="$2"
 
   local status
-  status="$(curl --max-time 20 -sS -w '%{http_code}' "${BACKEND_URL%/}${path}" \
+  status="$(curl --retry 6 --retry-all-errors --retry-delay 5 --retry-max-time 180 --max-time 20 -sS -w '%{http_code}' "${BACKEND_URL%/}${path}" \
     -H "Accept: application/json" \
     -o "$output_file")"
 
