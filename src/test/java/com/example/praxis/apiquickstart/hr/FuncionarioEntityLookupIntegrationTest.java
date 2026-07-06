@@ -225,10 +225,62 @@ class FuncionarioEntityLookupIntegrationTest {
         assertEmployeeLookup(ApiPaths.HumanResources.VW_RANKING_REPUTACAO + "/filter", "funcionarioIdsIn", "inlineEntityLookup");
     }
 
+    @Test
+    void shouldExposeEmployeeRelationshipSurfacesForCockpitNavigation() throws Exception {
+        JsonNode surfacesCatalog = body(restTemplate.getForEntity(
+                "/schemas/surfaces?resource=human-resources.funcionarios",
+                String.class
+        ));
+
+        JsonNode heroProfile = findById(surfacesCatalog.path("surfaces"), "hero-profile");
+        assertNotNull(heroProfile);
+        assertEquals("READ_PROJECTION", heroProfile.path("kind").asText());
+        assertEquals("human-resources.vw-perfil-heroi", heroProfile.path("relatedResource").path("childResourceKey").asText());
+        assertEquals(ApiPaths.HumanResources.VW_PERFIL_HEROI, heroProfile.path("relatedResource").path("childResourcePath").asText());
+        assertEquals("id", heroProfile.path("relatedResource").path("childParentField").asText());
+        assertTrue(heroProfile.path("relatedResource").path("selectable").asBoolean());
+        assertEquals("id", heroProfile.path("relatedResource").path("selectionKeyField").asText());
+        assertEquals("[]", heroProfile.path("relatedResource").path("childOperations").toString());
+
+        JsonNode payrollHistory = findById(surfacesCatalog.path("surfaces"), "payroll-history");
+        assertNotNull(payrollHistory);
+        assertEquals("READ_PROJECTION", payrollHistory.path("kind").asText());
+        assertEquals("human-resources.vw-analytics-folha-pagamento",
+                payrollHistory.path("relatedResource").path("childResourceKey").asText());
+        assertEquals(ApiPaths.HumanResources.VW_ANALYTICS_FOLHA_PAGAMENTO,
+                payrollHistory.path("relatedResource").path("childResourcePath").asText());
+        assertEquals("funcionarioId", payrollHistory.path("relatedResource").path("childParentField").asText());
+        assertTrue(payrollHistory.path("relatedResource").path("selectable").asBoolean());
+        assertEquals("id", payrollHistory.path("relatedResource").path("selectionKeyField").asText());
+        assertEquals("[]", payrollHistory.path("relatedResource").path("childOperations").toString());
+
+        JsonNode missionParticipations = findById(surfacesCatalog.path("surfaces"), "mission-participations");
+        assertNotNull(missionParticipations);
+        assertEquals("READ_PROJECTION", missionParticipations.path("kind").asText());
+        assertEquals("operations.missao-participantes",
+                missionParticipations.path("relatedResource").path("childResourceKey").asText());
+        assertEquals(ApiPaths.Operations.MISSAO_PARTICIPANTES,
+                missionParticipations.path("relatedResource").path("childResourcePath").asText());
+        assertEquals("funcionarioId", missionParticipations.path("relatedResource").path("childParentField").asText());
+        assertTrue(missionParticipations.path("relatedResource").path("selectable").asBoolean());
+        assertEquals("id", missionParticipations.path("relatedResource").path("selectionKeyField").asText());
+        assertEquals("[\"FILTER\",\"LIST\",\"CREATE\",\"UPDATE\",\"DELETE\"]",
+                missionParticipations.path("relatedResource").path("childOperations").toString());
+    }
+
     private JsonNode body(ResponseEntity<String> response) throws Exception {
         assertEquals(HttpStatus.OK, response.getStatusCode(), response.getBody());
         assertNotNull(response.getBody());
         return objectMapper.readTree(response.getBody());
+    }
+
+    private JsonNode findById(JsonNode nodes, String id) {
+        for (JsonNode node : nodes) {
+            if (id.equals(node.path("id").asText())) {
+                return node;
+            }
+        }
+        return null;
     }
 
     private void assertEmployeeLookup(String path, String fieldName, String expectedControlType) throws Exception {

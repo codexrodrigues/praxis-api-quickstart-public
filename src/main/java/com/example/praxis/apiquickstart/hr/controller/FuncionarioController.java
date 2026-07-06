@@ -39,6 +39,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.praxisplatform.uischema.surface.RelatedResourceChildOperation;
 import org.praxisplatform.uischema.surface.SurfaceKind;
 import org.praxisplatform.uischema.surface.SurfaceScope;
 import java.util.List;
@@ -253,7 +254,12 @@ public class FuncionarioController extends AbstractQuickstartCrudController<Func
             description = "Consolida identidade operacional, reputação, habilidades, equipe e base principal do funcionário para leitura contextual de RH.",
             intent = "employee-360",
             order = 40,
-            tags = {"human-resources", "employee-360", "read-projection", "profile-context"}
+            tags = {"human-resources", "employee-360", "read-projection", "profile-context", "related-resource"},
+            relatedChildResourceKey = "human-resources.vw-perfil-heroi",
+            relatedChildResourcePath = ApiPaths.HumanResources.VW_PERFIL_HEROI,
+            relatedChildParentField = "id",
+            relatedSelectable = true,
+            relatedSelectionKeyField = "id"
     )
     @ResourceIntent(
             id = "employee-360",
@@ -286,7 +292,12 @@ public class FuncionarioController extends AbstractQuickstartCrudController<Func
             description = "Apresenta ciclos recentes de folha de pagamento do funcionário com valores, eventos e classificações analíticas para acompanhamento de RH.",
             intent = "employee-payroll-intelligence",
             order = 50,
-            tags = {"human-resources", "payroll", "folha-de-pagamento", "pagamento", "analytics", "read-projection"}
+            tags = {"human-resources", "payroll", "folha-de-pagamento", "pagamento", "analytics", "read-projection", "related-resource"},
+            relatedChildResourceKey = "human-resources.vw-analytics-folha-pagamento",
+            relatedChildResourcePath = ApiPaths.HumanResources.VW_ANALYTICS_FOLHA_PAGAMENTO,
+            relatedChildParentField = "funcionarioId",
+            relatedSelectable = true,
+            relatedSelectionKeyField = "id"
     )
     @ResourceIntent(
             id = "employee-payroll-intelligence",
@@ -318,7 +329,19 @@ public class FuncionarioController extends AbstractQuickstartCrudController<Func
             description = "Lista missões, papéis e resultados operacionais em que o funcionário participou para leitura contextual de RH e operações.",
             intent = "employee-mission-participations",
             order = 60,
-            tags = {"human-resources", "operations", "missions", "mission-participations", "read-projection"}
+            tags = {"human-resources", "operations", "missions", "mission-participations", "read-projection", "related-resource"},
+            relatedChildResourceKey = "operations.missao-participantes",
+            relatedChildResourcePath = ApiPaths.Operations.MISSAO_PARTICIPANTES,
+            relatedChildParentField = "funcionarioId",
+            relatedSelectable = true,
+            relatedSelectionKeyField = "id",
+            relatedChildOperations = {
+                    RelatedResourceChildOperation.FILTER,
+                    RelatedResourceChildOperation.LIST,
+                    RelatedResourceChildOperation.CREATE,
+                    RelatedResourceChildOperation.UPDATE,
+                    RelatedResourceChildOperation.DELETE
+            }
     )
     @ResourceIntent(
             id = "employee-mission-participations",
@@ -361,7 +384,6 @@ public class FuncionarioController extends AbstractQuickstartCrudController<Func
         return super.deleteBatch(ids);
     }
 }
-
 
 
 
