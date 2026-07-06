@@ -24,6 +24,7 @@ O inventario desse guia e conferido contra o runtime publicado por `scripts/veri
 Os contratos de actions tambem sao conferidos por `scripts/verify-cockpit-action-contracts.sh`, garantindo que cada workflow publicado tenha path OpenAPI e schemas filtrados de request/response para o cockpit materializar formulario e retorno.
 As surfaces semanticas explicitas sao conferidas por `scripts/verify-cockpit-surface-contracts.sh`, garantindo que cada experiencia composta publicada para o cockpit tenha titulo, descricao, path OpenAPI e schema filtrado materializavel.
 Os relacionamentos navegaveis usados pelo diagrama do cockpit sao conferidos por `scripts/verify-cockpit-related-resource-contracts.sh`, garantindo que cada `relatedResource` aponte para surface, schema, campo pai, chave de selecao e, quando houver recurso filho real, operacoes OpenAPI coerentes.
+Os contratos de analytics e charts sao conferidos por `scripts/verify-cockpit-analytics-contracts.sh`, garantindo que endpoints `/stats/*` publiquem schemas filtrados de request/response e que surfaces `CHART` apontem para projecoes `praxis.stats`.
 
 ## Sobre o Praxis (visao geral)
 
