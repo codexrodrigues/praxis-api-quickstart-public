@@ -237,10 +237,11 @@ class FuncionarioEntityLookupIntegrationTest {
         assertEquals("READ_PROJECTION", heroProfile.path("kind").asText());
         assertEquals("human-resources.vw-perfil-heroi", heroProfile.path("relatedResource").path("childResourceKey").asText());
         assertEquals(ApiPaths.HumanResources.VW_PERFIL_HEROI, heroProfile.path("relatedResource").path("childResourcePath").asText());
-        assertEquals("id", heroProfile.path("relatedResource").path("childParentField").asText());
+        assertEquals("funcionarioId", heroProfile.path("relatedResource").path("childParentField").asText());
         assertTrue(heroProfile.path("relatedResource").path("selectable").asBoolean());
-        assertEquals("id", heroProfile.path("relatedResource").path("selectionKeyField").asText());
+        assertEquals("funcionarioId", heroProfile.path("relatedResource").path("selectionKeyField").asText());
         assertEquals("[]", heroProfile.path("relatedResource").path("childOperations").toString());
+        assertRelatedResourceFieldsExistInResponseSchema(heroProfile);
 
         JsonNode payrollHistory = findById(surfacesCatalog.path("surfaces"), "payroll-history");
         assertNotNull(payrollHistory);
@@ -251,8 +252,9 @@ class FuncionarioEntityLookupIntegrationTest {
                 payrollHistory.path("relatedResource").path("childResourcePath").asText());
         assertEquals("funcionarioId", payrollHistory.path("relatedResource").path("childParentField").asText());
         assertTrue(payrollHistory.path("relatedResource").path("selectable").asBoolean());
-        assertEquals("id", payrollHistory.path("relatedResource").path("selectionKeyField").asText());
+        assertEquals("folhaPagamentoId", payrollHistory.path("relatedResource").path("selectionKeyField").asText());
         assertEquals("[]", payrollHistory.path("relatedResource").path("childOperations").toString());
+        assertRelatedResourceFieldsExistInResponseSchema(payrollHistory);
 
         JsonNode missionParticipations = findById(surfacesCatalog.path("surfaces"), "mission-participations");
         assertNotNull(missionParticipations);
@@ -266,6 +268,7 @@ class FuncionarioEntityLookupIntegrationTest {
         assertEquals("id", missionParticipations.path("relatedResource").path("selectionKeyField").asText());
         assertEquals("[\"FILTER\",\"LIST\",\"CREATE\",\"UPDATE\",\"DELETE\"]",
                 missionParticipations.path("relatedResource").path("childOperations").toString());
+        assertRelatedResourceFieldsExistInResponseSchema(missionParticipations);
     }
 
     private JsonNode body(ResponseEntity<String> response) throws Exception {
@@ -281,6 +284,20 @@ class FuncionarioEntityLookupIntegrationTest {
             }
         }
         return null;
+    }
+
+    private void assertRelatedResourceFieldsExistInResponseSchema(JsonNode surface) throws Exception {
+        JsonNode relatedResource = surface.path("relatedResource");
+        JsonNode properties = body(restTemplate.getForEntity(surface.path("schemaUrl").asText(), String.class))
+                .path("properties");
+
+        String childParentField = relatedResource.path("childParentField").asText();
+        assertTrue(properties.has(childParentField), surface.path("id").asText() + " childParentField");
+
+        if (relatedResource.path("selectable").asBoolean()) {
+            String selectionKeyField = relatedResource.path("selectionKeyField").asText();
+            assertTrue(properties.has(selectionKeyField), surface.path("id").asText() + " selectionKeyField");
+        }
     }
 
     private void assertEmployeeLookup(String path, String fieldName, String expectedControlType) throws Exception {

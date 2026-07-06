@@ -257,9 +257,9 @@ public class FuncionarioController extends AbstractQuickstartCrudController<Func
             tags = {"human-resources", "employee-360", "read-projection", "profile-context", "related-resource"},
             relatedChildResourceKey = "human-resources.vw-perfil-heroi",
             relatedChildResourcePath = ApiPaths.HumanResources.VW_PERFIL_HEROI,
-            relatedChildParentField = "id",
+            relatedChildParentField = "funcionarioId",
             relatedSelectable = true,
-            relatedSelectionKeyField = "id"
+            relatedSelectionKeyField = "funcionarioId"
     )
     @ResourceIntent(
             id = "employee-360",
@@ -297,7 +297,7 @@ public class FuncionarioController extends AbstractQuickstartCrudController<Func
             relatedChildResourcePath = ApiPaths.HumanResources.VW_ANALYTICS_FOLHA_PAGAMENTO,
             relatedChildParentField = "funcionarioId",
             relatedSelectable = true,
-            relatedSelectionKeyField = "id"
+            relatedSelectionKeyField = "folhaPagamentoId"
     )
     @ResourceIntent(
             id = "employee-payroll-intelligence",
@@ -384,7 +384,6 @@ public class FuncionarioController extends AbstractQuickstartCrudController<Func
         return super.deleteBatch(ids);
     }
 }
-
 
 
 
