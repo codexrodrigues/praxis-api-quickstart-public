@@ -92,6 +92,9 @@ class MissaoPilotIntegrationTest {
         jdbcTemplate.execute("drop table if exists public.vw_resumo_missoes");
         jdbcTemplate.execute("drop table if exists public.missao_eventos");
         jdbcTemplate.execute("drop table if exists public.missao_participantes");
+        jdbcTemplate.execute("drop table if exists public.equipe_membros");
+        jdbcTemplate.execute("drop table if exists public.equipes");
+        jdbcTemplate.execute("drop table if exists public.bases");
         jdbcTemplate.execute("drop table if exists public.funcionarios");
         jdbcTemplate.execute("drop table if exists public.missoes");
         jdbcTemplate.execute("drop table if exists public.ameacas");
@@ -151,6 +154,39 @@ class MissaoPilotIntegrationTest {
                 """);
 
         jdbcTemplate.execute("""
+                create table public.bases (
+                    id integer primary key,
+                    nome varchar(200) not null,
+                    tipo varchar(40),
+                    sigilo varchar(40),
+                    latitude decimal(12,8),
+                    longitude decimal(12,8),
+                    planeta varchar(100)
+                )
+                """);
+
+        jdbcTemplate.execute("""
+                create table public.equipes (
+                    id integer primary key,
+                    nome varchar(200) not null,
+                    sigla varchar(12),
+                    base_principal_id integer,
+                    status varchar(40) not null
+                )
+                """);
+
+        jdbcTemplate.execute("""
+                create table public.equipe_membros (
+                    id integer primary key,
+                    equipe_id integer not null,
+                    funcionario_id integer not null,
+                    papel varchar(40),
+                    data_entrada date not null,
+                    data_saida date
+                )
+                """);
+
+        jdbcTemplate.execute("""
                 create table public.missao_participantes (
                     id integer primary key,
                     missao_id integer not null,
@@ -202,6 +238,22 @@ class MissaoPilotIntegrationTest {
         jdbcTemplate.update("""
                 insert into public.funcionarios (id, nome_completo, cpf, data_nascimento, email, telefone, salario, data_admissao, ativo, cargo_id, departamento_id, foto_perfil_url, estado_civil, pais_nascimento, cidade_nascimento)
                 values (2, 'Victor Stone', '00000000002', DATE '1994-08-18', 'victor@justice.org', '+55-11-97000-0002', 18500.00, DATE '2021-05-02', true, 1, 1, null, 'SOLTEIRO', 'Estados Unidos', 'Detroit')
+                """);
+        jdbcTemplate.update("""
+                insert into public.bases (id, nome, tipo, sigilo, latitude, longitude, planeta)
+                values (1, 'Base Atlântica', 'TERRESTRE', 'CONFIDENCIAL', -23.55052000, -46.63330800, 'Terra')
+                """);
+        jdbcTemplate.update("""
+                insert into public.equipes (id, nome, sigla, base_principal_id, status)
+                values (1, 'Equipe Atlântica', 'ATL-1', 1, 'ATIVA')
+                """);
+        jdbcTemplate.update("""
+                insert into public.equipe_membros (id, equipe_id, funcionario_id, papel, data_entrada, data_saida)
+                values (1, 1, 1, 'LIDER', DATE '2025-01-10', null)
+                """);
+        jdbcTemplate.update("""
+                insert into public.equipe_membros (id, equipe_id, funcionario_id, papel, data_entrada, data_saida)
+                values (2, 1, 2, 'SUPORTE', DATE '2025-02-15', null)
                 """);
 
         jdbcTemplate.execute("""
@@ -431,6 +483,45 @@ class MissaoPilotIntegrationTest {
         assertEquals("Frozen Wall", selectedMissions.get(1).path("label").asText());
         assertEquals("CONCLUIDA", selectedMissions.get(1).path("extra").path("status").asText());
         assertFalse(selectedMissions.get(1).path("extra").path("selectable").asBoolean());
+    }
+
+    @Test
+    void shouldExposeTeamMembersSurfaceForOperationalCapacityNavigation() throws Exception {
+        JsonNode surfacesCatalog = body(restTemplate.getForEntity(
+                "/schemas/surfaces?resource=operations.equipes",
+                String.class
+        ));
+        assertEquals("operations.equipes", surfacesCatalog.path("resourceKey").asText());
+        JsonNode membersSurface = findById(surfacesCatalog.path("surfaces"), "members");
+        assertNotNull(membersSurface);
+        assertEquals("READ_PROJECTION", membersSurface.path("kind").asText());
+        assertEquals("ITEM", membersSurface.path("scope").asText());
+        assertEquals("/api/operations/equipes/{id}/members", membersSurface.path("path").asText());
+        assertEquals("COLLECTION", membersSurface.path("responseCardinality").asText());
+        assertTrue(membersSurface.path("description").asText().contains("capacidade operacional"));
+        assertEquals("operations.equipe-membros", membersSurface.path("relatedResource").path("childResourceKey").asText());
+        assertEquals("/api/operations/equipe-membros", membersSurface.path("relatedResource").path("childResourcePath").asText());
+        assertEquals("equipeId", membersSurface.path("relatedResource").path("childParentField").asText());
+        assertTrue(membersSurface.path("relatedResource").path("selectable").asBoolean());
+        assertEquals("id", membersSurface.path("relatedResource").path("selectionKeyField").asText());
+        assertEquals("[\"FILTER\",\"LIST\",\"CREATE\",\"UPDATE\",\"DELETE\"]",
+                membersSurface.path("relatedResource").path("childOperations").toString());
+
+        JsonNode teamCapabilities = body(restTemplate.getForEntity(
+                "/api/operations/equipes/1/capabilities",
+                String.class
+        ));
+        assertTrue(findById(teamCapabilities.path("surfaces"), "members").path("availability").path("allowed").asBoolean());
+
+        JsonNode members = body(restTemplate.getForEntity(
+                "/api/operations/equipes/1/members",
+                String.class
+        ));
+        assertEquals(2, members.path("data").size());
+        assertEquals("Victor Stone", members.path("data").path(0).path("funcionarioNome").asText());
+        assertEquals("SUPORTE", members.path("data").path(0).path("papel").asText());
+        assertEquals("Diana Prince", members.path("data").path(1).path("funcionarioNome").asText());
+        assertNotNull(findLinkHref(members, "schema"));
     }
 
     @Test

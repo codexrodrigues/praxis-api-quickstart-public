@@ -48,7 +48,7 @@ producao.
 | Dominio no cockpit | Grupo OpenAPI | Recursos | Surfaces explicitas | Workflow actions explicitas | Leitura de aderencia |
 | --- | --- | ---: | ---: | ---: | --- |
 | Pessoas e RH | `human-resources` | 20 | 12 | 4 | `ja-suportado-mal-nomeado-ou-mal-materializado`: perfil 360, folha, participacoes em missoes, dependentes, endereco cadastral, matriz de competencias, historico de cargos, disponibilidade por afastamentos, action de cobertura e ranking reputacional ja existem; a proxima melhoria deve aprofundar governanca de ciclo de vida sem criar surface decorativa. |
-| Operacoes | `operations` | 12 | 11 | 10 | `ja-suportado-mal-nomeado-ou-mal-materializado`: e o melhor dominio para demonstrar actions/surfaces; cockpit deve usar esse dominio como referencia visual de workflows e como ponte transacional para leituras analiticas derivadas. |
+| Operacoes | `operations` | 12 | 12 | 10 | `ja-suportado-mal-nomeado-ou-mal-materializado`: e o melhor dominio para demonstrar actions/surfaces; cockpit deve usar esse dominio como referencia visual de workflows, composicao de equipes, capacidade operacional e ponte transacional para leituras analiticas derivadas. |
 | Suprimentos | `procurement` | 5 | 10 | 8 | `ja-suportado-mal-nomeado-ou-mal-materializado`: recursos, schemas, option sources, surfaces e actions de fornecedor, contrato e pedido existem; o cockpit deve materializar a jornada fornecedor -> contrato -> catalogo -> pedido -> recebimento como fluxo navegavel. |
 | Ativos Operacionais | `assets` | 4 | 6 | 7 | `ja-suportado-mal-nomeado-ou-mal-materializado`: recursos, lookups, surfaces, actions de disponibilidade e actions de custodia existem; o cockpit deve materializar inventario -> custodia -> frota -> missao -> devolucao/perda/dano como fluxo navegavel. |
 | Inteligencia de Risco | `risk-intelligence` | 2 | 3 | 2 | `suportado-parcialmente`: ameacas publicam surface, actions reais de triagem e stats; incidentes ja existem como recurso transacional em `operations.incidentes`, agora com surface item-level para abrir `risk-intelligence.vw-indicadores-incidentes` como leitura analitica derivada e chart de tendencia. |
@@ -129,6 +129,7 @@ Uso esperado:
 Exemplos atuais mais fortes:
 
 - `operations.missoes`: surfaces para acompanhamento, analytics e operacao;
+- `operations.equipes`: composicao de membros e capacidade operacional navegavel;
 - `operations.incidentes`: surface de investigacao e ponte navegavel para indicadores analiticos de risco;
 - `procurement.companies`: surface de escopo de empresas compradoras;
 - `procurement.suppliers`: surface de homologacao, risco, elegibilidade, contratos e pedidos vinculados;
@@ -248,9 +249,9 @@ Em `operations`, as perguntas ja materializadas pelo host exemplar sao:
   `/schemas/actions?resource=operations.acordos-regulatorios`.
 
 O smoke `scripts/verify-operations-runtime.sh` protege essas evidencias no host
-publicado e confirma surfaces de acompanhamento de missao, revisao de acesso,
-governanca de acordo, actions de ciclo operacional e charts de status, prioridade,
-eventos, equipe e timeline.
+publicado e confirma surfaces de acompanhamento de missao, composicao de equipes,
+revisao de acesso, governanca de acordo, actions de ciclo operacional e charts de
+status, prioridade, eventos, equipe e timeline.
 
 Em `assets`, as perguntas ja materializadas pelo host exemplar sao:
 

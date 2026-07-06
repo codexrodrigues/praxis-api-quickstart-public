@@ -3,14 +3,21 @@ package com.example.praxis.apiquickstart.operations.controller;
 import com.example.praxis.apiquickstart.constants.ApiPaths;
 import com.example.praxis.apiquickstart.operations.dto.EquipeDTO;
 import com.example.praxis.apiquickstart.operations.dto.CreateEquipeDTO;
+import com.example.praxis.apiquickstart.operations.dto.EquipeMembroDTO;
 import com.example.praxis.apiquickstart.operations.dto.UpdateEquipeDTO;
 import com.example.praxis.apiquickstart.operations.dto.filter.EquipeFilterDTO;
 import com.example.praxis.apiquickstart.operations.entity.Equipe;
 import com.example.praxis.apiquickstart.operations.mapper.EquipeMapper;
+import com.example.praxis.apiquickstart.operations.service.EquipeMembroService;
 import com.example.praxis.apiquickstart.operations.service.EquipeService;
 import org.praxisplatform.uischema.annotation.ApiGroup;
 import org.praxisplatform.uischema.annotation.ApiResource;
+import org.praxisplatform.uischema.annotation.ResourceIntent;
+import org.praxisplatform.uischema.annotation.UiSurface;
 import com.example.praxis.apiquickstart.core.controller.base.AbstractQuickstartCrudController;
+import org.praxisplatform.uischema.surface.RelatedResourceChildOperation;
+import org.praxisplatform.uischema.surface.SurfaceKind;
+import org.praxisplatform.uischema.surface.SurfaceScope;
 import org.springframework.beans.factory.annotation.Autowired;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -18,6 +25,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import org.praxisplatform.uischema.rest.response.RestApiResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.hateoas.EntityModel;
+import org.springframework.hateoas.Links;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -29,7 +37,14 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import java.util.List;
 
-@ApiResource(value = ApiPaths.Operations.EQUIPES, resourceKey = "operations.equipes")
+@ApiResource(
+        value = ApiPaths.Operations.EQUIPES,
+        resourceKey = "operations.equipes",
+        title = "Equipes operacionais",
+        description = "Unidades táticas responsáveis por cobertura, escala, prontidão e composição de capacidade para missões.",
+        icon = "users",
+        visualTone = "operations"
+)
 @ApiGroup("operations")
 /**
  * Controller de referência para equipes operacionais.
@@ -44,11 +59,13 @@ public class EquipeController extends AbstractQuickstartCrudController<Equipe, E
 
     private final EquipeService service;
     private final EquipeMapper mapper;
+    private final EquipeMembroService membroService;
 
     @Autowired
-    public EquipeController(EquipeService service, EquipeMapper mapper) {
+    public EquipeController(EquipeService service, EquipeMapper mapper, EquipeMembroService membroService) {
         this.service = service;
         this.mapper = mapper;
+        this.membroService = membroService;
     }
 
     @Override
@@ -145,6 +162,50 @@ public class EquipeController extends AbstractQuickstartCrudController<Equipe, E
         return super.getById(id);
     }
 
+    @GetMapping("/{id}/members")
+    @UiSurface(
+            id = "members",
+            kind = SurfaceKind.READ_PROJECTION,
+            scope = SurfaceScope.ITEM,
+            title = "Composição da equipe",
+            description = "Lista membros, papéis e vigências da equipe para leitura de capacidade operacional, cobertura, sucessão e escala.",
+            intent = "team-composition",
+            order = 40,
+            tags = {"operations", "team", "members", "staffing", "capacity", "read-projection", "related-resource"},
+            relatedChildResourceKey = "operations.equipe-membros",
+            relatedChildResourcePath = ApiPaths.Operations.EQUIPE_MEMBROS,
+            relatedChildParentField = "equipeId",
+            relatedSelectable = true,
+            relatedSelectionKeyField = "id",
+            relatedChildOperations = {
+                    RelatedResourceChildOperation.FILTER,
+                    RelatedResourceChildOperation.LIST,
+                    RelatedResourceChildOperation.CREATE,
+                    RelatedResourceChildOperation.UPDATE,
+                    RelatedResourceChildOperation.DELETE
+            }
+    )
+    @ResourceIntent(
+            id = "team-composition",
+            title = "Composição operacional da equipe",
+            description = "Mostra quem compõe a equipe, quais papéis estão cobertos e qual vigência sustenta a capacidade operacional.",
+            order = 40
+    )
+    @Operation(summary = "Obter composição da equipe", description = "Retorna vínculos de membros da equipe selecionada para leitura de capacidade, escala e responsabilidade operacional.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Composição retornada com sucesso.")
+    })
+    public ResponseEntity<RestApiResponse<List<EquipeMembroDTO>>> getMembers(@PathVariable Integer id) {
+        List<EquipeMembroDTO> members = membroService.findByEquipeIdForTeamSurface(id);
+        Links links = Links.of(
+                linkToSelf(id),
+                linkToAll(),
+                linkToFilter(),
+                linkToUiSchema("/{id}/members", "get", "response")
+        );
+        return withVersion(ResponseEntity.ok(), RestApiResponse.success(members, hateoasOrNull(links)));
+    }
+
     @PostMapping
     @Operation(summary = "Cadastrar equipe operacional", description = "Cadastra uma nova equipe com base de referência, status e responsabilidades para uso em missões e escalas.")
     @ApiResponses({
@@ -188,8 +249,6 @@ public class EquipeController extends AbstractQuickstartCrudController<Equipe, E
         return super.deleteBatch(ids);
     }
 }
-
-
 
 
 

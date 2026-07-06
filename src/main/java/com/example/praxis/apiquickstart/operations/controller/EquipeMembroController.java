@@ -31,7 +31,14 @@ import org.springframework.web.bind.annotation.RequestParam;
 import java.util.List;
 
 @RestController
-@ApiResource(value = ApiPaths.Operations.EQUIPE_MEMBROS, resourceKey = "operations.equipe-membros")
+@ApiResource(
+        value = ApiPaths.Operations.EQUIPE_MEMBROS,
+        resourceKey = "operations.equipe-membros",
+        title = "Membros de equipes",
+        description = "Vínculos de colaboradores com equipes, papéis e vigências que sustentam escala, responsabilidade e capacidade operacional.",
+        icon = "user-round-check",
+        visualTone = "operations"
+)
 @ApiGroup("operations")
 /**
  * Controller de referência para vínculos entre equipes e seus membros.
@@ -190,7 +197,6 @@ public class EquipeMembroController extends AbstractQuickstartCrudController<Equ
         return super.deleteBatch(ids);
     }
 }
-
 
 
 

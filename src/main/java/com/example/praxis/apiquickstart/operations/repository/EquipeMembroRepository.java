@@ -6,12 +6,25 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.jpa.repository.EntityGraph;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.praxisplatform.uischema.repository.base.BaseCrudRepository;
 
 import java.util.List;
 import java.util.Optional;
 
 public interface EquipeMembroRepository extends BaseCrudRepository<EquipeMembro, Integer> {
+
+    @EntityGraph(value = "EquipeMembro.detail")
+    @Query("""
+            select membro
+              from EquipeMembro membro
+             where membro.equipe.id = :equipeId
+             order by case when membro.dataSaida is null then 0 else 1 end,
+                      membro.dataEntrada desc,
+                      membro.id asc
+            """)
+    List<EquipeMembro> findByEquipeIdForTeamSurface(@Param("equipeId") Integer equipeId);
 
     @Override
     @EntityGraph(value = "EquipeMembro.detail")
@@ -33,5 +46,3 @@ public interface EquipeMembroRepository extends BaseCrudRepository<EquipeMembro,
     @EntityGraph(value = "EquipeMembro.detail")
     Page<EquipeMembro> findAll(Specification<EquipeMembro> spec, Pageable pageable);
 }
-
-

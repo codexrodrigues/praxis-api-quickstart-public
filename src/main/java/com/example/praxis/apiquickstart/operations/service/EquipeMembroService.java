@@ -10,6 +10,8 @@ import com.example.praxis.apiquickstart.operations.repository.EquipeMembroReposi
 import com.example.praxis.apiquickstart.core.service.base.AbstractQuickstartCrudService;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 @Service
 /**
  * Service de referência para composição de equipes.
@@ -40,8 +42,14 @@ public class EquipeMembroService extends AbstractQuickstartCrudService<EquipeMem
         long count = getRepository().count();
         return java.util.Optional.of(getEntityClass().getSimpleName() + ":" + count);
     }
-}
 
+    public List<EquipeMembroDTO> findByEquipeIdForTeamSurface(Integer equipeId) {
+        return ((EquipeMembroRepository) getRepository()).findByEquipeIdForTeamSurface(equipeId)
+                .stream()
+                .map(mapper::toDto)
+                .toList();
+    }
+}
 
 
 
