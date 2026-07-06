@@ -70,10 +70,13 @@ contra surface, schema, campo pai, chave de selecao e operacoes OpenAPI do recur
 filho quando a surface aponta para um filho CRUD real. Os contratos de analytics
 devem ser conferidos com `scripts/verify-cockpit-analytics-contracts.sh`, que
 valida endpoints `/stats/*`, schemas filtrados de request/response e surfaces
-`CHART` com projecoes `praxis.stats`. A lacuna principal e de exemplaridade no
-host: quando um dominio ainda parecer fraco no cockpit, a primeira pergunta deve
-ser se ja existe semantica publicada que o dashboard ainda nao esta materializando
-bem antes de criar novos comandos ou campos.
+`CHART` com projecoes `praxis.stats`. Os lookups governados devem ser conferidos
+com `scripts/verify-cockpit-option-source-contracts.sh`, que descobre
+`x-ui.optionSource` em schemas filtrados e valida endpoints de busca e reidratacao
+para filtros e formularios. A lacuna principal e de exemplaridade no host: quando
+um dominio ainda parecer fraco no cockpit, a primeira pergunta deve ser se ja
+existe semantica publicada que o dashboard ainda nao esta materializando bem antes
+de criar novos comandos ou campos.
 
 ## Como cada camada aparece no cockpit
 
