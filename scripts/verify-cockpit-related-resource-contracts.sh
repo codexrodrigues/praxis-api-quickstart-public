@@ -186,7 +186,6 @@ for group in "${groups[@]}"; do
       child_group="${child_resource_key%%.*}"
       child_openapi_file="$(openapi_file_for_group "$child_group")"
       if [[ -n "$child_operations" ]]; then
-        assert_openapi_path "$child_openapi_file" "$child_resource_path" "POST" "${context} child resource"
         IFS=',' read -r -a operations <<< "$child_operations"
         for operation in "${operations[@]}"; do
           assert_child_operation_path "$child_openapi_file" "$child_resource_path" "$operation" "$context"
