@@ -147,6 +147,13 @@ class LegacyBackedResourcePilotIntegrationTest {
         ));
         assertEquals("object", duplicateDraftRequestSchema.path("type").asText());
         assertTrue(duplicateDraftRequestSchema.path("properties").isObject(), duplicateDraftRequestSchema.toPrettyString());
+        JsonNode duplicateDraftResponseSchema = body(restTemplate.getForEntity(
+                duplicateDraftAction.path("responseSchemaUrl").asText(),
+                String.class
+        ));
+        assertEquals("object", duplicateDraftResponseSchema.path("type").asText());
+        assertTrue(duplicateDraftResponseSchema.path("properties").has("code"),
+                duplicateDraftResponseSchema.toPrettyString());
 
         JsonNode responseSchema = body(restTemplate.getForEntity(
                 "/schemas/filtered?path=/api/human-resources/legacy-pay-codes/%7Bid%7D&operation=get&schemaType=response",
@@ -200,6 +207,10 @@ class LegacyBackedResourcePilotIntegrationTest {
         ));
         assertEquals("DRAFT", draft.path("data").path("status").asText());
         assertFalse(draft.path("data").path("active").asBoolean());
+        JsonNode schemaLinks = draft.path("_links").path("schema");
+        assertTrue(schemaLinks.isArray(), draft.toPrettyString());
+        assertTrue(containsSchemaType(schemaLinks, "request"), draft.toPrettyString());
+        assertTrue(containsSchemaType(schemaLinks, "response"), draft.toPrettyString());
 
         ResponseEntity<String> updated = restTemplate.exchange(
                 BASE_PATH + "/" + createdId,
@@ -255,6 +266,19 @@ class LegacyBackedResourcePilotIntegrationTest {
             return link.path("href").asText(null);
         }
         return null;
+    }
+
+    private boolean containsSchemaType(JsonNode links, String schemaType) {
+        if (!links.isArray()) {
+            return false;
+        }
+        for (JsonNode link : links) {
+            String href = link.path("href").asText();
+            if (href.contains("schemaType=" + schemaType)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private JsonNode findById(JsonNode array, String id) {
