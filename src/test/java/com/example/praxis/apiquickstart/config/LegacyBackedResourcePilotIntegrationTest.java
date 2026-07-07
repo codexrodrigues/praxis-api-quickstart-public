@@ -135,6 +135,19 @@ class LegacyBackedResourcePilotIntegrationTest {
         JsonNode itemCapabilities = body(restTemplate.getForEntity(BASE_PATH + "/" + createdId + "/capabilities", String.class));
         assertTrue(itemCapabilities.path("operations").path("duplicate-draft").path("availability").path("allowed").asBoolean());
 
+        JsonNode actionCatalog = body(restTemplate.getForEntity(
+                "/schemas/actions?resource=human-resources.legacy-pay-codes",
+                String.class
+        ));
+        JsonNode duplicateDraftAction = findById(actionCatalog.path("actions"), "duplicate-draft");
+        assertNotNull(duplicateDraftAction);
+        JsonNode duplicateDraftRequestSchema = body(restTemplate.getForEntity(
+                duplicateDraftAction.path("requestSchemaUrl").asText(),
+                String.class
+        ));
+        assertEquals("object", duplicateDraftRequestSchema.path("type").asText());
+        assertTrue(duplicateDraftRequestSchema.path("properties").isObject(), duplicateDraftRequestSchema.toPrettyString());
+
         JsonNode responseSchema = body(restTemplate.getForEntity(
                 "/schemas/filtered?path=/api/human-resources/legacy-pay-codes/%7Bid%7D&operation=get&schemaType=response",
                 String.class
