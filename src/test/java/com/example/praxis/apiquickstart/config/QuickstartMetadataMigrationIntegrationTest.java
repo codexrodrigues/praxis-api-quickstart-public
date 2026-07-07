@@ -80,6 +80,18 @@ class QuickstartMetadataMigrationIntegrationTest {
     @MockBean(name = "ragVectorStore")
     private VectorStore ragVectorStore;
 
+    @MockBean
+    private DomainRuleApprovalPolicyResolver approvalPolicyResolver;
+
+    @MockBean
+    private DomainRuleBackendValidationPolicyResolver backendValidationPolicyResolver;
+
+    @MockBean
+    private DomainRuleOptionSourcePolicyResolver optionSourcePolicyResolver;
+
+    @MockBean
+    private DomainRuleWorkflowActionPolicyResolver workflowActionPolicyResolver;
+
     @BeforeEach
     void seedTables() {
         jdbcTemplate.execute("drop table if exists public.vw_perfil_heroi");

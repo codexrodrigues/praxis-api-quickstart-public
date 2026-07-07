@@ -80,6 +80,18 @@ class EventosFolhaPilotIntegrationTest {
     @MockBean(name = "ragVectorStore")
     private VectorStore ragVectorStore;
 
+    @MockBean
+    private DomainRuleApprovalPolicyResolver approvalPolicyResolver;
+
+    @MockBean
+    private DomainRuleBackendValidationPolicyResolver backendValidationPolicyResolver;
+
+    @MockBean
+    private DomainRuleOptionSourcePolicyResolver optionSourcePolicyResolver;
+
+    @MockBean
+    private DomainRuleWorkflowActionPolicyResolver workflowActionPolicyResolver;
+
     @BeforeEach
     void seedEventosFolhaTables() {
         jdbcTemplate.execute("drop table if exists public.eventos_folha");
