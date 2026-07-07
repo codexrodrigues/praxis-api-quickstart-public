@@ -47,7 +47,7 @@ producao.
 
 | Dominio no cockpit | Grupo OpenAPI | Recursos | Surfaces explicitas | Workflow actions explicitas | Leitura de aderencia |
 | --- | --- | ---: | ---: | ---: | --- |
-| Pessoas e RH | `human-resources` | 20 | 12 | 4 | `ja-suportado-mal-nomeado-ou-mal-materializado`: perfil 360, folha, participacoes em missoes, dependentes, endereco cadastral, matriz de competencias, historico de cargos, disponibilidade por afastamentos, action de cobertura e ranking reputacional ja existem; a proxima melhoria deve aprofundar governanca de ciclo de vida sem criar surface decorativa. |
+| Pessoas e RH | `human-resources` | 20 | 12 | 5 | `ja-suportado-mal-nomeado-ou-mal-materializado`: perfil 360, folha, participacoes em missoes, dependentes, endereco cadastral, matriz de competencias, historico de cargos, disponibilidade por afastamentos, action de cobertura, ranking reputacional e governanca de codigos legados de folha ja existem; a proxima melhoria deve aprofundar governanca de ciclo de vida sem criar surface decorativa. |
 | Operacoes | `operations` | 12 | 12 | 10 | `ja-suportado-mal-nomeado-ou-mal-materializado`: e o melhor dominio para demonstrar actions/surfaces; cockpit deve usar esse dominio como referencia visual de workflows, composicao de equipes, capacidade operacional e ponte transacional para leituras analiticas derivadas. |
 | Suprimentos | `procurement` | 5 | 10 | 8 | `ja-suportado-mal-nomeado-ou-mal-materializado`: recursos, schemas, option sources, surfaces e actions de fornecedor, contrato e pedido existem; o cockpit deve materializar a jornada fornecedor -> contrato -> catalogo -> pedido -> recebimento como fluxo navegavel. |
 | Ativos Operacionais | `assets` | 4 | 6 | 7 | `ja-suportado-mal-nomeado-ou-mal-materializado`: recursos, lookups, surfaces, actions de disponibilidade e actions de custodia existem; o cockpit deve materializar inventario -> custodia -> frota -> missao -> devolucao/perda/dano como fluxo navegavel. |
@@ -157,6 +157,7 @@ Uso esperado:
 Exemplos atuais mais fortes:
 
 - folha de pagamento: aprovar ou revisar ciclos;
+- codigos legados de folha: duplicar rascunho para migracao e saneamento controlado;
 - missoes: transicoes operacionais de ciclo;
 - acessos a bases: ativar/desativar autorizacao;
 - acordos regulatorios: revisar/ativar/suspender compromissos.
