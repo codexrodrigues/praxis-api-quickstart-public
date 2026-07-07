@@ -39,10 +39,10 @@ public class FuncionarioDTO {
         formHidden = true,
         group = "Identificação",
         order = 1,
-        icon = "pin",
+        icon = "tag",
         extraProperties = {
             @ExtensionProperty(name = "presentation.presenter", value = "iconValue"),
-            @ExtensionProperty(name = "presentation.icon", value = "pin"),
+            @ExtensionProperty(name = "presentation.icon", value = "tag"),
             @ExtensionProperty(name = "presentation.prefix", value = "#"),
             @ExtensionProperty(name = "presentation.appearance", value = "soft"),
             @ExtensionProperty(name = "presentation.tooltip", value = "Código interno do colaborador")

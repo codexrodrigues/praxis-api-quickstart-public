@@ -601,6 +601,11 @@ class QuickstartMetadataMigrationIntegrationTest {
                 "/schemas/filtered?path=/api/human-resources/funcionarios/%7Bid%7D&operation=get&schemaType=response",
                 String.class
         ));
+        JsonNode idPresentation = funcionarioViewSchema.path("properties").path("id").path("x-ui").path("presentation");
+        assertEquals("iconValue", idPresentation.path("presenter").asText());
+        assertEquals("tag", idPresentation.path("icon").asText());
+        assertEquals("#", idPresentation.path("prefix").asText());
+
         JsonNode avatarUi = funcionarioViewSchema.path("properties").path("avatarUrl").path("x-ui");
         assertEquals("avatar", avatarUi.path("controlType").asText());
         assertEquals("Foto", avatarUi.path("label").asText());
