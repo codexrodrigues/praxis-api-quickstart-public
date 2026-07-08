@@ -65,8 +65,10 @@ class FuncionarioServiceStatsTest {
 
         assertTrue(capability.formats().contains(CollectionExportFormat.JSON));
         assertTrue(capability.formats().contains(CollectionExportFormat.CSV));
+        assertTrue(capability.formats().contains(CollectionExportFormat.EXCEL));
         assertTrue(capability.scopes().contains(CollectionExportScope.SELECTED));
         assertEquals(500, capability.maxRows().get(CollectionExportFormat.JSON.value()));
+        assertEquals(500, capability.maxRows().get(CollectionExportFormat.EXCEL.value()));
     }
 
     @Test

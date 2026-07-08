@@ -103,7 +103,7 @@ public class FuncionarioService extends AbstractQuickstartCrudService<Funcionari
             new CollectionExportField("cargoId", "Cargo ID", false, true, "number", "cargoId")
     );
     private static final CollectionExportCapability EXPORT_CAPABILITY = new CollectionExportCapability(
-            List.of(CollectionExportFormat.CSV, CollectionExportFormat.JSON),
+            List.of(CollectionExportFormat.CSV, CollectionExportFormat.JSON, CollectionExportFormat.EXCEL),
             List.of(
                     CollectionExportScope.AUTO,
                     CollectionExportScope.SELECTED,
@@ -111,7 +111,11 @@ public class FuncionarioService extends AbstractQuickstartCrudService<Funcionari
                     CollectionExportScope.CURRENT_PAGE,
                     CollectionExportScope.ALL
             ),
-            Map.of(CollectionExportFormat.CSV.value(), EXPORT_MAX_ROWS, CollectionExportFormat.JSON.value(), EXPORT_MAX_ROWS),
+            Map.of(
+                    CollectionExportFormat.CSV.value(), EXPORT_MAX_ROWS,
+                    CollectionExportFormat.JSON.value(), EXPORT_MAX_ROWS,
+                    CollectionExportFormat.EXCEL.value(), EXPORT_MAX_ROWS
+            ),
             false
     );
 

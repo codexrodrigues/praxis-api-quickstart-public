@@ -368,7 +368,7 @@ curl -i -b cookies.txt -c cookies.txt \
 ## Rodar local
 Este quickstart usa os starters alinhados ao ciclo corrente:
 
-- Metadata: `io.github.codexrodrigues:praxis-metadata-starter:8.0.0-rc.78`
+- Metadata: `io.github.codexrodrigues:praxis-metadata-starter:8.0.0-rc.79`
 - Config: `io.github.codexrodrigues:praxis-config-starter:0.1.0-rc.71`
 - UI Angular: `@praxisui/*:8.0.0-beta.19`
 
@@ -744,9 +744,10 @@ POST /api/human-resources/eventos-folha/export
 }
 ```
 
-O piloto `eventos-folha` usa `CollectionExportExecutor` do starter e suporta os engines padrao
-`csv` e `json`. Formatos como `excel`, `pdf` e `print` continuam parte do contrato publico, mas
-exigem engine adicional registrado no host ou versao futura do starter.
+O piloto `eventos-folha` usa `CollectionExportExecutor` do starter e opta por suportar
+`csv` e `json`. O starter tambem registra engine XLSX canonico, mas cada recurso continua
+responsavel por anunciar apenas os formatos que sua politica de exportacao aceita em
+`CollectionExportCapability`.
 
 Em `GET /api/human-resources/eventos-folha/capabilities`, o piloto tambem publica
 `operations.export.formats = ["csv", "json"]`, os escopos `auto`, `selected`, `filtered`,
@@ -756,6 +757,12 @@ Esse limite e aplicado no servidor mesmo quando o cliente omite `maxRows` ou sol
 a resposta inline for parcial, o host retorna `X-Export-Truncated`, `X-Export-Max-Rows`,
 `X-Export-Candidate-Row-Count` e `X-Export-Warnings` para que a UI sinalize exportacao truncada. Campos
 fora da allowlist exportavel do recurso retornam `400 Bad Request`.
+
+O recurso `funcionarios` demonstra exportacao XLSX real pelo mesmo endpoint
+`POST /api/human-resources/funcionarios/export`, anunciando
+`operations.export.formats = ["csv", "json", "excel"]`. A validacao HTTP do quickstart
+abre o arquivo `.xlsx` gerado e confirma headers, ordem de colunas e valores pt-BR
+materializados por metadados, como status, salario e data de admissao.
 
 Contrato operacional do piloto externo:
 - o piloto externo nao faz enforcement RBAC no workflow; o login demo segue emitindo `SESSION` autenticada, sem authority especifica da action;

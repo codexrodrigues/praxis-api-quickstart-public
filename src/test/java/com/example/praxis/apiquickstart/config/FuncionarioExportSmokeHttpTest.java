@@ -4,6 +4,8 @@ import com.example.praxis.apiquickstart.ApiQuickstartApplication;
 import com.example.praxis.apiquickstart.security.JwtTokenService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.ai.vectorstore.VectorStore;
@@ -19,6 +21,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.JdbcTemplate;
+
+import java.io.ByteArrayInputStream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -220,19 +224,47 @@ class FuncionarioExportSmokeHttpTest {
     }
 
     @Test
-    void shouldRejectFuncionarioExcelExportUntilXlsxEngineExists() {
-        ResponseEntity<String> exported = postExport("""
+    void shouldExportFuncionariosExcelWithGovernedFormatting() throws Exception {
+        ResponseEntity<byte[]> exported = postExportBytes("""
                 {
                   "format": "excel",
                   "scope": "currentPage",
+                  "includeHeaders": true,
+                  "applyFormatting": true,
                   "fields": [
-                    { "key": "salario", "label": "Salario", "visible": true, "exportable": true }
-                  ]
+                    { "key": "ativo", "label": "Status", "visible": true, "exportable": true },
+                    { "key": "salario", "label": "Salario", "visible": true, "exportable": true },
+                    { "key": "dataAdmissao", "label": "Admissao", "visible": true, "exportable": true }
+                  ],
+                  "pagination": { "pageIndex": 0, "pageNumber": 0, "pageSize": 2 },
+                  "sort": [{ "field": "salario", "direction": "desc" }],
+                  "formatOptions": { "excel": { "sheetName": "Funcionarios", "freezeHeaders": true, "autoFitColumns": true } },
+                  "localization": { "locale": "pt-BR", "timeZone": "America/Sao_Paulo" }
                 }
                 """);
 
-        assertEquals(HttpStatus.BAD_REQUEST, exported.getStatusCode());
-        assertTrue(exported.getBody().contains("Unsupported collection export format: excel"));
+        assertEquals(HttpStatus.OK, exported.getStatusCode());
+        assertNotNull(exported.getHeaders().getContentType());
+        assertEquals("application", exported.getHeaders().getContentType().getType());
+        assertEquals("vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                exported.getHeaders().getContentType().getSubtype());
+        assertTrue(exported.getHeaders().getFirst(HttpHeaders.CONTENT_DISPOSITION).contains("funcionarios.xlsx"));
+        assertEquals("2", exported.getHeaders().getFirst("X-Export-Row-Count"));
+        assertNotNull(exported.getBody());
+
+        try (Workbook workbook = new XSSFWorkbook(new ByteArrayInputStream(exported.getBody()))) {
+            var sheet = workbook.getSheet("Funcionarios");
+            assertNotNull(sheet);
+            assertEquals("Status", sheet.getRow(0).getCell(0).getStringCellValue());
+            assertEquals("Salario", sheet.getRow(0).getCell(1).getStringCellValue());
+            assertEquals("Admissao", sheet.getRow(0).getCell(2).getStringCellValue());
+            assertEquals("Inativo", sheet.getRow(1).getCell(0).getStringCellValue());
+            assertEquals("R$\u00A095.000,00", sheet.getRow(1).getCell(1).getStringCellValue());
+            assertEquals("01/02/2010", sheet.getRow(1).getCell(2).getStringCellValue());
+            assertEquals("Ativo", sheet.getRow(2).getCell(0).getStringCellValue());
+            assertEquals("R$\u00A041.000,00", sheet.getRow(2).getCell(1).getStringCellValue());
+            assertEquals("13/06/2022", sheet.getRow(2).getCell(2).getStringCellValue());
+        }
     }
 
     @Test
@@ -249,9 +281,10 @@ class FuncionarioExportSmokeHttpTest {
                 .path("operations")
                 .path("export")
                 .path("formats");
-        assertEquals(2, formats.size());
+        assertEquals(3, formats.size());
         assertEquals("csv", formats.get(0).asText());
         assertEquals("json", formats.get(1).asText());
+        assertEquals("excel", formats.get(2).asText());
     }
 
     private ResponseEntity<String> postExport(String json) {
@@ -260,6 +293,15 @@ class FuncionarioExportSmokeHttpTest {
                 HttpMethod.POST,
                 authorizedJson(json, jwtTokenService.generate("admin", "ADMIN")),
                 String.class
+        );
+    }
+
+    private ResponseEntity<byte[]> postExportBytes(String json) {
+        return restTemplate.exchange(
+                "/api/human-resources/funcionarios/export",
+                HttpMethod.POST,
+                authorizedJson(json, jwtTokenService.generate("admin", "ADMIN")),
+                byte[].class
         );
     }
 
