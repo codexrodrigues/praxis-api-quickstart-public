@@ -1,13 +1,11 @@
 package com.example.praxis.apiquickstart.config;
 
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.test.context.TestPropertySource;
 
 import java.util.Map;
 
@@ -15,12 +13,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-@EnabledIfEnvironmentVariable(named = "PRAXIS_EXTERNAL_SMOKE_TESTS", matches = "true")
 @SpringBootTest(
-        webEnvironment = SpringBootTest.WebEnvironment.DEFINED_PORT,
+        webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
         properties = {
-                "server.port=18088",
-                "app.openapi.internal-base-url=http://localhost:18088",
                 "app.rate-limit.enabled=false",
                 "app.security.config-origin-restriction.enabled=false",
                 "app.security.read-open=false",
@@ -37,7 +32,17 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
                 "praxis.ai.registry.bootstrap.enabled=false",
                 "praxis.ai.registry.health.enabled=false",
                 "spring.ai.vectorstore.pgvector.initialize-schema=false",
-                "spring.ai.vectorstore.pgvector.vector-table-validations-enabled=false"
+                "spring.ai.vectorstore.pgvector.vector-table-validations-enabled=false",
+                "spring.flyway.enabled=false",
+                "spring.datasource.url=jdbc:h2:mem:quickstart_stats_schema_api;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DB_CLOSE_DELAY=-1",
+                "spring.datasource.driver-class-name=org.h2.Driver",
+                "spring.datasource.username=sa",
+                "spring.datasource.password=",
+                "config.datasource.url=jdbc:h2:mem:quickstart_stats_schema_config;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DB_CLOSE_DELAY=-1",
+                "config.datasource.driver-class-name=org.h2.Driver",
+                "config.datasource.username=sa",
+                "config.datasource.password=",
+                "spring.jpa.hibernate.ddl-auto=none"
         }
 )
 class StatsSchemaSmokeHttpTest {

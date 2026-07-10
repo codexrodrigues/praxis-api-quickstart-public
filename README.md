@@ -379,7 +379,12 @@ Este quickstart usa os starters alinhados ao ciclo corrente:
 mvn  -B -DskipTests package
 ```
 
-Smoke local opcional dos endpoints de `stats/*`:
+Smoke local em memoria dos schemas/catalogos de `stats/*`:
+```
+./mvnw test -Dtest=StatsSchemaSmokeHttpTest
+```
+
+Smoke externo opcional dos endpoints de `stats/*` em host publicado/configurado:
 ```
 PRAXIS_EXTERNAL_SMOKE_TESTS=true ./mvnw test -Dtest=VwStatsSmokeHttpTest
 ```
@@ -390,9 +395,10 @@ Smoke focal em memoria para provar o cockpit de Ativos Operacionais:
 ```
 
 Notas:
-- esse smoke sobe o contexto completo e depende da infraestrutura externa configurada para banco/config-store;
-- ele e destinado a validacao local/manual e nao faz parte da suite padrao de CI;
-- sem `PRAXIS_EXTERNAL_SMOKE_TESTS=true`, o teste e ignorado por desenho.
+- `StatsSchemaSmokeHttpTest` usa H2 em memoria para provar localmente schemas filtrados, links de catalogo e option sources de filtros analiticos.
+- `VwStatsSmokeHttpTest` sobe o contexto completo e depende da infraestrutura externa configurada para banco/config-store;
+- o smoke externo e destinado a validacao manual de host publicado e nao faz parte da suite padrao de CI;
+- sem `PRAXIS_EXTERNAL_SMOKE_TESTS=true`, o smoke externo e ignorado por desenho.
 - a suite padrao de CI deve usar H2 em memoria e `spring.flyway.enabled=false` para testes de integracao; `IntegrationTestIsolationPolicyTest` falha se um novo teste Spring tentar herdar o datasource remoto sem estar marcado como smoke externo.
 
 2) Executar (dev):
