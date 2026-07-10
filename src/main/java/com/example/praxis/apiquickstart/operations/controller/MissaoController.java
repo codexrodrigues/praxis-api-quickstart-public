@@ -25,6 +25,8 @@ import org.praxisplatform.uischema.annotation.ResourceIntent;
 import org.praxisplatform.uischema.annotation.UiSurface;
 import org.praxisplatform.uischema.annotation.WorkflowAction;
 import org.praxisplatform.uischema.action.ActionScope;
+import org.praxisplatform.uischema.command.ResourceCommandExecutionResult;
+import org.praxisplatform.uischema.command.ResourceCommandResponsePolicy;
 import org.springframework.beans.factory.annotation.Autowired;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -46,6 +48,7 @@ import org.praxisplatform.uischema.surface.RelatedResourceChildOperation;
 import org.praxisplatform.uischema.surface.SurfaceKind;
 import org.praxisplatform.uischema.surface.SurfaceScope;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Recurso de missoes usado como principal exemplo operacional de workflow contextual.
@@ -410,7 +413,7 @@ public class MissaoController extends AbstractQuickstartCrudController<Missao, M
             @PathVariable Integer id,
             @jakarta.validation.Valid @RequestBody MissaoWorkflowRequestDTO dto
     ) {
-        return workflowResponse(id, "/{id}/actions/start", service.start(id, dto));
+        return executeMissaoCommand("start", id, dto, () -> service.start(id, dto));
     }
 
     @PostMapping("/{id}/actions/pause")
@@ -429,7 +432,7 @@ public class MissaoController extends AbstractQuickstartCrudController<Missao, M
             @PathVariable Integer id,
             @jakarta.validation.Valid @RequestBody MissaoWorkflowRequestDTO dto
     ) {
-        return workflowResponse(id, "/{id}/actions/pause", service.pause(id, dto));
+        return executeMissaoCommand("pause", id, dto, () -> service.pause(id, dto));
     }
 
     @PostMapping("/{id}/actions/resume")
@@ -448,7 +451,7 @@ public class MissaoController extends AbstractQuickstartCrudController<Missao, M
             @PathVariable Integer id,
             @jakarta.validation.Valid @RequestBody MissaoWorkflowRequestDTO dto
     ) {
-        return workflowResponse(id, "/{id}/actions/resume", service.resume(id, dto));
+        return executeMissaoCommand("resume", id, dto, () -> service.resume(id, dto));
     }
 
     @PostMapping("/{id}/actions/complete")
@@ -467,7 +470,7 @@ public class MissaoController extends AbstractQuickstartCrudController<Missao, M
             @PathVariable Integer id,
             @jakarta.validation.Valid @RequestBody MissaoWorkflowRequestDTO dto
     ) {
-        return workflowResponse(id, "/{id}/actions/complete", service.complete(id, dto));
+        return executeMissaoCommand("complete", id, dto, () -> service.complete(id, dto));
     }
 
     @PostMapping("/{id}/actions/fail")
@@ -486,7 +489,7 @@ public class MissaoController extends AbstractQuickstartCrudController<Missao, M
             @PathVariable Integer id,
             @jakarta.validation.Valid @RequestBody MissaoWorkflowRequestDTO dto
     ) {
-        return workflowResponse(id, "/{id}/actions/fail", service.fail(id, dto));
+        return executeMissaoCommand("fail", id, dto, () -> service.fail(id, dto));
     }
 
     @DeleteMapping("/{id}")
@@ -509,30 +512,29 @@ public class MissaoController extends AbstractQuickstartCrudController<Missao, M
         return super.deleteBatch(ids);
     }
 
-    private ResponseEntity<RestApiResponse<MissaoWorkflowResultDTO>> workflowResponse(
+    @SuppressWarnings("unchecked")
+    private ResponseEntity<RestApiResponse<MissaoWorkflowResultDTO>> executeMissaoCommand(
+            String actionId,
             Integer id,
-            String operationPath,
-            MissaoWorkflowResultDTO result
+            MissaoWorkflowRequestDTO dto,
+            MissaoWorkflowExecution execution
     ) {
-        // Cada action reapresenta os links do recurso e dos schemas da transicao executada.
-        Links links = Links.of(
-                linkToSelf(id),
-                linkToAll(),
-                linkToFilter(),
-                linkToFilterCursor(),
-                linkToUiSchema(operationPath, "post", "request"),
-                linkToUiSchema(operationPath, "post", "response")
+        return (ResponseEntity<RestApiResponse<MissaoWorkflowResultDTO>>) (ResponseEntity<?>) executeItemCommand(
+                actionId,
+                id,
+                dto,
+                ResourceCommandResponsePolicy.RETURN_COMMAND_RESULT,
+                request -> ResourceCommandExecutionResult.success(
+                        request,
+                        id,
+                        execution.execute(),
+                        Map.of("resourceKey", "operations.missoes")
+                )
         );
-        return withVersion(ResponseEntity.ok(), RestApiResponse.success(result, hateoasOrNull(links)));
+    }
+
+    @FunctionalInterface
+    private interface MissaoWorkflowExecution {
+        MissaoWorkflowResultDTO execute();
     }
 }
-
-
-
-
-
-
-
-
-
-

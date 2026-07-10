@@ -17,12 +17,13 @@ import org.praxisplatform.uischema.annotation.ApiResource;
 import org.praxisplatform.uischema.annotation.UiSurface;
 import org.praxisplatform.uischema.annotation.WorkflowAction;
 import org.praxisplatform.uischema.action.ActionScope;
+import org.praxisplatform.uischema.command.ResourceCommandExecutionResult;
+import org.praxisplatform.uischema.command.ResourceCommandResponsePolicy;
 import org.praxisplatform.uischema.rest.response.RestApiResponse;
 import org.praxisplatform.uischema.surface.SurfaceKind;
 import org.praxisplatform.uischema.surface.SurfaceScope;
 import org.springframework.data.domain.Page;
 import org.springframework.hateoas.EntityModel;
-import org.springframework.hateoas.Links;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -132,7 +133,7 @@ public class ProcurementPurchaseOrderController extends AbstractQuickstartCrudCo
             @PathVariable Integer id,
             @jakarta.validation.Valid @RequestBody ProcurementPurchaseOrderWorkflowRequestDTO dto
     ) {
-        return workflowResponse(id, "/{id}/actions/approve", service.approve(id, dto));
+        return governedApprove(id, dto);
     }
 
     @PostMapping("/{id}/actions/cancel")
@@ -154,7 +155,7 @@ public class ProcurementPurchaseOrderController extends AbstractQuickstartCrudCo
             @PathVariable Integer id,
             @jakarta.validation.Valid @RequestBody ProcurementPurchaseOrderWorkflowRequestDTO dto
     ) {
-        return workflowResponse(id, "/{id}/actions/cancel", service.cancel(id, dto));
+        return governedCancel(id, dto);
     }
 
     @PostMapping("/{id}/actions/receive")
@@ -176,22 +177,63 @@ public class ProcurementPurchaseOrderController extends AbstractQuickstartCrudCo
             @PathVariable Integer id,
             @jakarta.validation.Valid @RequestBody ProcurementPurchaseOrderWorkflowRequestDTO dto
     ) {
-        return workflowResponse(id, "/{id}/actions/receive", service.receive(id, dto));
+        return governedReceive(id, dto);
     }
 
-    private ResponseEntity<RestApiResponse<ProcurementPurchaseOrderWorkflowResultDTO>> workflowResponse(
+    @SuppressWarnings("unchecked")
+    private ResponseEntity<RestApiResponse<ProcurementPurchaseOrderWorkflowResultDTO>> governedApprove(
             Integer id,
-            String operationPath,
-            ProcurementPurchaseOrderWorkflowResultDTO result
+            ProcurementPurchaseOrderWorkflowRequestDTO dto
     ) {
-        Links links = Links.of(
-                linkToSelf(id),
-                linkToAll(),
-                linkToFilter(),
-                linkToFilterCursor(),
-                linkToUiSchema(operationPath, "post", "request"),
-                linkToUiSchema(operationPath, "post", "response")
+        return (ResponseEntity<RestApiResponse<ProcurementPurchaseOrderWorkflowResultDTO>>) (ResponseEntity<?>) executeItemCommand(
+                "approve",
+                id,
+                dto,
+                ResourceCommandResponsePolicy.RETURN_COMMAND_RESULT,
+                request -> ResourceCommandExecutionResult.success(
+                        request,
+                        id,
+                        service.approve(id, dto),
+                        java.util.Map.of("resourceKey", "procurement.purchase-orders")
+                )
         );
-        return withVersion(ResponseEntity.ok(), RestApiResponse.success(result, hateoasOrNull(links)));
+    }
+
+    @SuppressWarnings("unchecked")
+    private ResponseEntity<RestApiResponse<ProcurementPurchaseOrderWorkflowResultDTO>> governedCancel(
+            Integer id,
+            ProcurementPurchaseOrderWorkflowRequestDTO dto
+    ) {
+        return (ResponseEntity<RestApiResponse<ProcurementPurchaseOrderWorkflowResultDTO>>) (ResponseEntity<?>) executeItemCommand(
+                "cancel",
+                id,
+                dto,
+                ResourceCommandResponsePolicy.RETURN_COMMAND_RESULT,
+                request -> ResourceCommandExecutionResult.success(
+                        request,
+                        id,
+                        service.cancel(id, dto),
+                        java.util.Map.of("resourceKey", "procurement.purchase-orders")
+                )
+        );
+    }
+
+    @SuppressWarnings("unchecked")
+    private ResponseEntity<RestApiResponse<ProcurementPurchaseOrderWorkflowResultDTO>> governedReceive(
+            Integer id,
+            ProcurementPurchaseOrderWorkflowRequestDTO dto
+    ) {
+        return (ResponseEntity<RestApiResponse<ProcurementPurchaseOrderWorkflowResultDTO>>) (ResponseEntity<?>) executeItemCommand(
+                "receive",
+                id,
+                dto,
+                ResourceCommandResponsePolicy.RETURN_COMMAND_RESULT,
+                request -> ResourceCommandExecutionResult.success(
+                        request,
+                        id,
+                        service.receive(id, dto),
+                        java.util.Map.of("resourceKey", "procurement.purchase-orders")
+                )
+        );
     }
 }

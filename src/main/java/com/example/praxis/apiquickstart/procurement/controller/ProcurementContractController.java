@@ -22,6 +22,8 @@ import org.praxisplatform.uischema.annotation.ResourceIntent;
 import org.praxisplatform.uischema.annotation.UiSurface;
 import org.praxisplatform.uischema.annotation.WorkflowAction;
 import org.praxisplatform.uischema.action.ActionScope;
+import org.praxisplatform.uischema.command.ResourceCommandExecutionResult;
+import org.praxisplatform.uischema.command.ResourceCommandResponsePolicy;
 import org.praxisplatform.uischema.rest.response.RestApiResponse;
 import org.praxisplatform.uischema.surface.RelatedResourceChildOperation;
 import org.praxisplatform.uischema.surface.SurfaceKind;
@@ -207,7 +209,7 @@ public class ProcurementContractController extends AbstractQuickstartCrudControl
             @PathVariable Integer id,
             @jakarta.validation.Valid @RequestBody ProcurementContractWorkflowRequestDTO dto
     ) {
-        return workflowResponse(id, "/{id}/actions/sign", service.sign(id, dto));
+        return governedSign(id, dto);
     }
 
     @PostMapping("/{id}/actions/suspend")
@@ -229,7 +231,7 @@ public class ProcurementContractController extends AbstractQuickstartCrudControl
             @PathVariable Integer id,
             @jakarta.validation.Valid @RequestBody ProcurementContractWorkflowRequestDTO dto
     ) {
-        return workflowResponse(id, "/{id}/actions/suspend", service.suspend(id, dto));
+        return governedSuspend(id, dto);
     }
 
     @PostMapping("/{id}/actions/reactivate")
@@ -251,22 +253,63 @@ public class ProcurementContractController extends AbstractQuickstartCrudControl
             @PathVariable Integer id,
             @jakarta.validation.Valid @RequestBody ProcurementContractWorkflowRequestDTO dto
     ) {
-        return workflowResponse(id, "/{id}/actions/reactivate", service.reactivate(id, dto));
+        return governedReactivate(id, dto);
     }
 
-    private ResponseEntity<RestApiResponse<ProcurementContractWorkflowResultDTO>> workflowResponse(
+    @SuppressWarnings("unchecked")
+    private ResponseEntity<RestApiResponse<ProcurementContractWorkflowResultDTO>> governedSign(
             Integer id,
-            String operationPath,
-            ProcurementContractWorkflowResultDTO result
+            ProcurementContractWorkflowRequestDTO dto
     ) {
-        Links links = Links.of(
-                linkToSelf(id),
-                linkToAll(),
-                linkToFilter(),
-                linkToFilterCursor(),
-                linkToUiSchema(operationPath, "post", "request"),
-                linkToUiSchema(operationPath, "post", "response")
+        return (ResponseEntity<RestApiResponse<ProcurementContractWorkflowResultDTO>>) (ResponseEntity<?>) executeItemCommand(
+                "sign",
+                id,
+                dto,
+                ResourceCommandResponsePolicy.RETURN_COMMAND_RESULT,
+                request -> ResourceCommandExecutionResult.success(
+                        request,
+                        id,
+                        service.sign(id, dto),
+                        java.util.Map.of("resourceKey", "procurement.contracts")
+                )
         );
-        return withVersion(ResponseEntity.ok(), RestApiResponse.success(result, hateoasOrNull(links)));
+    }
+
+    @SuppressWarnings("unchecked")
+    private ResponseEntity<RestApiResponse<ProcurementContractWorkflowResultDTO>> governedSuspend(
+            Integer id,
+            ProcurementContractWorkflowRequestDTO dto
+    ) {
+        return (ResponseEntity<RestApiResponse<ProcurementContractWorkflowResultDTO>>) (ResponseEntity<?>) executeItemCommand(
+                "suspend",
+                id,
+                dto,
+                ResourceCommandResponsePolicy.RETURN_COMMAND_RESULT,
+                request -> ResourceCommandExecutionResult.success(
+                        request,
+                        id,
+                        service.suspend(id, dto),
+                        java.util.Map.of("resourceKey", "procurement.contracts")
+                )
+        );
+    }
+
+    @SuppressWarnings("unchecked")
+    private ResponseEntity<RestApiResponse<ProcurementContractWorkflowResultDTO>> governedReactivate(
+            Integer id,
+            ProcurementContractWorkflowRequestDTO dto
+    ) {
+        return (ResponseEntity<RestApiResponse<ProcurementContractWorkflowResultDTO>>) (ResponseEntity<?>) executeItemCommand(
+                "reactivate",
+                id,
+                dto,
+                ResourceCommandResponsePolicy.RETURN_COMMAND_RESULT,
+                request -> ResourceCommandExecutionResult.success(
+                        request,
+                        id,
+                        service.reactivate(id, dto),
+                        java.util.Map.of("resourceKey", "procurement.contracts")
+                )
+        );
     }
 }

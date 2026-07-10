@@ -7,6 +7,8 @@ import com.example.praxis.apiquickstart.hr.service.EventosFolhaService;
 import com.example.praxis.apiquickstart.core.RateLimiterService;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.praxisplatform.uischema.capability.AvailabilityDecision;
+import org.praxisplatform.uischema.capability.CapabilityService;
 import org.praxisplatform.uischema.filter.web.FilterRequestBodyAdvice;
 import org.praxisplatform.uischema.rest.exceptionhandler.GlobalExceptionHandler;
 import org.praxisplatform.uischema.service.base.BaseResourceCommandService;
@@ -54,6 +56,9 @@ class EventosFolhaControllerTest {
     @MockBean
     private RateLimiterService rateLimiterService;
 
+    @MockBean
+    private CapabilityService capabilityService;
+
     @Test
     void bulkApprove_shouldReturnResultEnvelope() throws Exception {
         BulkApproveEventosFolhaResultDTO result = new BulkApproveEventosFolhaResultDTO();
@@ -61,6 +66,11 @@ class EventosFolhaControllerTest {
         result.setProcessed(2);
         result.setFailed(0);
 
+        when(capabilityService.collectionOperationAvailability(
+                "human-resources.eventos-folha",
+                "/api/human-resources/eventos-folha",
+                "bulk-approve"))
+                .thenReturn(AvailabilityDecision.allowAll());
         when(service.bulkApprove(any())).thenReturn(result);
         when(service.getDatasetVersion()).thenReturn(Optional.of("EventosFolha:2"));
 
@@ -76,7 +86,35 @@ class EventosFolhaControllerTest {
                 .andExpect(jsonPath("$.status").value("success"))
                 .andExpect(jsonPath("$.data.total").value(2))
                 .andExpect(jsonPath("$.data.processed").value(2))
-                .andExpect(jsonPath("$.data.failed").value(0));
+                .andExpect(jsonPath("$.data.failed").value(0))
+                .andExpect(jsonPath("$._links.schema[0].href").exists())
+                .andExpect(jsonPath("$._links.schema[1].href").exists());
+    }
+
+    @Test
+    void bulkApprove_shouldNotExecuteServiceWhenCapabilityDeniesAction() throws Exception {
+        when(capabilityService.collectionOperationAvailability(
+                "human-resources.eventos-folha",
+                "/api/human-resources/eventos-folha",
+                "bulk-approve"))
+                .thenReturn(AvailabilityDecision.deny("payroll-window-closed", null));
+        when(service.getDatasetVersion()).thenReturn(Optional.of("EventosFolha:2"));
+
+        mockMvc.perform(post("/api/human-resources/eventos-folha/actions/bulk-approve")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "ids": [1, 2]
+                                }
+                                """))
+                .andExpect(status().isForbidden())
+                .andExpect(header().string("X-Data-Version", "EventosFolha:2"))
+                .andExpect(jsonPath("$.status").value("failure"))
+                .andExpect(jsonPath("$.message").value("payroll-window-closed"))
+                .andExpect(jsonPath("$.errors[0].category").value("SECURITY"))
+                .andExpect(jsonPath("$.errors[0].outcome").value("PERMISSION_DENIED"));
+
+        verify(service, never()).bulkApprove(any());
     }
 
     @Test
@@ -103,7 +141,7 @@ class EventosFolhaControllerTest {
                                 }
                                 """))
                 .andExpect(status().isCreated())
-                .andExpect(header().string("Location", "http://localhost/api/human-resources/eventos-folha/10"))
+                .andExpect(header().string("Location", "/api/human-resources/eventos-folha/10"))
                 .andExpect(header().string("X-Data-Version", "EventosFolha:7"))
                 .andExpect(jsonPath("$.status").value("success"))
                 .andExpect(jsonPath("$.data.id").value(10))

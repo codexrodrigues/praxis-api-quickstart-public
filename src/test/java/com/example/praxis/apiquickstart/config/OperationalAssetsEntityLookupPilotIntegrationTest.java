@@ -492,6 +492,7 @@ class OperationalAssetsEntityLookupPilotIntegrationTest {
         JsonNode maintenanceEquipment = body(maintenanceEquipmentResponse);
         assertEquals("ESTOQUE", maintenanceEquipment.path("data").path("statusAnterior").asText());
         assertEquals("MANUTENCAO", maintenanceEquipment.path("data").path("statusAtual").asText());
+        assertFalse(maintenanceEquipment.path("_links").path("schema").isMissingNode(), maintenanceEquipment.toPrettyString());
         assertEquipmentSelectable(1, false);
 
         ResponseEntity<String> duplicateEquipmentResponse = restTemplate.exchange(
@@ -505,6 +506,10 @@ class OperationalAssetsEntityLookupPilotIntegrationTest {
                 String.class
         );
         assertEquals(HttpStatus.CONFLICT, duplicateEquipmentResponse.getStatusCode());
+        assertNotNull(duplicateEquipmentResponse.getBody());
+        JsonNode duplicateEquipment = objectMapper.readTree(duplicateEquipmentResponse.getBody());
+        assertEquals("failure", duplicateEquipment.path("status").asText());
+        assertEquals("CONFLICT_DEPENDENCY", duplicateEquipment.path("errors").get(0).path("outcome").asText());
 
         ResponseEntity<String> stockEquipmentResponse = restTemplate.exchange(
                 "/api/assets/equipamentos/1/actions/return-to-stock",
@@ -519,6 +524,7 @@ class OperationalAssetsEntityLookupPilotIntegrationTest {
         JsonNode stockEquipment = body(stockEquipmentResponse);
         assertEquals("MANUTENCAO", stockEquipment.path("data").path("statusAnterior").asText());
         assertEquals("ESTOQUE", stockEquipment.path("data").path("statusAtual").asText());
+        assertFalse(stockEquipment.path("_links").path("schema").isMissingNode(), stockEquipment.toPrettyString());
         assertEquipmentSelectable(1, true);
 
         JsonNode vehicleActions = body(restTemplate.getForEntity(
@@ -542,6 +548,7 @@ class OperationalAssetsEntityLookupPilotIntegrationTest {
         JsonNode maintenanceVehicle = body(maintenanceVehicleResponse);
         assertEquals("OPERACIONAL", maintenanceVehicle.path("data").path("statusAnterior").asText());
         assertEquals("MANUTENCAO", maintenanceVehicle.path("data").path("statusAtual").asText());
+        assertFalse(maintenanceVehicle.path("_links").path("schema").isMissingNode(), maintenanceVehicle.toPrettyString());
         assertVehicleSelectable(1, false);
 
         ResponseEntity<String> operationalVehicleResponse = restTemplate.exchange(
@@ -557,6 +564,7 @@ class OperationalAssetsEntityLookupPilotIntegrationTest {
         JsonNode operationalVehicle = body(operationalVehicleResponse);
         assertEquals("MANUTENCAO", operationalVehicle.path("data").path("statusAnterior").asText());
         assertEquals("OPERACIONAL", operationalVehicle.path("data").path("statusAtual").asText());
+        assertFalse(operationalVehicle.path("_links").path("schema").isMissingNode(), operationalVehicle.toPrettyString());
         assertVehicleSelectable(1, true);
     }
 
@@ -584,6 +592,7 @@ class OperationalAssetsEntityLookupPilotIntegrationTest {
         JsonNode returned = body(returnResponse);
         assertEquals("ATIVO", returned.path("data").path("statusAnterior").asText());
         assertEquals("DEVOLVIDO", returned.path("data").path("statusAtual").asText());
+        assertFalse(returned.path("_links").path("schema").isMissingNode(), returned.toPrettyString());
         assertEquipmentSelectable(3, true);
 
         ResponseEntity<String> lostResponse = restTemplate.exchange(
@@ -599,6 +608,7 @@ class OperationalAssetsEntityLookupPilotIntegrationTest {
         JsonNode lost = body(lostResponse);
         assertEquals("ATIVO", lost.path("data").path("statusAnterior").asText());
         assertEquals("PERDIDO", lost.path("data").path("statusAtual").asText());
+        assertFalse(lost.path("_links").path("schema").isMissingNode(), lost.toPrettyString());
         assertEquipmentSelectable(4, false);
 
         ResponseEntity<String> damagedResponse = restTemplate.exchange(
@@ -614,6 +624,7 @@ class OperationalAssetsEntityLookupPilotIntegrationTest {
         JsonNode damaged = body(damagedResponse);
         assertEquals("ATIVO", damaged.path("data").path("statusAnterior").asText());
         assertEquals("DANIFICADO", damaged.path("data").path("statusAtual").asText());
+        assertFalse(damaged.path("_links").path("schema").isMissingNode(), damaged.toPrettyString());
         assertEquipmentSelectable(5, false);
 
         ResponseEntity<String> duplicateLost = restTemplate.exchange(
@@ -627,6 +638,10 @@ class OperationalAssetsEntityLookupPilotIntegrationTest {
                 String.class
         );
         assertEquals(HttpStatus.CONFLICT, duplicateLost.getStatusCode());
+        assertNotNull(duplicateLost.getBody());
+        JsonNode duplicateLostBody = objectMapper.readTree(duplicateLost.getBody());
+        assertEquals("failure", duplicateLostBody.path("status").asText());
+        assertEquals("CONFLICT_DEPENDENCY", duplicateLostBody.path("errors").get(0).path("outcome").asText());
     }
 
     private JsonNode body(ResponseEntity<String> response) throws Exception {

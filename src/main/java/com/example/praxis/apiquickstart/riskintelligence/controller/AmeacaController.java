@@ -15,6 +15,8 @@ import org.praxisplatform.uischema.annotation.ApiResource;
 import org.praxisplatform.uischema.annotation.UiSurface;
 import org.praxisplatform.uischema.annotation.WorkflowAction;
 import org.praxisplatform.uischema.action.ActionScope;
+import org.praxisplatform.uischema.command.ResourceCommandExecutionResult;
+import org.praxisplatform.uischema.command.ResourceCommandResponsePolicy;
 import org.praxisplatform.uischema.surface.SurfaceKind;
 import org.praxisplatform.uischema.surface.SurfaceScope;
 import com.example.praxis.apiquickstart.core.controller.base.AbstractQuickstartCrudController;
@@ -204,7 +206,7 @@ public class AmeacaController extends AbstractQuickstartCrudController<Ameaca, A
             @PathVariable Integer id,
             @jakarta.validation.Valid @RequestBody ThreatTriageWorkflowRequestDTO dto
     ) {
-        return workflowResponse(id, "/{id}/actions/mark-under-observation", service.markUnderObservation(id, dto));
+        return governedMarkUnderObservation(id, dto);
     }
 
     @PostMapping("/{id}/actions/mark-captured")
@@ -223,7 +225,7 @@ public class AmeacaController extends AbstractQuickstartCrudController<Ameaca, A
             @PathVariable Integer id,
             @jakarta.validation.Valid @RequestBody ThreatTriageWorkflowRequestDTO dto
     ) {
-        return workflowResponse(id, "/{id}/actions/mark-captured", service.markCaptured(id, dto));
+        return governedMarkCaptured(id, dto);
     }
 
     @DeleteMapping("/{id}")
@@ -246,23 +248,44 @@ public class AmeacaController extends AbstractQuickstartCrudController<Ameaca, A
         return super.deleteBatch(ids);
     }
 
-    private ResponseEntity<RestApiResponse<ThreatTriageWorkflowResultDTO>> workflowResponse(
+    @SuppressWarnings("unchecked")
+    private ResponseEntity<RestApiResponse<ThreatTriageWorkflowResultDTO>> governedMarkUnderObservation(
             Integer id,
-            String operationPath,
-            ThreatTriageWorkflowResultDTO result
+            ThreatTriageWorkflowRequestDTO dto
     ) {
-        Links links = Links.of(
-                linkToSelf(id),
-                linkToAll(),
-                linkToFilter(),
-                linkToFilterCursor(),
-                linkToUiSchema(operationPath, "post", "request"),
-                linkToUiSchema(operationPath, "post", "response")
+        return (ResponseEntity<RestApiResponse<ThreatTriageWorkflowResultDTO>>) (ResponseEntity<?>) executeItemCommand(
+                "mark-under-observation",
+                id,
+                dto,
+                ResourceCommandResponsePolicy.RETURN_COMMAND_RESULT,
+                request -> ResourceCommandExecutionResult.success(
+                        request,
+                        id,
+                        service.markUnderObservation(id, dto),
+                        java.util.Map.of("resourceKey", "risk-intelligence.ameacas")
+                )
         );
-        return withVersion(ResponseEntity.ok(), RestApiResponse.success(result, hateoasOrNull(links)));
+    }
+
+    @SuppressWarnings("unchecked")
+    private ResponseEntity<RestApiResponse<ThreatTriageWorkflowResultDTO>> governedMarkCaptured(
+            Integer id,
+            ThreatTriageWorkflowRequestDTO dto
+    ) {
+        return (ResponseEntity<RestApiResponse<ThreatTriageWorkflowResultDTO>>) (ResponseEntity<?>) executeItemCommand(
+                "mark-captured",
+                id,
+                dto,
+                ResourceCommandResponsePolicy.RETURN_COMMAND_RESULT,
+                request -> ResourceCommandExecutionResult.success(
+                        request,
+                        id,
+                        service.markCaptured(id, dto),
+                        java.util.Map.of("resourceKey", "risk-intelligence.ameacas")
+                )
+        );
     }
 }
-
 
 
 

@@ -16,10 +16,11 @@ import org.praxisplatform.uischema.annotation.ApiResource;
 import com.example.praxis.apiquickstart.core.controller.base.AbstractQuickstartCrudController;
 import org.praxisplatform.uischema.annotation.UiSurface;
 import org.praxisplatform.uischema.annotation.WorkflowAction;
+import org.praxisplatform.uischema.command.ResourceCommandExecutionResult;
+import org.praxisplatform.uischema.command.ResourceCommandResponsePolicy;
 import org.praxisplatform.uischema.surface.SurfaceKind;
 import org.praxisplatform.uischema.surface.SurfaceScope;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.hateoas.Links;
 import org.springframework.web.bind.annotation.RestController;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -37,6 +38,7 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @ApiResource(value = ApiPaths.HumanResources.FERIAS_AFASTAMENTOS, resourceKey = "human-resources.ferias-afastamentos")
@@ -200,16 +202,26 @@ public class FeriasAfastamentoController extends AbstractQuickstartCrudControlle
             @PathVariable Integer id,
             @jakarta.validation.Valid @RequestBody AbsenceCoverageWorkflowRequestDTO dto
     ) {
-        AbsenceCoverageWorkflowResultDTO result = service.planCoverage(id, dto);
-        Links links = Links.of(
-                linkToSelf(id),
-                linkToAll(),
-                linkToFilter(),
-                linkToFilterCursor(),
-                linkToUiSchema("/{id}/actions/plan-coverage", "post", "request"),
-                linkToUiSchema("/{id}/actions/plan-coverage", "post", "response")
+        return executePlanCoverageCommand(id, dto);
+    }
+
+    @SuppressWarnings("unchecked")
+    private ResponseEntity<RestApiResponse<AbsenceCoverageWorkflowResultDTO>> executePlanCoverageCommand(
+            Integer id,
+            AbsenceCoverageWorkflowRequestDTO dto
+    ) {
+        return (ResponseEntity<RestApiResponse<AbsenceCoverageWorkflowResultDTO>>) (ResponseEntity<?>) executeItemCommand(
+                "plan-coverage",
+                id,
+                dto,
+                ResourceCommandResponsePolicy.RETURN_COMMAND_RESULT,
+                request -> ResourceCommandExecutionResult.success(
+                        request,
+                        id,
+                        service.planCoverage(id, dto),
+                        Map.of("resourceKey", "human-resources.ferias-afastamentos")
+                )
         );
-        return withVersion(ResponseEntity.ok(), RestApiResponse.success(result, hateoasOrNull(links)));
     }
 
     @DeleteMapping("/{id}")
@@ -232,10 +244,3 @@ public class FeriasAfastamentoController extends AbstractQuickstartCrudControlle
         return super.deleteBatch(ids);
     }
 }
-
-
-
-
-
-
-

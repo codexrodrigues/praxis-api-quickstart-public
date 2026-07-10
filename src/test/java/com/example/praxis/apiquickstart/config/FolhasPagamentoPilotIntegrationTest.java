@@ -263,6 +263,7 @@ class FolhasPagamentoPilotIntegrationTest {
         assertEquals("AGUARDANDO_EVENTOS", approveBody.path("data").path("estadoAnterior").asText());
         assertEquals("PROGRAMADA", approveBody.path("data").path("estadoAtual").asText());
         assertEquals(2, approveBody.path("data").path("eventosProcessados").asInt());
+        assertFalse(approveBody.path("_links").path("schema").isMissingNode(), approveBody.toPrettyString());
         assertEquals(0L, jdbcTemplate.queryForObject(
                 "select count(*) from public.eventos_folha where folha_pagamento_id = 1 and status = 'PENDENTE'",
                 Long.class
@@ -279,6 +280,10 @@ class FolhasPagamentoPilotIntegrationTest {
                 String.class
         );
         assertEquals(HttpStatus.CONFLICT, duplicateApproveResponse.getStatusCode());
+        assertNotNull(duplicateApproveResponse.getBody());
+        JsonNode duplicateApproveBody = objectMapper.readTree(duplicateApproveResponse.getBody());
+        assertEquals("failure", duplicateApproveBody.path("status").asText());
+        assertEquals("CONFLICT_DEPENDENCY", duplicateApproveBody.path("errors").get(0).path("outcome").asText());
 
         ResponseEntity<String> markPaidResponse = restTemplate.exchange(
                 "/api/human-resources/folhas-pagamento/2/actions/mark-paid",
@@ -293,6 +298,7 @@ class FolhasPagamentoPilotIntegrationTest {
         JsonNode markPaidBody = body(markPaidResponse);
         assertEquals("PROGRAMADA", markPaidBody.path("data").path("estadoAnterior").asText());
         assertEquals("PAGA", markPaidBody.path("data").path("estadoAtual").asText());
+        assertFalse(markPaidBody.path("_links").path("schema").isMissingNode(), markPaidBody.toPrettyString());
         assertEquals(today.toString(), jdbcTemplate.queryForObject(
                 "select cast(data_pagamento as varchar) from public.folhas_pagamento where id = 2",
                 String.class
@@ -323,6 +329,15 @@ class FolhasPagamentoPilotIntegrationTest {
         );
 
         assertEquals(HttpStatus.CONFLICT, markPaidResponse.getStatusCode());
+        assertNotNull(markPaidResponse.getBody());
+        JsonNode markPaidBody;
+        try {
+            markPaidBody = objectMapper.readTree(markPaidResponse.getBody());
+        } catch (Exception ex) {
+            throw new AssertionError("Expected governed failure body", ex);
+        }
+        assertEquals("failure", markPaidBody.path("status").asText());
+        assertEquals("CONFLICT_DEPENDENCY", markPaidBody.path("errors").get(0).path("outcome").asText());
         assertEquals(today.plusDays(5).toString(), jdbcTemplate.queryForObject(
                 "select cast(data_pagamento as varchar) from public.folhas_pagamento where id = 2",
                 String.class

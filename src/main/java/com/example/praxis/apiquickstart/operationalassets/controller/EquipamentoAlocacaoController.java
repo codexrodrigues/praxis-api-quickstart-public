@@ -16,6 +16,8 @@ import org.praxisplatform.uischema.annotation.UiSurface;
 import org.praxisplatform.uischema.annotation.WorkflowAction;
 import com.example.praxis.apiquickstart.core.controller.base.AbstractQuickstartCrudController;
 import org.praxisplatform.uischema.action.ActionScope;
+import org.praxisplatform.uischema.command.ResourceCommandExecutionResult;
+import org.praxisplatform.uischema.command.ResourceCommandResponsePolicy;
 import org.praxisplatform.uischema.surface.SurfaceKind;
 import org.praxisplatform.uischema.surface.SurfaceScope;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,7 +27,6 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import org.praxisplatform.uischema.rest.response.RestApiResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.hateoas.EntityModel;
-import org.springframework.hateoas.Links;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -209,7 +210,7 @@ public class EquipamentoAlocacaoController extends AbstractQuickstartCrudControl
             @PathVariable Integer id,
             @jakarta.validation.Valid @RequestBody AssetAvailabilityWorkflowRequestDTO dto
     ) {
-        return workflowResponse(id, "/{id}/actions/return-custody", service.returnCustody(id, dto));
+        return governedReturnCustody(id, dto);
     }
 
     @PostMapping("/{id}/actions/report-lost")
@@ -228,7 +229,7 @@ public class EquipamentoAlocacaoController extends AbstractQuickstartCrudControl
             @PathVariable Integer id,
             @jakarta.validation.Valid @RequestBody AssetAvailabilityWorkflowRequestDTO dto
     ) {
-        return workflowResponse(id, "/{id}/actions/report-lost", service.reportLost(id, dto));
+        return governedReportLost(id, dto);
     }
 
     @PostMapping("/{id}/actions/report-damaged")
@@ -247,7 +248,7 @@ public class EquipamentoAlocacaoController extends AbstractQuickstartCrudControl
             @PathVariable Integer id,
             @jakarta.validation.Valid @RequestBody AssetAvailabilityWorkflowRequestDTO dto
     ) {
-        return workflowResponse(id, "/{id}/actions/report-damaged", service.reportDamaged(id, dto));
+        return governedReportDamaged(id, dto);
     }
 
     @DeleteMapping("/{id}")
@@ -270,23 +271,63 @@ public class EquipamentoAlocacaoController extends AbstractQuickstartCrudControl
         return super.deleteBatch(ids);
     }
 
-    private ResponseEntity<RestApiResponse<AssetAvailabilityWorkflowResultDTO>> workflowResponse(
+    @SuppressWarnings("unchecked")
+    private ResponseEntity<RestApiResponse<AssetAvailabilityWorkflowResultDTO>> governedReturnCustody(
             Integer id,
-            String operationPath,
-            AssetAvailabilityWorkflowResultDTO result
+            AssetAvailabilityWorkflowRequestDTO dto
     ) {
-        Links links = Links.of(
-                linkToSelf(id),
-                linkToAll(),
-                linkToFilter(),
-                linkToFilterCursor(),
-                linkToUiSchema(operationPath, "post", "request"),
-                linkToUiSchema(operationPath, "post", "response")
+        return (ResponseEntity<RestApiResponse<AssetAvailabilityWorkflowResultDTO>>) (ResponseEntity<?>) executeItemCommand(
+                "return-custody",
+                id,
+                dto,
+                ResourceCommandResponsePolicy.RETURN_COMMAND_RESULT,
+                request -> ResourceCommandExecutionResult.success(
+                        request,
+                        id,
+                        service.returnCustody(id, dto),
+                        java.util.Map.of("resourceKey", "assets.equipamento-alocacoes")
+                )
         );
-        return withVersion(ResponseEntity.ok(), RestApiResponse.success(result, hateoasOrNull(links)));
+    }
+
+    @SuppressWarnings("unchecked")
+    private ResponseEntity<RestApiResponse<AssetAvailabilityWorkflowResultDTO>> governedReportLost(
+            Integer id,
+            AssetAvailabilityWorkflowRequestDTO dto
+    ) {
+        return (ResponseEntity<RestApiResponse<AssetAvailabilityWorkflowResultDTO>>) (ResponseEntity<?>) executeItemCommand(
+                "report-lost",
+                id,
+                dto,
+                ResourceCommandResponsePolicy.RETURN_COMMAND_RESULT,
+                request -> ResourceCommandExecutionResult.success(
+                        request,
+                        id,
+                        service.reportLost(id, dto),
+                        java.util.Map.of("resourceKey", "assets.equipamento-alocacoes")
+                )
+        );
+    }
+
+    @SuppressWarnings("unchecked")
+    private ResponseEntity<RestApiResponse<AssetAvailabilityWorkflowResultDTO>> governedReportDamaged(
+            Integer id,
+            AssetAvailabilityWorkflowRequestDTO dto
+    ) {
+        return (ResponseEntity<RestApiResponse<AssetAvailabilityWorkflowResultDTO>>) (ResponseEntity<?>) executeItemCommand(
+                "report-damaged",
+                id,
+                dto,
+                ResourceCommandResponsePolicy.RETURN_COMMAND_RESULT,
+                request -> ResourceCommandExecutionResult.success(
+                        request,
+                        id,
+                        service.reportDamaged(id, dto),
+                        java.util.Map.of("resourceKey", "assets.equipamento-alocacoes")
+                )
+        );
     }
 }
-
 
 
 

@@ -317,6 +317,7 @@ class BaseAccessPilotIntegrationTest {
         );
         JsonNode deactivateBody = body(deactivate);
         assertEquals(false, deactivateBody.path("data").path("ativoAtual").asBoolean());
+        assertFalse(deactivateBody.path("_links").path("schema").isMissingNode(), deactivateBody.toPrettyString());
         assertEquals(false, jdbcTemplate.queryForObject(
                 "select ativo from public.base_acessos where id = 1",
                 Boolean.class
@@ -333,6 +334,10 @@ class BaseAccessPilotIntegrationTest {
                 String.class
         );
         assertEquals(HttpStatus.CONFLICT, duplicateDeactivate.getStatusCode());
+        assertNotNull(duplicateDeactivate.getBody());
+        JsonNode duplicateDeactivateBody = objectMapper.readTree(duplicateDeactivate.getBody());
+        assertEquals("failure", duplicateDeactivateBody.path("status").asText());
+        assertEquals("CONFLICT_DEPENDENCY", duplicateDeactivateBody.path("errors").get(0).path("outcome").asText());
 
         ResponseEntity<String> activate = restTemplate.exchange(
                 "/api/operations/base-acessos/2/actions/activate",
@@ -346,6 +351,7 @@ class BaseAccessPilotIntegrationTest {
         );
         JsonNode activateBody = body(activate);
         assertTrue(activateBody.path("data").path("ativoAtual").asBoolean());
+        assertFalse(activateBody.path("_links").path("schema").isMissingNode(), activateBody.toPrettyString());
         assertTrue(jdbcTemplate.queryForObject(
                 "select ativo from public.base_acessos where id = 2",
                 Boolean.class

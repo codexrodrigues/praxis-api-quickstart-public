@@ -21,6 +21,8 @@ import org.praxisplatform.uischema.annotation.ApiResource;
 import org.praxisplatform.uischema.annotation.ResourceIntent;
 import org.praxisplatform.uischema.annotation.UiSurface;
 import org.praxisplatform.uischema.annotation.WorkflowAction;
+import org.praxisplatform.uischema.command.ResourceCommandExecutionResult;
+import org.praxisplatform.uischema.command.ResourceCommandResponsePolicy;
 import org.praxisplatform.uischema.rest.response.RestApiResponse;
 import org.praxisplatform.uischema.surface.SurfaceKind;
 import org.praxisplatform.uischema.surface.SurfaceScope;
@@ -242,7 +244,7 @@ public class FolhasPagamentoController extends AbstractQuickstartCrudController<
             @PathVariable Integer id,
             @jakarta.validation.Valid @RequestBody FolhaPagamentoWorkflowRequestDTO dto
     ) {
-        return workflowResponse(id, "/{id}/actions/approve-events", service.approvePendingEvents(id, dto));
+        return governedApproveEvents(id, dto);
     }
 
     @PostMapping("/{id}/actions/mark-paid")
@@ -267,7 +269,7 @@ public class FolhasPagamentoController extends AbstractQuickstartCrudController<
             @PathVariable Integer id,
             @jakarta.validation.Valid @RequestBody FolhaPagamentoWorkflowRequestDTO dto
     ) {
-        return workflowResponse(id, "/{id}/actions/mark-paid", service.markAsPaid(id, dto));
+        return governedMarkPaid(id, dto);
     }
 
     @DeleteMapping("/{id}")
@@ -290,20 +292,41 @@ public class FolhasPagamentoController extends AbstractQuickstartCrudController<
         return super.deleteBatch(ids);
     }
 
-    private ResponseEntity<RestApiResponse<FolhaPagamentoWorkflowResultDTO>> workflowResponse(
+    @SuppressWarnings("unchecked")
+    private ResponseEntity<RestApiResponse<FolhaPagamentoWorkflowResultDTO>> governedApproveEvents(
             Integer id,
-            String operationPath,
-            FolhaPagamentoWorkflowResultDTO result
+            FolhaPagamentoWorkflowRequestDTO dto
     ) {
-        // Cada workflow retorna links suficientes para redescobrir o recurso e os schemas da ação.
-        Links links = Links.of(
-                linkToSelf(id),
-                linkToAll(),
-                linkToFilter(),
-                linkToFilterCursor(),
-                linkToUiSchema(operationPath, "post", "request"),
-                linkToUiSchema(operationPath, "post", "response")
+        return (ResponseEntity<RestApiResponse<FolhaPagamentoWorkflowResultDTO>>) (ResponseEntity<?>) executeItemCommand(
+                "approve-events",
+                id,
+                dto,
+                ResourceCommandResponsePolicy.RETURN_COMMAND_RESULT,
+                request -> ResourceCommandExecutionResult.success(
+                        request,
+                        id,
+                        service.approvePendingEvents(id, dto),
+                        java.util.Map.of("resourceKey", "human-resources.folhas-pagamento")
+                )
         );
-        return withVersion(ResponseEntity.ok(), RestApiResponse.success(result, hateoasOrNull(links)));
+    }
+
+    @SuppressWarnings("unchecked")
+    private ResponseEntity<RestApiResponse<FolhaPagamentoWorkflowResultDTO>> governedMarkPaid(
+            Integer id,
+            FolhaPagamentoWorkflowRequestDTO dto
+    ) {
+        return (ResponseEntity<RestApiResponse<FolhaPagamentoWorkflowResultDTO>>) (ResponseEntity<?>) executeItemCommand(
+                "mark-paid",
+                id,
+                dto,
+                ResourceCommandResponsePolicy.RETURN_COMMAND_RESULT,
+                request -> ResourceCommandExecutionResult.success(
+                        request,
+                        id,
+                        service.markAsPaid(id, dto),
+                        java.util.Map.of("resourceKey", "human-resources.folhas-pagamento")
+                )
+        );
     }
 }

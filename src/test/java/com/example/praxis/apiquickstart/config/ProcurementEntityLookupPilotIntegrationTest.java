@@ -485,6 +485,7 @@ class ProcurementEntityLookupPilotIntegrationTest {
         JsonNode signed = body(signResponse);
         assertEquals("DRAFT", signed.path("data").path("statusAnterior").asText());
         assertEquals("SIGNED", signed.path("data").path("statusAtual").asText());
+        assertFalse(signed.path("_links").path("schema").isMissingNode(), signed.toPrettyString());
 
         ResponseEntity<String> suspendResponse = restTemplate.exchange(
                 "/api/procurement/contracts/20/actions/suspend",
@@ -499,6 +500,7 @@ class ProcurementEntityLookupPilotIntegrationTest {
         JsonNode suspended = body(suspendResponse);
         assertEquals("SIGNED", suspended.path("data").path("statusAnterior").asText());
         assertEquals("SUSPENDED", suspended.path("data").path("statusAtual").asText());
+        assertFalse(suspended.path("_links").path("schema").isMissingNode(), suspended.toPrettyString());
 
         JsonNode suspendedContract = objectMapper.readTree(restTemplate.getForObject(
                 "/api/procurement/contracts/option-sources/contract/options/by-ids?ids=20",
@@ -518,6 +520,10 @@ class ProcurementEntityLookupPilotIntegrationTest {
                 String.class
         );
         assertEquals(HttpStatus.CONFLICT, duplicateSuspend.getStatusCode());
+        assertNotNull(duplicateSuspend.getBody());
+        JsonNode duplicateSuspendBody = objectMapper.readTree(duplicateSuspend.getBody());
+        assertEquals("failure", duplicateSuspendBody.path("status").asText());
+        assertEquals("CONFLICT_DEPENDENCY", duplicateSuspendBody.path("errors").get(0).path("outcome").asText());
 
         ResponseEntity<String> reactivateResponse = restTemplate.exchange(
                 "/api/procurement/contracts/20/actions/reactivate",
@@ -532,6 +538,7 @@ class ProcurementEntityLookupPilotIntegrationTest {
         JsonNode reactivated = body(reactivateResponse);
         assertEquals("SUSPENDED", reactivated.path("data").path("statusAnterior").asText());
         assertEquals("SIGNED", reactivated.path("data").path("statusAtual").asText());
+        assertFalse(reactivated.path("_links").path("schema").isMissingNode(), reactivated.toPrettyString());
 
         JsonNode activeContract = objectMapper.readTree(restTemplate.getForObject(
                 "/api/procurement/contracts/option-sources/contract/options/by-ids?ids=20",
@@ -580,6 +587,7 @@ class ProcurementEntityLookupPilotIntegrationTest {
         assertEquals("DRAFT", approved.path("data").path("statusAnterior").asText());
         assertEquals("APPROVED", approved.path("data").path("statusAtual").asText());
         assertFalse(approved.path("data").path("approvedAt").asText().isBlank());
+        assertFalse(approved.path("_links").path("schema").isMissingNode(), approved.toPrettyString());
 
         ResponseEntity<String> receiveResponse = restTemplate.exchange(
                 "/api/procurement/purchase-orders/41/actions/receive",
@@ -595,6 +603,7 @@ class ProcurementEntityLookupPilotIntegrationTest {
         assertEquals("APPROVED", received.path("data").path("statusAnterior").asText());
         assertEquals("RECEIVED", received.path("data").path("statusAtual").asText());
         assertFalse(received.path("data").path("receivedAt").asText().isBlank());
+        assertFalse(received.path("_links").path("schema").isMissingNode(), received.toPrettyString());
 
         ResponseEntity<String> cancelResponse = restTemplate.exchange(
                 "/api/procurement/purchase-orders/42/actions/cancel",
@@ -622,6 +631,10 @@ class ProcurementEntityLookupPilotIntegrationTest {
                 String.class
         );
         assertEquals(HttpStatus.CONFLICT, duplicateCancel.getStatusCode());
+        assertNotNull(duplicateCancel.getBody());
+        JsonNode duplicateCancelBody = objectMapper.readTree(duplicateCancel.getBody());
+        assertEquals("failure", duplicateCancelBody.path("status").asText());
+        assertEquals("CONFLICT_DEPENDENCY", duplicateCancelBody.path("errors").get(0).path("outcome").asText());
     }
 
     @Test
@@ -651,6 +664,7 @@ class ProcurementEntityLookupPilotIntegrationTest {
         JsonNode blocked = body(blockResponse);
         assertEquals("ACTIVE", blocked.path("data").path("statusAnterior").asText());
         assertEquals("BLOCKED", blocked.path("data").path("statusAtual").asText());
+        assertFalse(blocked.path("_links").path("schema").isMissingNode(), blocked.toPrettyString());
 
         JsonNode blockedSupplier = objectMapper.readTree(restTemplate.getForObject(
                 "/api/procurement/suppliers/option-sources/supplier/options/by-ids?ids=10",
@@ -670,6 +684,10 @@ class ProcurementEntityLookupPilotIntegrationTest {
                 String.class
         );
         assertEquals(HttpStatus.CONFLICT, duplicateBlock.getStatusCode());
+        assertNotNull(duplicateBlock.getBody());
+        JsonNode duplicateBlockBody = objectMapper.readTree(duplicateBlock.getBody());
+        assertEquals("failure", duplicateBlockBody.path("status").asText());
+        assertEquals("CONFLICT_DEPENDENCY", duplicateBlockBody.path("errors").get(0).path("outcome").asText());
 
         ResponseEntity<String> reinstateResponse = restTemplate.exchange(
                 "/api/procurement/suppliers/10/actions/reinstate",
@@ -684,6 +702,7 @@ class ProcurementEntityLookupPilotIntegrationTest {
         JsonNode reinstated = body(reinstateResponse);
         assertEquals("BLOCKED", reinstated.path("data").path("statusAnterior").asText());
         assertEquals("ACTIVE", reinstated.path("data").path("statusAtual").asText());
+        assertFalse(reinstated.path("_links").path("schema").isMissingNode(), reinstated.toPrettyString());
 
         JsonNode activeSupplier = objectMapper.readTree(restTemplate.getForObject(
                 "/api/procurement/suppliers/option-sources/supplier/options/by-ids?ids=10",

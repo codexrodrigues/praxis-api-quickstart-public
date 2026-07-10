@@ -19,6 +19,8 @@ import org.praxisplatform.uischema.annotation.UiSurface;
 import org.praxisplatform.uischema.annotation.WorkflowAction;
 import com.example.praxis.apiquickstart.core.controller.base.AbstractQuickstartCrudController;
 import org.praxisplatform.uischema.action.ActionScope;
+import org.praxisplatform.uischema.command.ResourceCommandExecutionResult;
+import org.praxisplatform.uischema.command.ResourceCommandResponsePolicy;
 import org.praxisplatform.uischema.surface.RelatedResourceChildOperation;
 import org.praxisplatform.uischema.surface.SurfaceKind;
 import org.praxisplatform.uischema.surface.SurfaceScope;
@@ -257,7 +259,7 @@ public class VeiculoController extends AbstractQuickstartCrudController<Veiculo,
             @PathVariable Integer id,
             @jakarta.validation.Valid @RequestBody AssetAvailabilityWorkflowRequestDTO dto
     ) {
-        return workflowResponse(id, "/{id}/actions/send-to-maintenance", service.sendToMaintenance(id, dto));
+        return governedSendToMaintenance(id, dto);
     }
 
     @PostMapping("/{id}/actions/return-to-operation")
@@ -276,7 +278,7 @@ public class VeiculoController extends AbstractQuickstartCrudController<Veiculo,
             @PathVariable Integer id,
             @jakarta.validation.Valid @RequestBody AssetAvailabilityWorkflowRequestDTO dto
     ) {
-        return workflowResponse(id, "/{id}/actions/return-to-operation", service.returnToOperation(id, dto));
+        return governedReturnToOperation(id, dto);
     }
 
     @DeleteMapping("/{id}")
@@ -299,23 +301,44 @@ public class VeiculoController extends AbstractQuickstartCrudController<Veiculo,
         return super.deleteBatch(ids);
     }
 
-    private ResponseEntity<RestApiResponse<AssetAvailabilityWorkflowResultDTO>> workflowResponse(
+    @SuppressWarnings("unchecked")
+    private ResponseEntity<RestApiResponse<AssetAvailabilityWorkflowResultDTO>> governedSendToMaintenance(
             Integer id,
-            String operationPath,
-            AssetAvailabilityWorkflowResultDTO result
+            AssetAvailabilityWorkflowRequestDTO dto
     ) {
-        Links links = Links.of(
-                linkToSelf(id),
-                linkToAll(),
-                linkToFilter(),
-                linkToFilterCursor(),
-                linkToUiSchema(operationPath, "post", "request"),
-                linkToUiSchema(operationPath, "post", "response")
+        return (ResponseEntity<RestApiResponse<AssetAvailabilityWorkflowResultDTO>>) (ResponseEntity<?>) executeItemCommand(
+                "send-to-maintenance",
+                id,
+                dto,
+                ResourceCommandResponsePolicy.RETURN_COMMAND_RESULT,
+                request -> ResourceCommandExecutionResult.success(
+                        request,
+                        id,
+                        service.sendToMaintenance(id, dto),
+                        java.util.Map.of("resourceKey", "assets.veiculos")
+                )
         );
-        return withVersion(ResponseEntity.ok(), RestApiResponse.success(result, hateoasOrNull(links)));
+    }
+
+    @SuppressWarnings("unchecked")
+    private ResponseEntity<RestApiResponse<AssetAvailabilityWorkflowResultDTO>> governedReturnToOperation(
+            Integer id,
+            AssetAvailabilityWorkflowRequestDTO dto
+    ) {
+        return (ResponseEntity<RestApiResponse<AssetAvailabilityWorkflowResultDTO>>) (ResponseEntity<?>) executeItemCommand(
+                "return-to-operation",
+                id,
+                dto,
+                ResourceCommandResponsePolicy.RETURN_COMMAND_RESULT,
+                request -> ResourceCommandExecutionResult.success(
+                        request,
+                        id,
+                        service.returnToOperation(id, dto),
+                        java.util.Map.of("resourceKey", "assets.veiculos")
+                )
+        );
     }
 }
-
 
 
 

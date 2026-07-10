@@ -205,6 +205,7 @@ class AcordosRegulatorioPilotIntegrationTest {
         JsonNode suspendBody = body(suspendResponse);
         assertEquals("VIGENTE", suspendBody.path("data").path("statusAnterior").asText());
         assertEquals("SUSPENSO", suspendBody.path("data").path("statusAtual").asText());
+        assertFalse(suspendBody.path("_links").path("schema").isMissingNode(), suspendBody.toPrettyString());
         assertEquals("SUSPENSO", jdbcTemplate.queryForObject(
                 "select status from public.acordos_regulatorios where id = 1",
                 String.class
@@ -223,6 +224,7 @@ class AcordosRegulatorioPilotIntegrationTest {
         assertEquals(HttpStatus.CONFLICT, conflictResponse.getStatusCode());
         JsonNode conflictBody = objectMapper.readTree(conflictResponse.getBody());
         assertEquals("failure", conflictBody.path("status").asText());
+        assertEquals("CONFLICT_DEPENDENCY", conflictBody.path("errors").get(0).path("outcome").asText());
 
         ResponseEntity<String> reinstateResponse = restTemplate.exchange(
                 "/api/operations/acordos-regulatorios/1/actions/reinstate",
@@ -237,6 +239,7 @@ class AcordosRegulatorioPilotIntegrationTest {
         JsonNode reinstateBody = body(reinstateResponse);
         assertEquals("SUSPENSO", reinstateBody.path("data").path("statusAnterior").asText());
         assertEquals("VIGENTE", reinstateBody.path("data").path("statusAtual").asText());
+        assertFalse(reinstateBody.path("_links").path("schema").isMissingNode(), reinstateBody.toPrettyString());
 
         ResponseEntity<String> revokeResponse = restTemplate.exchange(
                 "/api/operations/acordos-regulatorios/2/actions/revoke",
@@ -251,6 +254,7 @@ class AcordosRegulatorioPilotIntegrationTest {
         JsonNode revokeBody = body(revokeResponse);
         assertEquals("SUSPENSO", revokeBody.path("data").path("statusAnterior").asText());
         assertEquals("REVOGADO", revokeBody.path("data").path("statusAtual").asText());
+        assertFalse(revokeBody.path("_links").path("schema").isMissingNode(), revokeBody.toPrettyString());
         assertEquals("REVOGADO", jdbcTemplate.queryForObject(
                 "select status from public.acordos_regulatorios where id = 2",
                 String.class

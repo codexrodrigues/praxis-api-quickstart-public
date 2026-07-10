@@ -17,6 +17,8 @@ import org.praxisplatform.uischema.annotation.ResourceIntent;
 import org.praxisplatform.uischema.annotation.UiSurface;
 import org.praxisplatform.uischema.annotation.WorkflowAction;
 import org.praxisplatform.uischema.action.ActionScope;
+import org.praxisplatform.uischema.command.ResourceCommandExecutionResult;
+import org.praxisplatform.uischema.command.ResourceCommandResponsePolicy;
 import com.example.praxis.apiquickstart.core.controller.base.AbstractQuickstartCrudController;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.RestController;
@@ -234,7 +236,7 @@ public class BaseAcessoController extends AbstractQuickstartCrudController<BaseA
             @PathVariable Integer id,
             @jakarta.validation.Valid @RequestBody BaseAcessoWorkflowRequestDTO dto
     ) {
-        return workflowResponse(id, "/{id}/actions/activate", service.activate(id, dto));
+        return governedActivate(id, dto);
     }
 
     @PostMapping("/{id}/actions/deactivate")
@@ -253,7 +255,7 @@ public class BaseAcessoController extends AbstractQuickstartCrudController<BaseA
             @PathVariable Integer id,
             @jakarta.validation.Valid @RequestBody BaseAcessoWorkflowRequestDTO dto
     ) {
-        return workflowResponse(id, "/{id}/actions/deactivate", service.deactivate(id, dto));
+        return governedDeactivate(id, dto);
     }
 
     @DeleteMapping("/{id}")
@@ -276,24 +278,44 @@ public class BaseAcessoController extends AbstractQuickstartCrudController<BaseA
         return super.deleteBatch(ids);
     }
 
-    private ResponseEntity<RestApiResponse<BaseAcessoWorkflowResultDTO>> workflowResponse(
+    @SuppressWarnings("unchecked")
+    private ResponseEntity<RestApiResponse<BaseAcessoWorkflowResultDTO>> governedActivate(
             Integer id,
-            String operationPath,
-            BaseAcessoWorkflowResultDTO result
+            BaseAcessoWorkflowRequestDTO dto
     ) {
-        // Cada action reapresenta os links do recurso e dos schemas da transicao de acesso.
-        Links links = Links.of(
-                linkToSelf(id),
-                linkToAll(),
-                linkToFilter(),
-                linkToFilterCursor(),
-                linkToUiSchema(operationPath, "post", "request"),
-                linkToUiSchema(operationPath, "post", "response")
+        return (ResponseEntity<RestApiResponse<BaseAcessoWorkflowResultDTO>>) (ResponseEntity<?>) executeItemCommand(
+                "activate",
+                id,
+                dto,
+                ResourceCommandResponsePolicy.RETURN_COMMAND_RESULT,
+                request -> ResourceCommandExecutionResult.success(
+                        request,
+                        id,
+                        service.activate(id, dto),
+                        java.util.Map.of("resourceKey", "operations.base-acessos")
+                )
         );
-        return withVersion(ResponseEntity.ok(), RestApiResponse.success(result, hateoasOrNull(links)));
+    }
+
+    @SuppressWarnings("unchecked")
+    private ResponseEntity<RestApiResponse<BaseAcessoWorkflowResultDTO>> governedDeactivate(
+            Integer id,
+            BaseAcessoWorkflowRequestDTO dto
+    ) {
+        return (ResponseEntity<RestApiResponse<BaseAcessoWorkflowResultDTO>>) (ResponseEntity<?>) executeItemCommand(
+                "deactivate",
+                id,
+                dto,
+                ResourceCommandResponsePolicy.RETURN_COMMAND_RESULT,
+                request -> ResourceCommandExecutionResult.success(
+                        request,
+                        id,
+                        service.deactivate(id, dto),
+                        java.util.Map.of("resourceKey", "operations.base-acessos")
+                )
+        );
     }
 }
-
 
 
 

@@ -18,6 +18,8 @@ import org.praxisplatform.uischema.annotation.UiSurface;
 import org.praxisplatform.uischema.annotation.WorkflowAction;
 import org.praxisplatform.uischema.action.ActionScope;
 import com.example.praxis.apiquickstart.core.controller.base.AbstractQuickstartCrudController;
+import org.praxisplatform.uischema.command.ResourceCommandExecutionResult;
+import org.praxisplatform.uischema.command.ResourceCommandResponsePolicy;
 import org.springframework.beans.factory.annotation.Autowired;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -234,7 +236,7 @@ public class AcordosRegulatorioController extends AbstractQuickstartCrudControll
             @PathVariable Integer id,
             @jakarta.validation.Valid @RequestBody AcordoRegulatorioWorkflowRequestDTO dto
     ) {
-        return workflowResponse(id, "/{id}/actions/suspend", service.suspend(id, dto));
+        return governedSuspend(id, dto);
     }
 
     @PostMapping("/{id}/actions/reinstate")
@@ -253,7 +255,7 @@ public class AcordosRegulatorioController extends AbstractQuickstartCrudControll
             @PathVariable Integer id,
             @jakarta.validation.Valid @RequestBody AcordoRegulatorioWorkflowRequestDTO dto
     ) {
-        return workflowResponse(id, "/{id}/actions/reinstate", service.reinstate(id, dto));
+        return governedReinstate(id, dto);
     }
 
     @PostMapping("/{id}/actions/revoke")
@@ -272,7 +274,7 @@ public class AcordosRegulatorioController extends AbstractQuickstartCrudControll
             @PathVariable Integer id,
             @jakarta.validation.Valid @RequestBody AcordoRegulatorioWorkflowRequestDTO dto
     ) {
-        return workflowResponse(id, "/{id}/actions/revoke", service.revoke(id, dto));
+        return governedRevoke(id, dto);
     }
 
     @DeleteMapping("/{id}")
@@ -295,24 +297,63 @@ public class AcordosRegulatorioController extends AbstractQuickstartCrudControll
         return super.deleteBatch(ids);
     }
 
-    private ResponseEntity<RestApiResponse<AcordoRegulatorioWorkflowResultDTO>> workflowResponse(
+    @SuppressWarnings("unchecked")
+    private ResponseEntity<RestApiResponse<AcordoRegulatorioWorkflowResultDTO>> governedSuspend(
             Integer id,
-            String operationPath,
-            AcordoRegulatorioWorkflowResultDTO result
+            AcordoRegulatorioWorkflowRequestDTO dto
     ) {
-        // Cada workflow retorna links para o recurso e para os schemas da transicao executada.
-        Links links = Links.of(
-                linkToSelf(id),
-                linkToAll(),
-                linkToFilter(),
-                linkToFilterCursor(),
-                linkToUiSchema(operationPath, "post", "request"),
-                linkToUiSchema(operationPath, "post", "response")
+        return (ResponseEntity<RestApiResponse<AcordoRegulatorioWorkflowResultDTO>>) (ResponseEntity<?>) executeItemCommand(
+                "suspend",
+                id,
+                dto,
+                ResourceCommandResponsePolicy.RETURN_COMMAND_RESULT,
+                request -> ResourceCommandExecutionResult.success(
+                        request,
+                        id,
+                        service.suspend(id, dto),
+                        java.util.Map.of("resourceKey", "operations.acordos-regulatorios")
+                )
         );
-        return withVersion(ResponseEntity.ok(), RestApiResponse.success(result, hateoasOrNull(links)));
+    }
+
+    @SuppressWarnings("unchecked")
+    private ResponseEntity<RestApiResponse<AcordoRegulatorioWorkflowResultDTO>> governedReinstate(
+            Integer id,
+            AcordoRegulatorioWorkflowRequestDTO dto
+    ) {
+        return (ResponseEntity<RestApiResponse<AcordoRegulatorioWorkflowResultDTO>>) (ResponseEntity<?>) executeItemCommand(
+                "reinstate",
+                id,
+                dto,
+                ResourceCommandResponsePolicy.RETURN_COMMAND_RESULT,
+                request -> ResourceCommandExecutionResult.success(
+                        request,
+                        id,
+                        service.reinstate(id, dto),
+                        java.util.Map.of("resourceKey", "operations.acordos-regulatorios")
+                )
+        );
+    }
+
+    @SuppressWarnings("unchecked")
+    private ResponseEntity<RestApiResponse<AcordoRegulatorioWorkflowResultDTO>> governedRevoke(
+            Integer id,
+            AcordoRegulatorioWorkflowRequestDTO dto
+    ) {
+        return (ResponseEntity<RestApiResponse<AcordoRegulatorioWorkflowResultDTO>>) (ResponseEntity<?>) executeItemCommand(
+                "revoke",
+                id,
+                dto,
+                ResourceCommandResponsePolicy.RETURN_COMMAND_RESULT,
+                request -> ResourceCommandExecutionResult.success(
+                        request,
+                        id,
+                        service.revoke(id, dto),
+                        java.util.Map.of("resourceKey", "operations.acordos-regulatorios")
+                )
+        );
     }
 }
-
 
 
 

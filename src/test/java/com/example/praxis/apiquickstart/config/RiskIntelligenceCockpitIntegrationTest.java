@@ -23,6 +23,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -175,6 +176,7 @@ class RiskIntelligenceCockpitIntegrationTest {
         JsonNode observation = body(observationResponse);
         assertEquals("LIVRE", observation.path("data").path("statusAnterior").asText());
         assertEquals("EM_OBSERVACAO", observation.path("data").path("statusAtual").asText());
+        assertFalse(observation.path("_links").path("schema").isMissingNode(), observation.toPrettyString());
         assertThreatSelectable(1, true);
 
         ResponseEntity<String> capturedResponse = restTemplate.exchange(
@@ -190,6 +192,7 @@ class RiskIntelligenceCockpitIntegrationTest {
         JsonNode captured = body(capturedResponse);
         assertEquals("EM_OBSERVACAO", captured.path("data").path("statusAnterior").asText());
         assertEquals("CAPTURADO", captured.path("data").path("statusAtual").asText());
+        assertFalse(captured.path("_links").path("schema").isMissingNode(), captured.toPrettyString());
         assertThreatSelectable(1, false);
 
         ResponseEntity<String> duplicateCapturedResponse = restTemplate.exchange(
@@ -203,6 +206,10 @@ class RiskIntelligenceCockpitIntegrationTest {
                 String.class
         );
         assertEquals(HttpStatus.CONFLICT, duplicateCapturedResponse.getStatusCode());
+        assertNotNull(duplicateCapturedResponse.getBody());
+        JsonNode duplicateCaptured = objectMapper.readTree(duplicateCapturedResponse.getBody());
+        assertEquals("failure", duplicateCaptured.path("status").asText());
+        assertEquals("CONFLICT_DEPENDENCY", duplicateCaptured.path("errors").get(0).path("outcome").asText());
     }
 
     private void assertRiskSurface(String resourceKey, String surfaceId, String kind, String title) throws Exception {

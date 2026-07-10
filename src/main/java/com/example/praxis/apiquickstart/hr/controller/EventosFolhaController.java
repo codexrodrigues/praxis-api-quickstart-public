@@ -16,9 +16,10 @@ import org.praxisplatform.uischema.action.ActionScope;
 import org.praxisplatform.uischema.annotation.ApiGroup;
 import org.praxisplatform.uischema.annotation.ApiResource;
 import org.praxisplatform.uischema.annotation.WorkflowAction;
+import org.praxisplatform.uischema.command.ResourceCommandExecutionResult;
+import org.praxisplatform.uischema.command.ResourceCommandResponsePolicy;
 import org.praxisplatform.uischema.controller.base.AbstractResourceController;
 import org.praxisplatform.uischema.rest.response.RestApiResponse;
-import org.springframework.hateoas.Links;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -78,20 +79,26 @@ public class EventosFolhaController extends AbstractResourceController<
     public ResponseEntity<RestApiResponse<BulkApproveEventosFolhaResultDTO>> bulkApprove(
             @Valid @RequestBody BulkApproveEventosFolhaRequestDTO dto
     ) {
-        BulkApproveEventosFolhaResultDTO result = service.bulkApprove(dto);
-        // Expõe links para o schema de request/response da action, reforçando o contrato público
-        // do workflow para runtimes e clientes semânticos.
-        Links links = Links.of(
-                linkToAll(),
-                linkToFilter(),
-                linkToFilterCursor(),
-                linkToUiSchema("/actions/bulk-approve", "post", "request"),
-                linkToUiSchema("/actions/bulk-approve", "post", "response")
+        return governedBulkApprove(dto);
+    }
+
+    @SuppressWarnings("unchecked")
+    private ResponseEntity<RestApiResponse<BulkApproveEventosFolhaResultDTO>> governedBulkApprove(
+            BulkApproveEventosFolhaRequestDTO dto
+    ) {
+        return (ResponseEntity<RestApiResponse<BulkApproveEventosFolhaResultDTO>>) (ResponseEntity<?>) executeCollectionCommand(
+                "bulk-approve",
+                dto,
+                ResourceCommandResponsePolicy.RETURN_COMMAND_RESULT,
+                request -> ResourceCommandExecutionResult.success(
+                        request,
+                        null,
+                        service.bulkApprove(dto),
+                        java.util.Map.of("resourceKey", "human-resources.eventos-folha")
+                )
         );
-        return withVersion(ResponseEntity.ok(), RestApiResponse.success(result, hateoasOrNull(links)));
     }
 }
-
 
 
 

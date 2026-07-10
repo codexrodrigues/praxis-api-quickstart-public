@@ -751,6 +751,7 @@ class MissaoPilotIntegrationTest {
                 String.class
         );
         JsonNode startBody = body(startResponse);
+        assertFalse(startBody.path("_links").path("schema").isMissingNode(), startBody.toPrettyString());
         assertEquals("PLANEJADA", startBody.path("data").path("statusAnterior").asText());
         assertEquals("EM_ANDAMENTO", startBody.path("data").path("statusAtual").asText());
         assertEquals("EM_ANDAMENTO", jdbcTemplate.queryForObject(
@@ -773,6 +774,7 @@ class MissaoPilotIntegrationTest {
                 String.class
         );
         assertEquals(HttpStatus.CONFLICT, duplicateStart.getStatusCode());
+        assertEquals("CONFLICT_DEPENDENCY", objectMapper.readTree(duplicateStart.getBody()).path("errors").get(0).path("outcome").asText());
 
         ResponseEntity<String> pauseResponse = restTemplate.exchange(
                 "/api/operations/missoes/2/actions/pause",
@@ -785,6 +787,7 @@ class MissaoPilotIntegrationTest {
                 String.class
         );
         JsonNode pauseBody = body(pauseResponse);
+        assertFalse(pauseBody.path("_links").path("schema").isMissingNode(), pauseBody.toPrettyString());
         assertEquals("EM_ANDAMENTO", pauseBody.path("data").path("statusAnterior").asText());
         assertEquals("PAUSADA", pauseBody.path("data").path("statusAtual").asText());
 
@@ -800,6 +803,7 @@ class MissaoPilotIntegrationTest {
                 String.class
         );
         JsonNode failBody = body(failResponse);
+        assertFalse(failBody.path("_links").path("schema").isMissingNode(), failBody.toPrettyString());
         assertEquals("PAUSADA", failBody.path("data").path("statusAnterior").asText());
         assertEquals("FALHOU", failBody.path("data").path("statusAtual").asText());
         assertEquals(1, jdbcTemplate.queryForObject(
@@ -818,6 +822,7 @@ class MissaoPilotIntegrationTest {
                 String.class
         );
         JsonNode resumeBody = body(resumeResponse);
+        assertFalse(resumeBody.path("_links").path("schema").isMissingNode(), resumeBody.toPrettyString());
         assertEquals("PAUSADA", resumeBody.path("data").path("statusAnterior").asText());
         assertEquals("EM_ANDAMENTO", resumeBody.path("data").path("statusAtual").asText());
 
@@ -833,6 +838,7 @@ class MissaoPilotIntegrationTest {
                 String.class
         );
         JsonNode completeBody = body(completeResponse);
+        assertFalse(completeBody.path("_links").path("schema").isMissingNode(), completeBody.toPrettyString());
         assertEquals("EM_ANDAMENTO", completeBody.path("data").path("statusAnterior").asText());
         assertEquals("CONCLUIDA", completeBody.path("data").path("statusAtual").asText());
         assertEquals("CONCLUIDA", jdbcTemplate.queryForObject(
@@ -857,7 +863,7 @@ class MissaoPilotIntegrationTest {
     }
 
     @Test
-    void shouldBlockMissionWorkflowActionWhenGovernedPolicyIsApplied() {
+    void shouldBlockMissionWorkflowActionWhenGovernedPolicyIsApplied() throws Exception {
         when(workflowActionPolicyResolver.resolveAppliedPolicy("operations.missoes:pause"))
                 .thenReturn(Optional.of(new DomainRuleWorkflowActionPolicy(
                         "operations.missoes:pause",
@@ -879,6 +885,7 @@ class MissaoPilotIntegrationTest {
         );
 
         assertEquals(HttpStatus.CONFLICT, pauseResponse.getStatusCode());
+        assertEquals("CONFLICT_DEPENDENCY", objectMapper.readTree(pauseResponse.getBody()).path("errors").get(0).path("outcome").asText());
         assertEquals("EM_ANDAMENTO", jdbcTemplate.queryForObject(
                 "select status from public.missoes where id = 2",
                 String.class

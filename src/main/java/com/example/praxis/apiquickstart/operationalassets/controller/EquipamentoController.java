@@ -19,6 +19,8 @@ import org.praxisplatform.uischema.annotation.UiSurface;
 import org.praxisplatform.uischema.annotation.WorkflowAction;
 import com.example.praxis.apiquickstart.core.controller.base.AbstractQuickstartCrudController;
 import org.praxisplatform.uischema.action.ActionScope;
+import org.praxisplatform.uischema.command.ResourceCommandExecutionResult;
+import org.praxisplatform.uischema.command.ResourceCommandResponsePolicy;
 import org.praxisplatform.uischema.surface.RelatedResourceChildOperation;
 import org.praxisplatform.uischema.surface.SurfaceKind;
 import org.praxisplatform.uischema.surface.SurfaceScope;
@@ -259,7 +261,7 @@ public class EquipamentoController extends AbstractQuickstartCrudController<Equi
             @PathVariable Integer id,
             @jakarta.validation.Valid @RequestBody AssetAvailabilityWorkflowRequestDTO dto
     ) {
-        return workflowResponse(id, "/{id}/actions/send-to-maintenance", service.sendToMaintenance(id, dto));
+        return governedSendToMaintenance(id, dto);
     }
 
     @PostMapping("/{id}/actions/return-to-stock")
@@ -278,7 +280,7 @@ public class EquipamentoController extends AbstractQuickstartCrudController<Equi
             @PathVariable Integer id,
             @jakarta.validation.Valid @RequestBody AssetAvailabilityWorkflowRequestDTO dto
     ) {
-        return workflowResponse(id, "/{id}/actions/return-to-stock", service.returnToStock(id, dto));
+        return governedReturnToStock(id, dto);
     }
 
     @DeleteMapping("/{id}")
@@ -301,23 +303,44 @@ public class EquipamentoController extends AbstractQuickstartCrudController<Equi
         return super.deleteBatch(ids);
     }
 
-    private ResponseEntity<RestApiResponse<AssetAvailabilityWorkflowResultDTO>> workflowResponse(
+    @SuppressWarnings("unchecked")
+    private ResponseEntity<RestApiResponse<AssetAvailabilityWorkflowResultDTO>> governedSendToMaintenance(
             Integer id,
-            String operationPath,
-            AssetAvailabilityWorkflowResultDTO result
+            AssetAvailabilityWorkflowRequestDTO dto
     ) {
-        Links links = Links.of(
-                linkToSelf(id),
-                linkToAll(),
-                linkToFilter(),
-                linkToFilterCursor(),
-                linkToUiSchema(operationPath, "post", "request"),
-                linkToUiSchema(operationPath, "post", "response")
+        return (ResponseEntity<RestApiResponse<AssetAvailabilityWorkflowResultDTO>>) (ResponseEntity<?>) executeItemCommand(
+                "send-to-maintenance",
+                id,
+                dto,
+                ResourceCommandResponsePolicy.RETURN_COMMAND_RESULT,
+                request -> ResourceCommandExecutionResult.success(
+                        request,
+                        id,
+                        service.sendToMaintenance(id, dto),
+                        java.util.Map.of("resourceKey", "assets.equipamentos")
+                )
         );
-        return withVersion(ResponseEntity.ok(), RestApiResponse.success(result, hateoasOrNull(links)));
+    }
+
+    @SuppressWarnings("unchecked")
+    private ResponseEntity<RestApiResponse<AssetAvailabilityWorkflowResultDTO>> governedReturnToStock(
+            Integer id,
+            AssetAvailabilityWorkflowRequestDTO dto
+    ) {
+        return (ResponseEntity<RestApiResponse<AssetAvailabilityWorkflowResultDTO>>) (ResponseEntity<?>) executeItemCommand(
+                "return-to-stock",
+                id,
+                dto,
+                ResourceCommandResponsePolicy.RETURN_COMMAND_RESULT,
+                request -> ResourceCommandExecutionResult.success(
+                        request,
+                        id,
+                        service.returnToStock(id, dto),
+                        java.util.Map.of("resourceKey", "assets.equipamentos")
+                )
+        );
     }
 }
-
 
 
 

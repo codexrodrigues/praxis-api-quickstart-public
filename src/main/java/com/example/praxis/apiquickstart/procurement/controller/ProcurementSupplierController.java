@@ -22,6 +22,8 @@ import org.praxisplatform.uischema.annotation.ResourceIntent;
 import org.praxisplatform.uischema.annotation.UiSurface;
 import org.praxisplatform.uischema.annotation.WorkflowAction;
 import org.praxisplatform.uischema.action.ActionScope;
+import org.praxisplatform.uischema.command.ResourceCommandExecutionResult;
+import org.praxisplatform.uischema.command.ResourceCommandResponsePolicy;
 import org.praxisplatform.uischema.rest.response.RestApiResponse;
 import org.praxisplatform.uischema.surface.RelatedResourceChildOperation;
 import org.praxisplatform.uischema.surface.SurfaceKind;
@@ -207,7 +209,7 @@ public class ProcurementSupplierController extends AbstractQuickstartCrudControl
             @PathVariable Integer id,
             @jakarta.validation.Valid @RequestBody ProcurementSupplierWorkflowRequestDTO dto
     ) {
-        return workflowResponse(id, "/{id}/actions/block", service.block(id, dto));
+        return governedBlock(id, dto);
     }
 
     @PostMapping("/{id}/actions/reinstate")
@@ -229,22 +231,44 @@ public class ProcurementSupplierController extends AbstractQuickstartCrudControl
             @PathVariable Integer id,
             @jakarta.validation.Valid @RequestBody ProcurementSupplierWorkflowRequestDTO dto
     ) {
-        return workflowResponse(id, "/{id}/actions/reinstate", service.reinstate(id, dto));
+        return governedReinstate(id, dto);
     }
 
-    private ResponseEntity<RestApiResponse<ProcurementSupplierWorkflowResultDTO>> workflowResponse(
+    @SuppressWarnings("unchecked")
+    private ResponseEntity<RestApiResponse<ProcurementSupplierWorkflowResultDTO>> governedBlock(
             Integer id,
-            String operationPath,
-            ProcurementSupplierWorkflowResultDTO result
+            ProcurementSupplierWorkflowRequestDTO dto
     ) {
-        Links links = Links.of(
-                linkToSelf(id),
-                linkToAll(),
-                linkToFilter(),
-                linkToFilterCursor(),
-                linkToUiSchema(operationPath, "post", "request"),
-                linkToUiSchema(operationPath, "post", "response")
+        return (ResponseEntity<RestApiResponse<ProcurementSupplierWorkflowResultDTO>>) (ResponseEntity<?>) executeItemCommand(
+                "block",
+                id,
+                dto,
+                ResourceCommandResponsePolicy.RETURN_COMMAND_RESULT,
+                request -> ResourceCommandExecutionResult.success(
+                        request,
+                        id,
+                        service.block(id, dto),
+                        java.util.Map.of("resourceKey", "procurement.suppliers")
+                )
         );
-        return withVersion(ResponseEntity.ok(), RestApiResponse.success(result, hateoasOrNull(links)));
+    }
+
+    @SuppressWarnings("unchecked")
+    private ResponseEntity<RestApiResponse<ProcurementSupplierWorkflowResultDTO>> governedReinstate(
+            Integer id,
+            ProcurementSupplierWorkflowRequestDTO dto
+    ) {
+        return (ResponseEntity<RestApiResponse<ProcurementSupplierWorkflowResultDTO>>) (ResponseEntity<?>) executeItemCommand(
+                "reinstate",
+                id,
+                dto,
+                ResourceCommandResponsePolicy.RETURN_COMMAND_RESULT,
+                request -> ResourceCommandExecutionResult.success(
+                        request,
+                        id,
+                        service.reinstate(id, dto),
+                        java.util.Map.of("resourceKey", "procurement.suppliers")
+                )
+        );
     }
 }
