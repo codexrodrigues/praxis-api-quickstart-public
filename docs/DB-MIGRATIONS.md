@@ -18,6 +18,5 @@ CREATE INDEX IF NOT EXISTS idx_eventos_folha_status ON public.eventos_folha(stat
 Observações:
 - Ambientes de DEV deste projeto usam `spring.jpa.hibernate.ddl-auto=none`; portanto, a alteração não é aplicada automaticamente.
 - Em PROD, use ferramenta de migração (Flyway/Liquibase) ou scripts manuais versionados.
-- A action `POST /api/human-resources/eventos-folha/actions/bulk-approve` agora exige essa coluna para validar `allowedStates=PENDENTE` e persistir a transição para `APROVADO`.
-- Sem a coluna, o endpoint continua respondendo `200`, mas cada item retorna falha com a mensagem `Workflow requires public.eventos_folha.status column`; não há aprovação simulada.
-- O host reavalia a existência da coluna a cada nova chamada enquanto ela estiver ausente; depois da migration aplicada, não é necessário reiniciar a aplicação para o workflow voltar a operar.
+- A action `POST /api/human-resources/eventos-folha/actions/bulk-approve` usa esse estado como fonte de verdade JPA para validar `allowedStates=PENDENTE` e persistir a transição para `APROVADO`.
+- A coluna é obrigatória: o host não mantém fallback para banco sem a migration. Execute a trilha operacional antes de publicar o workflow.

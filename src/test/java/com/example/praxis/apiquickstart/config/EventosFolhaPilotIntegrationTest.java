@@ -60,6 +60,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
                 "config.datasource.username=sa",
                 "config.datasource.password=",
                 "spring.jpa.hibernate.ddl-auto=none"
+                ,"praxis.resource-version.etag.secret=test-secret-resource-version"
         }
 )
 class EventosFolhaPilotIntegrationTest {
@@ -94,6 +95,8 @@ class EventosFolhaPilotIntegrationTest {
 
     @BeforeEach
     void seedEventosFolhaTables() {
+        jdbcTemplate.execute("drop table if exists public.praxis_resource_action_transition");
+        jdbcTemplate.execute("drop table if exists public.praxis_resource_action_execution");
         jdbcTemplate.execute("drop table if exists public.eventos_folha");
         jdbcTemplate.execute("drop table if exists public.folhas_pagamento");
 
@@ -117,7 +120,40 @@ class EventosFolhaPilotIntegrationTest {
                     tipo varchar(100) not null,
                     valor numeric(19, 2) not null,
                     folha_pagamento_id integer not null,
-                    status varchar(20)
+                    status varchar(20) not null default 'PENDENTE',
+                    version bigint not null default 0
+                )
+                """);
+
+        jdbcTemplate.execute("""
+                create table public.praxis_resource_action_transition (
+                    transition_id uuid primary key,
+                    resource_key varchar(200) not null,
+                    resource_id varchar(128) not null,
+                    action_id varchar(120) not null,
+                    action_scope varchar(32) not null,
+                    previous_state varchar(120),
+                    resulting_state varchar(120),
+                    reason_code varchar(120),
+                    comment varchar(1000),
+                    effective_at date not null,
+                    performed_at timestamp with time zone not null,
+                    actor_subject varchar(255) not null,
+                    actor_authorities varchar(1000),
+                    correlation_id varchar(255) not null,
+                    request_id varchar(255),
+                    idempotency_key varchar(255),
+                    version_before bigint,
+                    version_after bigint
+                )
+                """);
+        jdbcTemplate.execute("""
+                create table public.praxis_resource_action_execution (
+                    execution_id uuid primary key, resource_key varchar(200) not null, action_id varchar(120) not null,
+                    action_scope varchar(32) not null, idempotency_key varchar(255) not null, request_hash varchar(128) not null,
+                    execution_status varchar(32) not null, response_payload json, correlation_id varchar(255) not null,
+                    request_id varchar(255), actor_subject varchar(255) not null, actor_authorities varchar(1000), started_at timestamp with time zone not null, completed_at timestamp with time zone,
+                    failure_code varchar(120), failure_message varchar(1000), unique(resource_key, action_id, idempotency_key)
                 )
                 """);
 
@@ -159,7 +195,7 @@ class EventosFolhaPilotIntegrationTest {
                 String.class
         ));
         assertEquals("human-resources.eventos-folha", actionsCatalog.path("resourceKey").asText());
-        assertEquals(1, actionsCatalog.path("actions").size());
+        assertEquals(2, actionsCatalog.path("actions").size());
 
         JsonNode bulkApprove = findById(actionsCatalog.path("actions"), "bulk-approve");
         assertNotNull(bulkApprove);
@@ -278,7 +314,8 @@ class EventosFolhaPilotIntegrationTest {
                 "/api/human-resources/eventos-folha/1/actions",
                 String.class
         );
-        assertEquals(HttpStatus.NOT_FOUND, itemActions.getStatusCode());
+        assertEquals(HttpStatus.OK, itemActions.getStatusCode());
+        assertNotNull(findById(body(itemActions).path("actions"), "reject"));
 
         JsonNode itemCapabilities = body(restTemplate.getForEntity(
                 "/api/human-resources/eventos-folha/1/capabilities",
@@ -291,7 +328,7 @@ class EventosFolhaPilotIntegrationTest {
         assertEquals("PUT", itemCapabilities.path("operations").path("edit").path("preferredMethod").asText());
         assertTrue(itemCapabilities.path("operations").path("delete").path("supported").asBoolean());
         assertNotNull(findById(itemCapabilities.path("surfaces"), "detail"));
-        assertEquals(0, itemCapabilities.path("actions").size());
+        assertNotNull(findById(itemCapabilities.path("actions"), "reject"));
     }
 
     @Test
@@ -349,13 +386,14 @@ class EventosFolhaPilotIntegrationTest {
         assertTrue(itemEnvelope.has("_links"));
         assertTrue(itemEnvelope.path("_links").isObject());
         assertFalse(itemEnvelope.path("_links").has("create"));
+        assertEquals("PENDENTE", itemEnvelope.path("data").path("status").asText());
 
         String itemSurfacesHref = findLinkHref(itemEnvelope, "surfaces");
         String itemActionsHref = findLinkHref(itemEnvelope, "actions");
         String itemCapabilitiesHref = findLinkHref(itemEnvelope, "capabilities");
 
         assertNotNull(itemSurfacesHref);
-        assertNull(itemActionsHref);
+        assertNotNull(itemActionsHref);
         assertNotNull(itemCapabilitiesHref);
 
         JsonNode itemSurfaces = body(getHref(itemSurfacesHref));
@@ -366,7 +404,7 @@ class EventosFolhaPilotIntegrationTest {
         assertTrue(itemCapabilities.path("operations").path("view").path("supported").asBoolean());
         assertTrue(itemCapabilities.path("operations").path("edit").path("supported").asBoolean());
         assertNotNull(findById(itemCapabilities.path("surfaces"), "detail"));
-        assertEquals(0, itemCapabilities.path("actions").size());
+        assertNotNull(findById(itemCapabilities.path("actions"), "reject"));
     }
 
     @Test
@@ -506,14 +544,20 @@ class EventosFolhaPilotIntegrationTest {
 
     @Test
     void shouldExecuteBulkApproveWorkflowWithStateValidation() throws Exception {
+        String initialEtag = restTemplate.getForEntity("/api/human-resources/eventos-folha/1", String.class)
+                .getHeaders().getETag();
         ResponseEntity<String> approved = restTemplate.exchange(
                 "/api/human-resources/eventos-folha/actions/bulk-approve",
                 HttpMethod.POST,
                 authorizedJson("""
                         {
                           "ids": [1]
+                          ,"effectiveAt": "2026-07-11"
+                          ,"reasonCode": "FECHAMENTO_CONFERIDO"
+                          ,"comment": "Valores conferidos para fechamento."
+                          ,"expectedVersions": {"1": %s}
                         }
-                        """, jwtTokenService.generate("admin", "ADMIN")),
+                        """.formatted(jsonString(initialEtag)), jwtTokenService.generate("admin", "ADMIN")),
                 String.class
         );
         JsonNode approvedBody = body(approved);
@@ -523,21 +567,67 @@ class EventosFolhaPilotIntegrationTest {
                 "select status from public.eventos_folha where id = 1",
                 String.class
         ));
+        assertEquals(1, jdbcTemplate.queryForObject(
+                "select count(*) from public.praxis_resource_action_transition where resource_key = 'human-resources.eventos-folha' and action_id = 'bulk-approve'",
+                Integer.class
+        ));
+        assertTrue(approvedBody.path("data").path("details").get(0).path("transitionId").isTextual());
 
+        String approvedEtag = restTemplate.getForEntity("/api/human-resources/eventos-folha/1", String.class)
+                .getHeaders().getETag();
         ResponseEntity<String> blockedByState = restTemplate.exchange(
                 "/api/human-resources/eventos-folha/actions/bulk-approve",
                 HttpMethod.POST,
                 authorizedJson("""
                         {
                           "ids": [1]
+                          ,"effectiveAt": "2026-07-11"
+                          ,"reasonCode": "FECHAMENTO_CONFERIDO"
+                          ,"comment": "Valores conferidos para fechamento."
+                          ,"expectedVersions": {"1": %s}
                         }
-                        """, jwtTokenService.generate("admin", "ADMIN")),
+                        """.formatted(jsonString(approvedEtag)), jwtTokenService.generate("admin", "ADMIN")),
                 String.class
         );
         JsonNode blockedByStateBody = body(blockedByState);
         assertEquals(0, blockedByStateBody.path("data").path("processed").asInt());
         assertEquals(1, blockedByStateBody.path("data").path("failed").asInt());
         assertEquals("State not allowed: APROVADO", blockedByStateBody.path("data").path("details").get(0).path("error").asText());
+    }
+
+    @Test
+    void shouldRejectPendingEventoWithEtagAndAuditTrail() throws Exception {
+        String etag = restTemplate.getForEntity("/api/human-resources/eventos-folha/1", String.class).getHeaders().getETag();
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.add(HttpHeaders.COOKIE, "SESSION=" + jwtTokenService.generate("admin", "ADMIN"));
+        headers.setIfMatch(etag);
+        ResponseEntity<String> rejected = restTemplate.exchange(
+                "/api/human-resources/eventos-folha/1/actions/reject", HttpMethod.POST,
+                new HttpEntity<>("{\"effectiveAt\":\"2026-07-11\",\"reasonCode\":\"DIVERGENCIA\",\"comment\":\"Rubrica divergente.\"}", headers), String.class);
+        JsonNode response = body(rejected);
+        assertEquals("REJEITADO", response.path("data").path("status").asText());
+        assertTrue(response.path("data").path("transitionId").isTextual());
+        assertEquals("REJEITADO", jdbcTemplate.queryForObject("select status from public.eventos_folha where id = 1", String.class));
+        assertEquals(1, jdbcTemplate.queryForObject("select count(*) from public.praxis_resource_action_transition where action_id = 'reject'", Integer.class));
+    }
+
+    @Test
+    void shouldReplayBulkApprovalForSameIdempotencyKey() throws Exception {
+        String etag = restTemplate.getForEntity("/api/human-resources/eventos-folha/1", String.class).getHeaders().getETag();
+        String body = "{\"ids\":[1],\"effectiveAt\":\"2026-07-11\",\"reasonCode\":\"FECHAMENTO_CONFERIDO\",\"comment\":\"Conferido.\",\"expectedVersions\":{\"1\":" + jsonString(etag) + "}}";
+        HttpHeaders headers = new HttpHeaders(); headers.setContentType(MediaType.APPLICATION_JSON); headers.add(HttpHeaders.COOKIE, "SESSION=" + jwtTokenService.generate("admin", "ADMIN")); headers.set("Idempotency-Key", "payroll-replay-1");
+        ResponseEntity<String> first = restTemplate.exchange("/api/human-resources/eventos-folha/actions/bulk-approve", HttpMethod.POST, new HttpEntity<>(body, headers), String.class);
+        ResponseEntity<String> replay = restTemplate.exchange("/api/human-resources/eventos-folha/actions/bulk-approve", HttpMethod.POST, new HttpEntity<>(body, headers), String.class);
+        assertEquals(body(first).path("data").path("details").get(0).path("transitionId").asText(), body(replay).path("data").path("details").get(0).path("transitionId").asText());
+        assertEquals(1, jdbcTemplate.queryForObject("select count(*) from public.praxis_resource_action_execution", Integer.class));
+        assertEquals("COLLECTION", jdbcTemplate.queryForObject("select action_scope from public.praxis_resource_action_execution", String.class));
+        assertEquals("admin", jdbcTemplate.queryForObject("select actor_subject from public.praxis_resource_action_execution", String.class));
+        assertEquals("COMPLETED", jdbcTemplate.queryForObject("select execution_status from public.praxis_resource_action_execution", String.class));
+        assertNotNull(jdbcTemplate.queryForObject("select correlation_id from public.praxis_resource_action_execution", String.class));
+        ResponseEntity<String> collision = restTemplate.exchange("/api/human-resources/eventos-folha/actions/bulk-approve", HttpMethod.POST,
+                new HttpEntity<>(body.replace("Conferido.", "Comando diferente."), headers), String.class);
+        assertEquals(HttpStatus.CONFLICT, collision.getStatusCode());
     }
 
     private JsonNode body(ResponseEntity<String> response) throws Exception {
@@ -551,6 +641,10 @@ class EventosFolhaPilotIntegrationTest {
         headers.setContentType(MediaType.APPLICATION_JSON);
         headers.add(HttpHeaders.COOKIE, "SESSION=" + token);
         return new HttpEntity<>(json, headers);
+    }
+
+    private String jsonString(String value) {
+        return objectMapper.valueToTree(value).toString();
     }
 
     private JsonNode findById(JsonNode items, String id) {

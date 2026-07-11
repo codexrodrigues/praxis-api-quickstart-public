@@ -10,6 +10,8 @@ import com.example.praxis.apiquickstart.hr.mapper.FuncionarioMapper;
 import com.example.praxis.apiquickstart.hr.repository.FuncionarioRepository;
 import com.example.praxis.apiquickstart.constants.ApiPaths;
 import com.example.praxis.apiquickstart.core.service.base.AbstractQuickstartCrudService;
+import com.example.praxis.apiquickstart.core.service.ResourceActionTransitionService;
+import com.example.praxis.apiquickstart.hr.dto.actions.FuncionarioDeactivateRequestDTO;
 import org.praxisplatform.uischema.exporting.CollectionExportCapability;
 import org.praxisplatform.uischema.exporting.CollectionExportExecutor;
 import org.praxisplatform.uischema.exporting.CollectionExportField;
@@ -36,6 +38,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
@@ -49,6 +52,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.OptionalLong;
 import java.util.Set;
 
 /**
@@ -69,6 +73,13 @@ import java.util.Set;
 @Service
 public class FuncionarioService extends AbstractQuickstartCrudService<Funcionario, FuncionarioDTO, Integer, FuncionarioFilterDTO, CreateFuncionarioDTO, UpdateFuncionarioDTO> {
     public static final String EMPLOYEE_OPTION_SOURCE_KEY = ApiPaths.HumanResources.FUNCIONARIOS_EMPLOYEE_LOOKUP_SOURCE;
+
+    @Override
+    @Transactional(readOnly = true)
+    public OptionalLong getResourceVersion(Integer id) {
+        Long version = findEntityById(id).getVersion();
+        return version == null ? OptionalLong.of(0L) : OptionalLong.of(version);
+    }
     private static final int EXPORT_MAX_ROWS = 500;
     private static final Locale EXPORT_LOCALE = Locale.forLanguageTag("pt-BR");
     private static final DateTimeFormatter EXPORT_DATE_FORMAT = DateTimeFormatter.ofPattern("dd/MM/yyyy", EXPORT_LOCALE);
@@ -198,15 +209,28 @@ public class FuncionarioService extends AbstractQuickstartCrudService<Funcionari
 
     private final FuncionarioMapper mapper;
     private final CollectionExportExecutor collectionExportExecutor;
+    private final ResourceActionTransitionService transitionService;
 
+    @Autowired
+    public FuncionarioService(
+            FuncionarioRepository repository,
+            FuncionarioMapper mapper,
+            CollectionExportExecutor collectionExportExecutor,
+            ResourceActionTransitionService transitionService
+    ) {
+        super(repository, Funcionario.class, mapper::toDto, mapper::toEntity, mapper::toEntity, Funcionario::getId);
+        this.mapper = mapper;
+        this.collectionExportExecutor = collectionExportExecutor;
+        this.transitionService = transitionService;
+    }
+
+    /** Maintains isolated mapper/export tests that do not exercise workflow persistence. */
     public FuncionarioService(
             FuncionarioRepository repository,
             FuncionarioMapper mapper,
             CollectionExportExecutor collectionExportExecutor
     ) {
-        super(repository, Funcionario.class, mapper::toDto, mapper::toEntity, mapper::toEntity, Funcionario::getId);
-        this.mapper = mapper;
-        this.collectionExportExecutor = collectionExportExecutor;
+        this(repository, mapper, collectionExportExecutor, null);
     }
 
     public static OptionSourceRegistry optionSources() {
@@ -267,6 +291,34 @@ public class FuncionarioService extends AbstractQuickstartCrudService<Funcionari
         mapper.updateProfile(dto, existing);
         Funcionario saved = refreshManaged(getRepository().save(existing));
         return mapper.toDto(saved);
+    }
+
+    @Transactional
+    public java.util.UUID deactivate(Integer id, FuncionarioDeactivateRequestDTO command, String actorSubject, String correlationId) {
+        Funcionario employee = findEntityById(id);
+        if (!Boolean.TRUE.equals(employee.getAtivo())) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.CONFLICT, "Employee is already inactive."
+            );
+        }
+        long before = employee.getVersion() == null ? 0L : employee.getVersion();
+        employee.setAtivo(false);
+        Funcionario saved = refreshManaged(getRepository().save(employee));
+        return transitionService.record("human-resources.funcionarios", id, "deactivate", "ITEM", "ATIVO", "INATIVO",
+                command.getReasonCode(), command.getComment(), command.getEffectiveAt(), actorSubject, correlationId,
+                before, saved.getVersion());
+    }
+
+    @Transactional
+    public java.util.UUID reactivate(Integer id, FuncionarioDeactivateRequestDTO command, String actorSubject, String correlationId) {
+        Funcionario employee = findEntityById(id);
+        if (Boolean.TRUE.equals(employee.getAtivo())) {
+            throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.CONFLICT, "Employee is already active.");
+        }
+        long before = employee.getVersion() == null ? 0L : employee.getVersion();
+        employee.setAtivo(true);
+        Funcionario saved = refreshManaged(getRepository().save(employee));
+        return transitionService.record("human-resources.funcionarios", id, "reactivate", "ITEM", "INATIVO", "ATIVO", command.getReasonCode(), command.getComment(), command.getEffectiveAt(), actorSubject, correlationId, before, saved.getVersion());
     }
 
     @Override

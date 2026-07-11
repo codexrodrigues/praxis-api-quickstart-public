@@ -284,6 +284,7 @@ No dashboard do Render, defina as variaveis de ambiente:
 Seguranca (sessao por cookie):
 - `PRACTICE_TEMP_PASSWORD` - senha do usuario `admin` (usada no `/auth/login`)
 - `APP_JWT_SECRET` - segredo forte (>=32 bytes) para assinar o JWT
+- `PRAXIS_RESOURCE_VERSION_ETAG_SECRET` - segredo independente usado para assinar ETags de registros versionados; obrigatório antes de habilitar actions com `If-Match`.
 - `APP_JWT_EXP_MIN` - expiracao em minutos (ex.: `60`)
 - `CORS_ALLOWED_ORIGINS` - origem da UI (ex.: `https://praxis-ui-4e602.web.app`)
 - `APP_SESSION_SECURE=true` - obrigatorio em producao (HTTPS)
@@ -830,7 +831,7 @@ Seguranca (POST):
 - Endpoints de `filters/options/filtered` continuam liberados conforme `read-open`.
 
 Persistencia de status (DB migration)
-- Adicione a coluna `status` na tabela `eventos_folha` (default `PENDENTE`) para permitir `bulk-approve` com validacao real de estado:
+- A coluna `status` da tabela `eventos_folha` (default `PENDENTE`) é a fonte de verdade JPA para `bulk-approve` com validação real de estado:
   - Trilha operacional versionada: `db/operational-migrations`
   - Processo e drift check: `docs/OPERATIONAL-DATASOURCE-MIGRATIONS.md`
 

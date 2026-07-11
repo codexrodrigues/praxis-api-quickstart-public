@@ -96,6 +96,7 @@ class OperationalAssetsEntityLookupPilotIntegrationTest {
         jdbcTemplate.execute("""
                 create table public.funcionarios (
                     id integer primary key,
+                    version bigint not null default 0,
                     nome_completo varchar(200),
                     cpf varchar(20),
                     email varchar(200),

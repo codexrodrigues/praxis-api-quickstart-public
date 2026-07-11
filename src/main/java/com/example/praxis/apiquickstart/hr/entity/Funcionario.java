@@ -23,6 +23,11 @@ public class Funcionario {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
+    /** Versão técnica usada somente para detectar atualizações concorrentes do cadastro. */
+    @Version
+    @Column(name = "version", nullable = false)
+    private Long version;
+
     @Column(name = "nome_completo", nullable = false)
     @DefaultSortColumn(priority = 2, ascending = true)
     private String nomeCompleto;
@@ -72,6 +77,7 @@ public class Funcionario {
 
     public Integer getId() { return id; }
     public void setId(Integer id) { this.id = id; }
+    public Long getVersion() { return version; }
     @OptionLabel
     public String getNomeCompleto() { return nomeCompleto; }
     public void setNomeCompleto(String nomeCompleto) { this.nomeCompleto = nomeCompleto; }

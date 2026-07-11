@@ -9,6 +9,7 @@ import jakarta.validation.constraints.Size;
 import org.praxisplatform.uischema.FieldControlType;
 import org.praxisplatform.uischema.FieldDataType;
 import org.praxisplatform.uischema.extension.annotation.UISchema;
+import com.example.praxis.apiquickstart.hr.enums.StatusEventoFolha;
 
 import java.math.BigDecimal;
 
@@ -69,6 +70,12 @@ public class EventosFolhaResponseDTO {
             description = "Rotulo resumido da folha (competencia ou nome) para listagens sem lookup; espelha folhaPagamentoId.")
     private String folhaPagamentoNome;
 
+    @NotNull
+    @UISchema(label = "Status", controlType = FieldControlType.INPUT, readOnly = true, group = "Workflow", order = 10,
+            helpText = "Situação atual do evento no fluxo de conferência e fechamento.", icon = "approval")
+    @Schema(description = "Estado persistido do evento no workflow de folha. PENDENTE ainda pode ser conferido; APROVADO integra o fechamento; REJEITADO exige tratamento antes de novo processamento.", example = "PENDENTE")
+    private StatusEventoFolha status;
+
     public Integer getId() {
         return id;
     }
@@ -115,5 +122,13 @@ public class EventosFolhaResponseDTO {
 
     public void setFolhaPagamentoNome(String folhaPagamentoNome) {
         this.folhaPagamentoNome = folhaPagamentoNome;
+    }
+
+    public StatusEventoFolha getStatus() {
+        return status;
+    }
+
+    public void setStatus(StatusEventoFolha status) {
+        this.status = status;
     }
 }

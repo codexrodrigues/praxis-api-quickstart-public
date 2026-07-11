@@ -98,6 +98,7 @@ class BaseAccessPilotIntegrationTest {
         jdbcTemplate.execute("""
                 create table public.funcionarios (
                     id integer primary key,
+                    version bigint not null default 0,
                     nome_completo varchar(200) not null,
                     cpf varchar(11) not null,
                     data_nascimento date not null,

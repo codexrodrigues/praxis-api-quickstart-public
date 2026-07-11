@@ -46,6 +46,13 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.praxisplatform.uischema.annotation.WorkflowAction;
+import org.praxisplatform.uischema.action.ActionScope;
+import com.example.praxis.apiquickstart.hr.dto.actions.FuncionarioDeactivateRequestDTO;
+import com.example.praxis.apiquickstart.hr.dto.actions.FuncionarioWorkflowResultDTO;
+import java.util.UUID;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.praxisplatform.uischema.surface.RelatedResourceChildOperation;
 import org.praxisplatform.uischema.surface.SurfaceKind;
@@ -224,6 +231,39 @@ public class FuncionarioController extends AbstractQuickstartCrudController<Func
     })
     public ResponseEntity<RestApiResponse<FuncionarioDTO>> update(@PathVariable Integer id, @jakarta.validation.Valid @RequestBody UpdateFuncionarioDTO dto) {
         return super.update(id, dto);
+    }
+
+    @PostMapping("/{id}/actions/deactivate")
+    @WorkflowAction(id = "deactivate", title = "Inativar funcionário", description = "Inativa o vínculo do funcionário com motivo, vigência e trilha de auditoria.", scope = ActionScope.ITEM, allowedStates = {"ATIVO"}, successMessage = "Funcionário inativado")
+    @Operation(summary = "Inativar funcionário")
+    public ResponseEntity<RestApiResponse<FuncionarioWorkflowResultDTO>> deactivate(
+            @PathVariable Integer id,
+            @RequestHeader(value = "If-Match", required = false) String ifMatch,
+            @RequestHeader(value = "X-Correlation-ID", required = false) String correlationId,
+            @jakarta.validation.Valid @RequestBody FuncionarioDeactivateRequestDTO command
+    ) {
+        requireMatchingResourceVersion(id, ifMatch);
+        String actor = SecurityContextHolder.getContext().getAuthentication() == null
+                ? "anonymous" : SecurityContextHolder.getContext().getAuthentication().getName();
+        String correlation = correlationId == null || correlationId.isBlank() ? UUID.randomUUID().toString() : correlationId;
+        var result = new FuncionarioWorkflowResultDTO(service.deactivate(id, command, actor, correlation), false);
+        return withResourceVersion(ResponseEntity.ok(), id, RestApiResponse.success(result, null));
+    }
+
+    @PostMapping("/{id}/actions/reactivate")
+    @WorkflowAction(id = "reactivate", title = "Reativar funcionário", description = "Reativa o vínculo do funcionário com vigência e trilha de auditoria.", scope = ActionScope.ITEM, allowedStates = {"INATIVO"}, successMessage = "Funcionário reativado")
+    @Operation(summary = "Reativar funcionário")
+    public ResponseEntity<RestApiResponse<FuncionarioWorkflowResultDTO>> reactivate(
+            @PathVariable Integer id,
+            @RequestHeader(value = "If-Match", required = false) String ifMatch,
+            @RequestHeader(value = "X-Correlation-ID", required = false) String correlationId,
+            @jakarta.validation.Valid @RequestBody FuncionarioDeactivateRequestDTO command
+    ) {
+        requireMatchingResourceVersion(id, ifMatch);
+        String actor = SecurityContextHolder.getContext().getAuthentication() == null ? "anonymous" : SecurityContextHolder.getContext().getAuthentication().getName();
+        String correlation = correlationId == null || correlationId.isBlank() ? UUID.randomUUID().toString() : correlationId;
+        var result = new FuncionarioWorkflowResultDTO(service.reactivate(id, command, actor, correlation), true);
+        return withResourceVersion(ResponseEntity.ok(), id, RestApiResponse.success(result, null));
     }
 
     @PatchMapping("/{id}/profile")

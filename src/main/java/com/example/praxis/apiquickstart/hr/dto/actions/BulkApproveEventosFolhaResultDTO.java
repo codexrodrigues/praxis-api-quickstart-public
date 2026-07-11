@@ -4,6 +4,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 /**
  * Resultado agregado da workflow action de aprovacao em lote.
@@ -75,6 +76,8 @@ public class BulkApproveEventosFolhaResultDTO {
                 description = "Identificador do evento de folha submetido; corresponde a um id do request quando presente e encontrado.",
                 example = "101")
         private Integer id;
+        @Schema(description = "Identificador da transição auditável criada para o evento aprovado; ausente quando o item não mudou de estado.", example = "017ab1b1-bb2f-4b7b-8a73-6a26669cb50b")
+        private UUID transitionId;
         @Schema(
                 description = "true se a aprovacao foi aplicada sem erro; false se o registo nao puder transicionar (estado, lock, inexistente).",
                 example = "true")
@@ -93,6 +96,11 @@ public class BulkApproveEventosFolhaResultDTO {
             this.error = error;
         }
 
+        public ItemResult(Integer id, UUID transitionId, boolean ok, String error) {
+            this(id, ok, error);
+            this.transitionId = transitionId;
+        }
+
         public Integer getId() {
             return id;
         }
@@ -100,6 +108,9 @@ public class BulkApproveEventosFolhaResultDTO {
         public void setId(Integer id) {
             this.id = id;
         }
+
+        public UUID getTransitionId() { return transitionId; }
+        public void setTransitionId(UUID transitionId) { this.transitionId = transitionId; }
 
         public boolean isOk() {
             return ok;

@@ -31,6 +31,7 @@ public interface EventosFolhaMapper extends ResourceMapper<
     @Mappings({
             @Mapping(target = "folhaPagamento", expression = "java(folhaFromId(dto.getFolhaPagamentoId()))"),
             @Mapping(target = "status", ignore = true),
+            @Mapping(target = "version", ignore = true),
             @Mapping(target = "id", ignore = true)
     })
     EventosFolha newEntity(CreateEventosFolhaDTO dto);
@@ -39,6 +40,7 @@ public interface EventosFolhaMapper extends ResourceMapper<
     @Mappings({
             @Mapping(target = "folhaPagamento", expression = "java(folhaFromId(dto.getFolhaPagamentoId()))"),
             @Mapping(target = "status", ignore = true),
+            @Mapping(target = "version", ignore = true),
             @Mapping(target = "id", ignore = true)
     })
     void applyUpdate(@MappingTarget EventosFolha entity, UpdateEventosFolhaDTO dto);

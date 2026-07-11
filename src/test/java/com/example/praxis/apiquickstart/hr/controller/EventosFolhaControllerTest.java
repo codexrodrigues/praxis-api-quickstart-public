@@ -9,6 +9,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.praxisplatform.uischema.capability.AvailabilityDecision;
 import org.praxisplatform.uischema.capability.CapabilityService;
+import org.praxisplatform.uischema.concurrency.ResourceVersionEtagService;
 import org.praxisplatform.uischema.filter.web.FilterRequestBodyAdvice;
 import org.praxisplatform.uischema.rest.exceptionhandler.GlobalExceptionHandler;
 import org.praxisplatform.uischema.service.base.BaseResourceCommandService;
@@ -17,15 +18,19 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.context.annotation.Bean;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.context.TestPropertySource;
 
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
+import java.util.OptionalLong;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -41,7 +46,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @WebMvcTest(controllers = EventosFolhaController.class)
 @AutoConfigureMockMvc(addFilters = false)
-@Import({FilterRequestBodyAdvice.class, GlobalExceptionHandler.class})
+@Import({FilterRequestBodyAdvice.class, GlobalExceptionHandler.class, EventosFolhaControllerTest.VersionEtagConfig.class})
+@TestPropertySource(properties = "praxis.resource-version.etag.secret=test-secret-resource-version")
 class EventosFolhaControllerTest {
 
     @Autowired
@@ -49,6 +55,9 @@ class EventosFolhaControllerTest {
 
     @MockBean
     private EventosFolhaService service;
+
+    @MockBean
+    private com.example.praxis.apiquickstart.core.service.ResourceActionExecutionService actionExecutionService;
 
     @MockBean
     private com.example.praxis.apiquickstart.security.JwtTokenService jwtTokenService;
@@ -71,16 +80,13 @@ class EventosFolhaControllerTest {
                 "/api/human-resources/eventos-folha",
                 "bulk-approve"))
                 .thenReturn(AvailabilityDecision.allowAll());
-        when(service.bulkApprove(any())).thenReturn(result);
+        when(service.bulkApprove(any(), any(), any())).thenReturn(result);
+        when(service.getResourceVersion(1)).thenReturn(OptionalLong.of(0));
         when(service.getDatasetVersion()).thenReturn(Optional.of("EventosFolha:2"));
 
         mockMvc.perform(post("/api/human-resources/eventos-folha/actions/bulk-approve")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {
-                                  "ids": [1, 2]
-                                }
-                                """))
+                        .content(bulkApprovePayload()))
                 .andExpect(status().isOk())
                 .andExpect(header().string("X-Data-Version", "EventosFolha:2"))
                 .andExpect(jsonPath("$.status").value("success"))
@@ -98,15 +104,12 @@ class EventosFolhaControllerTest {
                 "/api/human-resources/eventos-folha",
                 "bulk-approve"))
                 .thenReturn(AvailabilityDecision.deny("payroll-window-closed", null));
+        when(service.getResourceVersion(1)).thenReturn(OptionalLong.of(0));
         when(service.getDatasetVersion()).thenReturn(Optional.of("EventosFolha:2"));
 
         mockMvc.perform(post("/api/human-resources/eventos-folha/actions/bulk-approve")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {
-                                  "ids": [1, 2]
-                                }
-                                """))
+                        .content(bulkApprovePayload()))
                 .andExpect(status().isForbidden())
                 .andExpect(header().string("X-Data-Version", "EventosFolha:2"))
                 .andExpect(jsonPath("$.status").value("failure"))
@@ -114,7 +117,7 @@ class EventosFolhaControllerTest {
                 .andExpect(jsonPath("$.errors[0].category").value("SECURITY"))
                 .andExpect(jsonPath("$.errors[0].outcome").value("PERMISSION_DENIED"));
 
-        verify(service, never()).bulkApprove(any());
+        verify(service, never()).bulkApprove(any(), any(), any());
     }
 
     @Test
@@ -215,5 +218,28 @@ class EventosFolhaControllerTest {
         when(service.getDefaultSort()).thenReturn(Sort.unsorted());
         when(service.filter(any(), any(Pageable.class), any()))
                 .thenReturn(new PageImpl<>(List.of()));
+    }
+
+    private String bulkApprovePayload() {
+        String etag = new ResourceVersionEtagService("test-secret-resource-version")
+                .create("human-resources.eventos-folha", 1, 0)
+                .replace("\"", "\\\"");
+        return """
+                {
+                  "ids": [1],
+                  "effectiveAt": "2026-07-11",
+                  "reasonCode": "FECHAMENTO_CONFERIDO",
+                  "comment": "Valores conferidos para fechamento.",
+                  "expectedVersions": {"1": "%s"}
+                }
+                """.formatted(etag);
+    }
+
+    @TestConfiguration(proxyBeanMethods = false)
+    static class VersionEtagConfig {
+        @Bean
+        ResourceVersionEtagService resourceVersionEtagService() {
+            return new ResourceVersionEtagService("test-secret-resource-version");
+        }
     }
 }

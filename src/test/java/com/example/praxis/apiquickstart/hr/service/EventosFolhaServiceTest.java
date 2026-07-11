@@ -2,8 +2,11 @@ package com.example.praxis.apiquickstart.hr.service;
 
 import com.example.praxis.apiquickstart.config.DomainRuleApprovalPolicy;
 import com.example.praxis.apiquickstart.config.DomainRuleApprovalPolicyResolver;
+import com.example.praxis.apiquickstart.core.service.ResourceActionTransitionService;
 import com.example.praxis.apiquickstart.hr.dto.actions.BulkApproveEventosFolhaRequestDTO;
 import com.example.praxis.apiquickstart.hr.dto.actions.BulkApproveEventosFolhaResultDTO;
+import com.example.praxis.apiquickstart.hr.entity.EventosFolha;
+import com.example.praxis.apiquickstart.hr.enums.StatusEventoFolha;
 import com.example.praxis.apiquickstart.hr.mapper.EventosFolhaMapper;
 import com.example.praxis.apiquickstart.hr.repository.EventosFolhaRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -12,16 +15,17 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.Optional;
+import java.time.LocalDate;
+import java.util.UUID;
+import java.util.Map;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -37,10 +41,13 @@ class EventosFolhaServiceTest {
     private EventosFolhaMapper mapper;
 
     @Mock
-    private JdbcTemplate apiJdbcTemplate;
+    private DomainRuleApprovalPolicyResolver approvalPolicyResolver;
 
     @Mock
-    private DomainRuleApprovalPolicyResolver approvalPolicyResolver;
+    private ResourceActionTransitionService transitionService;
+
+    @Mock
+    private EventosFolhaApprovalItemService approvalItemService;
 
     @InjectMocks
     private EventosFolhaService service;
@@ -52,35 +59,19 @@ class EventosFolhaServiceTest {
     }
 
     @Test
-    void bulkApprove_shouldFailWhenStatusColumnDoesNotExist() {
-        when(apiJdbcTemplate.queryForObject(anyString(), eq(Boolean.class))).thenReturn(Boolean.FALSE);
+    void bulkApprove_shouldPersistPendingEvent() {
+        UUID transitionId = UUID.randomUUID();
+        when(approvalItemService.approve(any(), any(), any(), any())).thenReturn(transitionId);
 
-        BulkApproveEventosFolhaRequestDTO request = new BulkApproveEventosFolhaRequestDTO();
-        request.setIds(List.of(1, 2, 3));
+        BulkApproveEventosFolhaRequestDTO request = command(10);
 
-        BulkApproveEventosFolhaResultDTO result = service.bulkApprove(request);
-
-        assertEquals(3, result.getTotal());
-        assertEquals(0, result.getProcessed());
-        assertEquals(3, result.getFailed());
-        verify(apiJdbcTemplate, never()).update(anyString(), any(), any(), any());
-    }
-
-    @Test
-    void bulkApprove_shouldPersistStatusWhenColumnExists() {
-        when(apiJdbcTemplate.queryForObject(anyString(), eq(Boolean.class))).thenReturn(Boolean.TRUE);
-        when(apiJdbcTemplate.update(anyString(), eq("APROVADO"), eq(10), eq("PENDENTE"))).thenReturn(1);
-
-        BulkApproveEventosFolhaRequestDTO request = new BulkApproveEventosFolhaRequestDTO();
-        request.setIds(List.of(10));
-
-        BulkApproveEventosFolhaResultDTO result = service.bulkApprove(request);
+        BulkApproveEventosFolhaResultDTO result = service.bulkApprove(request, "admin", "correlation-1");
 
         assertEquals(1, result.getTotal());
         assertEquals(1, result.getProcessed());
         assertEquals(0, result.getFailed());
-        verify(apiJdbcTemplate).update(anyString(), eq("APROVADO"), eq(10), eq("PENDENTE"));
-        verify(apiJdbcTemplate, never()).queryForList(anyString(), eq(String.class), eq(10));
+        assertEquals(transitionId, result.getDetails().getFirst().getTransitionId());
+        verify(approvalItemService).approve(eq(10), eq(request), eq("admin"), eq("correlation-1"));
     }
 
     @Test
@@ -95,51 +86,62 @@ class EventosFolhaServiceTest {
                         "payroll-events",
                         "Aprovacao em massa exige decisao gerencial governada.")));
 
-        BulkApproveEventosFolhaRequestDTO request = new BulkApproveEventosFolhaRequestDTO();
-        request.setIds(List.of(10));
+        BulkApproveEventosFolhaRequestDTO request = command(10);
 
         ResponseStatusException exception = assertThrows(
                 ResponseStatusException.class,
-                () -> service.bulkApprove(request));
+                () -> service.bulkApprove(request, "admin", "correlation-1"));
 
         assertEquals("409 CONFLICT \"Aprovacao em massa exige decisao gerencial governada.\"", exception.getMessage());
-        verify(apiJdbcTemplate, never()).update(anyString(), any(), any(), any());
+        verify(repository, never()).saveAndFlush(any());
     }
 
     @Test
     void bulkApprove_shouldRejectEventOutsidePendingState() {
-        when(apiJdbcTemplate.queryForObject(anyString(), eq(Boolean.class))).thenReturn(Boolean.TRUE);
-        when(apiJdbcTemplate.update(anyString(), eq("APROVADO"), eq(10), eq("PENDENTE"))).thenReturn(0);
-        when(apiJdbcTemplate.queryForList(anyString(), eq(String.class), eq(10)))
-                .thenReturn(List.of("APROVADO"));
+        when(approvalItemService.approve(any(), any(), any(), any()))
+                .thenThrow(new ResponseStatusException(org.springframework.http.HttpStatus.CONFLICT, "State not allowed: APROVADO"));
 
-        BulkApproveEventosFolhaRequestDTO request = new BulkApproveEventosFolhaRequestDTO();
-        request.setIds(List.of(10));
+        BulkApproveEventosFolhaRequestDTO request = command(10);
 
-        BulkApproveEventosFolhaResultDTO result = service.bulkApprove(request);
+        BulkApproveEventosFolhaResultDTO result = service.bulkApprove(request, "admin", "correlation-1");
 
         assertEquals(1, result.getTotal());
         assertEquals(0, result.getProcessed());
         assertEquals(1, result.getFailed());
         assertEquals("State not allowed: APROVADO", result.getDetails().getFirst().getError());
-        verify(apiJdbcTemplate).update(anyString(), eq("APROVADO"), eq(10), eq("PENDENTE"));
+        verify(approvalItemService).approve(eq(10), eq(request), eq("admin"), eq("correlation-1"));
     }
 
     @Test
     void bulkApprove_shouldReturnNotFoundWhenAtomicUpdateDoesNotMatchAnyRow() {
-        when(apiJdbcTemplate.queryForObject(anyString(), eq(Boolean.class))).thenReturn(Boolean.TRUE);
-        when(apiJdbcTemplate.update(anyString(), eq("APROVADO"), eq(10), eq("PENDENTE"))).thenReturn(0);
-        when(apiJdbcTemplate.queryForList(anyString(), eq(String.class), eq(10)))
-                .thenReturn(List.of());
+        when(approvalItemService.approve(any(), any(), any(), any()))
+                .thenThrow(new ResponseStatusException(org.springframework.http.HttpStatus.NOT_FOUND, "Not found"));
 
-        BulkApproveEventosFolhaRequestDTO request = new BulkApproveEventosFolhaRequestDTO();
-        request.setIds(List.of(10));
+        BulkApproveEventosFolhaRequestDTO request = command(10);
 
-        BulkApproveEventosFolhaResultDTO result = service.bulkApprove(request);
+        BulkApproveEventosFolhaResultDTO result = service.bulkApprove(request, "admin", "correlation-1");
 
         assertEquals(1, result.getTotal());
         assertEquals(0, result.getProcessed());
         assertEquals(1, result.getFailed());
         assertEquals("Not found", result.getDetails().getFirst().getError());
+    }
+
+    private EventosFolha event(Integer id, StatusEventoFolha status) {
+        EventosFolha event = new EventosFolha();
+        event.setId(id);
+        event.setStatus(status);
+        event.setVersion(0L);
+        return event;
+    }
+
+    private BulkApproveEventosFolhaRequestDTO command(Integer... ids) {
+        BulkApproveEventosFolhaRequestDTO request = new BulkApproveEventosFolhaRequestDTO();
+        request.setIds(List.of(ids));
+        request.setEffectiveAt(LocalDate.of(2026, 7, 11));
+        request.setReasonCode("FECHAMENTO_CONFERIDO");
+        request.setComment("Valores conferidos para fechamento.");
+        request.setExpectedVersions(Map.of(ids[0], "\"test-etag\""));
+        return request;
     }
 }

@@ -240,9 +240,10 @@ public class MissaoService extends AbstractQuickstartCrudService<Missao, MissaoD
     }
 
     private Funcionario funcionarioFromId(Integer id) {
-        Funcionario funcionario = new Funcionario();
-        funcionario.setId(id);
-        return funcionario;
+        // A reference preserves the identity-only association without fabricating a
+        // detached Funcionario. This matters now that Funcionario is versioned:
+        // Hibernate must own the version state instead of receiving a null one.
+        return getEntityManager().getReference(Funcionario.class, id);
     }
 
     @Transactional

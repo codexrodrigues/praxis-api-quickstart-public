@@ -23,7 +23,9 @@ java -cp "scripts:$POSTGRES_JDBC_JAR" JdbcSqlRunner \
   db/operational-migrations/V20260702_001__legacy_pay_codes.sql \
   db/operational-migrations/V20260702_002__eventos_folha_status.sql \
   db/operational-migrations/V20260703_001__purchase_order_lifecycle.sql \
-  db/operational-migrations/V20260703_002__assets_cockpit_demo_seed.sql
+  db/operational-migrations/V20260703_002__assets_cockpit_demo_seed.sql \
+  db/operational-migrations/V20260711_001__resource_action_transition_and_versions.sql \
+  db/operational-migrations/V20260711_002__resource_action_execution_idempotency.sql
 ```
 
 Antes de executar, configure no shell as tres variaveis de ambiente do datasource operacional declaradas em `application.properties`: URL JDBC, usuario e senha do `spring.datasource.*`. `POSTGRES_JDBC_JAR` deve apontar para o driver PostgreSQL local. Em ambientes automatizados, prefira usar o classpath Maven ou a ferramenta oficial de migracao do provedor, mantendo a ordem dos arquivos.
@@ -46,6 +48,14 @@ O check falha com exit code diferente de zero quando um objeto operacional essen
 - coluna `public.eventos_folha.status`
 - tabela `public.procurement_purchase_orders`
 - colunas de ciclo de vida de `public.procurement_purchase_orders`
+- colunas `version` de `public.funcionarios` e `public.eventos_folha`
+- tabela e colunas essenciais de `public.praxis_resource_action_transition`
+- tabela `public.praxis_resource_action_execution` para replay idempotente de actions de coleção
+
+Para actions de coleção que aceitam `Idempotency-Key`, a chave identifica a requisição completa,
+não cada linha. Repetir a mesma chave com o mesmo comando devolve o resultado agregado persistido;
+reutilizá-la com payload diferente retorna conflito. A tabela de execução não substitui a trilha
+por item em `praxis_resource_action_transition`.
 
 Esse conjunto deve crescer sempre que o Quickstart publicar um novo recurso JPA cujo schema operacional nao esteja coberto por dump, migration ou teste de bootstrap.
 

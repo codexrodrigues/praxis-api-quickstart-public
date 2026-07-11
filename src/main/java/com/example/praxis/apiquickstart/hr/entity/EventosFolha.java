@@ -38,13 +38,15 @@ public class EventosFolha {
     @JoinColumn(name = "folha_pagamento_id", nullable = false)
     private FolhasPagamento folhaPagamento;
 
-    /**
-     * Campo de domínio opcional.
-     * Não é persistido por JPA para manter compatibilidade com bancos legados
-     * que ainda não possuem a coluna `eventos_folha.status`.
-     */
-    @Transient
+    /** Estado persistido do evento no fluxo de conferência e fechamento da folha. */
+    @NotNull
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false, length = 20)
     private StatusEventoFolha status = StatusEventoFolha.PENDENTE;
+
+    @Version
+    @Column(name = "version", nullable = false)
+    private Long version;
 
     @OptionLabel
     public String getLabel() { return descricao; }

@@ -1,11 +1,13 @@
 package com.example.praxis.apiquickstart.hr.service;
 
 import com.example.praxis.apiquickstart.config.DomainRuleApprovalPolicyResolver;
+import com.example.praxis.apiquickstart.core.service.ResourceActionTransitionService;
 import com.example.praxis.apiquickstart.hr.dto.CreateEventosFolhaDTO;
 import com.example.praxis.apiquickstart.hr.dto.EventosFolhaResponseDTO;
 import com.example.praxis.apiquickstart.hr.dto.UpdateEventosFolhaDTO;
 import com.example.praxis.apiquickstart.hr.dto.actions.BulkApproveEventosFolhaRequestDTO;
 import com.example.praxis.apiquickstart.hr.dto.actions.BulkApproveEventosFolhaResultDTO;
+import com.example.praxis.apiquickstart.hr.dto.actions.RejectEventoFolhaRequestDTO;
 import com.example.praxis.apiquickstart.hr.dto.filter.EventosFolhaFilterDTO;
 import com.example.praxis.apiquickstart.hr.entity.EventosFolha;
 import com.example.praxis.apiquickstart.hr.enums.StatusEventoFolha;
@@ -25,8 +27,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.http.HttpStatus;
@@ -36,6 +36,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.OptionalLong;
+import java.util.UUID;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 
@@ -57,20 +59,8 @@ public class EventosFolhaService extends AbstractBaseResourceService<
         CreateEventosFolhaDTO,
         UpdateEventosFolhaDTO> {
 
-    private static final String STATUS_COLUMN_EXISTS_SQL = """
-            select exists (
-                select 1
-                from information_schema.columns
-                where table_schema = 'public'
-                  and table_name = 'eventos_folha'
-                  and column_name = 'status'
-            )
-            """;
-    private static final String SELECT_STATUS_BY_ID_SQL = "select status from public.eventos_folha where id = ?";
-    private static final String UPDATE_STATUS_SQL = "update public.eventos_folha set status = ? where id = ? and status = ?";
     private static final String BULK_APPROVE_TARGET_ARTIFACT_KEY = "human-resources.eventos-folha:bulk-approve";
-    private static final String STATUS_MIGRATION_REQUIRED_MESSAGE = "Workflow requires public.eventos_folha.status column";
-    private static final String UPDATE_FAILED_MESSAGE = "Failed to update workflow status";
+    private static final String REJECT_TARGET_ARTIFACT_KEY = "human-resources.eventos-folha:reject";
     private static final int EXPORT_MAX_ROWS = 500;
     private static final List<CollectionExportField> DEFAULT_EXPORT_FIELDS = List.of(
             new CollectionExportField("id", "ID", true, true, "number", "id"),
@@ -94,23 +84,25 @@ public class EventosFolhaService extends AbstractBaseResourceService<
     );
 
     private final EventosFolhaMapper mapper;
-    private final JdbcTemplate apiJdbcTemplate;
     private final CollectionExportExecutor collectionExportExecutor;
     private final DomainRuleApprovalPolicyResolver approvalPolicyResolver;
-    private volatile Boolean statusColumnAvailable;
+    private final ResourceActionTransitionService transitionService;
+    private final EventosFolhaApprovalItemService approvalItemService;
 
     public EventosFolhaService(
             EventosFolhaRepository repository,
             EventosFolhaMapper mapper,
-            @Qualifier("apiJdbcTemplate") JdbcTemplate apiJdbcTemplate,
             CollectionExportExecutor collectionExportExecutor,
-            DomainRuleApprovalPolicyResolver approvalPolicyResolver
+            DomainRuleApprovalPolicyResolver approvalPolicyResolver,
+            ResourceActionTransitionService transitionService,
+            EventosFolhaApprovalItemService approvalItemService
     ) {
         super(repository, EventosFolha.class);
         this.mapper = mapper;
-        this.apiJdbcTemplate = apiJdbcTemplate;
         this.collectionExportExecutor = collectionExportExecutor;
         this.approvalPolicyResolver = approvalPolicyResolver;
+        this.transitionService = transitionService;
+        this.approvalItemService = approvalItemService;
     }
 
     @Override
@@ -122,6 +114,15 @@ public class EventosFolhaService extends AbstractBaseResourceService<
     public java.util.Optional<String> getDatasetVersion() {
         long count = getRepository().count();
         return java.util.Optional.of(getEntityClass().getSimpleName() + ":" + count);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public OptionalLong getResourceVersion(Integer id) {
+        return getRepository().findById(id)
+                .map(EventosFolha::getVersion)
+                .map(OptionalLong::of)
+                .orElseGet(OptionalLong::empty);
     }
 
     @Override
@@ -151,20 +152,45 @@ public class EventosFolhaService extends AbstractBaseResourceService<
                 : result;
     }
 
-    @Transactional
-    public BulkApproveEventosFolhaResultDTO bulkApprove(BulkApproveEventosFolhaRequestDTO request) {
-        enforceApprovalPolicy();
+    public BulkApproveEventosFolhaResultDTO bulkApprove(
+            BulkApproveEventosFolhaRequestDTO request,
+            String actorSubject,
+            String correlationId
+    ) {
+        enforceApprovalPolicy(BULK_APPROVE_TARGET_ARTIFACT_KEY);
         java.util.List<Integer> ids = request == null || request.getIds() == null
                 ? java.util.List.of()
                 : request.getIds().stream()
                         .filter(java.util.Objects::nonNull)
                         .distinct()
                         .toList();
-        return changeStatusInBulk(ids, StatusEventoFolha.PENDENTE, StatusEventoFolha.APROVADO);
+        return changeStatusInBulk(ids, StatusEventoFolha.PENDENTE, StatusEventoFolha.APROVADO, request, actorSubject, correlationId);
     }
 
-    private void enforceApprovalPolicy() {
-        approvalPolicyResolver.resolveAppliedPolicy(BULK_APPROVE_TARGET_ARTIFACT_KEY)
+    @Transactional
+    public UUID reject(Integer id, RejectEventoFolhaRequestDTO command, String actorSubject, String correlationId) {
+        enforceApprovalPolicy(REJECT_TARGET_ARTIFACT_KEY);
+        var replay = transitionService.findReplay("human-resources.eventos-folha", id, "reject");
+        if (replay.isPresent()) return replay.get();
+        EventosFolha event = getRepository().findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Payroll event not found."));
+        if (event.getStatus() != StatusEventoFolha.PENDENTE) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Payroll event is not pending.");
+        }
+        long versionBefore = event.getVersion() == null ? 0L : event.getVersion();
+        event.setStatus(StatusEventoFolha.REJEITADO);
+        EventosFolha saved = getRepository().saveAndFlush(event);
+        return transitionService.record("human-resources.eventos-folha", id, "reject", "ITEM",
+                StatusEventoFolha.PENDENTE.name(), StatusEventoFolha.REJEITADO.name(), command.getReasonCode(),
+                command.getComment(), command.getEffectiveAt(), actorSubject, correlationId, versionBefore, saved.getVersion());
+    }
+
+    public Optional<UUID> findRejectReplay(Integer id) {
+        return transitionService.findReplay("human-resources.eventos-folha", id, "reject");
+    }
+
+    private void enforceApprovalPolicy(String targetArtifactKey) {
+        approvalPolicyResolver.resolveAppliedPolicy(targetArtifactKey)
                 .ifPresent(policy -> {
                     throw new ResponseStatusException(HttpStatus.CONFLICT, policy.effectiveMessage());
                 });
@@ -174,7 +200,10 @@ public class EventosFolhaService extends AbstractBaseResourceService<
     private BulkApproveEventosFolhaResultDTO changeStatusInBulk(
             java.util.List<Integer> ids,
             StatusEventoFolha requiredStatus,
-            StatusEventoFolha targetStatus
+            StatusEventoFolha targetStatus,
+            BulkApproveEventosFolhaRequestDTO command,
+            String actorSubject,
+            String correlationId
     ) {
         BulkApproveEventosFolhaResultDTO result = new BulkApproveEventosFolhaResultDTO();
         if (ids == null || ids.isEmpty()) {
@@ -185,72 +214,24 @@ public class EventosFolhaService extends AbstractBaseResourceService<
         }
 
         result.setTotal(ids.size());
-        if (!hasStatusColumn()) {
-            ids.forEach(id -> result.getDetails().add(
-                    new BulkApproveEventosFolhaResultDTO.ItemResult(id, false, STATUS_MIGRATION_REQUIRED_MESSAGE)
-            ));
-            result.setProcessed(0);
-            result.setFailed(result.getTotal());
-            return result;
-        }
-
         int processed = 0;
         for (Integer id : ids) {
             try {
-                int updated = apiJdbcTemplate.update(UPDATE_STATUS_SQL, targetStatus.name(), id, requiredStatus.name());
-                if (updated == 0) {
-                    String currentStatus = loadStatusById(id);
-                    if (currentStatus == null) {
-                        result.getDetails().add(new BulkApproveEventosFolhaResultDTO.ItemResult(id, false, "Not found"));
-                    } else {
-                        result.getDetails().add(new BulkApproveEventosFolhaResultDTO.ItemResult(
-                                id,
-                                false,
-                                "State not allowed: " + currentStatus
-                        ));
-                    }
-                    continue;
-                }
-                result.getDetails().add(new BulkApproveEventosFolhaResultDTO.ItemResult(id, true, null));
+                UUID transitionId = approvalItemService.approve(id, command, actorSubject, correlationId);
+                result.getDetails().add(new BulkApproveEventosFolhaResultDTO.ItemResult(id, transitionId, true, null));
                 processed++;
             } catch (Exception ex) {
                 log.warn("Falha ao atualizar workflow de eventos_folha para id={}", id, ex);
-                result.getDetails().add(new BulkApproveEventosFolhaResultDTO.ItemResult(id, false, UPDATE_FAILED_MESSAGE));
+                String error = ex instanceof ResponseStatusException response && response.getReason() != null
+                        ? response.getReason()
+                        : "Failed to update workflow status";
+                result.getDetails().add(new BulkApproveEventosFolhaResultDTO.ItemResult(id, false, error));
             }
         }
 
         result.setProcessed(processed);
         result.setFailed(result.getTotal() - processed);
         return result;
-    }
-
-    /** Consulta o estado atual quando a transicao falha, para relatar o motivo ao consumidor. */
-    private String loadStatusById(Integer id) {
-        java.util.List<String> statuses = apiJdbcTemplate.queryForList(SELECT_STATUS_BY_ID_SQL, String.class, id);
-        if (statuses.isEmpty()) {
-            return null;
-        }
-        return statuses.get(0);
-    }
-
-    /** Detecta se a migration necessaria para o workflow ja esta disponivel no banco hospedado. */
-    private boolean hasStatusColumn() {
-        Boolean cached = statusColumnAvailable;
-        if (Boolean.TRUE.equals(cached)) {
-            return true;
-        }
-
-        boolean exists;
-        try {
-            Boolean queryResult = apiJdbcTemplate.queryForObject(STATUS_COLUMN_EXISTS_SQL, Boolean.class);
-            exists = Boolean.TRUE.equals(queryResult);
-        } catch (Exception ex) {
-            log.warn("Nao foi possivel detectar coluna public.eventos_folha.status; workflow continuara indisponivel ate a migration ser aplicada.", ex);
-            exists = false;
-        }
-
-        statusColumnAvailable = exists ? Boolean.TRUE : null;
-        return exists;
     }
 
     private ExportRows resolveExportRows(CollectionExportRequest<EventosFolhaFilterDTO> request) {
