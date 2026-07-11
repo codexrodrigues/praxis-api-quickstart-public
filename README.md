@@ -368,8 +368,8 @@ curl -i -b cookies.txt -c cookies.txt \
 ## Rodar local
 Este quickstart usa os starters alinhados ao ciclo corrente:
 
-- Metadata: `io.github.codexrodrigues:praxis-metadata-starter:8.0.0-rc.101`
-- Config: `io.github.codexrodrigues:praxis-config-starter:0.1.0-rc.71`
+- Metadata: `io.github.codexrodrigues:praxis-metadata-starter:8.0.0-rc.103`
+- Config: `io.github.codexrodrigues:praxis-config-starter:0.1.0-rc.72`
 - UI Angular: `@praxisui/*:8.0.0-beta.19`
 
 1) Build (repo standalone)
