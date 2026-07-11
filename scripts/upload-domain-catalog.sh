@@ -22,6 +22,10 @@ for command in curl jq; do
   fi
 done
 
+urlencode() {
+  jq -nr --arg value "$1" '$value | @uri'
+}
+
 catalog_file="$(mktemp "${TMPDIR:-/tmp}/praxis-domain-catalog.XXXXXX.json")"
 trap 'rm -f "$catalog_file"' EXIT
 
@@ -31,7 +35,6 @@ curl -fsS \
 
 schema_version="$(jq -r '.schemaVersion // empty' "$catalog_file")"
 release_key="$(jq -r '.release.releaseKey // empty' "$catalog_file")"
-service_key="$(jq -r '.service.serviceKey // "praxis-service"' "$catalog_file")"
 governance_count="$(jq '.governance | if type == "array" then length else 0 end' "$catalog_file")"
 
 if [[ -z "$schema_version" || -z "$release_key" ]]; then
@@ -59,12 +62,19 @@ curl -fsS -X POST "${BACKEND_URL%/}/api/praxis/config/domain-catalog/ingest" \
   --data-binary @"$catalog_file" | jq .
 
 if [[ -n "$VERIFY_QUERY" ]]; then
+  encoded_release_key="$(urlencode "$release_key")"
+  encoded_query="$(urlencode "$VERIFY_QUERY")"
+
   echo
-  echo "Verifying persisted governance context for query '${VERIFY_QUERY}'..."
+  echo "Verifying persisted governance items for query '${VERIFY_QUERY}'..."
   curl -fsS \
-    "${BACKEND_URL%/}/api/praxis/config/domain-catalog/context?serviceKey=${service_key}&resourceKey=${RESOURCE_KEY}&type=governance&q=${VERIFY_QUERY}&limit=5" \
+    "${BACKEND_URL%/}/api/praxis/config/domain-catalog/items?releaseKey=${encoded_release_key}&type=governance&q=${encoded_query}&limit=5" \
     -H "Origin: ${ORIGIN}" \
     -H "X-Tenant-ID: ${TENANT_ID}" \
     -H "X-Env: ${ENVIRONMENT}" \
-    | jq '{schemaVersion, release: .release.releaseKey, guidance: .retrievalGuidance, items: [.items[] | {itemKey, classification: .payload.classification, dataCategory: .payload.dataCategory, complianceTags: .payload.complianceTags, aiUsage: .payload.aiUsage}]}'
+    | jq 'if type == "array" and length > 0 then
+        {release: .[0].releaseKey, items: [.[] | {itemKey, classification: .payload.classification, dataCategory: .payload.dataCategory, complianceTags: .payload.complianceTags, aiUsage: .payload.aiUsage}]}
+      else
+        error("No persisted governance item matched the verification query")
+      end'
 fi
