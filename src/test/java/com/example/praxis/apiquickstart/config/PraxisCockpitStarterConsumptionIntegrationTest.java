@@ -71,6 +71,10 @@ class PraxisCockpitStarterConsumptionIntegrationTest {
 
         mockMvc.perform(get(ApiPaths.Framework.COCKPIT_INDEX))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("Praxis Cockpit")));
+                .andExpect(content().string(containsString("Praxis Cockpit")))
+                .andExpect(content().string(containsString("id=\"cockpitViewSwitcher\"")))
+                .andExpect(content().string(containsString("data-cockpit-view=\"overview\"")))
+                .andExpect(content().string(containsString("data-cockpit-view=\"explore\"")))
+                .andExpect(content().string(containsString("data-cockpit-view=\"detail\"")));
     }
 }
