@@ -17,6 +17,9 @@ Flags principais (env → application.properties)
   - true: torna públicos `GET /schemas/**` e `POST /schemas/filtered`.
 - app.security.demo-allow-bulk-actions (APP_SECURITY_DEMO_ALLOW_BULK_ACTIONS)
   - true: libera POST em `/api/*/*/actions/**` (ex.: `/api/human-resources/eventos-folha/actions/bulk-approve`) mesmo quando `write-disabled=true` — útil para demonstração do fluxo de ações em lote.
+- app.cors.allowed-origins (CORS_ALLOWED_ORIGINS)
+  - CSV de origens da UI. Use origens explícitas para chamadas com cookies/credenciais; `*` permanece permitido apenas sem credenciais.
+  - O host expõe por CORS os headers canônicos de contrato `ETag`, `X-Schema-Hash` e `X-Data-Version`, permitindo que UIs leiam cache/revalidação, hash de schema e versão lógica de dados sem duplicar a semântica dos starters.
 
 Workflow actions tipadas
 - O quickstart publica workflow actions tipadas no endpoint piloto `POST /api/human-resources/eventos-folha/actions/bulk-approve`.
@@ -55,6 +58,7 @@ Receitas
   - APP_SECURITY_WRITE_DISABLED=false
   - APP_SECURITY_SCHEMAS_AGGREGATOR_ENABLED=true
   - CORS_ALLOWED_ORIGINS=http://localhost:4200,http://127.0.0.1:4200
+  - Headers legíveis no browser: `ETag`, `X-Schema-Hash`, `X-Data-Version`.
 - Prod (seguro por padrão, leitura pública limitada):
   - APP_SECURITY_READ_OPEN=false
   - APP_SECURITY_READ_OPEN_WHITELIST=/api/human-resources/**,/api/*/*/schemas/**,/api/*/*/schema/**,/api/*/*/filters/**,/api/*/*/options/**,/api/*/*/filtered,/schemas/**
@@ -68,4 +72,3 @@ Dica para UI (Angular/Vite) em dev
   "/schemas": { "target": "http://localhost:8088", "secure": false, "changeOrigin": true }
 }
 ```
-

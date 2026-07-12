@@ -26,6 +26,8 @@ import org.praxisplatform.uischema.constants.ApiPaths;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.List;
+
 /**
  * Define a politica de exposicao HTTP do quickstart.
  *
@@ -46,6 +48,11 @@ import org.slf4j.LoggerFactory;
 @EnableMethodSecurity
 public class SecurityConfig {
     private static final Logger log = LoggerFactory.getLogger(SecurityConfig.class);
+    static final List<String> PRAXIS_EXPOSED_CORS_HEADERS = List.of(
+            "ETag",
+            "X-Schema-Hash",
+            "X-Data-Version"
+    );
 
     @Value("${app.security.csrf.disable:false}")
     private boolean csrfDisable;
@@ -289,10 +296,11 @@ public class SecurityConfig {
         config.addAllowedMethod("PATCH");
         config.addAllowedMethod("DELETE");
         config.addAllowedMethod("OPTIONS");
+        config.setExposedHeaders(PRAXIS_EXPOSED_CORS_HEADERS);
         config.setMaxAge(3600L);
 
-        log.info("[CORS] AllowedMethods={} AllowedHeaders='*' MaxAge={}s",
-                config.getAllowedMethods(), config.getMaxAge());
+        log.info("[CORS] AllowedMethods={} AllowedHeaders='*' ExposedHeaders={} MaxAge={}s",
+                config.getAllowedMethods(), config.getExposedHeaders(), config.getMaxAge());
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
