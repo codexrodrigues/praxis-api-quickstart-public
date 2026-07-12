@@ -332,6 +332,7 @@ Opcionalmente, se o provedor expoe `DATABASE_URL` (DSN), mantenha tambem `SPRING
 - CSRF: quando `app.security.csrf.disable=false`, usa `CookieCsrfTokenRepository` com handler SPA compativel com Spring Security 6. O frontend deve enviar o cookie `XSRF-TOKEN` de volta no header `X-XSRF-TOKEN`; Angular faz isso automaticamente via `HttpClientXsrfModule` quando `withCredentials: true` estiver habilitado.
 - CORS: configure `CORS_ALLOWED_ORIGINS` (dev pode usar `*`; para enviar cookies, defina a origem exata, ex.: `http://localhost:4200` em dev e `https://praxis-ui-4e602.web.app` em prod).
 - Proxy: requests diretos precisam de `Origin` permitido ou `Referer` valido; `Host` e `X-Forwarded-*` so participam da governanca quando o peer imediato estiver em `APP_SECURITY_TRUSTED_PROXY_ADDRESSES`.
+- URL encoding: o firewall permite `%2F` somente em `/api/praxis/config/**` para refs canonicas em `componentId`; `%2F` segue bloqueado nas demais superficies e `%2F%2F`, `%25` e `;` continuam rejeitados. Detalhes em `docs/security-overview.md`.
 
 Exemplos rapidos:
 ```

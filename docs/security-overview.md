@@ -25,6 +25,13 @@ Flags principais (env → application.properties)
   - A mesma política governa reconstrução de origem para `/api/praxis/config/**` e identidade de cliente para rate limit.
   - Requests diretos precisam enviar `Origin` permitido ou `Referer` válido; `Host`, `X-Forwarded-Host`, `X-Forwarded-Proto` e `X-Forwarded-For` forjados não autorizam origem nem criam buckets de rate limit.
 
+Política de URL encoding
+- O firewall HTTP do quickstart permanece estrito para o host inteiro.
+- A única exceção de path encoding é `%2F` em rotas `/api/praxis/config/**`, porque alguns endpoints do `praxis-config-starter` ainda recebem `componentId` por `@PathVariable` e refs canônicas de componente podem conter `/`.
+- Essa exceção não muda a semântica do `praxis-config-starter` e não se aplica a schemas, actuator, docs, runtime ou recursos de negócio.
+- Encodings ambíguos continuam bloqueados: `%2F%2F` (double slash codificado), `%25` (percent codificado/duplo encoding) e `;`/path parameters.
+- Quando possível, prefira as variantes por query string dos endpoints de UI config (`componentType` + `componentId`) para evitar transportar identificadores compostos no path.
+
 Workflow actions tipadas
 - O quickstart publica workflow actions tipadas no endpoint piloto `POST /api/human-resources/eventos-folha/actions/bulk-approve`.
 - Nesta migração piloto o workflow permanece sem enforcement RBAC dedicado; o catálogo publica apenas hints de estado (`allowedStates`) e a política de autorização corporativa continua fora do escopo do host de referência.

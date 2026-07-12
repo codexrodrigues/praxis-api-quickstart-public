@@ -19,6 +19,7 @@ import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import com.example.praxis.apiquickstart.security.CookieJwtAuthenticationFilter;
+import com.example.praxis.apiquickstart.security.ConfigScopedEncodedSlashHttpFirewall;
 import com.example.praxis.apiquickstart.security.ConfigOriginRestrictionFilter;
 import com.example.praxis.apiquickstart.security.PublicApiRateLimitFilter;
 import com.example.praxis.apiquickstart.security.SpaCsrfTokenRequestHandler;
@@ -251,20 +252,16 @@ public class SecurityConfig {
     }
 
     /**
-     * Permite chaves de configuracao com barras codificadas em rotas do config-starter.
+     * Permite slash codificado somente para identificadores canonicos em rotas do config-starter.
      *
-     * <p>Isso e necessario porque {@code componentId} e outras chaves publicas da superficie
-     * {@code /api/praxis/config/**} podem carregar {@code /} como parte do identificador
-     * canonico.</p>
+     * <p>Algumas superficies do {@code praxis-config-starter} aceitam {@code componentId} como
+     * {@code @PathVariable}. Quando esse identificador carrega refs canonicas com {@code /}, o
+     * cliente precisa enviar {@code %2F}. O restante do host continua sob {@link StrictHttpFirewall}
+     * estrito, e double slash, percent literal e path parameters seguem bloqueados.</p>
      */
     @Bean
     public HttpFirewall allowUrlEncodedSlashFirewall() {
-        StrictHttpFirewall firewall = new StrictHttpFirewall();
-        firewall.setAllowUrlEncodedSlash(true);
-        firewall.setAllowUrlEncodedDoubleSlash(true);
-        firewall.setAllowUrlEncodedPercent(true);
-        firewall.setAllowSemicolon(true);
-        return firewall;
+        return new ConfigScopedEncodedSlashHttpFirewall();
     }
 
     @Bean
