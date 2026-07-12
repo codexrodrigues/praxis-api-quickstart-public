@@ -295,6 +295,14 @@ class ResourceEntityLookupGovernanceIntegrationTest {
             assertEquals("id", optionSource.path("valuePropertyPath").asText(), lookupCase.toString());
             assertTrue(optionSource.path("capabilities").path("filter").asBoolean(), lookupCase.toString());
             assertTrue(optionSource.path("capabilities").path("byIds").asBoolean(), lookupCase.toString());
+            assertEquals(lookupCase.endpoint(), optionSource.path("filterEndpoint").asText(), lookupCase.toString());
+            assertEquals(
+                    lookupCase.resourcePath() + "/option-sources/" + lookupCase.sourceKey() + "/options/by-ids",
+                    optionSource.path("byIdsEndpoint").asText(),
+                    lookupCase.toString()
+            );
+            assertEquals("required", optionSource.path("selectedReloadPolicy").asText(), lookupCase.toString());
+            assertEquals("reject", optionSource.path("invalidSortPolicy").asText(), lookupCase.toString());
         }
     }
 
