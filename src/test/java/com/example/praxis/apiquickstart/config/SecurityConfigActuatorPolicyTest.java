@@ -5,6 +5,7 @@ import com.example.praxis.apiquickstart.security.CookieJwtAuthenticationFilter;
 import com.example.praxis.apiquickstart.security.ConfigOriginRestrictionFilter;
 import com.example.praxis.apiquickstart.security.JwtTokenService;
 import com.example.praxis.apiquickstart.security.PublicApiRateLimitFilter;
+import com.example.praxis.apiquickstart.security.TrustedProxyPolicy;
 import org.junit.jupiter.api.Test;
 import org.praxisplatform.uischema.constants.ApiPaths;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,6 +25,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
         SecurityConfig.class,
         CookieJwtAuthenticationFilter.class,
         ConfigOriginRestrictionFilter.class,
+        TrustedProxyPolicy.class,
         PublicApiRateLimitFilter.class
 })
 class SecurityConfigActuatorPolicyTest {

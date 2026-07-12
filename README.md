@@ -287,6 +287,8 @@ Seguranca (sessao por cookie):
 - `PRAXIS_RESOURCE_VERSION_ETAG_SECRET` - segredo independente usado para assinar ETags de registros versionados; obrigatório antes de habilitar actions com `If-Match`.
 - `APP_JWT_EXP_MIN` - expiracao em minutos (ex.: `60`)
 - `CORS_ALLOWED_ORIGINS` - origem da UI (ex.: `https://praxis-ui-4e602.web.app`)
+- `APP_SECURITY_TRUSTED_PROXY_ENABLED=true` - habilite somente atras de proxy/gateway conhecido
+- `APP_SECURITY_TRUSTED_PROXY_ADDRESSES` - IPs ou CIDRs dos proxies confiaveis para aceitar `X-Forwarded-*`
 - `APP_SESSION_SECURE=true` - obrigatorio em producao (HTTPS)
 - `APP_SESSION_SAMESITE=None` - se a UI estiver em outro dominio
 - `APP_SESSION_COOKIE_NAME=SESSION` (opcional)
@@ -329,6 +331,7 @@ Opcionalmente, se o provedor expoe `DATABASE_URL` (DSN), mantenha tambem `SPRING
   - `GET /auth/session` retorna `204` quando autenticado (util para checar sessao do frontend).
 - CSRF: quando `app.security.csrf.disable=false`, usa `CookieCsrfTokenRepository` com handler SPA compativel com Spring Security 6. O frontend deve enviar o cookie `XSRF-TOKEN` de volta no header `X-XSRF-TOKEN`; Angular faz isso automaticamente via `HttpClientXsrfModule` quando `withCredentials: true` estiver habilitado.
 - CORS: configure `CORS_ALLOWED_ORIGINS` (dev pode usar `*`; para enviar cookies, defina a origem exata, ex.: `http://localhost:4200` em dev e `https://praxis-ui-4e602.web.app` em prod).
+- Proxy: requests diretos precisam de `Origin` permitido ou `Referer` valido; `Host` e `X-Forwarded-*` so participam da governanca quando o peer imediato estiver em `APP_SECURITY_TRUSTED_PROXY_ADDRESSES`.
 
 Exemplos rapidos:
 ```

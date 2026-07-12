@@ -38,8 +38,19 @@ class ConfigOriginRestrictionFilterTest {
     }
 
     @Test
-    void shouldAllowWhenForwardedHeadersResolveToAllowedOrigin() throws Exception {
-        MockHttpServletResponse response = execute(request -> {
+    void shouldBlockDirectRequestWithForgedForwardedHeaders() throws Exception {
+        MockHttpServletResponse response = execute(untrustedProxyPolicy(), request -> {
+            request.addHeader("X-Forwarded-Proto", "http");
+            request.addHeader("X-Forwarded-Host", "localhost:4003");
+        });
+
+        assertEquals(403, response.getStatus());
+    }
+
+    @Test
+    void shouldAllowWhenTrustedProxyForwardedHeadersResolveToAllowedOrigin() throws Exception {
+        MockHttpServletResponse response = execute(trustedProxyPolicy(), request -> {
+            request.setRemoteAddr("10.0.0.10");
             request.addHeader("X-Forwarded-Proto", "http");
             request.addHeader("X-Forwarded-Host", "localhost:4003");
         });
@@ -48,13 +59,13 @@ class ConfigOriginRestrictionFilterTest {
     }
 
     @Test
-    void shouldAllowWhenHostAndSchemeResolveToAllowedOrigin() throws Exception {
+    void shouldBlockDirectRequestWithForgedHostFallback() throws Exception {
         MockHttpServletResponse response = execute(request -> {
             request.setScheme("http");
             request.addHeader("Host", "localhost:4003");
         });
 
-        assertEquals(200, response.getStatus());
+        assertEquals(403, response.getStatus());
     }
 
     @Test
@@ -72,7 +83,7 @@ class ConfigOriginRestrictionFilterTest {
 
     @Test
     void shouldBypassForNonConfigPaths() throws Exception {
-        ConfigOriginRestrictionFilter filter = new ConfigOriginRestrictionFilter(true, ALLOWED);
+        ConfigOriginRestrictionFilter filter = new ConfigOriginRestrictionFilter(true, ALLOWED, untrustedProxyPolicy());
         MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/human-resources/funcionarios/all");
         MockHttpServletResponse response = new MockHttpServletResponse();
 
@@ -82,8 +93,14 @@ class ConfigOriginRestrictionFilterTest {
     }
 
     private MockHttpServletResponse execute(RequestCustomizer customizer) throws ServletException, IOException {
-        ConfigOriginRestrictionFilter filter = new ConfigOriginRestrictionFilter(true, ALLOWED);
+        return execute(untrustedProxyPolicy(), customizer);
+    }
+
+    private MockHttpServletResponse execute(TrustedProxyPolicy trustedProxyPolicy, RequestCustomizer customizer)
+            throws ServletException, IOException {
+        ConfigOriginRestrictionFilter filter = new ConfigOriginRestrictionFilter(true, ALLOWED, trustedProxyPolicy);
         MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/praxis/config/ui");
+        request.setRemoteAddr("198.51.100.25");
         request.setScheme("http");
         request.setServerName("praxis-api-quickstart.onrender.com");
         request.setServerPort(443);
@@ -99,6 +116,14 @@ class ConfigOriginRestrictionFilterTest {
         MockHttpServletResponse response = new MockHttpServletResponse();
         filter.doFilter(request, response, new MockFilterChain());
         return response;
+    }
+
+    private TrustedProxyPolicy trustedProxyPolicy() {
+        return new TrustedProxyPolicy(true, "10.0.0.10");
+    }
+
+    private TrustedProxyPolicy untrustedProxyPolicy() {
+        return new TrustedProxyPolicy(false, "");
     }
 
     @FunctionalInterface

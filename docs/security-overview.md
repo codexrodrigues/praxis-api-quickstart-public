@@ -20,6 +20,10 @@ Flags principais (env → application.properties)
 - app.cors.allowed-origins (CORS_ALLOWED_ORIGINS)
   - CSV de origens da UI. Use origens explícitas para chamadas com cookies/credenciais; `*` permanece permitido apenas sem credenciais.
   - O host expõe por CORS os headers canônicos de contrato `ETag`, `X-Schema-Hash` e `X-Data-Version`, permitindo que UIs leiam cache/revalidação, hash de schema e versão lógica de dados sem duplicar a semântica dos starters.
+- app.security.trusted-proxy.enabled / app.security.trusted-proxy.addresses (APP_SECURITY_TRUSTED_PROXY_ENABLED / APP_SECURITY_TRUSTED_PROXY_ADDRESSES)
+  - Headers `X-Forwarded-*` só participam da decisão quando o peer imediato está em uma lista explícita de proxies confiáveis.
+  - A mesma política governa reconstrução de origem para `/api/praxis/config/**` e identidade de cliente para rate limit.
+  - Requests diretos precisam enviar `Origin` permitido ou `Referer` válido; `Host`, `X-Forwarded-Host`, `X-Forwarded-Proto` e `X-Forwarded-For` forjados não autorizam origem nem criam buckets de rate limit.
 
 Workflow actions tipadas
 - O quickstart publica workflow actions tipadas no endpoint piloto `POST /api/human-resources/eventos-folha/actions/bulk-approve`.
@@ -63,6 +67,8 @@ Receitas
   - APP_SECURITY_READ_OPEN=false
   - APP_SECURITY_READ_OPEN_WHITELIST=/api/human-resources/**,/api/*/*/schemas/**,/api/*/*/schema/**,/api/*/*/filters/**,/api/*/*/options/**,/api/*/*/filtered,/schemas/**
   - APP_SECURITY_WRITE_DISABLED=true (opcional para demo read-only)
+  - APP_SECURITY_TRUSTED_PROXY_ENABLED=true somente quando houver proxy/gateway conhecido
+  - APP_SECURITY_TRUSTED_PROXY_ADDRESSES=<IPs ou CIDRs dos proxies confiáveis>
 
 Dica para UI (Angular/Vite) em dev
 - Proxie também '/schemas' para o backend além de '/api', ex. `proxy.conf.json`:

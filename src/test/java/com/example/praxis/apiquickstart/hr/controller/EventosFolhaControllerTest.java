@@ -63,6 +63,9 @@ class EventosFolhaControllerTest {
     private com.example.praxis.apiquickstart.security.JwtTokenService jwtTokenService;
 
     @MockBean
+    private com.example.praxis.apiquickstart.security.TrustedProxyPolicy trustedProxyPolicy;
+
+    @MockBean
     private RateLimiterService rateLimiterService;
 
     @MockBean

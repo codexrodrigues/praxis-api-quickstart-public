@@ -44,9 +44,11 @@ public class PublicApiRateLimitFilter extends OncePerRequestFilter {
     private final long bulkActionWindowMs;
     private final int configLimit;
     private final long configWindowMs;
+    private final TrustedProxyPolicy trustedProxyPolicy;
 
     public PublicApiRateLimitFilter(
             RateLimiterService rateLimiterService,
+            TrustedProxyPolicy trustedProxyPolicy,
             @Value("${app.rate-limit.enabled:true}") boolean enabled,
             @Value("${app.rate-limit.login.limit:10}") int loginLimit,
             @Value("${app.rate-limit.login.window-ms:60000}") long loginWindowMs,
@@ -60,6 +62,7 @@ public class PublicApiRateLimitFilter extends OncePerRequestFilter {
             @Value("${app.rate-limit.config.window-ms:60000}") long configWindowMs
     ) {
         this.rateLimiterService = rateLimiterService;
+        this.trustedProxyPolicy = trustedProxyPolicy;
         this.enabled = enabled;
         this.loginLimit = loginLimit;
         this.loginWindowMs = loginWindowMs;
@@ -87,7 +90,7 @@ public class PublicApiRateLimitFilter extends OncePerRequestFilter {
             return;
         }
 
-        String clientKey = resolveClientKey(request);
+        String clientKey = trustedProxyPolicy.resolveClientAddress(request);
         String limitKey = rule.keyPrefix + ":" + clientKey;
         boolean allowed = rateLimiterService.allow(limitKey, rule.limit, rule.windowMs);
         if (allowed) {
@@ -136,17 +139,6 @@ public class PublicApiRateLimitFilter extends OncePerRequestFilter {
                 || PATH_MATCHER.match("/api/*/*/locate", path)
                 || PATH_MATCHER.match("/api/*/*/filtered", path)
                 || PATH_MATCHER.match("/api/*/*/options/**", path);
-    }
-
-    private String resolveClientKey(HttpServletRequest request) {
-        String forwardedFor = request.getHeader("X-Forwarded-For");
-        if (forwardedFor != null && !forwardedFor.isBlank()) {
-            String first = forwardedFor.split(",")[0].trim();
-            if (!first.isEmpty()) {
-                return first;
-            }
-        }
-        return request.getRemoteAddr();
     }
 
     private record RateLimitRule(String keyPrefix, int limit, long windowMs) {

@@ -35,12 +35,15 @@ public class ConfigOriginRestrictionFilter extends OncePerRequestFilter {
 
     private final boolean enabled;
     private final Set<String> allowedOrigins;
+    private final TrustedProxyPolicy trustedProxyPolicy;
 
     public ConfigOriginRestrictionFilter(
             @Value("${app.security.config-origin-restriction.enabled:true}") boolean enabled,
-            @Value("${app.security.config-origin-restriction.allowed-origins:https://praxisui-dev.web.app}") String allowedOrigins
+            @Value("${app.security.config-origin-restriction.allowed-origins:https://praxisui-dev.web.app}") String allowedOrigins,
+            TrustedProxyPolicy trustedProxyPolicy
     ) {
         this.enabled = enabled;
+        this.trustedProxyPolicy = trustedProxyPolicy;
         this.allowedOrigins = Arrays.stream(allowedOrigins.split(","))
                 .map(String::trim)
                 .filter(s -> !s.isEmpty())
@@ -54,7 +57,7 @@ public class ConfigOriginRestrictionFilter extends OncePerRequestFilter {
         return !request.getRequestURI().startsWith("/api/praxis/config/");
     }
 
-    /** Resolve a origem efetiva mesmo atras de proxies ou clients sem header {@code Origin}. */
+    /** Resolve a origem efetiva sem confiar em headers forwarded de peers nao autorizados. */
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
@@ -69,12 +72,13 @@ public class ConfigOriginRestrictionFilter extends OncePerRequestFilter {
             return;
         }
 
-        log.warn("[CONFIG_ORIGIN] Blocked request origin={} referer={} forwardedProto={} forwardedHost={} host={} effectiveOrigin={} method={} path={}",
+        log.warn("[CONFIG_ORIGIN] Blocked request origin={} referer={} forwardedProto={} forwardedHost={} host={} trustedProxy={} effectiveOrigin={} method={} path={}",
                 request.getHeader("Origin"),
                 request.getHeader("Referer"),
                 request.getHeader("X-Forwarded-Proto"),
                 request.getHeader("X-Forwarded-Host"),
                 request.getHeader("Host"),
+                trustedProxyPolicy.isTrustedProxy(request),
                 effectiveOrigin,
                 request.getMethod(),
                 request.getRequestURI());
@@ -83,7 +87,7 @@ public class ConfigOriginRestrictionFilter extends OncePerRequestFilter {
         response.getWriter().write("{\"status\":\"failure\",\"message\":\"Config origin not allowed\"}");
     }
 
-    /** Tenta reconstruir a origem observando {@code Origin}, {@code Referer} e headers forwarded. */
+    /** Tenta reconstruir a origem observando {@code Origin}, {@code Referer} e proxy confiavel. */
     private String resolveEffectiveOrigin(HttpServletRequest request) {
         String origin = parseOriginHeader(request.getHeader("Origin"));
         if (StringUtils.hasText(origin)) {
@@ -95,15 +99,17 @@ public class ConfigOriginRestrictionFilter extends OncePerRequestFilter {
             return refererOrigin;
         }
 
-        String forwardedOrigin = buildOrigin(
-                firstNonBlank(request.getHeader("X-Forwarded-Proto"), request.getScheme()),
-                firstNonBlank(request.getHeader("X-Forwarded-Host"), request.getHeader("Host"))
-        );
-        if (StringUtils.hasText(forwardedOrigin)) {
-            return forwardedOrigin;
+        if (trustedProxyPolicy.isTrustedProxy(request)) {
+            String forwardedOrigin = buildOrigin(
+                    request.getHeader("X-Forwarded-Proto"),
+                    request.getHeader("X-Forwarded-Host")
+            );
+            if (StringUtils.hasText(forwardedOrigin)) {
+                return forwardedOrigin;
+            }
         }
 
-        return buildOrigin(request.getScheme(), request.getHeader("Host"));
+        return null;
     }
 
     private String parseOriginHeader(String raw) {
@@ -154,15 +160,4 @@ public class ConfigOriginRestrictionFilter extends OncePerRequestFilter {
         }
     }
 
-    private String firstNonBlank(String... values) {
-        if (values == null) {
-            return null;
-        }
-        for (String value : values) {
-            if (StringUtils.hasText(value)) {
-                return value;
-            }
-        }
-        return null;
-    }
 }

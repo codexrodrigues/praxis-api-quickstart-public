@@ -62,6 +62,9 @@ class MencoesMidiaControllerTest {
     @MockBean
     private com.example.praxis.apiquickstart.security.JwtTokenService jwtTokenService;
 
+    @MockBean
+    private com.example.praxis.apiquickstart.security.TrustedProxyPolicy trustedProxyPolicy;
+
     @Test
     void filterShouldNormalizeRelativePeriodPresetIntoLastDays() throws Exception {
         stubEmptyFilterPage();

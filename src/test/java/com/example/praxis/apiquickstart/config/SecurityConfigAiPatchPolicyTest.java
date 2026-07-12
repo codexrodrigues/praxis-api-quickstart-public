@@ -9,6 +9,7 @@ import com.example.praxis.apiquickstart.security.ConfigOriginRestrictionFilter;
 import com.example.praxis.apiquickstart.security.CookieJwtAuthenticationFilter;
 import com.example.praxis.apiquickstart.security.JwtTokenService;
 import com.example.praxis.apiquickstart.security.PublicApiRateLimitFilter;
+import com.example.praxis.apiquickstart.security.TrustedProxyPolicy;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -28,6 +29,7 @@ import org.springframework.web.bind.annotation.RestController;
         SecurityConfig.class,
         CookieJwtAuthenticationFilter.class,
         ConfigOriginRestrictionFilter.class,
+        TrustedProxyPolicy.class,
         PublicApiRateLimitFilter.class,
         SecurityConfigAiPatchPolicyTest.DummyAiPatchController.class
 })
