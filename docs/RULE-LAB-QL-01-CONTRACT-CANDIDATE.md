@@ -2,7 +2,7 @@
 
 - Data-base: 2026-07-13
 - Caso: Concessão de Benefício Corporativo Extraordinário
-- Estado: `CONTRACT_READY candidate`; não é API pública aprovada
+- Estado: `CONTRACT_READY`; consumido pela prova service-level de QL-02
 - Predecessor: `RULE-LAB-QL-00-ADHERENCE-INVENTORY.md`
 - Regra de parada: nenhum tipo desta especificação deve ser criado no pacote do
   Quickstart antes do P2F-ADR-01
@@ -226,16 +226,26 @@ e não são ativados por property ou label improvisado.
 14. rollback sem dupla mutação;
 15. observation redigida.
 
+Os 15 casos estão materializados em
+`src/test/resources/rule-lab/rule-lab-golden-suite.json`, com schema formal em
+`rule-lab-golden-suite.schema.json`. O checker
+`RuleLabGoldenContractTest` fixa identidade, cardinalidade, decisões, contexto
+temporal, ausência de mutação e casos negativos.
+
 ## 11. Gate QL-01
 
-QL-01 está completo como candidato documental. QL-02 não está autorizado
-enquanto:
+QL-01 está completo. P2F-ADR-01, 02, 03, 04, 06 e 08 foram aceitos em
+`praxis-rules-engine/docs/p2f-rule-platform-adrs.md`; os goldens possuem schema
+e checker executável, validado em 2026-07-13.
 
-- P2F-ADR-01 não definir o owner Java mínimo;
-- P2F-ADR-03/04 não aprovarem composição, stages e DAG;
-- P2F-ADR-06 não confirmar o dialect JSON Logic;
-- P2F-ADR-08 não aprovar result/error/fail policy;
-- os goldens não tiverem schema/checker acordado.
+QL-02 foi validado contra os contratos runtime-neutros, planner/evaluator e a
+coordenada pública `praxis-rules-engine:0.1.0-beta.8`. Persistência, endpoint,
+snapshot ativo, cache/hot reload, workflow, effects e autoridade continuam
+bloqueados pelos gates posteriores.
 
-Não há endpoint, tabela, migration, DTO público ou Fase 9 criado por este
-documento.
+Não há endpoint, tabela, migration ou Fase 9 criado por este documento.
+
+Atualização de execução em 2026-07-13: o core de QL-02 foi implementado,
+publicado e validado no owner canônico. O gate de publicação e consumo está
+registrado em `RULE-LAB-QL-02-ENGINE-IMPLEMENTATION-EVIDENCE.md`; o Quickstart
+usa a dependência pública, sem repositório local ou endpoint antecipado.

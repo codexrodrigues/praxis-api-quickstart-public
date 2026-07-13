@@ -1,0 +1,162 @@
+{
+  "schemaVersion": "1.0",
+  "ruleSetRef": {
+    "domainKey": "workforce-benefits",
+    "boundedContextKey": "extraordinary-assistance",
+    "ruleSetKey": "extraordinary-grant-eligibility",
+    "operationKey": "evaluate-extraordinary-grant",
+    "version": 1
+  },
+  "cases": [
+    {
+      "id": "QLG-01",
+      "kind": "EVALUATION",
+      "expectedOutcome": "ACCEPTED",
+      "expectedDecision": "ALLOW",
+      "expectedReasonCodes": [],
+      "nowUtc": "2026-07-13T15:00:00Z",
+      "userTimeZone": "America/Sao_Paulo",
+      "mutationExpected": false,
+      "assertions": ["same-input-same-result", "calculation-brl-half-even"],
+      "input": { "fixture": "eligible-relocation", "requestedAmount": 2500.00 }
+    },
+    {
+      "id": "QLG-02",
+      "kind": "EVALUATION",
+      "expectedOutcome": "ACCEPTED",
+      "expectedDecision": "DENY",
+      "expectedReasonCodes": ["REQUEST_NOT_AUTHORIZED"],
+      "nowUtc": "2026-07-13T15:00:00Z",
+      "userTimeZone": "America/Sao_Paulo",
+      "mutationExpected": false,
+      "assertions": ["protected-guard-short-circuits", "calculation-not-executed"],
+      "input": { "fixture": "actor-outside-scope" }
+    },
+    {
+      "id": "QLG-03",
+      "kind": "COMPILATION",
+      "expectedOutcome": "REJECTED",
+      "expectedReasonCodes": ["CUSTOMER_POLICY_EXPANDS_BASELINE"],
+      "mutationExpected": false,
+      "assertions": ["restrict-only-cannot-convert-deny-to-allow"],
+      "input": { "mutation": "customer-additional-eligibility-expands-product" }
+    },
+    {
+      "id": "QLG-04",
+      "kind": "EVALUATION",
+      "expectedOutcome": "ACCEPTED",
+      "expectedDecision": "ALLOW",
+      "expectedReasonCodes": [],
+      "nowUtc": "2026-07-13T15:00:00Z",
+      "userTimeZone": "America/Sao_Paulo",
+      "mutationExpected": false,
+      "assertions": ["replace-exact-affects-calendar-only", "protected-slots-unchanged"],
+      "input": { "fixture": "regional-calendar-replacement" }
+    },
+    {
+      "id": "QLG-05",
+      "kind": "COMPILATION",
+      "expectedOutcome": "REJECTED",
+      "expectedReasonCodes": ["PARAMETER_OUT_OF_RANGE"],
+      "mutationExpected": false,
+      "assertions": ["valid-parameter-is-accepted", "out-of-range-parameter-blocks-publication"],
+      "input": { "parameter": "maxAmount", "accepted": 3000.00, "rejected": 50000.00 }
+    },
+    {
+      "id": "QLG-06",
+      "kind": "EVALUATION",
+      "expectedOutcome": "ACCEPTED",
+      "expectedDecision": "ALLOW",
+      "expectedReasonCodes": [],
+      "nowUtc": "2026-07-13T15:00:00Z",
+      "userTimeZone": "America/Sao_Paulo",
+      "mutationExpected": false,
+      "assertions": ["java-calculation-is-pure", "currency-and-rounding-are-explicit"],
+      "input": { "fixture": "progressive-brl-calculation", "roundingMode": "HALF_EVEN" }
+    },
+    {
+      "id": "QLG-07",
+      "kind": "EVALUATION",
+      "expectedOutcome": "ACCEPTED",
+      "expectedDecision": "INCONCLUSIVE",
+      "expectedReasonCodes": ["FACT_REQUIRED_MISSING", "FACT_STALE"],
+      "nowUtc": "2026-07-13T15:00:00Z",
+      "userTimeZone": "America/Sao_Paulo",
+      "mutationExpected": false,
+      "assertions": ["missing-null-stale-remain-distinct", "allowed-null-is-evaluated"],
+      "input": { "variants": ["budget-missing", "customer-policy-null", "budget-stale"] }
+    },
+    {
+      "id": "QLG-08",
+      "kind": "COMPILATION",
+      "expectedOutcome": "REJECTED",
+      "expectedReasonCodes": ["PLAN_CYCLE", "BINDING_REFERENCE_MISSING"],
+      "mutationExpected": false,
+      "assertions": ["cycle-blocks-compilation", "missing-binding-blocks-compilation"],
+      "input": { "variants": ["cycle-two-bindings", "depends-on-unknown-binding"] }
+    },
+    {
+      "id": "QLG-09",
+      "kind": "COMPILATION",
+      "expectedOutcome": "REJECTED",
+      "expectedReasonCodes": ["SCOPE_INCOMPATIBLE"],
+      "mutationExpected": false,
+      "assertions": ["tenant-and-environment-must-match", "no-default-scope"],
+      "input": { "snapshotTenant": "tenant-a", "requestTenant": "tenant-b" }
+    },
+    {
+      "id": "QLG-10",
+      "kind": "COMPILATION",
+      "expectedOutcome": "REJECTED",
+      "expectedReasonCodes": ["IMPLEMENTATION_UNAVAILABLE"],
+      "mutationExpected": false,
+      "assertions": ["missing-java-implementation-is-not-skipped"],
+      "input": { "implementationKey": "benefits:amount-calculation", "available": false }
+    },
+    {
+      "id": "QLG-11",
+      "kind": "RELOAD",
+      "expectedOutcome": "ACCEPTED",
+      "mutationExpected": false,
+      "assertions": ["in-flight-evaluation-finishes-on-v1", "next-evaluation-uses-v2", "no-mixed-plan"],
+      "input": { "activeVersion": 1, "preparedVersion": 2 }
+    },
+    {
+      "id": "QLG-12",
+      "kind": "SHADOW",
+      "expectedOutcome": "ACCEPTED",
+      "expectedDecision": "DENY",
+      "expectedReasonCodes": ["SHADOW_DECISION_MISMATCH"],
+      "nowUtc": "2026-07-13T15:00:00Z",
+      "userTimeZone": "America/Sao_Paulo",
+      "mutationExpected": false,
+      "assertions": ["baseline-remains-authority", "mismatch-is-observed"],
+      "input": { "engineDecision": "DENY", "baselineDecision": "ALLOW" }
+    },
+    {
+      "id": "QLG-13",
+      "kind": "COMMAND",
+      "expectedOutcome": "ACCEPTED",
+      "mutationExpected": false,
+      "assertions": ["batch-preserves-result-per-item", "one-item-error-does-not-become-global-success"],
+      "input": { "items": ["allow", "deny", "technical-error"] }
+    },
+    {
+      "id": "QLG-14",
+      "kind": "COMMAND",
+      "expectedOutcome": "REJECTED",
+      "expectedReasonCodes": ["EFFECT_TRANSACTION_ROLLED_BACK"],
+      "mutationExpected": false,
+      "assertions": ["downstream-failure-rolls-back", "retry-does-not-double-mutate"],
+      "input": { "failureAt": "schedule-payroll-event", "idempotencyKey": "fixture-qlg-14" }
+    },
+    {
+      "id": "QLG-15",
+      "kind": "OBSERVATION",
+      "expectedOutcome": "ACCEPTED",
+      "mutationExpected": false,
+      "assertions": ["facts-are-not-recorded", "sensitive-identifiers-are-redacted", "digest-and-correlation-remain"],
+      "input": { "sensitiveFields": ["actor.user", "worker.taxId", "provenance.internalLocator"] }
+    }
+  ]
+}

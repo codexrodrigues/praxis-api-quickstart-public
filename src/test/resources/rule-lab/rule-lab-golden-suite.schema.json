@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://praxisplatform.org/schemas/rule-lab-golden-suite-v1.schema.json",
+  "title": "Praxis Rule Lab Golden Suite",
+  "type": "object",
+  "required": ["schemaVersion", "ruleSetRef", "cases"],
+  "properties": {
+    "schemaVersion": { "const": "1.0" },
+    "ruleSetRef": {
+      "type": "object",
+      "required": ["domainKey", "boundedContextKey", "ruleSetKey", "operationKey", "version"],
+      "additionalProperties": false,
+      "properties": {
+        "domainKey": { "type": "string", "minLength": 1 },
+        "boundedContextKey": { "type": "string", "minLength": 1 },
+        "ruleSetKey": { "type": "string", "minLength": 1 },
+        "operationKey": { "type": "string", "minLength": 1 },
+        "version": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 15,
+      "maxItems": 15,
+      "items": {
+        "type": "object",
+        "required": ["id", "kind", "expectedOutcome", "mutationExpected", "assertions", "input"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string", "pattern": "^QLG-[0-9]{2}$" },
+          "kind": {
+            "enum": ["COMPILATION", "EVALUATION", "RELOAD", "SHADOW", "COMMAND", "OBSERVATION"]
+          },
+          "expectedOutcome": { "enum": ["ACCEPTED", "REJECTED"] },
+          "expectedDecision": {
+            "enum": ["ALLOW", "DENY", "NOT_APPLICABLE", "INCONCLUSIVE", "TECHNICAL_ERROR"]
+          },
+          "expectedReasonCodes": {
+            "type": "array",
+            "items": { "type": "string", "minLength": 1 },
+            "uniqueItems": true
+          },
+          "nowUtc": { "type": "string", "format": "date-time" },
+          "userTimeZone": { "type": "string", "minLength": 1 },
+          "mutationExpected": { "type": "boolean" },
+          "assertions": {
+            "type": "array",
+            "minItems": 1,
+            "items": { "type": "string", "minLength": 1 },
+            "uniqueItems": true
+          },
+          "input": { "type": "object" }
+        }
+      }
+    }
+  },
+  "additionalProperties": false
+}

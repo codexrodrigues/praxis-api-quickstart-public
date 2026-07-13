@@ -91,9 +91,11 @@ Quickstart duplique semântica pertencente aos starters ou ao runtime.
 ## 6. Gate QL-00
 
 QL-00 está concluído porque capacidades e gaps foram classificados com owner.
-QL-01 pode registrar contratos candidatos e goldens. QL-02 permanece bloqueado
-até aprovação, no mínimo, de P2F-ADR-01, 02, 03, 04, 06 e 08. Esta conclusão
-não abre Fase 9 nem autoriza RN Ergon real.
+QL-01 registrou contratos candidatos e goldens. P2F-ADR-01, 02, 03, 04, 06 e
+08 foram aceitos no owner versionado do engine e o checker focal passou em
+2026-07-13. QL-02 foi validado no limite service-level contra a coordenada
+pública `praxis-rules-engine:0.1.0-beta.8`. Esta conclusão não abre Fase 9 nem
+autoriza RN Ergon real.
 
 ## 7. Reprodutibilidade
 
