@@ -19,14 +19,14 @@ import org.praxisplatform.rules.contract.RuleSetDefinition;
 import org.praxisplatform.rules.contract.RuleSetRef;
 import org.praxisplatform.rules.contract.SlotCardinality;
 
-/** Builds the neutral, business-oriented QL-02 RuleSet used by the Quickstart proof. */
+/** Builds the neutral QL-02 authoring/test definition; runtime activation comes only from Config snapshots. */
 final class ExtraordinaryGrantRuleSetFactory {
     private static final ObjectMapper JSON = new ObjectMapper();
 
     private ExtraordinaryGrantRuleSetFactory() {
     }
 
-    /** Returns the immutable RuleSet definition compiled during host bootstrap. */
+    /** Returns the reference definition used to publish fixtures and verify the pilot contract. */
     static RuleSetDefinition definition() {
         List<DecisionSlot> slots = List.of(
                 single("request.authorization-integrity", DecisionStage.PROTECTED_GUARD, OverridePolicy.FORBIDDEN),

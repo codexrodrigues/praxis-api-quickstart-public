@@ -3,21 +3,29 @@ package com.example.praxis.apiquickstart.rulelab;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.math.RoundingMode;
+import java.time.Clock;
 import java.util.List;
+import org.praxisplatform.config.service.DomainRuleSnapshotReader;
 import org.praxisplatform.rules.contract.RuleDecision;
 import org.praxisplatform.rules.contract.RuleExecutorResult;
-import org.praxisplatform.rules.plan.PraxisRulePlanCompiler;
-import org.praxisplatform.rules.plan.RuleDecisionPlan;
-import org.praxisplatform.rules.runtime.PraxisRuleSetEngine;
 import org.praxisplatform.rules.runtime.RuleBindingExecutor;
 import org.praxisplatform.rules.runtime.RuleBindingExecutorRegistry;
 import org.praxisplatform.rules.runtime.RuleExecutorContext;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.ApplicationRunner;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.scheduling.annotation.EnableScheduling;
 
-/** Spring host wiring for the QL-02 Rule Lab; no engine semantics are redefined here. */
+/** Spring host wiring for the QL-03 snapshot loader; no engine or control-plane semantics are redefined here. */
 @Configuration(proxyBeanMethods = false)
+@EnableScheduling
+@ConditionalOnProperty(
+        prefix = "praxis.rule-lab.snapshot",
+        name = "enabled",
+        havingValue = "true")
 public class ExtraordinaryGrantRuleLabConfiguration {
     private static final ObjectMapper JSON = new ObjectMapper();
 
@@ -29,19 +37,47 @@ public class ExtraordinaryGrantRuleLabConfiguration {
                 new ExtraordinaryGrantEffectPlanExecutor()));
     }
 
-    /** Compiles the immutable pilot definition once during host bootstrap. */
-    @Bean("extraordinaryGrantRuleDecisionPlan")
-    RuleDecisionPlan extraordinaryGrantRuleDecisionPlan(
+    /** Owns the host's atomic last-known-good compiled snapshot reference. */
+    @Bean
+    ExtraordinaryGrantRuleSnapshotRuntime extraordinaryGrantRuleSnapshotRuntime(
             @Qualifier("extraordinaryGrantRuleExecutorRegistry") RuleBindingExecutorRegistry registry) {
-        return new PraxisRulePlanCompiler(registry).compile(ExtraordinaryGrantRuleSetFactory.definition());
+        return new ExtraordinaryGrantRuleSnapshotRuntime(registry);
     }
 
-    /** Exposes the narrow service-level evaluation boundary used by the pilot tests. */
+    @Bean("extraordinaryGrantRuleClock")
+    Clock extraordinaryGrantRuleClock() {
+        return Clock.systemUTC();
+    }
+
+    /** Loads only the explicitly configured tenant/environment head from the Config Starter boundary. */
+    @Bean
+    ExtraordinaryGrantRuleSnapshotLoader extraordinaryGrantRuleSnapshotLoader(
+            DomainRuleSnapshotReader reader,
+            ExtraordinaryGrantRuleSnapshotRuntime runtime,
+            @Value("${praxis.rule-lab.snapshot.tenant-id}") String tenantId,
+            @Value("${praxis.rule-lab.snapshot.environment}") String environment,
+            @Qualifier("extraordinaryGrantRuleClock") Clock clock) {
+        return new ExtraordinaryGrantRuleSnapshotLoader(reader, runtime, tenantId, environment, clock);
+    }
+
+    /** Attempts the first load after the application context is ready without making startup depend on head availability. */
+    @Bean
+    ApplicationRunner extraordinaryGrantRuleSnapshotInitialLoad(ExtraordinaryGrantRuleSnapshotLoader loader) {
+        return arguments -> loader.refreshNow();
+    }
+
+    /** Exposes the narrow evaluation boundary backed exclusively by the active governed snapshot. */
     @Bean
     ExtraordinaryGrantRuleLabService extraordinaryGrantRuleLabService(
-            @Qualifier("extraordinaryGrantRuleExecutorRegistry") RuleBindingExecutorRegistry registry,
-            @Qualifier("extraordinaryGrantRuleDecisionPlan") RuleDecisionPlan plan) {
-        return new ExtraordinaryGrantRuleLabService(new PraxisRuleSetEngine(registry), plan);
+            ExtraordinaryGrantRuleSnapshotRuntime runtime) {
+        return new ExtraordinaryGrantRuleLabService(runtime);
+    }
+
+    /** Contributes safe readiness diagnostics when the Rule Lab is explicitly enabled. */
+    @Bean
+    ExtraordinaryGrantRuleSnapshotHealthIndicator extraordinaryGrantRuleSnapshotHealthIndicator(
+            ExtraordinaryGrantRuleSnapshotRuntime runtime) {
+        return new ExtraordinaryGrantRuleSnapshotHealthIndicator(runtime);
     }
 
     private static final class ExtraordinaryGrantAmountExecutor implements RuleBindingExecutor {
