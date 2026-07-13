@@ -109,6 +109,12 @@ public final class ExtraordinaryGrantRuleSnapshotRuntime {
 
     /** Evaluates against one atomic last-known-good snapshot reference. */
     public RuleEvaluationResult evaluate(JsonNode facts, Instant nowUtc, ZoneId userTimeZone) {
+        return evaluateWithSnapshot(facts, nowUtc, userTimeZone).result();
+    }
+
+    /** Evaluates and returns evidence from the same atomically selected snapshot. */
+    public ExtraordinaryGrantRuleEvaluation evaluateWithSnapshot(
+            JsonNode facts, Instant nowUtc, ZoneId userTimeZone) {
         ActiveSnapshot selected = active.get();
         if (selected == null) {
             throw new ExtraordinaryGrantRuleSnapshotUnavailableException(
@@ -116,11 +122,16 @@ public final class ExtraordinaryGrantRuleSnapshotRuntime {
         }
         Instant evaluationInstant = Objects.requireNonNull(nowUtc, "nowUtc is required");
         verifyValidity(selected.compiled().snapshot(), evaluationInstant);
-        return engine.evaluate(
+        RuleEvaluationResult result = engine.evaluate(
                 selected.compiled().plan(),
                 Objects.requireNonNull(facts, "facts are required"),
                 evaluationInstant.toString(),
                 Objects.requireNonNull(userTimeZone, "userTimeZone is required").getId());
+        return new ExtraordinaryGrantRuleEvaluation(
+                result,
+                selected.compiled().snapshot().snapshotKey(),
+                selected.compiled().snapshotContentHash(),
+                selected.activationRevision());
     }
 
     public ExtraordinaryGrantRuleSnapshotStatus status() {

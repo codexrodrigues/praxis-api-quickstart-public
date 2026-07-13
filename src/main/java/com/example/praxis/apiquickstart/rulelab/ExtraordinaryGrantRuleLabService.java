@@ -31,10 +31,16 @@ public final class ExtraordinaryGrantRuleLabService {
      * @return deterministic RuleSet result; planned effect data is never executed here
      */
     public RuleEvaluationResult evaluate(JsonNode facts, Instant nowUtc, ZoneId userTimeZone) {
+        return evaluateWithSnapshot(facts, nowUtc, userTimeZone).result();
+    }
+
+    /** Evaluates while preserving the exact snapshot identity selected for this call. */
+    public ExtraordinaryGrantRuleEvaluation evaluateWithSnapshot(
+            JsonNode facts, Instant nowUtc, ZoneId userTimeZone) {
         Objects.requireNonNull(facts, "facts are required");
         Objects.requireNonNull(nowUtc, "nowUtc is required");
         Objects.requireNonNull(userTimeZone, "userTimeZone is required");
-        return runtime.evaluate(facts, nowUtc, userTimeZone);
+        return runtime.evaluateWithSnapshot(facts, nowUtc, userTimeZone);
     }
 
     /** Returns safe loader/cache diagnostics for operational readiness checks. */

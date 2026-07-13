@@ -75,6 +75,8 @@ public final class ApiPaths {
         public static final String VW_RANKING_REPUTACAO = BASE_PATH + "/vw-ranking-reputacao";
         public static final String VW_PERFIL_HEROI = BASE_PATH + "/vw-perfil-heroi";
         public static final String VW_ANALYTICS_FOLHA_PAGAMENTO = BASE_PATH + "/vw-analytics-folha-pagamento";
+        public static final String EXTRAORDINARY_BENEFIT_REQUESTS =
+                BASE_PATH + "/extraordinary-benefit-requests";
 
         private HumanResources() {}
     }

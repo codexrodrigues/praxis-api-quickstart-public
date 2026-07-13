@@ -22,10 +22,6 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 /** Spring host wiring for the QL-03 snapshot loader; no engine or control-plane semantics are redefined here. */
 @Configuration(proxyBeanMethods = false)
 @EnableScheduling
-@ConditionalOnProperty(
-        prefix = "praxis.rule-lab.snapshot",
-        name = "enabled",
-        havingValue = "true")
 public class ExtraordinaryGrantRuleLabConfiguration {
     private static final ObjectMapper JSON = new ObjectMapper();
 
@@ -51,6 +47,10 @@ public class ExtraordinaryGrantRuleLabConfiguration {
 
     /** Loads only the explicitly configured tenant/environment head from the Config Starter boundary. */
     @Bean
+    @ConditionalOnProperty(
+            prefix = "praxis.rule-lab.snapshot",
+            name = "enabled",
+            havingValue = "true")
     ExtraordinaryGrantRuleSnapshotLoader extraordinaryGrantRuleSnapshotLoader(
             DomainRuleSnapshotReader reader,
             ExtraordinaryGrantRuleSnapshotRuntime runtime,
@@ -62,6 +62,10 @@ public class ExtraordinaryGrantRuleLabConfiguration {
 
     /** Attempts the first load after the application context is ready without making startup depend on head availability. */
     @Bean
+    @ConditionalOnProperty(
+            prefix = "praxis.rule-lab.snapshot",
+            name = "enabled",
+            havingValue = "true")
     ApplicationRunner extraordinaryGrantRuleSnapshotInitialLoad(ExtraordinaryGrantRuleSnapshotLoader loader) {
         return arguments -> loader.refreshNow();
     }
@@ -73,8 +77,21 @@ public class ExtraordinaryGrantRuleLabConfiguration {
         return new ExtraordinaryGrantRuleLabService(runtime);
     }
 
+    /** Projects the neutral engine boundary into the QL-04 business evaluation contract. */
+    @Bean
+    ExtraordinaryBenefitEvaluationService extraordinaryBenefitEvaluationService(
+            ExtraordinaryGrantRuleLabService ruleLabService,
+            ObjectMapper objectMapper,
+            @Qualifier("extraordinaryGrantRuleClock") Clock clock) {
+        return new ExtraordinaryBenefitEvaluationService(ruleLabService, objectMapper, clock);
+    }
+
     /** Contributes safe readiness diagnostics when the Rule Lab is explicitly enabled. */
     @Bean
+    @ConditionalOnProperty(
+            prefix = "praxis.rule-lab.snapshot",
+            name = "enabled",
+            havingValue = "true")
     ExtraordinaryGrantRuleSnapshotHealthIndicator extraordinaryGrantRuleSnapshotHealthIndicator(
             ExtraordinaryGrantRuleSnapshotRuntime runtime) {
         return new ExtraordinaryGrantRuleSnapshotHealthIndicator(runtime);

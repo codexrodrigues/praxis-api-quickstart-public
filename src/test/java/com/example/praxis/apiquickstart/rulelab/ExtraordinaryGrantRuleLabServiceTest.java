@@ -3,11 +3,20 @@ package com.example.praxis.apiquickstart.rulelab;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.example.praxis.apiquickstart.rulelab.dto.ExtraordinaryBenefitEvaluationOutcome;
+import com.example.praxis.apiquickstart.rulelab.dto.ExtraordinaryBenefitEvaluationRequest;
+import com.example.praxis.apiquickstart.rulelab.dto.ExtraordinaryBenefitReason;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.time.Instant;
+import java.time.Clock;
+import java.time.LocalDate;
 import java.time.ZoneId;
+import java.time.ZoneOffset;
+import java.math.BigDecimal;
+import java.util.Set;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -26,6 +35,7 @@ class ExtraordinaryGrantRuleLabServiceTest {
     private static final ZoneId ZONE = ZoneId.of("America/Sao_Paulo");
 
     private ExtraordinaryGrantRuleLabService service;
+    private ExtraordinaryBenefitEvaluationService businessService;
 
     @BeforeEach
     void startServiceBoundary() {
@@ -42,6 +52,65 @@ class ExtraordinaryGrantRuleLabServiceTest {
                 "local",
                 NOW);
         service = new ExtraordinaryGrantRuleLabService(runtime);
+        businessService = new ExtraordinaryBenefitEvaluationService(
+                service,
+                JSON,
+                Clock.fixed(NOW, ZoneOffset.UTC));
+    }
+
+    @Test
+    void projectsEligibleBusinessRequestWithAtomicSnapshotEvidenceAndNoSideEffects() {
+        var response = businessService.evaluate(eligibleBusinessRequest(), Set.of("benefit:request"));
+
+        assertEquals(ExtraordinaryBenefitEvaluationOutcome.ALLOW, response.outcome());
+        assertEquals("extraordinary-grant-v1", response.snapshotKey());
+        assertEquals(1, response.snapshotActivationRevision());
+        assertEquals("extraordinary-grant-eligibility", response.ruleSetKey());
+        assertEquals(1, response.ruleSetVersion());
+        assertEquals(new BigDecimal("2500.00"), response.recommendedAmount().setScale(2));
+        assertEquals("BRL", response.currency());
+        assertEquals("REGISTER_EXTRAORDINARY_GRANT", response.plannedEffectIntent());
+        assertEquals("PLANNED_NOT_EXECUTED", response.plannedEffectStatus());
+        assertFalse(response.persisted());
+        assertFalse(response.effectExecuted());
+        assertTrue(response.factsDigest().matches("[A-F0-9]{64}"));
+        assertTrue(response.snapshotContentHash().matches("[A-F0-9]{64}"));
+    }
+
+    @Test
+    void projectsBudgetDenialWithoutEffectPlan() {
+        var base = eligibleBusinessRequest();
+        var request = withBudget(base, new BigDecimal("1000.00"));
+
+        var response = businessService.evaluate(request, Set.of("benefit:request"));
+
+        assertEquals(ExtraordinaryBenefitEvaluationOutcome.DENY, response.outcome());
+        assertEquals(List.of("BUDGET_INSUFFICIENT"), response.reasonCodes());
+        assertEquals(new BigDecimal("2500.00"), response.recommendedAmount().setScale(2));
+        assertNull(response.plannedEffectStatus());
+        assertFalse(response.effectExecuted());
+    }
+
+    @Test
+    void preservesMissingCustomerPolicyAsInconclusive() {
+        var base = eligibleBusinessRequest();
+        var request = withCustomerEligibility(base, null);
+
+        var response = businessService.evaluate(request, Set.of("benefit:request"));
+
+        assertEquals(ExtraordinaryBenefitEvaluationOutcome.INCONCLUSIVE, response.outcome());
+        assertEquals(List.of("FACT_REQUIRED_MISSING", "PRIOR_DECISION_INCONCLUSIVE"), response.reasonCodes());
+        assertNull(response.recommendedAmount());
+        assertNull(response.plannedEffectStatus());
+    }
+
+    @Test
+    void usesServerResolvedPermissionsInsteadOfTrustingRequestPayload() {
+        var response = businessService.evaluate(eligibleBusinessRequest(), Set.of("benefit:read"));
+
+        assertEquals(ExtraordinaryBenefitEvaluationOutcome.DENY, response.outcome());
+        assertEquals(List.of("REQUEST_NOT_AUTHORIZED"), response.reasonCodes());
+        assertNull(response.recommendedAmount());
     }
 
     @Test
@@ -139,6 +208,44 @@ class ExtraordinaryGrantRuleLabServiceTest {
                   "budget": {"availableAmount": 100000.00}
                 }
                 """);
+    }
+
+    private ExtraordinaryBenefitEvaluationRequest eligibleBusinessRequest() {
+        return new ExtraordinaryBenefitEvaluationRequest(
+                "BEN-2026-000184",
+                ExtraordinaryBenefitReason.FAMILY_HARDSHIP,
+                LocalDate.parse("2026-07-13"),
+                new BigDecimal("2500.00"),
+                "ACTIVE",
+                false,
+                true,
+                new BigDecimal("5000.00"),
+                true,
+                LocalDate.parse("2026-07-20"),
+                List.of(LocalDate.parse("2026-07-20"), LocalDate.parse("2026-08-05")),
+                new BigDecimal("100000.00"),
+                "America/Sao_Paulo");
+    }
+
+    private ExtraordinaryBenefitEvaluationRequest withBudget(
+            ExtraordinaryBenefitEvaluationRequest source,
+            BigDecimal availableBudget) {
+        return new ExtraordinaryBenefitEvaluationRequest(
+                source.requestReference(), source.reasonCode(), source.eventDate(), source.requestedAmount(),
+                source.workerStatus(), source.duplicateGrant(), source.programActive(),
+                source.programMaximumAmount(), source.customerAdditionalEligible(),
+                source.requestedPaymentDate(), source.allowedPaymentDates(), availableBudget,
+                source.userTimeZone());
+    }
+
+    private ExtraordinaryBenefitEvaluationRequest withCustomerEligibility(
+            ExtraordinaryBenefitEvaluationRequest source,
+            Boolean eligible) {
+        return new ExtraordinaryBenefitEvaluationRequest(
+                source.requestReference(), source.reasonCode(), source.eventDate(), source.requestedAmount(),
+                source.workerStatus(), source.duplicateGrant(), source.programActive(),
+                source.programMaximumAmount(), eligible, source.requestedPaymentDate(),
+                source.allowedPaymentDates(), source.availableBudgetAmount(), source.userTimeZone());
     }
 
     private PublishedRuleSnapshot snapshot() {
