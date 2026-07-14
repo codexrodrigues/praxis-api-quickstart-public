@@ -9,6 +9,7 @@ import com.example.praxis.apiquickstart.ApiQuickstartApplication;
 import com.example.praxis.apiquickstart.security.JwtTokenService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.micrometer.core.instrument.MeterRegistry;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
@@ -84,6 +85,8 @@ class ExtraordinaryBenefitRequestPilotIntegrationTest {
     @Autowired
     private ExtraordinaryGrantRuleSnapshotRuntime runtime;
     @Autowired
+    private MeterRegistry meterRegistry;
+    @Autowired
     @Qualifier("extraordinaryGrantRuleExecutorRegistry")
     private RuleBindingExecutorRegistry registry;
 
@@ -156,6 +159,7 @@ class ExtraordinaryBenefitRequestPilotIntegrationTest {
         assertNotNull(evaluateAction);
         assertEquals("COLLECTION", evaluateAction.path("scope").asText());
         assertEquals("COLLECTION", findById(actions.path("actions"), "evaluate-batch").path("scope").asText());
+        assertEquals("COLLECTION", findById(actions.path("actions"), "shadow-compare").path("scope").asText());
 
         JsonNode capabilities = body(restTemplate.getForEntity(
                 "/api/human-resources/extraordinary-benefit-requests/capabilities", String.class));
@@ -170,10 +174,19 @@ class ExtraordinaryBenefitRequestPilotIntegrationTest {
         assertEquals("currency", requestedAmount.path("x-ui").path("controlType").asText());
         assertTrue(schema.path("required").toString().contains("requestReference"));
 
+        JsonNode shadowResponseSchema = body(restTemplate.getForEntity(
+                "/schemas/filtered?path=/api/human-resources/extraordinary-benefit-requests/actions/shadow-compare&operation=post&schemaType=response",
+                String.class));
+        assertTrue(shadowResponseSchema.path("description").asText().contains("sanitizada"));
+        assertTrue(shadowResponseSchema.path("properties").has("comparisonStatus"));
+        assertFalse(shadowResponseSchema.path("properties").has("requestReference"));
+        assertFalse(shadowResponseSchema.path("properties").has("recommendedAmount"));
+
         JsonNode globalActions = body(restTemplate.getForEntity(
                 "/schemas/actions?resource=human-resources.extraordinary-benefit-requests",
                 String.class));
         assertNotNull(findById(globalActions.path("actions"), "evaluate"));
+        assertNotNull(findById(globalActions.path("actions"), "shadow-compare"));
         assertEquals("ITEM", findById(globalActions.path("actions"), "submit").path("scope").asText());
         assertEquals("ITEM", findById(globalActions.path("actions"), "approve").path("scope").asText());
         assertEquals("ITEM", findById(globalActions.path("actions"), "apply").path("scope").asText());
@@ -183,6 +196,55 @@ class ExtraordinaryBenefitRequestPilotIntegrationTest {
                 String.class);
         assertEquals(HttpStatus.OK, surfaces.getStatusCode(),
                 "persistent read-only resources must participate in canonical discovery");
+    }
+
+    @Test
+    void shadowComparesAllowAndDenyWithoutPersistingAnyOperationalLedger() throws Exception {
+        double beforeMatches = counter("match");
+        ResponseEntity<String> allowResponse = restTemplate.postForEntity(
+                "/api/human-resources/extraordinary-benefit-requests/actions/shadow-compare",
+                authorizedShadowJson(eligiblePayload()), String.class);
+        JsonNode allow = body(allowResponse).path("data");
+
+        assertEquals("MATCH", allow.path("comparisonStatus").asText());
+        assertEquals("ALLOW", allow.path("baselineOutcome").asText());
+        assertEquals("ALLOW", allow.path("candidateOutcome").asText());
+        assertTrue(allow.path("sanitized").asBoolean());
+        assertFalse(allow.path("persisted").asBoolean());
+        assertFalse(allow.path("effectExecuted").asBoolean());
+        assertFalse(allowResponse.getBody().contains("BEN-2026-000184"));
+        assertFalse(allow.has("requestReference"));
+        assertFalse(allow.has("recommendedAmount"));
+
+        String deniedPayload = eligiblePayload().replace("\"duplicateGrant\": false", "\"duplicateGrant\": true");
+        JsonNode deny = body(restTemplate.postForEntity(
+                "/api/human-resources/extraordinary-benefit-requests/actions/shadow-compare",
+                authorizedShadowJson(deniedPayload), String.class)).path("data");
+        assertEquals("MATCH", deny.path("comparisonStatus").asText());
+        assertEquals("DENY", deny.path("baselineOutcome").asText());
+        assertEquals("DENY", deny.path("candidateOutcome").asText());
+
+        assertEquals(0, tableCount("extraordinary_benefit_request"));
+        assertEquals(0, tableCount("extraordinary_benefit_grant_effect"));
+        assertEquals(0, tableCount("praxis_resource_action_execution"));
+        assertEquals(0, tableCount("praxis_resource_action_transition"));
+        assertEquals(beforeMatches + 2.0, counter("match"));
+    }
+
+    @Test
+    void rejectsUnauthenticatedShadowComparisonWithoutRunningOrPersistingIt() {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+
+        ResponseEntity<String> response = restTemplate.postForEntity(
+                "/api/human-resources/extraordinary-benefit-requests/actions/shadow-compare",
+                new HttpEntity<>(eligiblePayload(), headers), String.class);
+
+        assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
+        assertEquals(0, tableCount("extraordinary_benefit_request"));
+        assertEquals(0, tableCount("extraordinary_benefit_grant_effect"));
+        assertEquals(0, tableCount("praxis_resource_action_execution"));
+        assertEquals(0, tableCount("praxis_resource_action_transition"));
     }
 
     @Test
@@ -367,6 +429,24 @@ class ExtraordinaryBenefitRequestPilotIntegrationTest {
 
     private HttpEntity<String> authorizedJson(String json) {
         return authorizedJson(json, "test-" + Integer.toUnsignedString(json.hashCode()), null);
+    }
+
+    private HttpEntity<String> authorizedShadowJson(String json) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.add(HttpHeaders.COOKIE, "SESSION=" + jwtTokenService.generate("rule-lab-admin", "ADMIN"));
+        return new HttpEntity<>(json, headers);
+    }
+
+    private int tableCount(String table) {
+        return jdbcTemplate.queryForObject("select count(*) from public." + table, Integer.class);
+    }
+
+    private double counter(String result) {
+        var counter = meterRegistry.find("praxis.rule.shadow.comparisons")
+                .tag("result", result)
+                .counter();
+        return counter == null ? 0.0 : counter.count();
     }
 
     private HttpEntity<String> authorizedJson(String json, String idempotencyKey, String ifMatch) {

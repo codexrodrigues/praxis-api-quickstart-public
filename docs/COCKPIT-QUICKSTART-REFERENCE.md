@@ -47,7 +47,7 @@ producao.
 
 | Dominio no cockpit | Grupo OpenAPI | Recursos | Surfaces explicitas | Workflow actions explicitas | Leitura de aderencia |
 | --- | --- | ---: | ---: | ---: | --- |
-| Pessoas e RH | `human-resources` | 21 | 12 | 13 | `ja-suportado-mal-nomeado-ou-mal-materializado`: perfil 360, folha, participacoes em missoes, dependentes, endereco cadastral, matriz de competencias, historico de cargos, disponibilidade por afastamentos, actions de ciclo do funcionario, actions de folha/eventos, action de cobertura, lifecycle persistente de beneficio extraordinario, ranking reputacional e governanca de codigos legados de folha ja existem; a proxima melhoria deve aprofundar operacao sem criar surface decorativa. |
+| Pessoas e RH | `human-resources` | 21 | 12 | 14 | `ja-suportado-mal-nomeado-ou-mal-materializado`: perfil 360, folha, participacoes em missoes, dependentes, endereco cadastral, matriz de competencias, historico de cargos, disponibilidade por afastamentos, actions de ciclo do funcionario, actions de folha/eventos, action de cobertura, lifecycle persistente e shadow sanitizado de beneficio extraordinario, ranking reputacional e governanca de codigos legados de folha ja existem; a proxima melhoria deve aprofundar operacao sem criar surface decorativa. |
 | Operacoes | `operations` | 12 | 12 | 10 | `ja-suportado-mal-nomeado-ou-mal-materializado`: e o melhor dominio para demonstrar actions/surfaces; cockpit deve usar esse dominio como referencia visual de workflows, composicao de equipes, capacidade operacional e ponte transacional para leituras analiticas derivadas. |
 | Suprimentos | `procurement` | 5 | 10 | 8 | `ja-suportado-mal-nomeado-ou-mal-materializado`: recursos, schemas, option sources, surfaces e actions de fornecedor, contrato e pedido existem; o cockpit deve materializar a jornada fornecedor -> contrato -> catalogo -> pedido -> recebimento como fluxo navegavel. |
 | Ativos Operacionais | `assets` | 4 | 6 | 7 | `ja-suportado-mal-nomeado-ou-mal-materializado`: recursos, lookups, surfaces, actions de disponibilidade e actions de custodia existem; o cockpit deve materializar inventario -> custodia -> frota -> missao -> devolucao/perda/dano como fluxo navegavel. |
@@ -215,6 +215,10 @@ Em `human-resources`, as perguntas ja materializadas pelo host exemplar sao:
   `POST /api/human-resources/extraordinary-benefit-requests/actions/evaluate`. No QL-05, o recurso
   publica query read-only e lifecycle por actions: somente `ALLOW` persiste, `submit/approve/apply`
   exigem ETag e idempotencia, e o efeito executado fica em ledger host-side exatamente uma vez;
+- "Baseline e snapshot Praxis concordam sem produzir efeito?" via
+  `POST /api/human-resources/extraordinary-benefit-requests/actions/shadow-compare`. A action QL-06
+  é administrativa, não usa ledger idempotente e devolve somente observação sanitizada com
+  `MATCH`, `MISMATCH`, `INCONCLUSIVE` ou `TECHNICAL_ERROR`;
 - "Quem esta fora da operacao e em que janela de cobertura?" via
   `POST /api/human-resources/ferias-afastamentos/stats/group-by` com
   `field=tipo` ou `field=funcionarioId` e

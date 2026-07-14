@@ -2,9 +2,15 @@ package com.example.praxis.apiquickstart.rulelab;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import io.micrometer.core.instrument.MeterRegistry;
 import java.math.RoundingMode;
 import java.time.Clock;
+import java.time.Duration;
 import java.util.List;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import org.praxisplatform.config.service.DomainRuleSnapshotReader;
 import org.praxisplatform.rules.contract.RuleDecision;
 import org.praxisplatform.rules.contract.RuleExecutorResult;
@@ -84,6 +90,47 @@ public class ExtraordinaryGrantRuleLabConfiguration {
             ObjectMapper objectMapper,
             @Qualifier("extraordinaryGrantRuleClock") Clock clock) {
         return new ExtraordinaryBenefitEvaluationService(ruleLabService, objectMapper, clock);
+    }
+
+    /** Baseline independente: nao usa RuleSet, snapshot, banco nem resposta do candidato. */
+    @Bean("extraordinaryBenefitSyntheticBaseline")
+    ExtraordinaryBenefitShadowDecisionEvaluator extraordinaryBenefitSyntheticBaseline() {
+        return new ExtraordinaryBenefitSyntheticBaseline();
+    }
+
+    /** Adapta a avaliacao Praxis para a projecao minima comparavel. */
+    @Bean("extraordinaryBenefitCandidateEvaluator")
+    ExtraordinaryBenefitShadowDecisionEvaluator extraordinaryBenefitCandidateEvaluator(
+            ExtraordinaryBenefitEvaluationService evaluationService) {
+        return (request, permissions, nowUtc, userTimeZone) ->
+                ExtraordinaryBenefitShadowDecision.candidate(
+                        evaluationService.evaluateAt(request, permissions, nowUtc));
+    }
+
+    /** Pool virtual limitado evita que uma rajada shadow consuma recursos sem bound. */
+    @Bean(value = "extraordinaryBenefitShadowExecutor", destroyMethod = "shutdownNow")
+    ExecutorService extraordinaryBenefitShadowExecutor() {
+        return new ThreadPoolExecutor(
+                2,
+                8,
+                60,
+                TimeUnit.SECONDS,
+                new ArrayBlockingQueue<>(128),
+                Thread.ofVirtual().name("extraordinary-benefit-shadow-", 0).factory(),
+                new ThreadPoolExecutor.AbortPolicy());
+    }
+
+    /** Orquestra comparacao limitada e observabilidade de baixa cardinalidade. */
+    @Bean
+    ExtraordinaryBenefitShadowComparisonService extraordinaryBenefitShadowComparisonService(
+            @Qualifier("extraordinaryBenefitSyntheticBaseline") ExtraordinaryBenefitShadowDecisionEvaluator baseline,
+            @Qualifier("extraordinaryBenefitCandidateEvaluator") ExtraordinaryBenefitShadowDecisionEvaluator candidate,
+            @Qualifier("extraordinaryBenefitShadowExecutor") ExecutorService executor,
+            MeterRegistry meterRegistry,
+            @Qualifier("extraordinaryGrantRuleClock") Clock clock,
+            @Value("${praxis.rule-lab.shadow.timeout-ms:250}") long timeoutMs) {
+        return new ExtraordinaryBenefitShadowComparisonService(
+                baseline, candidate, executor, meterRegistry, clock, Duration.ofMillis(timeoutMs));
     }
 
     /** Contributes safe readiness diagnostics when the Rule Lab is explicitly enabled. */

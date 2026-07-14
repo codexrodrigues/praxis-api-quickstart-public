@@ -10,6 +10,7 @@ import com.example.praxis.apiquickstart.rulelab.dto.ExtraordinaryBenefitEvaluati
 import com.example.praxis.apiquickstart.rulelab.dto.ExtraordinaryBenefitEvaluationRequest;
 import com.example.praxis.apiquickstart.rulelab.dto.ExtraordinaryBenefitRequestFilter;
 import com.example.praxis.apiquickstart.rulelab.dto.ExtraordinaryBenefitRequestResponse;
+import com.example.praxis.apiquickstart.rulelab.dto.ExtraordinaryBenefitShadowObservation;
 import com.example.praxis.apiquickstart.rulelab.dto.ExtraordinaryBenefitTransitionRequest;
 import com.example.praxis.apiquickstart.rulelab.dto.ExtraordinaryBenefitTransitionResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -47,13 +48,13 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
-/** Recurso persistente QL-05: consultas sao read-only e toda mutacao ocorre por action governada. */
+/** Recurso QL-06: lifecycle persistente por actions e comparacao shadow estritamente read-only. */
 @RestController
 @ApiResource(
         value = ApiPaths.HumanResources.EXTRAORDINARY_BENEFIT_REQUESTS,
         resourceKey = ExtraordinaryBenefitRequestController.RESOURCE_KEY,
         title = "Solicitacoes de beneficio extraordinario",
-        description = "Fila persistida de beneficios elegiveis com lifecycle, concorrencia, idempotencia e execucao de efeito auditavel.",
+        description = "Fila persistida de beneficios elegiveis com lifecycle e efeito auditavel, acompanhada por comparacao shadow sanitizada que nunca altera o negocio.",
         icon = "volunteer_activism",
         visualTone = "support")
 @ApiGroup("human-resources")
@@ -63,6 +64,7 @@ public class ExtraordinaryBenefitRequestController extends AbstractReadOnlyResou
 
     private final ExtraordinaryBenefitRequestQueryService queryService;
     private final ExtraordinaryBenefitWorkflowService workflowService;
+    private final ExtraordinaryBenefitShadowComparisonService shadowComparisonService;
     private final ResourceActionExecutionService actionExecutionService;
     private final ResourceActionTransactionCoordinator transactionCoordinator;
     private final ObjectMapper objectMapper;
@@ -70,11 +72,13 @@ public class ExtraordinaryBenefitRequestController extends AbstractReadOnlyResou
     public ExtraordinaryBenefitRequestController(
             ExtraordinaryBenefitRequestQueryService queryService,
             ExtraordinaryBenefitWorkflowService workflowService,
+            ExtraordinaryBenefitShadowComparisonService shadowComparisonService,
             ResourceActionExecutionService actionExecutionService,
             ResourceActionTransactionCoordinator transactionCoordinator,
             ObjectMapper objectMapper) {
         this.queryService = queryService;
         this.workflowService = workflowService;
+        this.shadowComparisonService = shadowComparisonService;
         this.actionExecutionService = actionExecutionService;
         this.transactionCoordinator = transactionCoordinator;
         this.objectMapper = objectMapper;
@@ -148,6 +152,30 @@ public class ExtraordinaryBenefitRequestController extends AbstractReadOnlyResou
                 "evaluate-batch", idempotencyKey, request, correlationId, actor,
                 ExtraordinaryBenefitBatchEvaluationResponse.class,
                 () -> workflowService.evaluateBatch(request, resolveActorPermissions(), actor));
+    }
+
+    @PostMapping("/actions/shadow-compare")
+    @WorkflowAction(
+            id = "shadow-compare",
+            title = "Comparar decisao em shadow",
+            description = "Executa baseline sintetico e snapshot Praxis sem decidir, persistir, avancar lifecycle ou executar efeito; publica somente observacao sanitizada.",
+            scope = ActionScope.COLLECTION,
+            requiredAuthorities = {"ROLE_ADMIN"},
+            order = 30,
+            successMessage = "Comparacao shadow observada",
+            tags = {"human-resources", "benefits", "shadow", "no-effects", "observability"})
+    @Operation(summary = "Comparar baseline e candidato sem efeito de negocio")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Observacao sanitizada produzida; nenhum estado de negocio e alterado."),
+            @ApiResponse(responseCode = "400", description = "Payload ou fuso invalido."),
+            @ApiResponse(responseCode = "403", description = "Ator sem autoridade operacional para executar o laboratorio.")
+    })
+    public ResponseEntity<RestApiResponse<ExtraordinaryBenefitShadowObservation>> shadowCompare(
+            @Valid @RequestBody ExtraordinaryBenefitEvaluationRequest request) {
+        requireAdmin();
+        ExtraordinaryBenefitShadowObservation observation =
+                shadowComparisonService.compare(request, resolveActorPermissions());
+        return ResponseEntity.ok(RestApiResponse.success(observation, null));
     }
 
     @PostMapping("/{id}/actions/submit")

@@ -37,7 +37,16 @@ public final class ExtraordinaryBenefitEvaluationService {
             ExtraordinaryBenefitEvaluationRequest request,
             Set<String> actorPermissions) {
         Objects.requireNonNull(request, "request is required");
-        Instant evaluatedAt = clock.instant();
+        return evaluateAt(request, actorPermissions, clock.instant());
+    }
+
+    /** Reusa um instante ja congelado pelo orquestrador shadow, sem alterar a semantica do engine. */
+    ExtraordinaryBenefitEvaluationResponse evaluateAt(
+            ExtraordinaryBenefitEvaluationRequest request,
+            Set<String> actorPermissions,
+            Instant evaluatedAt) {
+        Objects.requireNonNull(request, "request is required");
+        Objects.requireNonNull(evaluatedAt, "evaluatedAt is required");
         ZoneId userTimeZone = ZoneId.of(request.userTimeZone());
         ObjectNode facts = freezeFacts(request, actorPermissions);
         ExtraordinaryGrantRuleEvaluation evaluation =

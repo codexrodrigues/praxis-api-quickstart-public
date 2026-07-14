@@ -861,6 +861,22 @@ transação por item e devolve resultados parciais estáveis.
 - Evidência QL-05: [docs/RULE-LAB-QL-05-PERSISTENCE-EFFECTS-EVIDENCE.md](docs/RULE-LAB-QL-05-PERSISTENCE-EFFECTS-EVIDENCE.md)
 - Contrato anterior QL-04: [docs/RULE-LAB-QL-04-BUSINESS-HTTP-EVIDENCE.md](docs/RULE-LAB-QL-04-BUSINESS-HTTP-EVIDENCE.md)
 
+### Piloto Rule Lab QL-06 — shadow comparison sem efeitos
+
+`POST /api/human-resources/extraordinary-benefit-requests/actions/shadow-compare` executa uma
+baseline sintética independente e o snapshot Praxis candidato sobre o mesmo comando validado,
+instante UTC e timezone. A resposta contém somente a classificação `MATCH`, `MISMATCH`,
+`INCONCLUSIVE` ou `TECHNICAL_ERROR`, estados dos runners e marcadores de equivalência; referência,
+fatos, valores, ator e payload do snapshot não são publicados.
+
+O dual-run usa virtual threads isoladas e timeout configurável por
+`PRAXIS_RULE_LAB_SHADOW_TIMEOUT_MS`. Ele não usa o ledger de idempotência, não cria solicitação, não
+avança lifecycle e não executa efeito. Métricas de baixa cardinalidade são registradas em
+`praxis.rule.shadow.comparisons` e `praxis.rule.shadow.side.duration` para exportação pelo backend
+Micrometer configurado no ambiente.
+
+- Evidência QL-06: [docs/RULE-LAB-QL-06-SHADOW-OPERATION-EVIDENCE.md](docs/RULE-LAB-QL-06-SHADOW-OPERATION-EVIDENCE.md)
+
 ### Schemas enriquecidos (/schemas/filtered)
 - Solicita o schema do endpoint informando `path`, `operation` (get|post|put|delete) e `schemaType` (request|response).
 - Exemplo (schema de request para criar funcionario):
