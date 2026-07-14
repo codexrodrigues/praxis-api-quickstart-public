@@ -73,17 +73,39 @@ fetch_context() {
   local encoded_service_key
   local encoded_resource_key
   local encoded_query
+  local http_status
 
   encoded_service_key="$(urlencode "$SERVICE_KEY")"
   encoded_resource_key="$(urlencode "$resource_key")"
   encoded_query="$(urlencode "$query")"
 
-  curl -fsS \
-    "${BACKEND_URL%/}/api/praxis/config/domain-catalog/context?serviceKey=${encoded_service_key}&resourceKey=${encoded_resource_key}&type=governance&q=${encoded_query}&limit=5" \
-    -H "Origin: ${ORIGIN}" \
-    -H "X-Tenant-ID: ${TENANT_ID}" \
-    -H "X-Env: ${ENVIRONMENT}" \
-    -o "$output_file"
+  if ! http_status="$(curl -sS \
+      "${BACKEND_URL%/}/api/praxis/config/domain-catalog/context?serviceKey=${encoded_service_key}&resourceKey=${encoded_resource_key}&type=governance&q=${encoded_query}&limit=5" \
+      -H "Origin: ${ORIGIN}" \
+      -H "X-Tenant-ID: ${TENANT_ID}" \
+      -H "X-Env: ${ENVIRONMENT}" \
+      -o "$output_file" \
+      -w '%{http_code}')"; then
+    echo "Domain catalog context request failed at the transport layer for resourceKey=${resource_key} query=${query}." >&2
+    if [[ -s "$output_file" ]]; then
+      cat "$output_file" >&2
+    fi
+    return 1
+  fi
+
+  if [[ ! "$http_status" =~ ^2[0-9][0-9]$ ]]; then
+    echo "Domain catalog context request returned HTTP ${http_status} for resourceKey=${resource_key} query=${query}." >&2
+    if [[ -s "$output_file" ]]; then
+      if jq -e . "$output_file" >/dev/null 2>&1; then
+        jq . "$output_file" >&2
+      else
+        cat "$output_file" >&2
+      fi
+    else
+      echo "Response body was empty." >&2
+    fi
+    return 1
+  fi
 }
 
 validate_context() {
@@ -134,20 +156,43 @@ validate_authoring_candidates() {
   local expected_authoring_flow="${5:-}"
   local expected_item_type="${6:-}"
   local legacy_materialization_operation="${7:-}"
+  local http_status
 
-  jq -n \
-    --arg retrievalQuery "$authoring_query" \
-    --arg artifactKind "$artifact_kind" \
-    --argjson limit "$AUTHORING_LIMIT" \
-    '{retrievalQuery: $retrievalQuery, artifactKind: $artifactKind, limit: $limit}' \
-    | curl -fsS "${BACKEND_URL%/}/api/praxis/config/ai/authoring/resource-candidates" \
-        -H "Origin: ${ORIGIN}" \
-        -H "X-Tenant-ID: ${TENANT_ID}" \
-        -H "X-User-ID: ${USER_ID}" \
-        -H "X-Env: ${ENVIRONMENT}" \
-        -H "Content-Type: application/json" \
-        --data-binary @- \
-        -o "$output_file"
+  if ! http_status="$({
+      jq -n \
+        --arg retrievalQuery "$authoring_query" \
+        --arg artifactKind "$artifact_kind" \
+        --argjson limit "$AUTHORING_LIMIT" \
+        '{retrievalQuery: $retrievalQuery, artifactKind: $artifactKind, limit: $limit}'
+    } | curl -sS "${BACKEND_URL%/}/api/praxis/config/ai/authoring/resource-candidates" \
+          -H "Origin: ${ORIGIN}" \
+          -H "X-Tenant-ID: ${TENANT_ID}" \
+          -H "X-User-ID: ${USER_ID}" \
+          -H "X-Env: ${ENVIRONMENT}" \
+          -H "Content-Type: application/json" \
+          --data-binary @- \
+          -o "$output_file" \
+          -w '%{http_code}')"; then
+    echo "Authoring resource candidates request failed at the transport layer for artifactKind=${artifact_kind}." >&2
+    if [[ -s "$output_file" ]]; then
+      cat "$output_file" >&2
+    fi
+    return 1
+  fi
+
+  if [[ ! "$http_status" =~ ^2[0-9][0-9]$ ]]; then
+    echo "Authoring resource candidates request returned HTTP ${http_status} for artifactKind=${artifact_kind}." >&2
+    if [[ -s "$output_file" ]]; then
+      if jq -e . "$output_file" >/dev/null 2>&1; then
+        jq . "$output_file" >&2
+      else
+        cat "$output_file" >&2
+      fi
+    else
+      echo "Response body was empty." >&2
+    fi
+    return 1
+  fi
 
   local valid
   local quick_reply_count

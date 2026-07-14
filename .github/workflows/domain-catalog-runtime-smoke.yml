@@ -22,7 +22,7 @@ on:
       resource_keys:
         description: Resource keys used by context and ingest resilience smokes
         required: true
-        default: human-resources.funcionarios operations.missoes
+        default: human-resources.funcionarios human-resources.folhas-pagamento operations.missoes
       run_ingest_resilience:
         description: Run idempotent ingest resilience smoke
         required: true
@@ -57,7 +57,7 @@ jobs:
       TENANT_ID: ${{ inputs.tenant_id || 'default' }}
       ENVIRONMENT: ${{ inputs.environment || 'dev' }}
       ORIGIN: https://praxisui-dev.web.app
-      RESOURCE_KEYS: ${{ inputs.resource_keys || 'human-resources.funcionarios operations.missoes' }}
+      RESOURCE_KEYS: ${{ inputs.resource_keys || 'human-resources.funcionarios human-resources.folhas-pagamento operations.missoes' }}
       RUN_INGEST_RESILIENCE: ${{ inputs.run_ingest_resilience || 'true' }}
       MAX_IDEMPOTENT_INGEST_MS: ${{ inputs.max_idempotent_ingest_ms || '10000' }}
       SYNC_CURRENT_RELEASES: ${{ inputs.sync_current_releases || 'true' }}
