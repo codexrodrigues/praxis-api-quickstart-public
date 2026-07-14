@@ -124,6 +124,9 @@ Arquivos e Fronteiras que Merecem Mais Cuidado
   - `src/test/java/com/example/praxis/apiquickstart/config/SecurityConfig*.java`
 
 Regras Locais Obrigatorias
+- Releases publicas sao acionadas exclusivamente por `workflow_dispatch` com `create_tag=true`; o workflow persiste o `pom.xml` e cria a tag, e somente o push da tag publica o snapshot sanitizado. Nao publicar automaticamente em push de `main` nem criar tag manual como atalho.
+- `RELEASE_PAT` e obrigatorio para encadear o workflow acionado pela tag, e `PUBLIC_RELEASE_SSH_KEY` deve gravar commit e a mesma tag no repositorio publico.
+- Antes de uma tag, classificar explicitamente a linha de versao e exigir correspondencia entre POM fonte, tag fonte, POM publico, tag publica e `build.version` implantado.
 - Trate `ApiPaths` como ponto de sincronizacao contratual, nao como simples helper de string.
 - Nao espalhe literais de path quando houver constante canonica existente.
 - Nao corrija no quickstart um problema que pertença semanticamente ao starter.

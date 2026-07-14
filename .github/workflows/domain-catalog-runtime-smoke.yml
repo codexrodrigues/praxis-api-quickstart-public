@@ -4,7 +4,6 @@ on:
   workflow_run:
     workflows: [Publish Public Release]
     types: [completed]
-    branches: [main]
   workflow_dispatch:
     inputs:
       backend_url:
@@ -48,7 +47,7 @@ concurrency:
 
 jobs:
   runtime-smoke:
-    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
+    if: ${{ github.event_name != 'workflow_run' || (github.event.workflow_run.conclusion == 'success' && startsWith(github.event.workflow_run.head_branch, 'v')) }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
