@@ -219,6 +219,11 @@ Em `human-resources`, as perguntas ja materializadas pelo host exemplar sao:
   `POST /api/human-resources/extraordinary-benefit-requests/actions/shadow-compare`. A action QL-06
   é administrativa, não usa ledger idempotente e devolve somente observação sanitizada com
   `MATCH`, `MISMATCH`, `INCONCLUSIVE` ou `TECHNICAL_ERROR`;
+- "Esse contrato continua íntegro quando consumido apenas dos registries públicos?" O QL-07 prova
+  build Maven isolado e o fluxo HTTP autenticado completo, incluindo snapshot governado,
+  invariância dos quatro ledgers no shadow, ETag/If-Match no lifecycle, efeito exatamente uma vez e
+  cleanup da fixture. A evidência sanitizada está em
+  `docs/RULE-LAB-QL-07-PUBLIC-DOWNSTREAM-EVIDENCE.md`;
 - "Quem esta fora da operacao e em que janela de cobertura?" via
   `POST /api/human-resources/ferias-afastamentos/stats/group-by` com
   `field=tipo` ou `field=funcionarioId` e

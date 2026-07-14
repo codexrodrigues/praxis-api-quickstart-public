@@ -128,7 +128,7 @@ public class ExtraordinaryGrantRuleLabConfiguration {
             @Qualifier("extraordinaryBenefitShadowExecutor") ExecutorService executor,
             MeterRegistry meterRegistry,
             @Qualifier("extraordinaryGrantRuleClock") Clock clock,
-            @Value("${praxis.rule-lab.shadow.timeout-ms:250}") long timeoutMs) {
+            @Value("${praxis.rule-lab.shadow.timeout-ms:1000}") long timeoutMs) {
         return new ExtraordinaryBenefitShadowComparisonService(
                 baseline, candidate, executor, meterRegistry, clock, Duration.ofMillis(timeoutMs));
     }

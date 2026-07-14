@@ -18,6 +18,7 @@
     SPRING_DATASOURCE_PASSWORD
     CORS_ALLOWED_ORIGINS (ex.: http://localhost:4200)
     PRACTICE_TEMP_PASSWORD (login /auth)
+    PRAXIS_RESOURCE_VERSION_ETAG_SECRET (ETags assinados e actions com If-Match)
 #>
 [CmdletBinding()]
 param(
@@ -64,7 +65,12 @@ if (-not $env:SPRING_PROFILES_ACTIVE) {
     $env:SPRING_PROFILES_ACTIVE = "dev"
 }
 
-$required = @("SPRING_DATASOURCE_URL", "SPRING_DATASOURCE_USERNAME", "SPRING_DATASOURCE_PASSWORD")
+$required = @(
+    "SPRING_DATASOURCE_URL",
+    "SPRING_DATASOURCE_USERNAME",
+    "SPRING_DATASOURCE_PASSWORD",
+    "PRAXIS_RESOURCE_VERSION_ETAG_SECRET"
+)
 foreach ($k in $required) {
     $v = [Environment]::GetEnvironmentVariable($k, "Process")
     if ([string]::IsNullOrWhiteSpace($v)) {

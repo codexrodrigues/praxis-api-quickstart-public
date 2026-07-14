@@ -27,7 +27,7 @@ permissões resolvido no servidor, instante UTC e timezone.
 - `INCONCLUSIVE`: ao menos um resultado de negócio é inconclusivo, sem falha técnica do runner;
 - `TECHNICAL_ERROR`: timeout, exceção sanitizada ou outcome técnico em qualquer lado.
 
-Timeout e falha são isolados por runner. O limite padrão é 250 ms e pode variar entre 1 ms e 5 s
+Timeout e falha são isolados por runner. O limite padrão é 1 s e pode variar entre 1 ms e 5 s
 por `PRAXIS_RULE_LAB_SHADOW_TIMEOUT_MS`. O pool usa no máximo oito virtual threads e fila de 128
 runners pendentes; saturação vira `TECHNICAL_ERROR` sanitizado. O timeout do shadow nunca altera a resposta de uma rota de
 negócio autoritativa; nesta onda ele existe apenas na action de laboratório.
@@ -86,6 +86,6 @@ precedência de erros, HADES, efeitos, fallback e evidência da rota baseline co
 
 ## Próximo gate
 
-QL-07 deve provar o contrato via HTTP operacional e consumo da coordenada Maven oficial, sem
-override local. QL-08 fará o stress report Ergon-like. Nenhum desses passos abre Fase 9 ou autoriza
-preflight/promoção de regra Ergon.
+QL-07 concluiu a prova via HTTP operacional e consumo das coordenadas Maven oficiais, sem override
+local, conforme `RULE-LAB-QL-07-PUBLIC-DOWNSTREAM-EVIDENCE.md`. QL-08 fará o stress report
+Ergon-like. Nenhum desses passos abre Fase 9 ou autoriza preflight/promoção de regra Ergon.

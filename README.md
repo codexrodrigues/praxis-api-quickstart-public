@@ -877,6 +877,22 @@ Micrometer configurado no ambiente.
 
 - Evidência QL-06: [docs/RULE-LAB-QL-06-SHADOW-OPERATION-EVIDENCE.md](docs/RULE-LAB-QL-06-SHADOW-OPERATION-EVIDENCE.md)
 
+### Piloto Rule Lab QL-07 — prova downstream pública
+
+O gate QL-07 empacota o Quickstart com repositório Maven isolado e confirma que Metadata Starter,
+Config Starter e Rules Engine são resolvidos pelas coordenadas oficiais do Maven Central, sem
+`mvn install`, repositório de arquivo ou override local. Em seguida, o host é exercitado por HTTP
+autenticado sobre um snapshot governado: discovery e schemas, shadow ALLOW/DENY sem mutação,
+lifecycle completo com ETag/If-Match, efeito exatamente uma vez e cleanup determinístico.
+
+O launcher oficial exige `PRAXIS_RESOURCE_VERSION_ETAG_SECRET` independente do JWT para não
+anunciar actions versionadas em uma configuração incapaz de produzir ETags. O shadow usa timeout
+padrão de 1 s, configurável entre 1 ms e 5 s por `PRAXIS_RULE_LAB_SHADOW_TIMEOUT_MS`.
+
+- Preflight Maven: `scripts/workspace/Test-RuleLabQl07PublicMaven.ps1`
+- Prova HTTP: `scripts/workspace/Invoke-RuleLabQl07HttpProof.ps1`
+- Evidência QL-07: [docs/RULE-LAB-QL-07-PUBLIC-DOWNSTREAM-EVIDENCE.md](docs/RULE-LAB-QL-07-PUBLIC-DOWNSTREAM-EVIDENCE.md)
+
 ### Schemas enriquecidos (/schemas/filtered)
 - Solicita o schema do endpoint informando `path`, `operation` (get|post|put|delete) e `schemaType` (request|response).
 - Exemplo (schema de request para criar funcionario):
