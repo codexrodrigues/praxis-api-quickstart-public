@@ -564,6 +564,27 @@ class OpenApiGroupResolutionIsolatedIntegrationTest {
         assertEquals("incident-trend", incidentProjections.get(0).get("id"));
         Map<String, Object> incidentDefaults = (Map<String, Object>) incidentProjections.get(0).get("defaults");
         assertEquals("month", incidentDefaults.get("granularity"));
+
+        ResponseEntity<Map> employeeComparisonSchemaResponse = restTemplate.getForEntity(
+                "/schemas/filtered?path={path}&operation=post&schemaType=response",
+                Map.class,
+                "/api/human-resources/funcionarios/stats/comparison"
+        );
+        assertEquals(HttpStatus.OK, employeeComparisonSchemaResponse.getStatusCode());
+        Map<String, Object> employeeComparisonXUi = (Map<String, Object>) employeeComparisonSchemaResponse.getBody().get("x-ui");
+        assertNotNull(employeeComparisonXUi);
+        Map<String, Object> employeeComparisonAnalytics = (Map<String, Object>) employeeComparisonXUi.get("analytics");
+        assertNotNull(employeeComparisonAnalytics);
+        List<Map<String, Object>> employeeComparisonProjections = (List<Map<String, Object>>) employeeComparisonAnalytics.get("projections");
+        assertEquals(1, employeeComparisonProjections.size());
+        Map<String, Object> employeeComparison = employeeComparisonProjections.get(0);
+        assertEquals("comparison", ((Map<String, Object>) employeeComparison.get("source")).get("operation"));
+        Map<String, Object> employeeComparisonBindings = (Map<String, Object>) employeeComparison.get("bindings");
+        Map<String, Object> employeeComparisonPeriod = (Map<String, Object>) employeeComparisonBindings.get("comparisonPeriod");
+        assertEquals("dataAdmissao", employeeComparisonPeriod.get("field"));
+        assertEquals("America/Sao_Paulo", employeeComparisonPeriod.get("timezone"));
+        assertEquals("LAST_30_DAYS", employeeComparisonPeriod.get("preset"));
+        assertEquals("PREVIOUS_ALIGNED", employeeComparisonPeriod.get("mode"));
     }
 
     @Test

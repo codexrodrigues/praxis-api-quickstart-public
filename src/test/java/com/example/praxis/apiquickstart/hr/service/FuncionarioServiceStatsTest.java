@@ -46,11 +46,15 @@ class FuncionarioServiceStatsTest {
         assertEquals(StatsSupportMode.AUTO, service.getGroupByStatsSupportMode());
         assertEquals(StatsSupportMode.AUTO, service.getTimeSeriesStatsSupportMode());
         assertEquals(StatsSupportMode.AUTO, service.getDistributionStatsSupportMode());
+        assertEquals(StatsSupportMode.AUTO, service.getComparisonStatsSupportMode());
 
         assertTrue(service.getStatsFieldRegistry().resolve("ativo").orElseThrow().groupByEligible());
         assertTrue(service.getStatsFieldRegistry().resolve("estadoCivil").orElseThrow().distributionTermsEligible());
         assertTrue(service.getStatsFieldRegistry().resolve("cargoNome").orElseThrow().groupByEligible());
-        assertTrue(service.getStatsFieldRegistry().resolve("departamentoNome").orElseThrow().distributionTermsEligible());
+        var departamento = service.getStatsFieldRegistry().resolve("departamento").orElseThrow();
+        assertTrue(departamento.distributionTermsEligible());
+        assertEquals("departamento.id", departamento.keyPropertyPath());
+        assertEquals("departamento.nome", departamento.labelPropertyPath());
         assertTrue(service.getStatsFieldRegistry().resolve("dataAdmissao").orElseThrow().timeSeriesEligible());
         assertTrue(service.getStatsFieldRegistry().resolve("salario").orElseThrow().distributionHistogramEligible());
         assertTrue(service.getStatsFieldRegistry().resolve("salario").orElseThrow().supports(StatsMetric.SUM));

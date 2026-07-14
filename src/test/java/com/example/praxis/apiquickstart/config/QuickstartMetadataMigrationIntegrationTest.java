@@ -677,6 +677,51 @@ class QuickstartMetadataMigrationIntegrationTest {
     }
 
     @Test
+    void shouldExecuteGovernedEmployeeComparisonOverRealHttp() throws Exception {
+        jdbcTemplate.update("""
+                insert into public.departamentos (id, nome, codigo, responsavel_id)
+                values (2, 'Operações', 'OPS', null)
+                """);
+        jdbcTemplate.update("""
+                insert into public.funcionarios (
+                    id, nome_completo, cpf, data_nascimento, email, telefone, salario, data_admissao, ativo, cargo_id,
+                    departamento_id, foto_perfil_url, estado_civil, pais_nascimento, cidade_nascimento
+                ) values (
+                    2, 'Selina Kyle', '98765432109', DATE '1988-03-15', 'selina@wayne.com', '+5511988880000',
+                    11000.00, DATE '2024-02-10', true, 1, 2, null, 'SOLTEIRO', 'Brasil', 'Gotham'
+                )
+                """);
+
+        ResponseEntity<String> response = restTemplate.exchange(
+                "/api/human-resources/funcionarios/stats/comparison",
+                HttpMethod.POST,
+                authorizedJson("""
+                        {
+                          "filter": {},
+                          "field": "departamento",
+                          "periodField": "dataAdmissao",
+                          "metrics": [{ "operation": "COUNT", "alias": "employees" }],
+                          "period": { "from": "2024-02-01", "to": "2024-02-29", "timezone": "UTC" },
+                          "orderBy": "KEY_ASC"
+                        }
+                        """),
+                String.class
+        );
+
+        JsonNode comparison = body(response).path("data");
+        assertEquals("2024-02-01", comparison.path("currentPeriod").path("from").asText());
+        assertEquals("2024-01-03", comparison.path("previousPeriod").path("from").asText());
+        JsonNode buckets = comparison.path("buckets");
+        assertEquals(2, buckets.size());
+        assertEquals("Financeiro", buckets.get(0).path("label").asText());
+        assertEquals(0, buckets.get(0).path("values").path("employees").path("current").asInt());
+        assertEquals(1, buckets.get(0).path("values").path("employees").path("previous").asInt());
+        assertEquals("Operações", buckets.get(1).path("label").asText());
+        assertEquals(1, buckets.get(1).path("values").path("employees").path("current").asInt());
+        assertTrue(buckets.get(1).path("values").path("employees").path("baselineMissing").asBoolean());
+    }
+
+    @Test
     void shouldDeactivateFuncionarioWithRecordEtagAndAuditTransition() throws Exception {
         ResponseEntity<String> current = restTemplate.getForEntity("/api/human-resources/funcionarios/1", String.class);
         String etag = current.getHeaders().getETag();

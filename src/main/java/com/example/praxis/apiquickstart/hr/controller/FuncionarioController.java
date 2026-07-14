@@ -26,8 +26,16 @@ import com.example.praxis.apiquickstart.operations.dto.MissaoParticipanteDTO;
 import com.example.praxis.apiquickstart.operations.service.MissaoParticipanteService;
 import org.praxisplatform.uischema.annotation.ApiGroup;
 import org.praxisplatform.uischema.annotation.ApiResource;
+import org.praxisplatform.uischema.annotation.AnalyticsComparisonPeriodBinding;
+import org.praxisplatform.uischema.annotation.AnalyticsDimensionBinding;
+import org.praxisplatform.uischema.annotation.AnalyticsIntent;
+import org.praxisplatform.uischema.annotation.AnalyticsMetricBinding;
+import org.praxisplatform.uischema.annotation.AnalyticsOperation;
+import org.praxisplatform.uischema.annotation.AnalyticsPresentationFamily;
+import org.praxisplatform.uischema.annotation.AnalyticsProjection;
 import org.praxisplatform.uischema.annotation.ResourceIntent;
 import org.praxisplatform.uischema.annotation.UiSurface;
+import org.praxisplatform.uischema.annotation.UiAnalytics;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.RestController;
 import io.swagger.v3.oas.annotations.Operation;
@@ -57,6 +65,10 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.praxisplatform.uischema.surface.RelatedResourceChildOperation;
 import org.praxisplatform.uischema.surface.SurfaceKind;
 import org.praxisplatform.uischema.surface.SurfaceScope;
+import org.praxisplatform.uischema.stats.ComparisonPeriodMode;
+import org.praxisplatform.uischema.stats.ComparisonPeriodPreset;
+import org.praxisplatform.uischema.stats.dto.ComparisonStatsRequest;
+import org.praxisplatform.uischema.stats.dto.ComparisonStatsResponse;
 import java.util.List;
 
 /**
@@ -130,6 +142,38 @@ public class FuncionarioController extends AbstractQuickstartCrudController<Func
 
     @Override
     protected Integer getDtoId(FuncionarioDTO dto) { return dto.getId(); }
+
+    @Override
+    @PostMapping("/stats/comparison")
+    @UiAnalytics(
+            projections = {
+                    @AnalyticsProjection(
+                            id = "employee-admission-comparison",
+                            intent = AnalyticsIntent.COMPARISON,
+                            sourceOperation = AnalyticsOperation.COMPARISON,
+                            primaryDimension = @AnalyticsDimensionBinding(field = "departamento", label = "Departamento"),
+                            comparisonPeriod = @AnalyticsComparisonPeriodBinding(
+                                    field = "dataAdmissao",
+                                    timezone = "America/Sao_Paulo",
+                                    preset = ComparisonPeriodPreset.LAST_30_DAYS,
+                                    mode = ComparisonPeriodMode.PREVIOUS_ALIGNED
+                            ),
+                            primaryMetrics = {
+                                    @AnalyticsMetricBinding(field = "id", aggregation = "count", label = "Funcionarios")
+                            },
+                            preferredFamilies = {
+                                    AnalyticsPresentationFamily.ANALYTIC_TABLE,
+                                    AnalyticsPresentationFamily.CHART
+                            },
+                            crossFilter = true
+                    )
+            }
+    )
+    public ResponseEntity<RestApiResponse<ComparisonStatsResponse>> comparisonStats(
+            @RequestBody ComparisonStatsRequest<FuncionarioFilterDTO> request
+    ) {
+        return super.comparisonStats(request);
+    }
 
     @PostMapping("/filter")
     @Operation(summary = "Filtrar funcionários", description = "Lista colaboradores por identificação, cargo, departamento, situação ativa e contatos para consulta cadastral, composição organizacional e seleção operacional.")
@@ -620,5 +664,4 @@ public class FuncionarioController extends AbstractQuickstartCrudController<Func
         return super.deleteBatch(ids);
     }
 }
-
 

@@ -202,7 +202,7 @@ public class FuncionarioService extends AbstractQuickstartCrudService<Funcionari
             .categoricalGroupByBucket("ativo", "ativo")
             .categoricalGroupByBucket("estadoCivil", "estadoCivil")
             .groupByBucket("cargoNome", "cargo.nome", Set.of(StatsMetric.COUNT))
-            .groupByBucket("departamentoNome", "departamento.nome", Set.of(StatsMetric.COUNT))
+            .labeledGroupByBucket("departamento", "departamento.id", "departamento.nome", Set.of(StatsMetric.COUNT))
             .temporalTimeSeriesField("dataAdmissao", "dataAdmissao")
             .numericHistogramMeasureField("salario", "salario")
             .build();
@@ -333,6 +333,11 @@ public class FuncionarioService extends AbstractQuickstartCrudService<Funcionari
 
     @Override
     public StatsSupportMode getDistributionStatsSupportMode() {
+        return StatsSupportMode.AUTO;
+    }
+
+    @Override
+    public StatsSupportMode getComparisonStatsSupportMode() {
         return StatsSupportMode.AUTO;
     }
 
