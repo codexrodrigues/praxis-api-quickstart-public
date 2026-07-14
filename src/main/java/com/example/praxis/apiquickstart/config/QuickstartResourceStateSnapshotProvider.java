@@ -5,6 +5,7 @@ import com.example.praxis.apiquickstart.operations.repository.BaseAcessoReposito
 import com.example.praxis.apiquickstart.operations.repository.LicencasOperacaoRepository;
 import com.example.praxis.apiquickstart.operations.repository.MissaoRepository;
 import com.example.praxis.apiquickstart.hr.service.FolhasPagamentoService;
+import com.example.praxis.apiquickstart.rulelab.ExtraordinaryBenefitRequestQueryService;
 import org.praxisplatform.uischema.capability.ResourceStateSnapshot;
 import org.praxisplatform.uischema.capability.ResourceStateSnapshotProvider;
 import org.springframework.stereotype.Component;
@@ -34,6 +35,8 @@ public class QuickstartResourceStateSnapshotProvider implements ResourceStateSna
     private static final String LICENCAS_OPERACAO_RESOURCE_KEY = "operations.licencas-operacao";
     private static final String BASE_ACESSOS_RESOURCE_KEY = "operations.base-acessos";
     private static final String FOLHAS_PAGAMENTO_RESOURCE_KEY = "human-resources.folhas-pagamento";
+    private static final String EXTRAORDINARY_BENEFIT_REQUESTS_RESOURCE_KEY =
+            "human-resources.extraordinary-benefit-requests";
 
     private final Map<String, Function<Object, Optional<ResourceStateSnapshot>>> resolvers;
 
@@ -42,7 +45,8 @@ public class QuickstartResourceStateSnapshotProvider implements ResourceStateSna
             MissaoRepository missaoRepository,
             LicencasOperacaoRepository licencasOperacaoRepository,
             BaseAcessoRepository baseAcessoRepository,
-            FolhasPagamentoService folhasPagamentoService
+            FolhasPagamentoService folhasPagamentoService,
+            ExtraordinaryBenefitRequestQueryService extraordinaryBenefitRequestQueryService
     ) {
         this.resolvers = Map.of(
                 ACORDOS_REGULATORIOS_RESOURCE_KEY,
@@ -54,7 +58,9 @@ public class QuickstartResourceStateSnapshotProvider implements ResourceStateSna
                 BASE_ACESSOS_RESOURCE_KEY,
                 resourceId -> resolveBaseAcessoSnapshot(baseAcessoRepository, resourceId),
                 FOLHAS_PAGAMENTO_RESOURCE_KEY,
-                folhasPagamentoService::resolveStateSnapshot
+                folhasPagamentoService::resolveStateSnapshot,
+                EXTRAORDINARY_BENEFIT_REQUESTS_RESOURCE_KEY,
+                extraordinaryBenefitRequestQueryService::resolveStateSnapshot
         );
     }
 

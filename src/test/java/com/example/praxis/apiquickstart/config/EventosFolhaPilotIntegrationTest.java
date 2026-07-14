@@ -149,11 +149,13 @@ class EventosFolhaPilotIntegrationTest {
                 """);
         jdbcTemplate.execute("""
                 create table public.praxis_resource_action_execution (
-                    execution_id uuid primary key, resource_key varchar(200) not null, action_id varchar(120) not null,
+                    execution_id uuid primary key, resource_key varchar(200) not null, resource_id varchar(128) not null,
+                    action_id varchar(120) not null,
                     action_scope varchar(32) not null, idempotency_key varchar(255) not null, request_hash varchar(128) not null,
                     execution_status varchar(32) not null, response_payload json, correlation_id varchar(255) not null,
                     request_id varchar(255), actor_subject varchar(255) not null, actor_authorities varchar(1000), started_at timestamp with time zone not null, completed_at timestamp with time zone,
-                    failure_code varchar(120), failure_message varchar(1000), unique(resource_key, action_id, idempotency_key)
+                    failure_code varchar(120), failure_message varchar(1000),
+                    unique(resource_key, resource_id, action_id, actor_subject, idempotency_key)
                 )
                 """);
 

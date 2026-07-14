@@ -38,8 +38,9 @@ public class ResourceActionTransitionService {
     public Optional<UUID> findReplay(String resourceKey, Object resourceId, String actionId) {
         String idempotencyKey = currentHeader("Idempotency-Key");
         if (idempotencyKey == null) return Optional.empty();
-        return repository.findByResourceKeyAndResourceIdAndActionIdAndIdempotencyKey(
-                resourceKey, String.valueOf(resourceId), actionId, idempotencyKey).map(ResourceActionTransition::getTransitionId);
+        return repository.findByResourceKeyAndResourceIdAndActionIdAndActorSubjectAndIdempotencyKey(
+                resourceKey, String.valueOf(resourceId), actionId, currentActorSubject(), idempotencyKey)
+                .map(ResourceActionTransition::getTransitionId);
     }
 
     private String currentAuthorities() {
@@ -47,6 +48,13 @@ public class ResourceActionTransitionService {
         if (authentication == null || authentication.getAuthorities() == null) return null;
         return authentication.getAuthorities().stream().map(authority -> authority.getAuthority()).sorted()
                 .collect(java.util.stream.Collectors.joining(","));
+    }
+
+    private String currentActorSubject() {
+        var authentication = SecurityContextHolder.getContext().getAuthentication();
+        return authentication == null || authentication.getName() == null || authentication.getName().isBlank()
+                ? "anonymous"
+                : authentication.getName().trim();
     }
 
     private String currentHeader(String name) {

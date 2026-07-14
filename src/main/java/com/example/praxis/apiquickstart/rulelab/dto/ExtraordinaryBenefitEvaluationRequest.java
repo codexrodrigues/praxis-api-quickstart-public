@@ -16,11 +16,11 @@ import org.praxisplatform.uischema.extension.annotation.UISchema;
 
 @Schema(
         name = "ExtraordinaryBenefitEvaluationRequest",
-        description = "Fatos de negocio congelados pelo host para simular a elegibilidade de uma solicitacao de beneficio extraordinario sem persistir o pedido.")
+        description = "Fatos de negocio congelados pelo host para avaliar a elegibilidade de uma solicitacao de beneficio extraordinario; apenas uma conclusao ALLOW pode originar o recurso persistido.")
 public record ExtraordinaryBenefitEvaluationRequest(
         @NotBlank
         @Size(max = 80)
-        @Schema(description = "Referencia externa usada para correlacionar a simulacao com atendimento, chamado ou processo de RH, sem criar identidade persistida.", example = "BEN-2026-000184")
+        @Schema(description = "Referencia externa idempotente que correlaciona atendimento, chamado ou processo de RH e impede duas solicitacoes persistidas para o mesmo fato gerador.", example = "BEN-2026-000184")
         @UISchema(label = "Referencia da solicitacao", controlType = FieldControlType.INPUT, order = 10, maxLength = 80, icon = "tag")
         String requestReference,
 

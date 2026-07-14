@@ -7,9 +7,9 @@ import java.util.List;
 
 @Schema(
         name = "ExtraordinaryBenefitEvaluationResponse",
-        description = "Resultado explicavel e auditavel da avaliacao deterministica; nao representa concessao persistida nem efeito executado.")
+        description = "Resultado explicavel e auditavel da avaliacao deterministica, incluindo se o host persistiu a solicitacao elegivel e se o efeito ja foi executado em etapa posterior.")
 public record ExtraordinaryBenefitEvaluationResponse(
-        @Schema(description = "Referencia recebida do processo solicitante para correlacao sem criar um registro persistido.")
+        @Schema(description = "Referencia recebida do processo solicitante e preservada como identidade externa do recurso quando a avaliacao ALLOW e persistida.")
         String requestReference,
         @Schema(description = "Conclusao de negocio em cinco estados produzida pelo RuleSet governado.")
         ExtraordinaryBenefitEvaluationOutcome outcome,
@@ -39,11 +39,11 @@ public record ExtraordinaryBenefitEvaluationResponse(
         String currency,
         @Schema(description = "Tipo do efeito que uma etapa posterior poderia executar apos persistencia e aprovacao.")
         String plannedEffectIntent,
-        @Schema(description = "Estado do efeito puro produzido pelo engine; no QL-04 deve permanecer PLANNED_NOT_EXECUTED.")
+        @Schema(description = "Estado da intencao pura produzida pelo engine; a execucao posterior continua responsabilidade transacional do host.")
         String plannedEffectStatus,
-        @Schema(description = "Confirma que esta action nao criou nem alterou uma solicitacao persistida.")
+        @Schema(description = "Indica se esta avaliacao ALLOW originou uma solicitacao persistida pelo host.")
         boolean persisted,
-        @Schema(description = "Confirma que nenhum efeito externo foi executado durante a avaliacao.")
+        @Schema(description = "Indica se o host ja executou o efeito em uma action posterior; a avaliacao em si nunca executa o efeito.")
         boolean effectExecuted) {
 
     public ExtraordinaryBenefitEvaluationResponse {

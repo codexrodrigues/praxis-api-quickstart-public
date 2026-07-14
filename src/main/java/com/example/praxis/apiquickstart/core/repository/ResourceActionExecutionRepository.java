@@ -6,5 +6,6 @@ import java.util.Optional;
 import java.util.UUID;
 
 public interface ResourceActionExecutionRepository extends JpaRepository<ResourceActionExecution, UUID> {
-    Optional<ResourceActionExecution> findByResourceKeyAndActionIdAndIdempotencyKey(String resourceKey, String actionId, String idempotencyKey);
+    Optional<ResourceActionExecution> findByResourceKeyAndResourceIdAndActionIdAndActorSubjectAndIdempotencyKey(
+            String resourceKey, String resourceId, String actionId, String actorSubject, String idempotencyKey);
 }

@@ -839,22 +839,27 @@ Persistencia de status (DB migration)
   - Trilha operacional versionada: `db/operational-migrations`
   - Processo e drift check: `docs/OPERATIONAL-DATASOURCE-MIGRATIONS.md`
 
-### Piloto Rule Lab QL-04 — avaliação de benefício extraordinário
+### Piloto Rule Lab QL-05 — lifecycle persistente de benefício extraordinário
 
-O recurso `human-resources.extraordinary-benefit-requests` publica somente o comando de negócio
-`POST /api/human-resources/extraordinary-benefit-requests/actions/evaluate`. Ele não simula coleção,
-consulta ou persistência: o contrato canônico de action, capabilities e schemas vem de
-`AbstractCollectionCommandResourceController`, do `praxis-metadata-starter`.
+O recurso `human-resources.extraordinary-benefit-requests` usa a baseline read-only do
+`praxis-metadata-starter`: consultas são canônicas, mas nenhuma mutação CRUD pode contornar o
+lifecycle `EVALUATED -> SUBMITTED -> APPROVED -> APPLIED`. As mutações existem somente como
+actions governadas. `evaluate` persiste apenas decisões `ALLOW`; `DENY`, `INCONCLUSIVE`, falhas e
+efeitos planejados nunca criam recurso ou ledger financeiro.
 
-A avaliação combina autorização resolvida pelo servidor, vínculo funcional, duplicidade, vigência e
-teto do programa, regra adicional do cliente, calendário, orçamento, cálculo e planejamento puro de
-efeito. A resposta preserva a identidade atômica do snapshot e os hashes de fatos e plano; no QL-04,
-`persisted=false`, `effectExecuted=false` e qualquer efeito permanece `PLANNED_NOT_EXECUTED`.
+`submit`, `approve` e `apply` exigem `If-Match` e `Idempotency-Key`. A mutação, a transição de
+auditoria, o ledger de efeito e a resposta idempotente são confirmados na mesma transação do banco
+operacional. `evaluate-batch` é explicitamente não atômico: processa até 50 itens em ordem, usa uma
+transação por item e devolve resultados parciais estáveis.
 
+- Coleção: `GET /api/human-resources/extraordinary-benefit-requests`
+- Avaliação: `POST /api/human-resources/extraordinary-benefit-requests/actions/evaluate`
+- Lote: `POST /api/human-resources/extraordinary-benefit-requests/actions/evaluate-batch`
+- Lifecycle: `POST /api/human-resources/extraordinary-benefit-requests/{id}/actions/{submit|approve|apply}`
 - Discovery: `GET /api/human-resources/extraordinary-benefit-requests/actions`
-- Capabilities: `GET /api/human-resources/extraordinary-benefit-requests/capabilities`
-- Catálogo: `GET /schemas/actions?resource=human-resources.extraordinary-benefit-requests`
-- Evidência e roteiro HTTP: [docs/RULE-LAB-QL-04-BUSINESS-HTTP-EVIDENCE.md](docs/RULE-LAB-QL-04-BUSINESS-HTTP-EVIDENCE.md)
+- Capabilities contextuais: `GET /api/human-resources/extraordinary-benefit-requests/{id}/capabilities`
+- Evidência QL-05: [docs/RULE-LAB-QL-05-PERSISTENCE-EFFECTS-EVIDENCE.md](docs/RULE-LAB-QL-05-PERSISTENCE-EFFECTS-EVIDENCE.md)
+- Contrato anterior QL-04: [docs/RULE-LAB-QL-04-BUSINESS-HTTP-EVIDENCE.md](docs/RULE-LAB-QL-04-BUSINESS-HTTP-EVIDENCE.md)
 
 ### Schemas enriquecidos (/schemas/filtered)
 - Solicita o schema do endpoint informando `path`, `operation` (get|post|put|delete) e `schemaType` (request|response).

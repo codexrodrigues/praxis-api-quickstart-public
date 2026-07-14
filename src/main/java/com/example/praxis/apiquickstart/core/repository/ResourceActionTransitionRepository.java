@@ -6,6 +6,6 @@ import java.util.UUID;
 import java.util.Optional;
 
 public interface ResourceActionTransitionRepository extends JpaRepository<ResourceActionTransition, UUID> {
-    Optional<ResourceActionTransition> findByResourceKeyAndResourceIdAndActionIdAndIdempotencyKey(
-            String resourceKey, String resourceId, String actionId, String idempotencyKey);
+    Optional<ResourceActionTransition> findByResourceKeyAndResourceIdAndActionIdAndActorSubjectAndIdempotencyKey(
+            String resourceKey, String resourceId, String actionId, String actorSubject, String idempotencyKey);
 }

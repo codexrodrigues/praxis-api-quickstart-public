@@ -44,6 +44,7 @@ public final class ApiOperationalSchemaDriftCheck {
             checkTable(connection, "public", "praxis_resource_action_execution", failures);
             checkColumn(connection, "public", "praxis_resource_action_execution", "execution_id", failures);
             checkColumn(connection, "public", "praxis_resource_action_execution", "resource_key", failures);
+            checkColumn(connection, "public", "praxis_resource_action_execution", "resource_id", failures);
             checkColumn(connection, "public", "praxis_resource_action_execution", "action_id", failures);
             checkColumn(connection, "public", "praxis_resource_action_execution", "action_scope", failures);
             checkColumn(connection, "public", "praxis_resource_action_execution", "idempotency_key", failures);
@@ -59,6 +60,16 @@ public final class ApiOperationalSchemaDriftCheck {
             checkColumn(connection, "public", "procurement_purchase_orders", "approved_at", failures);
             checkColumn(connection, "public", "procurement_purchase_orders", "cancelled_at", failures);
             checkColumn(connection, "public", "procurement_purchase_orders", "received_at", failures);
+            checkTable(connection, "public", "extraordinary_benefit_request", failures);
+            checkColumn(connection, "public", "extraordinary_benefit_request", "request_reference", failures);
+            checkColumn(connection, "public", "extraordinary_benefit_request", "lifecycle_status", failures);
+            checkColumn(connection, "public", "extraordinary_benefit_request", "effect_status", failures);
+            checkColumn(connection, "public", "extraordinary_benefit_request", "snapshot_content_hash", failures);
+            checkColumn(connection, "public", "extraordinary_benefit_request", "evaluation_reason_codes", failures);
+            checkColumn(connection, "public", "extraordinary_benefit_request", "version", failures);
+            checkTable(connection, "public", "extraordinary_benefit_grant_effect", failures);
+            checkColumn(connection, "public", "extraordinary_benefit_grant_effect", "effect_execution_id", failures);
+            checkColumn(connection, "public", "extraordinary_benefit_grant_effect", "benefit_request_id", failures);
             checkDistinctCount(
                     connection,
                     "public.procurement_purchase_orders",

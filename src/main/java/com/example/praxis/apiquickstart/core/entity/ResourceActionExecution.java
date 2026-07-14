@@ -10,12 +10,13 @@ import org.hibernate.type.SqlTypes;
 import java.time.Instant;
 import java.util.UUID;
 
-/** Request-level idempotency record for a collection workflow action. */
+/** Registro de idempotencia escopado por recurso, alvo, action e ator. */
 @Entity
 @Table(name = "praxis_resource_action_execution")
 public class ResourceActionExecution {
     @Id @Column(name = "execution_id") private UUID executionId;
     @Column(name = "resource_key") private String resourceKey;
+    @Column(name = "resource_id") private String resourceId;
     @Column(name = "action_id") private String actionId;
     @Column(name = "action_scope") private String actionScope;
     @Column(name = "idempotency_key") private String idempotencyKey;
@@ -32,9 +33,9 @@ public class ResourceActionExecution {
     @Column(name = "failure_code") private String failureCode;
     @Column(name = "failure_message") private String failureMessage;
     public ResourceActionExecution() { }
-    public ResourceActionExecution(UUID id, String resourceKey, String actionId, String actionScope, String idempotencyKey,
+    public ResourceActionExecution(UUID id, String resourceKey, String resourceId, String actionId, String actionScope, String idempotencyKey,
             String requestHash, String correlationId, String requestId, String actorSubject, String actorAuthorities) {
-        this.executionId=id; this.resourceKey=resourceKey; this.actionId=actionId; this.actionScope=actionScope;
+        this.executionId=id; this.resourceKey=resourceKey; this.resourceId=resourceId; this.actionId=actionId; this.actionScope=actionScope;
         this.idempotencyKey=idempotencyKey; this.requestHash=requestHash; this.correlationId=correlationId;
         this.requestId=requestId; this.actorSubject=actorSubject; this.actorAuthorities=actorAuthorities;
         this.executionStatus="STARTED"; this.startedAt=Instant.now();
@@ -42,6 +43,17 @@ public class ResourceActionExecution {
     public String getRequestHash() { return requestHash; }
     public String getExecutionStatus() { return executionStatus; }
     public JsonNode getResponsePayload() { return responsePayload; }
+    public String getActorSubject() { return actorSubject; }
+    public String getResourceId() { return resourceId; }
     public void complete(JsonNode payload) { this.executionStatus="COMPLETED"; this.responsePayload=payload; this.completedAt=Instant.now(); this.failureCode=null; this.failureMessage=null; }
-    public void fail(String code, String message) { this.executionStatus="FAILED"; this.completedAt=Instant.now(); this.failureCode=code; this.failureMessage=message; }
+    public void fail(String code, String message) {
+        this.executionStatus = "FAILED";
+        this.completedAt = Instant.now();
+        this.failureCode = truncate(code, 120);
+        this.failureMessage = truncate(message == null ? "Workflow execution failed." : message, 1000);
+    }
+
+    private String truncate(String value, int maximumLength) {
+        return value == null || value.length() <= maximumLength ? value : value.substring(0, maximumLength);
+    }
 }

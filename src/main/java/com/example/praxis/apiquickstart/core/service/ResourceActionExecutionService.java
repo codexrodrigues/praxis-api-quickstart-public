@@ -19,6 +19,7 @@ import java.util.UUID;
 /** Owns request fingerprinting and reservation for idempotent collection actions. */
 @Service
 public class ResourceActionExecutionService {
+    private static final String COLLECTION_RESOURCE_ID = "__collection__";
     private final ResourceActionExecutionRepository repository;
     private final ObjectMapper objectMapper;
     public ResourceActionExecutionService(ResourceActionExecutionRepository repository, ObjectMapper objectMapper) {
@@ -29,9 +30,17 @@ public class ResourceActionExecutionService {
     public Optional<ResourceActionExecution> findCompletedReplay(
             String resourceKey, String actionId, String idempotencyKey, Object command
     ) {
+        return findCompletedReplay(resourceKey, null, actionId, idempotencyKey, command);
+    }
+
+    public Optional<ResourceActionExecution> findCompletedReplay(
+            String resourceKey, Object resourceId, String actionId, String idempotencyKey, Object command
+    ) {
         if (idempotencyKey == null || idempotencyKey.isBlank()) return Optional.empty();
         String hash = hash(command);
-        Optional<ResourceActionExecution> existing = repository.findByResourceKeyAndActionIdAndIdempotencyKey(resourceKey, actionId, idempotencyKey.trim());
+        Optional<ResourceActionExecution> existing = repository
+                .findByResourceKeyAndResourceIdAndActionIdAndActorSubjectAndIdempotencyKey(
+                        resourceKey, normalizeResourceId(resourceId), actionId, currentActorSubject(), idempotencyKey.trim());
         if (existing.isPresent()) {
             verifyCommandHash(existing.get(), hash);
             if ("COMPLETED".equals(existing.get().getExecutionStatus())) return existing;
@@ -44,16 +53,27 @@ public class ResourceActionExecutionService {
             String resourceKey, String actionId, ActionScope actionScope, String idempotencyKey,
             Object command, String correlationId, String actorSubject
     ) {
+        return reserve(resourceKey, null, actionId, actionScope, idempotencyKey, command, correlationId, actorSubject);
+    }
+
+    public Optional<ResourceActionExecution> reserve(
+            String resourceKey, Object resourceId, String actionId, ActionScope actionScope, String idempotencyKey,
+            Object command, String correlationId, String actorSubject
+    ) {
         if (idempotencyKey == null || idempotencyKey.isBlank()) return Optional.empty();
         String normalizedKey = idempotencyKey.trim();
+        String normalizedActor = normalizeActor(actorSubject);
+        String normalizedResourceId = normalizeResourceId(resourceId);
         String hash = hash(command);
         try {
             return Optional.of(repository.saveAndFlush(new ResourceActionExecution(
-                    UUID.randomUUID(), resourceKey, actionId, actionScope.name(), normalizedKey, hash,
-                    correlationId, currentHeader("X-Request-ID"), actorSubject, currentAuthorities()
+                    UUID.randomUUID(), resourceKey, normalizedResourceId, actionId, actionScope.name(), normalizedKey, hash,
+                    correlationId, currentHeader("X-Request-ID"), normalizedActor, currentAuthorities()
             )));
         } catch (DataIntegrityViolationException race) {
-            ResourceActionExecution winner = repository.findByResourceKeyAndActionIdAndIdempotencyKey(resourceKey, actionId, normalizedKey)
+            ResourceActionExecution winner = repository
+                    .findByResourceKeyAndResourceIdAndActionIdAndActorSubjectAndIdempotencyKey(
+                            resourceKey, normalizedResourceId, actionId, normalizedActor, normalizedKey)
                     .orElseThrow(() -> race);
             verifyCommandHash(winner, hash);
             if ("COMPLETED".equals(winner.getExecutionStatus())) return Optional.of(winner);
@@ -87,6 +107,16 @@ public class ResourceActionExecutionService {
         if (authentication == null || authentication.getAuthorities() == null) return null;
         return authentication.getAuthorities().stream().map(authority -> authority.getAuthority()).sorted()
                 .collect(java.util.stream.Collectors.joining(","));
+    }
+    private String currentActorSubject() {
+        var authentication = SecurityContextHolder.getContext().getAuthentication();
+        return normalizeActor(authentication == null ? null : authentication.getName());
+    }
+    private String normalizeActor(String actorSubject) {
+        return actorSubject == null || actorSubject.isBlank() ? "anonymous" : actorSubject.trim();
+    }
+    private String normalizeResourceId(Object resourceId) {
+        return resourceId == null ? COLLECTION_RESOURCE_ID : String.valueOf(resourceId);
     }
     private String currentHeader(String name) {
         if (RequestContextHolder.getRequestAttributes() instanceof ServletRequestAttributes attributes) {

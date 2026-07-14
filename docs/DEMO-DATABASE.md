@@ -15,6 +15,7 @@ O dominio modela uma organizacao global de herois, contendo cadastros, missoes, 
 | Modulo | Finalidade | Principais tabelas |
 | --- | --- | --- |
 | Recursos Humanos | Cadastro e gestao de herois, funcionarios, cargos, departamentos e historico | `funcionarios`, `cargos`, `departamentos`, `historicos_salariais`, `enderecos`, `dependentes` |
+| Beneficios governados | Fila de solicitacoes elegiveis, lifecycle aprovativo e ledger de execucao | `extraordinary_benefit_request`, `extraordinary_benefit_grant_effect` |
 | Habilidades & Identidades | Define habilidades, origens e codinomes | `habilidades`, `funcionario_habilidades`, `identidades_secretas` |
 | Bases & Equipes | Bases de operacao, equipes e niveis de acesso | `bases`, `equipes`, `equipe_membros`, `base_acessos` |
 | Missoes & Ameacas | Ameacas globais, missoes, participantes e eventos | `ameacas`, `missoes`, `missao_participantes`, `missao_eventos` |
