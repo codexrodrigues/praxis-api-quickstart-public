@@ -1,0 +1,77 @@
+{
+  "schemaVersion": "1.0",
+  "timezone": "America/Sao_Paulo",
+  "policy": {
+    "id": "hr-absence-criticality-v1",
+    "version": "2026-07-15",
+    "attentionMinDays": 7,
+    "criticalMinDays": 15
+  },
+  "cases": [
+    {
+      "id": "G2A-01",
+      "currentCompetencia": "2026-07-01",
+      "previousCompetencia": "2026-06-01",
+      "assignments": [{ "employeeId": 101, "departmentId": 1, "effectiveFrom": "2026-01-01", "effectiveTo": null }],
+      "absences": [
+        { "employeeId": 101, "from": "2026-07-01", "to": "2026-07-10" },
+        { "employeeId": 101, "from": "2026-07-05", "to": "2026-07-20" }
+      ],
+      "expectedRows": [{ "employeeId": 101, "departmentId": 1, "competencia": "2026-07-01", "periodoInicio": "2026-07-01", "periodoFim": "2026-07-20", "diasAfastado": 20, "criticalityLevel": "CRITICAL" }],
+      "expectedComparison": [{ "departmentId": 1, "currentEmployees": 1, "currentDays": 20, "previousEmployees": 0, "previousDays": 0 }],
+      "expectedDiagnostics": []
+    },
+    {
+      "id": "G2A-02",
+      "currentCompetencia": "2026-07-01",
+      "previousCompetencia": "2026-06-01",
+      "assignments": [
+        { "employeeId": 102, "departmentId": 1, "effectiveFrom": "2026-01-01", "effectiveTo": "2026-07-10" },
+        { "employeeId": 102, "departmentId": 2, "effectiveFrom": "2026-07-10", "effectiveTo": null }
+      ],
+      "absences": [{ "employeeId": 102, "from": "2026-07-08", "to": "2026-07-12" }],
+      "expectedRows": [
+        { "employeeId": 102, "departmentId": 1, "competencia": "2026-07-01", "periodoInicio": "2026-07-08", "periodoFim": "2026-07-09", "diasAfastado": 2, "criticalityLevel": "STANDARD" },
+        { "employeeId": 102, "departmentId": 2, "competencia": "2026-07-01", "periodoInicio": "2026-07-10", "periodoFim": "2026-07-12", "diasAfastado": 3, "criticalityLevel": "STANDARD" }
+      ],
+      "expectedComparison": [
+        { "departmentId": 1, "currentEmployees": 1, "currentDays": 2, "previousEmployees": 0, "previousDays": 0 },
+        { "departmentId": 2, "currentEmployees": 1, "currentDays": 3, "previousEmployees": 0, "previousDays": 0 }
+      ],
+      "expectedDiagnostics": []
+    },
+    {
+      "id": "G2A-03",
+      "currentCompetencia": "2026-07-01",
+      "previousCompetencia": "2026-06-01",
+      "assignments": [],
+      "absences": [{ "employeeId": 103, "from": "2026-07-03", "to": "2026-07-05" }],
+      "expectedRows": [],
+      "expectedComparison": [],
+      "expectedDiagnostics": ["DEPARTMENT_ASSIGNMENT_MISSING"]
+    },
+    {
+      "id": "G2A-04",
+      "currentCompetencia": "2026-07-01",
+      "previousCompetencia": "2026-06-01",
+      "assignments": [{ "employeeId": 104, "departmentId": 1, "effectiveFrom": "2026-01-01", "effectiveTo": null }],
+      "absences": [{ "employeeId": 104, "from": "2026-06-10", "to": "2026-06-16" }],
+      "expectedRows": [{ "employeeId": 104, "departmentId": 1, "competencia": "2026-06-01", "periodoInicio": "2026-06-10", "periodoFim": "2026-06-16", "diasAfastado": 7, "criticalityLevel": "ATTENTION" }],
+      "expectedComparison": [{ "departmentId": 1, "currentEmployees": 0, "currentDays": 0, "previousEmployees": 1, "previousDays": 7 }],
+      "expectedDiagnostics": []
+    },
+    {
+      "id": "G2A-05",
+      "currentCompetencia": "2026-07-01",
+      "previousCompetencia": "2026-06-01",
+      "assignments": [{ "employeeId": 105, "departmentId": 3, "effectiveFrom": "2026-01-01", "effectiveTo": null }],
+      "absences": [
+        { "employeeId": 105, "from": "2026-07-01", "to": "2026-07-01" },
+        { "employeeId": 105, "from": "2026-07-15", "to": "2026-07-15" }
+      ],
+      "expectedRows": [{ "employeeId": 105, "departmentId": 3, "competencia": "2026-07-01", "periodoInicio": "2026-07-01", "periodoFim": "2026-07-15", "diasAfastado": 2, "criticalityLevel": "STANDARD" }],
+      "expectedComparison": [{ "departmentId": 3, "currentEmployees": 1, "currentDays": 2, "previousEmployees": 0, "previousDays": 0 }],
+      "expectedDiagnostics": []
+    }
+  ]
+}

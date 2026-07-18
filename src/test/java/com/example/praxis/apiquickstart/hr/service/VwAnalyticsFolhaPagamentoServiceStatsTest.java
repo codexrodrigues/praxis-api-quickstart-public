@@ -2,6 +2,7 @@ package com.example.praxis.apiquickstart.hr.service;
 
 import com.example.praxis.apiquickstart.hr.mapper.VwAnalyticsFolhaPagamentoMapper;
 import com.example.praxis.apiquickstart.hr.repository.VwAnalyticsFolhaPagamentoRepository;
+import com.example.praxis.apiquickstart.hr.security.HrDepartmentScopeAccess;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -24,15 +25,23 @@ class VwAnalyticsFolhaPagamentoServiceStatsTest {
     @Mock
     private VwAnalyticsFolhaPagamentoMapper mapper;
 
+    @Mock
+    private HrDepartmentScopeAccess departmentScopeAccess;
+
     @Test
     void shouldExposeGovernedStatsCapabilitiesForVwAnalyticsFolhaPagamento() {
-        VwAnalyticsFolhaPagamentoService service = new VwAnalyticsFolhaPagamentoService(repository, mapper);
+        VwAnalyticsFolhaPagamentoService service = new VwAnalyticsFolhaPagamentoService(
+                repository, mapper, departmentScopeAccess);
 
         assertEquals(StatsSupportMode.AUTO, service.getGroupByStatsSupportMode());
         assertEquals(StatsSupportMode.AUTO, service.getTimeSeriesStatsSupportMode());
         assertEquals(StatsSupportMode.AUTO, service.getDistributionStatsSupportMode());
+        assertEquals(StatsSupportMode.AUTO, service.getComparisonStatsSupportMode());
 
-        assertTrue(service.getStatsFieldRegistry().resolve("departamento").orElseThrow().groupByEligible());
+        var departmentField = service.getStatsFieldRegistry().resolve("departamento").orElseThrow();
+        assertTrue(departmentField.groupByEligible());
+        assertEquals("departamentoId", departmentField.keyPropertyPath());
+        assertEquals("departamento", departmentField.labelPropertyPath());
         assertTrue(service.getStatsFieldRegistry().resolve("payrollProfile").orElseThrow().distributionTermsEligible());
         assertTrue(service.getStatsFieldRegistry().resolve("competencia").orElseThrow().timeSeriesEligible());
 

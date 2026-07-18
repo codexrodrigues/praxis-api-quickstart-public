@@ -49,7 +49,9 @@ function Import-DotEnvFile {
             $val = $val.Substring(1, $val.Length - 2)
         }
         if ($name -match '^[A-Za-z_][A-Za-z0-9_]*$') {
-            Set-Item -Path "Env:$name" -Value $val
+            if ([string]::IsNullOrWhiteSpace([Environment]::GetEnvironmentVariable($name, "Process"))) {
+                Set-Item -Path "Env:$name" -Value $val
+            }
         }
     }
     Write-Host "Carregado: $Path" -ForegroundColor DarkGreen

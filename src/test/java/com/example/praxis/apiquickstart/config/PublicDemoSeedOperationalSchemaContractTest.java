@@ -18,13 +18,14 @@ class PublicDemoSeedOperationalSchemaContractTest {
     private static final Path PROJECT_ROOT = Path.of("").toAbsolutePath();
     private static final Path MAIN_SOURCES = PROJECT_ROOT.resolve("src/main/java/com/example/praxis/apiquickstart");
     private static final Path PUBLIC_DEMO_SEED = PROJECT_ROOT.resolve("db/dump/public-demo-seed.sql");
+    private static final Path OPERATIONAL_MIGRATIONS = PROJECT_ROOT.resolve("db/operational-migrations");
     private static final Pattern ENTITY_ANNOTATION = Pattern.compile("^\\s*@Entity\\b", Pattern.MULTILINE);
     private static final Pattern TABLE_ANNOTATION = Pattern.compile("@Table\\s*\\((.*?)\\)", Pattern.DOTALL);
     private static final Pattern TABLE_NAME = Pattern.compile("name\\s*=\\s*\"([^\"]+)\"");
 
     @Test
     void publicDemoSeedMaterializesAllQuickstartEntities() throws IOException {
-        String dump = Files.readString(PUBLIC_DEMO_SEED, StandardCharsets.UTF_8).toLowerCase(Locale.ROOT);
+        String operationalSchema = operationalSchemaSources();
         List<String> missingObjects = new ArrayList<>();
 
         for (Path source : quickstartJavaSources()) {
@@ -34,14 +35,15 @@ class PublicDemoSeedOperationalSchemaContractTest {
             }
 
             String tableName = tableName(code);
-            if (tableName == null || !dumpMaterializes(dump, tableName)) {
+            if (tableName == null || !operationalSchemaMaterializes(operationalSchema, tableName)) {
                 missingObjects.add(MAIN_SOURCES.relativize(source) + " -> " + tableName);
             }
         }
 
         assertTrue(
                 missingObjects.isEmpty(),
-                "Every Quickstart @Entity must be materialized by db/dump/public-demo-seed.sql. Missing: "
+                "Every Quickstart @Entity must be materialized by db/dump/public-demo-seed.sql "
+                        + "or db/operational-migrations. Missing: "
                         + missingObjects);
     }
 
@@ -67,9 +69,26 @@ class PublicDemoSeedOperationalSchemaContractTest {
         return nameMatcher.group(1);
     }
 
-    private static boolean dumpMaterializes(String dump, String tableName) {
+    private static String operationalSchemaSources() throws IOException {
+        StringBuilder schema = new StringBuilder();
+        schema.append(Files.readString(PUBLIC_DEMO_SEED, StandardCharsets.UTF_8));
+        try (var stream = Files.list(OPERATIONAL_MIGRATIONS)) {
+            for (Path migration : stream
+                    .filter(path -> path.toString().endsWith(".sql"))
+                    .sorted()
+                    .toList()) {
+                schema.append('\n')
+                        .append(Files.readString(migration, StandardCharsets.UTF_8));
+            }
+        }
+        return schema.toString().toLowerCase(Locale.ROOT);
+    }
+
+    private static boolean operationalSchemaMaterializes(String schema, String tableName) {
         String normalized = tableName.toLowerCase(Locale.ROOT);
-        return dump.contains("create table public." + normalized)
-                || dump.contains("create view public." + normalized);
+        return schema.contains("create table public." + normalized)
+                || schema.contains("create table if not exists public." + normalized)
+                || schema.contains("create or replace view public." + normalized)
+                || schema.contains("create view public." + normalized);
     }
 }

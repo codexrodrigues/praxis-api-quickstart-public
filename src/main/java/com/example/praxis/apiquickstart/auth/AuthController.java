@@ -2,6 +2,7 @@ package com.example.praxis.apiquickstart.auth;
 
 import com.example.praxis.apiquickstart.auth.dto.LoginRequest;
 import com.example.praxis.apiquickstart.security.JwtTokenService;
+import com.example.praxis.apiquickstart.security.QuickstartPrincipalAuthorityCatalog;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
@@ -34,13 +35,17 @@ public class AuthController {
     private final boolean sessionSecure;
     private final String sameSite;
     private final JwtTokenService tokenService;
+    private final QuickstartPrincipalAuthorityCatalog principalAuthorityCatalog;
+    private final GovernanceLabIdentityService governanceLabIdentityService;
 
     public AuthController(JwtTokenService jwtTokenService,
                           @Value("${spring.security.user.name:admin}") String adminUser,
                           @Value("${spring.security.user.password:changeMe!}") String adminPass,
                           @Value("${app.session.cookie-name}") String sessionCookieName,
                           @Value("${app.session.secure}") boolean sessionSecure,
-                          @Value("${app.session.samesite}") String sameSite) {
+                          @Value("${app.session.samesite}") String sameSite,
+                          QuickstartPrincipalAuthorityCatalog principalAuthorityCatalog,
+                          GovernanceLabIdentityService governanceLabIdentityService) {
         this.jwtTokenService = jwtTokenService;
         this.adminUser = adminUser;
         this.adminPass = adminPass;
@@ -48,6 +53,8 @@ public class AuthController {
         this.sessionSecure = sessionSecure;
         this.sameSite = sameSite;
         this.tokenService = jwtTokenService;
+        this.principalAuthorityCatalog = principalAuthorityCatalog;
+        this.governanceLabIdentityService = governanceLabIdentityService;
     }
 
     /** Emite a sessao JWT em cookie HttpOnly para o host de exemplo. */
@@ -56,10 +63,20 @@ public class AuthController {
         if (!StringUtils.hasText(body.username()) || !StringUtils.hasText(body.password())) {
             return ResponseEntity.status(401).build();
         }
-        if (!Objects.equals(adminUser, body.username()) || !Objects.equals(adminPass, body.password())) {
-            return ResponseEntity.status(401).build();
+        String token;
+        if (Objects.equals(adminUser, body.username()) && Objects.equals(adminPass, body.password())) {
+            QuickstartPrincipalAuthorityCatalog.PrincipalGrant grant = principalAuthorityCatalog
+                    .resolve(body.username())
+                    .orElseThrow(() -> new IllegalStateException("Configured admin principal is not cataloged."));
+            token = jwtTokenService.generate(grant.subject(), grant.role(), grant.authorities());
+        } else {
+            var identity = governanceLabIdentityService.authenticate(body.username(), body.password());
+            if (identity.isEmpty()) {
+                return ResponseEntity.status(401).build();
+            }
+            token = jwtTokenService.generate(
+                    identity.get().subject(), identity.get().role(), identity.get().authorities());
         }
-        String token = jwtTokenService.generate(body.username(), "ADMIN");
         ResponseCookie cookie = ResponseCookie.from(sessionCookieName, token)
                 .httpOnly(true)
                 .secure(sessionSecure)

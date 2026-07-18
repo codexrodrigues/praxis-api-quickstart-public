@@ -44,6 +44,33 @@ public class ExtraordinaryBenefitGrantEffect {
     @Column(name = "executed_by", nullable = false, length = 255)
     private String executedBy;
 
+    @Column(name = "revalidation_snapshot_key", nullable = false, length = 200)
+    private String revalidationSnapshotKey;
+
+    @Column(name = "revalidation_snapshot_content_hash", nullable = false, length = 64)
+    private String revalidationSnapshotContentHash;
+
+    @Column(name = "revalidation_facts_digest", nullable = false, length = 64)
+    private String revalidationFactsDigest;
+
+    @Column(name = "revalidation_provider_key", nullable = false, length = 160)
+    private String revalidationProviderKey;
+
+    @Column(name = "revalidation_source_record_digest", nullable = false, length = 64)
+    private String revalidationSourceRecordDigest;
+
+    @Column(name = "revalidation_source_version", nullable = false)
+    private long revalidationSourceVersion;
+
+    @Column(name = "revalidation_source_recorded_at", nullable = false)
+    private Instant revalidationSourceRecordedAt;
+
+    @Column(name = "revalidated_at", nullable = false)
+    private Instant revalidatedAt;
+
+    @Column(name = "revalidation_scope_digest", nullable = false, length = 64)
+    private String revalidationScopeDigest;
+
     protected ExtraordinaryBenefitGrantEffect() {
     }
 
@@ -55,7 +82,16 @@ public class ExtraordinaryBenefitGrantEffect {
             BigDecimal amount,
             String currency,
             Instant executedAt,
-            String executedBy) {
+            String executedBy,
+            String revalidationSnapshotKey,
+            String revalidationSnapshotContentHash,
+            String revalidationFactsDigest,
+            String revalidationProviderKey,
+            String revalidationSourceRecordDigest,
+            long revalidationSourceVersion,
+            Instant revalidationSourceRecordedAt,
+            Instant revalidatedAt,
+            String revalidationScopeDigest) {
         this.effectExecutionId = effectExecutionId;
         this.benefitRequestId = benefitRequestId;
         this.requestReference = requestReference;
@@ -64,5 +100,14 @@ public class ExtraordinaryBenefitGrantEffect {
         this.currency = currency;
         this.executedAt = executedAt;
         this.executedBy = executedBy;
+        this.revalidationSnapshotKey = revalidationSnapshotKey;
+        this.revalidationSnapshotContentHash = revalidationSnapshotContentHash;
+        this.revalidationFactsDigest = revalidationFactsDigest;
+        this.revalidationProviderKey = revalidationProviderKey;
+        this.revalidationSourceRecordDigest = revalidationSourceRecordDigest;
+        this.revalidationSourceVersion = revalidationSourceVersion;
+        this.revalidationSourceRecordedAt = revalidationSourceRecordedAt;
+        this.revalidatedAt = revalidatedAt;
+        this.revalidationScopeDigest = revalidationScopeDigest;
     }
 }

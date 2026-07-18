@@ -9,7 +9,9 @@ import jakarta.validation.constraints.Size;
 import org.praxisplatform.uischema.extension.annotation.UISchema;
 import org.praxisplatform.uischema.FieldControlType;
 import org.praxisplatform.uischema.FieldDataType;
-import org.praxisplatform.uischema.annotation.AiUsageMode;
+import org.praxisplatform.uischema.annotation.AiControlledUseMode;
+import org.praxisplatform.uischema.annotation.AiTrainingUseMode;
+import org.praxisplatform.uischema.annotation.AiVisibilityMode;
 import org.praxisplatform.uischema.annotation.AiUsagePolicy;
 import org.praxisplatform.uischema.annotation.DomainClassification;
 import org.praxisplatform.uischema.annotation.DomainDataCategory;
@@ -43,10 +45,10 @@ public class DependenteDTO {
         complianceTags = {"LGPD", "GDPR"},
         reason = "Nome civil do dependente. Identificador Pessoal (PII) sujeito a proteção legal de menores ou cônjuges.",
         aiUsage = @AiUsagePolicy(
-            visibility = AiUsageMode.MASK,
-            trainingUse = AiUsageMode.DENY,
-            ruleAuthoring = AiUsageMode.REVIEW_REQUIRED,
-            reasoningUse = AiUsageMode.REVIEW_REQUIRED
+            visibility = AiVisibilityMode.MASK,
+            trainingUse = AiTrainingUseMode.DENY,
+            ruleAuthoring = AiControlledUseMode.REVIEW_REQUIRED,
+            reasoningUse = AiControlledUseMode.REVIEW_REQUIRED
         )
     )
     @UISchema(label = "Nome Completo", controlType = FieldControlType.INPUT, required = true, maxLength = 200, group = "Identificação", order = 10, helpText = "Nome civil completo do dependente.", icon = "person")
@@ -72,10 +74,10 @@ public class DependenteDTO {
         complianceTags = {"LGPD", "GDPR"},
         reason = "Data de nascimento do dependente. Dado usado para inferir idade e elegibilidade; requer mascaramento.",
         aiUsage = @AiUsagePolicy(
-            visibility = AiUsageMode.MASK,
-            trainingUse = AiUsageMode.DENY,
-            ruleAuthoring = AiUsageMode.REVIEW_REQUIRED,
-            reasoningUse = AiUsageMode.REVIEW_REQUIRED
+            visibility = AiVisibilityMode.MASK,
+            trainingUse = AiTrainingUseMode.DENY,
+            ruleAuthoring = AiControlledUseMode.REVIEW_REQUIRED,
+            reasoningUse = AiControlledUseMode.REVIEW_REQUIRED
         )
     )
     @UISchema(label = "Data de Nascimento", type = FieldDataType.DATE, controlType = FieldControlType.DATE_PICKER, group = "Identificação", order = 30, helpText = "Data de nascimento para cálculo de idade.", icon = "cake")

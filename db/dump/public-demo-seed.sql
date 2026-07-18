@@ -45,6 +45,18 @@ SET xmloption = content;
 SET client_min_messages = warning;
 SET row_security = off;
 
+-- Governed fingerprint required by opt-in demo seeds. It is intentionally absent from
+-- operational migrations and corporate databases.
+CREATE TABLE public.praxis_demo_dataset_guard (
+    dataset_key text PRIMARY KEY,
+    dataset_fingerprint text NOT NULL
+);
+
+ALTER TABLE public.praxis_demo_dataset_guard OWNER TO praxis_demo_owner;
+
+INSERT INTO public.praxis_demo_dataset_guard (dataset_key, dataset_fingerprint)
+VALUES ('praxis-public-demo', 'praxis-public-demo-2026-07-15');
+
 --
 -- Name: fn_recalc_folha_totais(integer); Type: FUNCTION; Schema: public; Owner: praxis_demo_owner
 --
@@ -633,6 +645,13 @@ CREATE TABLE public.extraordinary_benefit_request (
     rule_set_key character varying(200) NOT NULL,
     rule_set_version integer NOT NULL,
     facts_digest character varying(64) NOT NULL,
+    fact_reference character varying(120),
+    fact_provider_key character varying(160),
+    fact_source_record_digest character varying(64),
+    fact_source_version bigint,
+    fact_source_recorded_at timestamp with time zone,
+    fact_scope_digest character varying(64),
+    fact_as_of timestamp with time zone,
     plan_digest character varying(64) NOT NULL,
     planned_effect_intent character varying(120) NOT NULL,
     evaluation_business_message character varying(1000) NOT NULL,
@@ -668,6 +687,15 @@ CREATE TABLE public.extraordinary_benefit_grant_effect (
     currency character varying(3) NOT NULL,
     executed_at timestamp with time zone NOT NULL,
     executed_by character varying(255) NOT NULL,
+    revalidation_snapshot_key character varying(200),
+    revalidation_snapshot_content_hash character varying(64),
+    revalidation_facts_digest character varying(64),
+    revalidation_provider_key character varying(160),
+    revalidation_source_record_digest character varying(64),
+    revalidation_source_version bigint,
+    revalidation_source_recorded_at timestamp with time zone,
+    revalidated_at timestamp with time zone,
+    revalidation_scope_digest character varying(64),
     CONSTRAINT fk_extraordinary_benefit_effect_request
         FOREIGN KEY (benefit_request_id)
         REFERENCES public.extraordinary_benefit_request(id)

@@ -28,6 +28,14 @@ final class ExtraordinaryGrantRuleSetFactory {
 
     /** Returns the reference definition used to publish fixtures and verify the pilot contract. */
     static RuleSetDefinition definition() {
+        return definition(1);
+    }
+
+    /** Returns the same governed graph under a new immutable publication version. */
+    static RuleSetDefinition definition(int version) {
+        if (version < 1) {
+            throw new IllegalArgumentException("RuleSet version must be positive");
+        }
         List<DecisionSlot> slots = List.of(
                 single("request.authorization-integrity", DecisionStage.PROTECTED_GUARD, OverridePolicy.FORBIDDEN),
                 single("worker.legal-eligibility", DecisionStage.PROTECTED_GUARD, OverridePolicy.FORBIDDEN),
@@ -41,7 +49,7 @@ final class ExtraordinaryGrantRuleSetFactory {
                         DecisionAggregationPolicy.DENY_OVERRIDES),
                 single("payment.calendar-policy", DecisionStage.DOMAIN_DECISION, OverridePolicy.REPLACEABLE),
                 single("grant.amount-parameters", DecisionStage.DOMAIN_DECISION, OverridePolicy.PARAMETERIZABLE),
-                single("grant.amount-calculation", DecisionStage.DOMAIN_DECISION, OverridePolicy.FORBIDDEN),
+                single("grant.amount-transformation", DecisionStage.TRANSFORMATION_INTENT, OverridePolicy.FORBIDDEN),
                 single("budget.availability", DecisionStage.POST_DECISION, OverridePolicy.RESTRICT_ONLY),
                 single("grant.effect-plan", DecisionStage.EFFECT_INTENT, OverridePolicy.FORBIDDEN));
 
@@ -106,16 +114,12 @@ final class ExtraordinaryGrantRuleSetFactory {
                         RuleDecision.DENY,
                         "PRODUCT_BASELINE_REJECTED",
                         List.of()),
-                jsonBinding(
+                customerJavaBinding(
                         "customer.additional-eligibility",
                         "customer.additional-eligibility",
-                        DecisionSource.CUSTOMER,
-                        CompositionPolicy.RESTRICT,
-                        "{\"===\":[{\"var\":\"customer.additionalEligible\"},true]}",
+                        "customer:extraordinary-grant-additional-eligibility",
                         List.of("program.applicability"),
                         60,
-                        RuleDecision.DENY,
-                        "CUSTOMER_POLICY_RESTRICTED",
                         List.of("customer.additionalEligible")),
                 jsonBinding(
                         "payment.calendar-policy",
@@ -140,11 +144,11 @@ final class ExtraordinaryGrantRuleSetFactory {
                         "REQUESTED_AMOUNT_EXCEEDS_PROGRAM_LIMIT",
                         List.of("request.requestedAmount", "program.maxAmount")),
                 javaBinding(
-                        "grant.amount-calculation",
-                        "grant.amount-calculation",
-                        "benefits:extraordinary-grant-amount",
-                        List.of("grant.amount-parameters"),
-                        90,
+                        "grant.amount-transformation",
+                        "grant.amount-transformation",
+                        "benefits:extraordinary-grant-amount-transformation",
+                        List.of("budget.availability"),
+                        110,
                         List.of("request.requestedAmount")),
                 jsonBinding(
                         "budget.availability",
@@ -152,7 +156,7 @@ final class ExtraordinaryGrantRuleSetFactory {
                         DecisionSource.PRODUCT,
                         null,
                         "{\">=\":[{\"var\":\"budget.availableAmount\"},{\"var\":\"request.requestedAmount\"}]}",
-                        List.of("grant.amount-calculation"),
+                        List.of("grant.amount-parameters"),
                         100,
                         RuleDecision.DENY,
                         "BUDGET_INSUFFICIENT",
@@ -161,8 +165,8 @@ final class ExtraordinaryGrantRuleSetFactory {
                         "grant.effect-plan",
                         "grant.effect-plan",
                         "benefits:extraordinary-grant-effect-plan",
-                        List.of("budget.availability"),
-                        110,
+                        List.of("budget.availability", "grant.amount-transformation"),
+                        120,
                         List.of()));
 
         return new RuleSetDefinition(
@@ -171,7 +175,7 @@ final class ExtraordinaryGrantRuleSetFactory {
                         "extraordinary-assistance",
                         "extraordinary-grant-eligibility",
                         "evaluate-extraordinary-grant",
-                        1),
+                        version),
                 List.of("actor", "budget", "customer", "grant", "payment", "program", "request", "worker"),
                 slots,
                 bindings,
@@ -225,6 +229,27 @@ final class ExtraordinaryGrantRuleSetFactory {
                 slotKey,
                 DecisionSource.PRODUCT,
                 null,
+                RuleExecutorRef.java(implementationKey, "1.0.0"),
+                dependencies,
+                order,
+                true,
+                null,
+                null,
+                requiredFacts);
+    }
+
+    private static DecisionBinding customerJavaBinding(
+            String bindingKey,
+            String slotKey,
+            String implementationKey,
+            List<String> dependencies,
+            int order,
+            List<String> requiredFacts) {
+        return new DecisionBinding(
+                bindingKey,
+                slotKey,
+                DecisionSource.CUSTOMER,
+                CompositionPolicy.RESTRICT,
                 RuleExecutorRef.java(implementationKey, "1.0.0"),
                 dependencies,
                 order,

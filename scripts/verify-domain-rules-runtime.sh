@@ -52,6 +52,13 @@ APPROVAL_POLICY_ACTION_ID="${APPROVAL_POLICY_ACTION_ID:-bulk-approve}"
 APPROVAL_POLICY_TARGET_KEY="${APPROVAL_POLICY_TARGET_KEY:-${APPROVAL_POLICY_RESOURCE_KEY}:${APPROVAL_POLICY_ACTION_ID}}"
 APPROVAL_POLICY_RULE_KEY="${APPROVAL_POLICY_RULE_KEY:-human-resources.eventos-folha.rule.bulk-approve-approval.${SMOKE_RUN_ID}}"
 APPROVAL_POLICY_EVENT_ID="${APPROVAL_POLICY_EVENT_ID:-1}"
+AUTHOR_USER_ID="${AUTHOR_USER_ID:-domain-rule-smoke-author}"
+REVIEWER_USER_ID="${REVIEWER_USER_ID:-domain-rule-smoke-reviewer}"
+
+if [[ "$AUTHOR_USER_ID" == "$REVIEWER_USER_ID" ]]; then
+  echo "AUTHOR_USER_ID and REVIEWER_USER_ID must be distinct for maker-checker validation." >&2
+  exit 2
+fi
 
 usage() {
   cat >&2 <<'USAGE'
@@ -153,6 +160,7 @@ post_json() {
     -H "Origin: ${ORIGIN}" \
     -H "X-Tenant-ID: ${TENANT_ID}" \
     -H "X-Env: ${ENVIRONMENT}" \
+    -H "X-User-ID: ${AUTHOR_USER_ID}" \
     -H "Content-Type: application/json" \
     --data-binary "@${input_file}" \
     -o "$output_file"
@@ -169,6 +177,7 @@ post_json_scoped() {
     -H "Origin: ${ORIGIN}" \
     -H "X-Tenant-ID: ${tenant_id}" \
     -H "X-Env: ${environment}" \
+    -H "X-User-ID: ${AUTHOR_USER_ID}" \
     -H "Content-Type: application/json" \
     --data-binary "@${input_file}" \
     -o "$output_file"
@@ -183,6 +192,22 @@ patch_json() {
     -H "Origin: ${ORIGIN}" \
     -H "X-Tenant-ID: ${TENANT_ID}" \
     -H "X-Env: ${ENVIRONMENT}" \
+    -H "X-User-ID: ${AUTHOR_USER_ID}" \
+    -H "Content-Type: application/json" \
+    --data-binary "@${input_file}" \
+    -o "$output_file"
+}
+
+patch_json_as_reviewer() {
+  local path="$1"
+  local input_file="$2"
+  local output_file="$3"
+
+  curl -fsS -X PATCH "${BACKEND_URL%/}${path}" \
+    -H "Origin: ${ORIGIN}" \
+    -H "X-Tenant-ID: ${TENANT_ID}" \
+    -H "X-Env: ${ENVIRONMENT}" \
+    -H "X-User-ID: ${REVIEWER_USER_ID}" \
     -H "Content-Type: application/json" \
     --data-binary "@${input_file}" \
     -o "$output_file"
@@ -553,12 +578,15 @@ echo "REQUIRE_BACKEND_VALIDATION=${REQUIRE_BACKEND_VALIDATION}"
 echo "REQUIRE_WORKFLOW_ACTION=${REQUIRE_WORKFLOW_ACTION}"
 echo "REQUIRE_APPROVAL_POLICY=${REQUIRE_APPROVAL_POLICY}"
 echo "REQUIRE_TIMELINE=${REQUIRE_TIMELINE}"
+echo "AUTHOR_USER_ID=${AUTHOR_USER_ID}"
+echo "REVIEWER_USER_ID=${REVIEWER_USER_ID}"
 
 jq -n \
   --arg ruleKey "$RULE_KEY" \
   --arg contextKey "$CONTEXT_KEY" \
   --arg resourceKey "$RESOURCE_KEY" \
   --arg serviceKey "$SERVICE_KEY" \
+  --arg reviewerUserId "$REVIEWER_USER_ID" \
   '{
     prompt: "Avisar o analista quando CPF estiver presente no formulario de funcionarios.",
     assistantMessage: "Abrirei uma decisao semantica governada para que a plataforma materialize apenas projecoes derivadas.",
@@ -588,13 +616,13 @@ jq -n \
       complianceTags: ["LGPD", "GDPR"],
       classification: "confidential",
       ruleAuthoring: "review_required",
+      requiredApprovals: [$reviewerUserId],
+      authorizedApprovers: [$reviewerUserId],
       aiUsage: {
         visibility: "mask",
         trainingUse: "deny"
       }
-    },
-    createdByType: "llm",
-    createdBy: "runtime-smoke"
+    }
   }' > "$intake_request"
 
 jq -n \
@@ -629,9 +657,7 @@ jq -n \
     },
     governance: {
       requiredApprovals: []
-    },
-    createdByType: "llm",
-    createdBy: "runtime-smoke"
+    }
   }' > "$publication_definition_request"
 
 jq -n \
@@ -668,9 +694,7 @@ jq -n \
     },
     governance: {
       requiredApprovals: []
-    },
-    createdByType: "llm",
-    createdBy: "runtime-smoke"
+    }
   }' > "$backend_validation_definition_request"
 
 jq -n \
@@ -713,9 +737,7 @@ jq -n \
     },
     governance: {
       requiredApprovals: []
-    },
-    createdByType: "llm",
-    createdBy: "runtime-smoke"
+    }
   }' > "$workflow_action_definition_request"
 
 jq -n \
@@ -755,9 +777,7 @@ jq -n \
     },
     governance: {
       requiredApprovals: []
-    },
-    createdByType: "llm",
-    createdBy: "runtime-smoke"
+    }
   }' > "$approval_policy_definition_request"
 
 echo
@@ -770,11 +790,13 @@ fi
 definition_id="$(jq -r '.definition.id // empty' "$intake_response")"
 definition_version="$(jq -r '.definition.version // empty' "$intake_response")"
 definition_status="$(jq -r '.definition.status // empty' "$intake_response")"
+definition_created_by_type="$(jq -r '.definition.createdByType // empty' "$intake_response")"
+definition_created_by="$(jq -r '.definition.createdBy // empty' "$intake_response")"
 intake_grounding_definition_id="$(jq -r '.grounding.ruleDefinitionId // empty' "$intake_response")"
 intake_decision_stage="$(jq -r '.grounding.decisionDiagnostics.decisionStage // empty' "$intake_response")"
 intake_decision_source="$(jq -r '.grounding.decisionDiagnostics.decisionSource // empty' "$intake_response")"
 
-if [[ -z "$definition_id" || -z "$definition_version" || "$definition_status" != "draft" || "$intake_grounding_definition_id" != "$definition_id" || "$intake_decision_stage" != "intake" || "$intake_decision_source" != "persisted_definition" ]]; then
+if [[ -z "$definition_id" || -z "$definition_version" || "$definition_status" != "draft" || "$definition_created_by_type" != "authenticated" || "$definition_created_by" != "$AUTHOR_USER_ID" || "$intake_grounding_definition_id" != "$definition_id" || "$intake_decision_stage" != "intake" || "$intake_decision_source" != "persisted_definition" ]]; then
   echo "Invalid governed intake response." >&2
   jq '{intakeId, ruleKey, status, grounding, definition: {id: .definition.id, version: .definition.version, status: .definition.status}}' "$intake_response" >&2
   exit 1
@@ -862,8 +884,6 @@ echo
 jq -n \
   '{
     status: "approved",
-    decidedByType: "human",
-    decidedBy: "privacy-office",
     validationResult: {
       review: "approved",
       checks: ["definition-governance-reviewed"]
@@ -872,14 +892,15 @@ jq -n \
 
 echo
 echo "Approving shared rule definition ${definition_id}."
-if ! patch_json "/api/praxis/config/domain-rules/definitions/${definition_id}/status" "$definition_transition_request" "$definition_transition_response"; then
+if ! patch_json_as_reviewer "/api/praxis/config/domain-rules/definitions/${definition_id}/status" "$definition_transition_request" "$definition_transition_response"; then
   echo "Could not approve shared rule definition. Verify that the runtime includes rule status transition APIs." >&2
   exit 1
 fi
 
 definition_approved_status="$(jq -r '.status // empty' "$definition_transition_response")"
 definition_approved_at="$(jq -r '.approvedAt // empty' "$definition_transition_response")"
-if [[ "$definition_approved_status" != "approved" || -z "$definition_approved_at" ]]; then
+definition_approved_by="$(jq -r '.approvedBy // empty' "$definition_transition_response")"
+if [[ "$definition_approved_status" != "approved" || -z "$definition_approved_at" || "$definition_approved_by" != "$REVIEWER_USER_ID" ]]; then
   echo "Invalid approved definition response." >&2
   jq '{id, ruleKey, status, approvedAt, activatedAt, validationResult}' "$definition_transition_response" >&2
   exit 1
@@ -890,8 +911,6 @@ jq '{status: "definition-approved", id, ruleKey, approvedBy, approvedAt, activat
 jq -n \
   '{
     status: "active",
-    decidedByType: "human",
-    decidedBy: "privacy-office",
     validationResult: {
       review: "approved",
       checks: ["definition-governance-reviewed", "definition-activation-reviewed"]
@@ -900,7 +919,7 @@ jq -n \
 
 echo
 echo "Activating shared rule definition ${definition_id}."
-if ! patch_json "/api/praxis/config/domain-rules/definitions/${definition_id}/status" "$definition_transition_request" "$definition_transition_response"; then
+if ! patch_json_as_reviewer "/api/praxis/config/domain-rules/definitions/${definition_id}/status" "$definition_transition_request" "$definition_transition_response"; then
   echo "Could not activate shared rule definition. Verify that the runtime includes rule status transition APIs." >&2
   exit 1
 fi

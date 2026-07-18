@@ -16,7 +16,7 @@ evaluate(DENY | INCONCLUSIVE | NOT_APPLICABLE | ERROR) -> nenhum recurso, nenhum
 
 - A referência externa é única e preserva vínculo com o atendimento de origem.
 - A evidência persistida inclui snapshot, revisão de ativação, hashes de conteúdo/fatos/plano,
-  regra e versão usadas na decisão.
+  regra, versão e provenance redigida dos facts autoritativos usados na decisão.
 - Consultas e filtros não reavaliam regras; reconstroem a decisão registrada.
 - Não há `create`, `update` ou `delete` público que permita saltar estados.
 
@@ -44,9 +44,12 @@ efeitos.
 
 ## Efeito e fronteira corporativa
 
-`apply` grava uma única linha em `extraordinary_benefit_grant_effect` e avança o agregado para
-`APPLIED` na mesma transação. Restrições únicas por solicitação e por `effect_execution_id` impedem
-duplicação. Uma falha no ledger reverte status, versão e transição.
+`apply` recaptura facts autoritativos e reexecuta o snapshot imediatamente antes do efeito. Somente
+uma autorização equivalente em snapshot, plano, intenção e valor grava uma linha em
+`extraordinary_benefit_grant_effect` e avança o agregado para `APPLIED` na mesma transação. O ledger
+preserva a provenance redigida dessa revalidação. Restrições únicas por solicitação e por
+`effect_execution_id` impedem duplicação. Divergência retorna 412 e uma falha no ledger reverte
+status, versão e transição.
 
 Este ledger demonstra atomicidade apenas porque agregado e efeito estão no mesmo datasource. Uma
 integração real com folha, ERP ou banco externo não deve ocorrer dentro da transação HTTP. A evolução
@@ -74,6 +77,7 @@ idempotente, retries, dead-letter e reconciliação operacional.
 - discovery/schema e ausência de CRUD mutável;
 - `428` sem ETag e `412` com ETag obsoleto;
 - lifecycle completo e efeito exatamente uma vez;
+- revalidação imediatamente antes de `apply`, incluindo bloqueio sem efeito quando a fonte muda;
 - rollback de `apply` quando o ledger conflita;
 - lote misto com ordem, falha parcial e uma transação por item;
 - negação sem persistência e rejeição de ator não autenticado.

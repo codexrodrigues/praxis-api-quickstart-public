@@ -46,6 +46,11 @@ class IntegrationTestIsolationPolicyTest {
             return;
         }
 
+        // Testcontainers uses an ephemeral local database and is not a remote integration smoke.
+        if (source.contains("@Testcontainers")) {
+            return;
+        }
+
         boolean usesH2ApiDatasource = source.contains("spring.datasource.url=jdbc:h2:mem:");
         boolean usesH2ConfigDatasource = source.contains("config.datasource.url=jdbc:h2:mem:");
         boolean disablesFlyway = source.contains("spring.flyway.enabled=false");

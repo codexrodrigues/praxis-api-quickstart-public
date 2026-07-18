@@ -5,11 +5,14 @@ import com.example.praxis.apiquickstart.hr.dto.filter.VwAnalyticsFolhaPagamentoF
 import com.example.praxis.apiquickstart.hr.entity.VwAnalyticsFolhaPagamento;
 import com.example.praxis.apiquickstart.hr.mapper.VwAnalyticsFolhaPagamentoMapper;
 import com.example.praxis.apiquickstart.hr.repository.VwAnalyticsFolhaPagamentoRepository;
+import com.example.praxis.apiquickstart.hr.security.HrDepartmentScopeAccess;
 import org.praxisplatform.uischema.options.OptionSourceDescriptor;
 import org.praxisplatform.uischema.options.OptionSourcePolicy;
 import org.praxisplatform.uischema.options.OptionSourceRegistry;
 import org.praxisplatform.uischema.options.OptionSourceType;
+import org.praxisplatform.uischema.options.service.OptionSourceOperation;
 import com.example.praxis.apiquickstart.core.service.base.AbstractQuickstartReadOnlyService;
+import org.praxisplatform.uischema.service.base.ResourceFilterAccessScope;
 import org.praxisplatform.uischema.stats.StatsFieldRegistry;
 import org.praxisplatform.uischema.stats.StatsMetric;
 import org.praxisplatform.uischema.stats.StatsSupportMode;
@@ -27,7 +30,7 @@ public class VwAnalyticsFolhaPagamentoService extends AbstractQuickstartReadOnly
             .groupByBucket("mes", "mes", Set.of(StatsMetric.COUNT))
             .groupByBucket("universo", "universo", Set.of(StatsMetric.COUNT))
             .groupByBucket("cargo", "cargo", Set.of(StatsMetric.COUNT))
-            .groupByBucket("departamento", "departamento", Set.of(StatsMetric.COUNT))
+            .labeledGroupByBucket("departamento", "departamentoId", "departamento", Set.of(StatsMetric.COUNT))
             .groupByBucket("equipe", "equipe", Set.of(StatsMetric.COUNT))
             .groupByBucket("base", "base", Set.of(StatsMetric.COUNT))
             .groupByBucket("payrollProfile", "payrollProfile", Set.of(StatsMetric.COUNT))
@@ -126,11 +129,17 @@ public class VwAnalyticsFolhaPagamentoService extends AbstractQuickstartReadOnly
 
     private final VwAnalyticsFolhaPagamentoMapper mapper;
     private final VwAnalyticsFolhaPagamentoRepository repository;
+    private final HrDepartmentScopeAccess departmentScopeAccess;
 
-    public VwAnalyticsFolhaPagamentoService(VwAnalyticsFolhaPagamentoRepository repository, VwAnalyticsFolhaPagamentoMapper mapper) {
+    public VwAnalyticsFolhaPagamentoService(
+            VwAnalyticsFolhaPagamentoRepository repository,
+            VwAnalyticsFolhaPagamentoMapper mapper,
+            HrDepartmentScopeAccess departmentScopeAccess
+    ) {
         super(repository, VwAnalyticsFolhaPagamento.class, mapper::toDto, VwAnalyticsFolhaPagamento::getFolhaPagamentoId);
         this.repository = repository;
         this.mapper = mapper;
+        this.departmentScopeAccess = departmentScopeAccess;
     }
 
     @Override
@@ -149,6 +158,11 @@ public class VwAnalyticsFolhaPagamentoService extends AbstractQuickstartReadOnly
     }
 
     @Override
+    public StatsSupportMode getComparisonStatsSupportMode() {
+        return StatsSupportMode.AUTO;
+    }
+
+    @Override
     public StatsFieldRegistry getStatsFieldRegistry() {
         return STATS_FIELDS;
     }
@@ -162,6 +176,21 @@ public class VwAnalyticsFolhaPagamentoService extends AbstractQuickstartReadOnly
         return OPTION_SOURCES;
     }
 
+    @Override
+    protected ResourceFilterAccessScope<VwAnalyticsFolhaPagamento> resolveResourceFilterAccessScope() {
+        return departmentScopeAccess.resolveAnalyticsResourceFilterAccessScope();
+    }
+
+    @Override
+    protected VwAnalyticsFolhaPagamentoFilterDTO normalizeOptionSourceFilter(
+            OptionSourceDescriptor descriptor,
+            OptionSourceOperation operation,
+            VwAnalyticsFolhaPagamentoFilterDTO filter
+    ) {
+        departmentScopeAccess.requireNominalRead();
+        return departmentScopeAccess.applyAnalyticsScope(filter, VwAnalyticsFolhaPagamentoFilterDTO::new);
+    }
+
     public List<VwAnalyticsFolhaPagamentoDTO> findLatestPayrollByFuncionarioId(Integer funcionarioId) {
         return repository.findTop12ByFuncionarioIdOrderByCompetenciaDesc(funcionarioId)
                 .stream()
@@ -169,5 +198,3 @@ public class VwAnalyticsFolhaPagamentoService extends AbstractQuickstartReadOnly
                 .toList();
     }
 }
-
-

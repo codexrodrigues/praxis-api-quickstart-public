@@ -1,0 +1,161 @@
+{
+  "version": "ql08-v4",
+  "evidenceDate": "2026-07-15",
+  "classification": "P2F_13_REVIEW",
+  "phase9Status": "BLOCKED",
+  "authorityMode": "NONE",
+  "fixtures": "FICTIONAL_ONLY",
+  "scenarios": [
+    {
+      "id": "QL08-01",
+      "complexity": "layered_product_customer_security_composition",
+      "status": "VERIFIED_CURRENT_CONTRACT",
+      "canonicalOwner": "praxis-rules-engine",
+      "finding": "Protected security guards and product/customer bindings compose deterministically without permitting a host bypass.",
+      "evidence": [
+        "com.example.praxis.apiquickstart.rulelab.ExtraordinaryGrantRuleLabServiceTest#protectedAuthorizationDenyShortCircuitsBeforeBusinessCalculation",
+        "com.example.praxis.apiquickstart.rulelab.ExtraordinaryGrantRuleLabServiceTest#evaluatesTheComplexAllowPathWithoutMutatingFactsOrExecutingEffects"
+      ]
+    },
+    {
+      "id": "QL08-02",
+      "complexity": "deterministic_dependency_order",
+      "status": "PARTIAL_REQUIRES_EXTERNAL_EVIDENCE",
+      "canonicalOwner": "ergon-rule-migration-foundation",
+      "finding": "The bounded RuleSet DAG is deterministic, but no real legacy dispatcher chain has been replayed against it.",
+      "residualDecision": "P2F-01 legacy execution plan and dynamic dispatcher goldens",
+      "evidence": [
+        "com.example.praxis.apiquickstart.config.RuleLabGoldenContractTest#goldenSuitePreservesTheContractReadyGate"
+      ]
+    },
+    {
+      "id": "QL08-03",
+      "complexity": "regional_suppression_without_global_bypass",
+      "status": "VERIFIED_CURRENT_CONTRACT",
+      "canonicalOwner": "praxis-rules-engine",
+      "finding": "Closed slots and override policies distinguish a scoped restriction from a global bypass.",
+      "evidence": [
+        "com.example.praxis.apiquickstart.config.RuleLabGoldenContractTest#goldenSuitePreservesTheContractReadyGate"
+      ]
+    },
+    {
+      "id": "QL08-04",
+      "complexity": "structured_business_and_technical_outcomes",
+      "status": "VERIFIED_CURRENT_CONTRACT",
+      "canonicalOwner": "praxis-rules-engine",
+      "finding": "Business denial, not-applicable, inconclusive and technical failure remain separate and effect planning is gated.",
+      "evidence": [
+        "com.example.praxis.apiquickstart.rulelab.ExtraordinaryGrantRuleLabServiceTest#missingCustomerFactRemainsInconclusiveAndBlocksEffectPlanning",
+        "com.example.praxis.apiquickstart.rulelab.ExtraordinaryBenefitShadowComparisonServiceTest#isolatesTimeoutAndCandidateFailureAsTechnicalError"
+      ]
+    },
+    {
+      "id": "QL08-05",
+      "complexity": "typed_pre_write_transformation",
+      "status": "VERIFIED_CURRENT_CONTRACT",
+      "canonicalOwner": "praxis-rules-engine-and-domain-host",
+      "finding": "The Quickstart consumes public beta.12, allowlists the engine-contract 1.2 typed proposal and atomically persists both its materialized amount and a value-free append-only audit containing proposal identity plus the canonical engine before/after digests.",
+      "evidence": [
+        "com.example.praxis.apiquickstart.rulelab.ExtraordinaryGrantRuleLabServiceTest#evaluatesTheComplexAllowPathWithoutMutatingFactsOrExecutingEffects",
+        "com.example.praxis.apiquickstart.rulelab.ExtraordinaryBenefitTransformationMaterializerTest#materializesOnlyTheAllowlistedSchemaBoundAmount",
+        "com.example.praxis.apiquickstart.rulelab.ExtraordinaryBenefitTransformationMaterializerTest#rejectsAFieldThatTheHostDidNotAuthorize",
+        "com.example.praxis.apiquickstart.rulelab.ExtraordinaryBenefitRequestPilotIntegrationTest#persistsAllowedRequestWithoutExecutingEffectAndReplaysIdempotently",
+        "com.example.praxis.apiquickstart.rulelab.ExtraordinaryBenefitRequestPilotIntegrationTest#statementAtomicRollsBackEveryItemAndCleansContextOnFailure"
+      ]
+    },
+    {
+      "id": "QL08-06",
+      "complexity": "item_and_statement_cardinality",
+      "status": "VERIFIED_CURRENT_CONTRACT",
+      "canonicalOwner": "domain-host-runtime",
+      "finding": "The host proves both ordered per-item partial commits and a distinct STATEMENT_ATOMIC unit with one immutable captured snapshot session, aggregate local-flush barrier and integral rollback.",
+      "evidence": [
+        "com.example.praxis.apiquickstart.rulelab.ExtraordinaryBenefitRequestPilotIntegrationTest#batchKeepsOrderAndCommitsSuccessfulItemsIndependently",
+        "com.example.praxis.apiquickstart.rulelab.ExtraordinaryBenefitRequestPilotIntegrationTest#statementAtomicCommitsItemsOutboxAndReplayResultExactlyOnce",
+        "com.example.praxis.apiquickstart.rulelab.ExtraordinaryBenefitRequestPilotIntegrationTest#statementAtomicRollsBackEveryItemAndCleansContextOnFailure"
+      ]
+    },
+    {
+      "id": "QL08-07",
+      "complexity": "explicit_operation_state_and_cleanup",
+      "status": "VERIFIED_CURRENT_CONTRACT",
+      "canonicalOwner": "domain-host-runtime",
+      "finding": "The statement host passes an immutable bounded operation context explicitly, tracks scopes without ThreadLocal state and proves cleanup after commit and aggregate-barrier rollback.",
+      "evidence": [
+        "com.example.praxis.apiquickstart.rulelab.ExtraordinaryBenefitRequestPilotIntegrationTest#statementAtomicCommitsItemsOutboxAndReplayResultExactlyOnce",
+        "com.example.praxis.apiquickstart.rulelab.ExtraordinaryBenefitRequestPilotIntegrationTest#statementAtomicRollsBackEveryItemAndCleansContextOnFailure"
+      ]
+    },
+    {
+      "id": "QL08-08",
+      "complexity": "transactional_effect_and_independent_audit",
+      "status": "VERIFIED_CURRENT_CONTRACT",
+      "canonicalOwner": "domain-host-runtime",
+      "finding": "The host atomically commits statement items, replay result and one minimal outbox message; an actual HTTP adapter delivers to a separately persisted inbox that deduplicates by messageId and preserves the first acknowledgement.",
+      "evidence": [
+        "com.example.praxis.apiquickstart.rulelab.ExtraordinaryBenefitRequestPilotIntegrationTest#statementAtomicCommitsItemsOutboxAndReplayResultExactlyOnce",
+        "com.example.praxis.apiquickstart.rulelab.ExtraordinaryBenefitRequestPilotIntegrationTest#outboxRetriesSameMessageAndMovesToDeadLetterAfterBoundedFailures",
+        "com.example.praxis.apiquickstart.rulelab.ExtraordinaryBenefitRequestPilotIntegrationTest#reconcilesAmbiguousHttpDeliveryFromIndependentIdempotentInboxWithoutRedelivery"
+      ]
+    },
+    {
+      "id": "QL08-09",
+      "complexity": "post_write_visibility_barrier",
+      "status": "VERIFIED_CURRENT_CONTRACT",
+      "canonicalOwner": "domain-host-runtime",
+      "finding": "The host proves EVALUATED, LOCAL_FLUSHED and LOCAL_COMMITTED; after an ambiguous HTTP result, reconciliation queries the independently persisted consumer acknowledgement and records DELIVERED without redelivery or an active-lease race.",
+      "evidence": [
+        "com.example.praxis.apiquickstart.rulelab.ExtraordinaryBenefitRequestPilotIntegrationTest#statementAtomicRollsBackEveryItemAndCleansContextOnFailure",
+        "com.example.praxis.apiquickstart.rulelab.ExtraordinaryBenefitRequestPilotIntegrationTest#outboxReclaimsExpiredLeaseAndDoesNotRedeliverAfterAcknowledgement",
+        "com.example.praxis.apiquickstart.rulelab.ExtraordinaryBenefitRequestPilotIntegrationTest#reconcilesAmbiguousHttpDeliveryFromIndependentIdempotentInboxWithoutRedelivery"
+      ]
+    },
+    {
+      "id": "QL08-10",
+      "complexity": "database_backed_shadow_baseline",
+      "status": "BLOCKED_EXTERNAL_EVIDENCE",
+      "canonicalOwner": "ergon-rule-migration-foundation",
+      "finding": "The synthetic baseline proves safe dual-run mechanics but cannot prove parity with a real database-backed legacy route.",
+      "residualDecision": "Keep preflight and authority blocked until a sanitized real baseline adapter, fixture and cleanup proof exist.",
+      "evidence": [
+        "com.example.praxis.apiquickstart.rulelab.ExtraordinaryBenefitRequestPilotIntegrationTest#shadowComparesAllowAndDenyWithoutPersistingAnyOperationalLedger"
+      ]
+    },
+    {
+      "id": "QL08-11",
+      "complexity": "tenant_environment_isolation",
+      "status": "VERIFIED_CURRENT_CONTRACT",
+      "canonicalOwner": "praxis-config-starter-and-domain-host",
+      "finding": "A snapshot outside the configured tenant/environment boundary is rejected while the last-known-good snapshot remains active.",
+      "evidence": [
+        "com.example.praxis.apiquickstart.rulelab.ExtraordinaryGrantRuleSnapshotRuntimeTest#rejectsCrossBoundaryCandidatesAndPreservesLastKnownGoodSnapshot"
+      ]
+    },
+    {
+      "id": "QL08-12",
+      "complexity": "atomic_version_activation",
+      "status": "VERIFIED_CURRENT_CONTRACT",
+      "canonicalOwner": "praxis-config-starter-and-domain-host",
+      "finding": "Compiled snapshots swap atomically, reject incompatible candidates, preserve last-known-good content across rollback and cannot change inside an operation that already captured its session.",
+      "evidence": [
+        "com.example.praxis.apiquickstart.rulelab.ExtraordinaryGrantRuleSnapshotRuntimeTest#capturedOperationSessionRemainsPinnedWhenActiveHeadChanges",
+        "com.example.praxis.apiquickstart.rulelab.ExtraordinaryGrantRuleSnapshotRuntimeTest#incompatibleCandidatePreservesLastKnownGoodSnapshot",
+        "com.example.praxis.apiquickstart.rulelab.ExtraordinaryGrantRuleSnapshotRuntimeTest#rollbackToSameImmutableContentStillAcceptsNewerOpaqueHead"
+      ]
+    },
+    {
+      "id": "QL08-13",
+      "complexity": "combined_concurrency_idempotency_and_effect_failure",
+      "status": "PARTIAL_REQUIRES_EXTERNAL_EVIDENCE",
+      "canonicalOwner": "domain-host-runtime",
+      "finding": "The host proves one winner under concurrent apply, statement fingerprint conflict, integral rollback, durable retry, dead-letter and ambiguous-response reconciliation against the independent laboratory inbox; deployed multi-process recovery remains unproved.",
+      "residualDecision": "Run failure, restart, credential rotation and recovery drills in the target infrastructure with operator runbook before any external authoritative effect.",
+      "evidence": [
+        "com.example.praxis.apiquickstart.rulelab.ExtraordinaryBenefitRequestPilotIntegrationTest#concurrentApplyCommitsExactlyOneEffect",
+        "com.example.praxis.apiquickstart.rulelab.ExtraordinaryBenefitRequestPilotIntegrationTest#statementAtomicRejectsFingerprintConflictWithoutDuplicatingWrites",
+        "com.example.praxis.apiquickstart.rulelab.ExtraordinaryBenefitRequestPilotIntegrationTest#outboxRetriesSameMessageAndMovesToDeadLetterAfterBoundedFailures",
+        "com.example.praxis.apiquickstart.rulelab.ExtraordinaryBenefitRequestPilotIntegrationTest#reconcilesAmbiguousHttpDeliveryFromIndependentIdempotentInboxWithoutRedelivery"
+      ]
+    }
+  ]
+}

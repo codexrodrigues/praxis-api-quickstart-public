@@ -43,6 +43,19 @@ public final class ExtraordinaryGrantRuleLabService {
         return runtime.evaluateWithSnapshot(facts, nowUtc, userTimeZone);
     }
 
+    /** Evaluates against the immutable snapshot session captured by a wider host operation. */
+    ExtraordinaryGrantRuleEvaluation evaluateWithSnapshot(
+            ExtraordinaryGrantRuleSnapshotSession session,
+            JsonNode facts,
+            Instant nowUtc,
+            ZoneId userTimeZone) {
+        Objects.requireNonNull(session, "session is required");
+        Objects.requireNonNull(facts, "facts are required");
+        Objects.requireNonNull(nowUtc, "nowUtc is required");
+        Objects.requireNonNull(userTimeZone, "userTimeZone is required");
+        return runtime.evaluateWithSnapshot(session, facts, nowUtc, userTimeZone);
+    }
+
     /** Returns safe loader/cache diagnostics for operational readiness checks. */
     public ExtraordinaryGrantRuleSnapshotStatus snapshotStatus() {
         return runtime.status();

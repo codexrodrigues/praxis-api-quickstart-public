@@ -1,0 +1,177 @@
+{
+  "schemaVersion": "1.0",
+  "labRef": {
+    "domainKey": "human-resources",
+    "boundedContextKey": "absence-management",
+    "scenarioKey": "department-period-critical-employees",
+    "policyId": "hr-absence-criticality-v1",
+    "policyVersion": "2026-07-15"
+  },
+  "semantics": {
+    "primaryMetric": "DISTINCT_EMPLOYEES_WITH_ABSENCE_OVERLAP",
+    "secondaryMetric": "UNIQUE_CALENDAR_DAYS_ABSENT",
+    "periodStrategy": "CURRENT_CALENDAR_MONTH_VS_PREVIOUS_CALENDAR_MONTH",
+    "dateBoundary": "INCLUSIVE",
+    "departmentAttribution": "EFFECTIVE_ASSIGNMENT_PER_ABSENCE_DAY",
+    "overlapPolicy": "UNION_EMPLOYEE_DAYS",
+    "timezone": "America/Sao_Paulo",
+    "criticalityThresholdDays": 15
+  },
+  "aiProjection": {
+    "allowedFields": [
+      "competencia",
+      "funcionarioId",
+      "funcionarioNome",
+      "departamentoId",
+      "departamentoNome",
+      "quantidadeAfastamentos",
+      "diasAfastado",
+      "criticidade",
+      "criticidadeMotivo",
+      "criticidadePolicyId",
+      "criticidadePolicyVersion"
+    ],
+    "forbiddenFields": ["tipo", "observacoes"]
+  },
+  "accessProfiles": [
+    {
+      "id": "HR_ANALYST",
+      "aggregate": true,
+      "criticalEmployees": true,
+      "surfaceOpen": true,
+      "scope": "ALL_AUTHORIZED"
+    },
+    {
+      "id": "DEPARTMENT_MANAGER",
+      "aggregate": true,
+      "criticalEmployees": true,
+      "surfaceOpen": true,
+      "scope": "OWN_DEPARTMENT"
+    },
+    {
+      "id": "AGGREGATE_ONLY",
+      "aggregate": true,
+      "criticalEmployees": false,
+      "surfaceOpen": false,
+      "scope": "AGGREGATES_ONLY"
+    },
+    {
+      "id": "UNAUTHORIZED",
+      "aggregate": false,
+      "criticalEmployees": false,
+      "surfaceOpen": false,
+      "scope": "NONE"
+    }
+  ],
+  "expectedComposition": {
+    "widgets": [
+      "absence-summary",
+      "absence-period-filter",
+      "absence-department-comparison-chart",
+      "absence-critical-employees-table"
+    ],
+    "links": [
+      "absence-period-filter.period->absence-department-comparison-chart.queryContext",
+      "absence-period-filter.period->absence-critical-employees-table.queryContext",
+      "absence-department-comparison-chart.crossFilter->absence-critical-employees-table.queryContext",
+      "absence-critical-employees-table.rowAction->surface.open"
+    ],
+    "surfaceOpen": {
+      "resourceKey": "human-resources.funcionarios",
+      "identityField": "funcionarioId",
+      "surfaceId": "hero-profile",
+      "intent": "employee-360"
+    }
+  },
+  "scenarios": [
+    {
+      "id": "ALG-01",
+      "nowDate": "2026-07-15",
+      "employees": [
+        { "id": "E-001", "resourceId": 101, "name": "Ana" },
+        { "id": "E-002", "resourceId": 102, "name": "Bruno" },
+        { "id": "E-003", "resourceId": 103, "name": "Carla" },
+        { "id": "E-004", "resourceId": 104, "name": "Diego" },
+        { "id": "E-005", "resourceId": 105, "name": "Eva" },
+        { "id": "E-006", "resourceId": 106, "name": "Fernanda" },
+        { "id": "E-007", "resourceId": 107, "name": "Gustavo" }
+      ],
+      "assignments": [
+        { "employeeId": "E-001", "departmentId": "D-ENG", "departmentName": "Engenharia", "validFrom": "2020-01-01" },
+        { "employeeId": "E-002", "departmentId": "D-ENG", "departmentName": "Engenharia", "validFrom": "2020-01-01" },
+        { "employeeId": "E-003", "departmentId": "D-OPS", "departmentName": "Operações", "validFrom": "2020-01-01" },
+        { "employeeId": "E-004", "departmentId": "D-OPS", "departmentName": "Operações", "validFrom": "2020-01-01" },
+        { "employeeId": "E-005", "departmentId": "D-FIN", "departmentName": "Financeiro", "validFrom": "2020-01-01" },
+        { "employeeId": "E-006", "departmentId": "D-SAL", "departmentName": "Vendas", "validFrom": "2020-01-01" },
+        { "employeeId": "E-007", "departmentId": "D-SUP", "departmentName": "Suporte", "validFrom": "2020-01-01" }
+      ],
+      "absences": [
+        { "id": "A-001", "employeeId": "E-001", "start": "2026-06-15", "end": "2026-06-16", "restricted": { "tipo": "DEMO_RESTRICTED", "observacoes": "Não expor ao modelo" } },
+        { "id": "A-002", "employeeId": "E-001", "start": "2026-07-01", "end": "2026-07-08", "restricted": { "tipo": "DEMO_RESTRICTED", "observacoes": "Evento sobreposto" } },
+        { "id": "A-003", "employeeId": "E-001", "start": "2026-07-05", "end": "2026-07-12", "restricted": { "tipo": "DEMO_RESTRICTED", "observacoes": "Dias devem ser unidos" } },
+        { "id": "A-004", "employeeId": "E-002", "start": "2026-07-10", "end": "2026-07-15", "restricted": { "tipo": "DEMO_RESTRICTED", "observacoes": "Não expor ao modelo" } },
+        { "id": "A-005", "employeeId": "E-003", "start": "2026-06-03", "end": "2026-06-10", "restricted": { "tipo": "DEMO_RESTRICTED", "observacoes": "Não expor ao modelo" } },
+        { "id": "A-006", "employeeId": "E-003", "start": "2026-07-02", "end": "2026-07-04", "restricted": { "tipo": "DEMO_RESTRICTED", "observacoes": "Não expor ao modelo" } },
+        { "id": "A-007", "employeeId": "E-004", "start": "2026-06-27", "end": "2026-07-15", "restricted": { "tipo": "DEMO_RESTRICTED", "observacoes": "Evento atravessa competência" } },
+        { "id": "A-008", "employeeId": "E-005", "start": "2026-06-10", "end": "2026-06-14", "restricted": { "tipo": "DEMO_RESTRICTED", "observacoes": "Não expor ao modelo" } },
+        { "id": "A-009", "employeeId": "E-005", "start": "2026-07-10", "end": "2026-07-14", "restricted": { "tipo": "DEMO_RESTRICTED", "observacoes": "Não expor ao modelo" } },
+        { "id": "A-010", "employeeId": "E-006", "start": "2026-07-05", "end": "2026-07-11", "restricted": { "tipo": "DEMO_RESTRICTED", "observacoes": "Baseline anterior ausente" } },
+        { "id": "A-011", "employeeId": "E-007", "start": "2026-06-02", "end": "2026-06-05", "restricted": { "tipo": "DEMO_RESTRICTED", "observacoes": "Bucket somente anterior" } }
+      ],
+      "expected": {
+        "status": "READY",
+        "reasonCodes": [],
+        "departments": [
+          { "departmentId": "D-ENG", "resourceId": 201, "departmentName": "Engenharia", "currentEmployeeCount": 2, "previousEmployeeCount": 1, "currentAbsentDays": 18, "previousAbsentDays": 2, "deltaEmployeeCount": 1, "deltaPercent": 100.0, "baselineMissing": false },
+          { "departmentId": "D-OPS", "resourceId": 202, "departmentName": "Operações", "currentEmployeeCount": 2, "previousEmployeeCount": 2, "currentAbsentDays": 18, "previousAbsentDays": 12, "deltaEmployeeCount": 0, "deltaPercent": 0.0, "baselineMissing": false },
+          { "departmentId": "D-FIN", "resourceId": 203, "departmentName": "Financeiro", "currentEmployeeCount": 1, "previousEmployeeCount": 1, "currentAbsentDays": 5, "previousAbsentDays": 5, "deltaEmployeeCount": 0, "deltaPercent": 0.0, "baselineMissing": false },
+          { "departmentId": "D-SAL", "resourceId": 204, "departmentName": "Vendas", "currentEmployeeCount": 1, "previousEmployeeCount": 0, "currentAbsentDays": 7, "previousAbsentDays": 0, "deltaEmployeeCount": 1, "deltaPercent": null, "baselineMissing": true },
+          { "departmentId": "D-SUP", "resourceId": 205, "departmentName": "Suporte", "currentEmployeeCount": 0, "previousEmployeeCount": 1, "currentAbsentDays": 0, "previousAbsentDays": 4, "deltaEmployeeCount": -1, "deltaPercent": -100.0, "baselineMissing": false }
+        ],
+        "criticalEmployees": [
+          { "employeeId": "E-004", "employeeName": "Diego", "currentAbsentDays": 15, "departmentIds": ["D-OPS"] }
+        ]
+      }
+    },
+    {
+      "id": "ALG-02",
+      "nowDate": "2026-07-15",
+      "employees": [
+        { "id": "E-008", "resourceId": 108, "name": "Helena" }
+      ],
+      "assignments": [
+        { "employeeId": "E-008", "departmentId": "D-OPS", "departmentName": "Operações", "validFrom": "2026-01-01", "validTo": "2026-07-10" },
+        { "employeeId": "E-008", "departmentId": "D-ENG", "departmentName": "Engenharia", "validFrom": "2026-07-10" }
+      ],
+      "absences": [
+        { "id": "A-012", "employeeId": "E-008", "start": "2026-07-08", "end": "2026-07-12", "restricted": { "tipo": "DEMO_RESTRICTED", "observacoes": "Lotação muda durante o evento" } }
+      ],
+      "expected": {
+        "status": "READY",
+        "reasonCodes": [],
+        "departments": [
+          { "departmentId": "D-ENG", "resourceId": 201, "departmentName": "Engenharia", "currentEmployeeCount": 1, "previousEmployeeCount": 0, "currentAbsentDays": 3, "previousAbsentDays": 0, "deltaEmployeeCount": 1, "deltaPercent": null, "baselineMissing": true },
+          { "departmentId": "D-OPS", "resourceId": 202, "departmentName": "Operações", "currentEmployeeCount": 1, "previousEmployeeCount": 0, "currentAbsentDays": 2, "previousAbsentDays": 0, "deltaEmployeeCount": 1, "deltaPercent": null, "baselineMissing": true }
+        ],
+        "criticalEmployees": []
+      }
+    },
+    {
+      "id": "ALG-03",
+      "nowDate": "2026-07-15",
+      "employees": [
+        { "id": "E-009", "resourceId": 109, "name": "Igor" }
+      ],
+      "assignments": [],
+      "absences": [
+        { "id": "A-013", "employeeId": "E-009", "start": "2026-07-01", "end": "2026-07-02", "restricted": { "tipo": "DEMO_RESTRICTED", "observacoes": "Histórico de lotação ausente" } }
+      ],
+      "expected": {
+        "status": "INCONCLUSIVE",
+        "reasonCodes": ["DEPARTMENT_ASSIGNMENT_MISSING"],
+        "departments": [],
+        "criticalEmployees": []
+      }
+    }
+  ]
+}

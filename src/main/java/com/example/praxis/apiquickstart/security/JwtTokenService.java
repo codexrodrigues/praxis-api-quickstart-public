@@ -52,6 +52,28 @@ public class JwtTokenService {
 
     /** Gera um JWT HS256 simples com subject, role, authorities e expiracao. */
     public String generate(String subject, String role, Collection<String> authorities) {
+        return generateToken(subject, role, authorities, expirationSeconds, null);
+    }
+
+    /**
+     * Emite uma credencial curta para chamadas internas que preservam o principal governado.
+     * O token nunca deve ser persistido ou devolvido ao fluxo de authoring.
+     */
+    public String generateDelegation(String subject, String role, Collection<String> authorities) {
+        return generateToken(
+                subject,
+                role,
+                authorities,
+                Math.min(expirationSeconds, 120),
+                "praxis-internal-delegation");
+    }
+
+    private String generateToken(
+            String subject,
+            String role,
+            Collection<String> authorities,
+            long tokenExpirationSeconds,
+            String tokenUse) {
         try {
             Map<String, Object> header = new HashMap<>();
             header.put("alg", "HS256");
@@ -63,7 +85,10 @@ public class JwtTokenService {
             payload.put("role", role);
             payload.put("authorities", normalizeAuthorities(authorities));
             payload.put("iat", now);
-            payload.put("exp", now + expirationSeconds);
+            payload.put("exp", now + Math.max(60, tokenExpirationSeconds));
+            if (tokenUse != null && !tokenUse.isBlank()) {
+                payload.put("token_use", tokenUse);
+            }
 
             String headerStr = B64_URL_ENCODER.encodeToString(objectMapper.writeValueAsBytes(header));
             String payloadStr = B64_URL_ENCODER.encodeToString(objectMapper.writeValueAsBytes(payload));

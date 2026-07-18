@@ -1,6 +1,7 @@
 package com.example.praxis.apiquickstart.config;
 
 import com.example.praxis.apiquickstart.ApiQuickstartApplication;
+import com.example.praxis.apiquickstart.hr.security.HrAnalyticsAuthorities;
 import com.example.praxis.apiquickstart.security.JwtTokenService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -21,6 +22,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.net.URI;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -460,7 +462,7 @@ class QuickstartMetadataMigrationIntegrationTest {
         JsonNode contextualProfile = findById(itemSurfaces.path("surfaces"), "profile");
         assertNotNull(contextualProfile);
         assertTrue(contextualProfile.path("availability").path("allowed").asBoolean());
-        assertTrue(findById(itemSurfaces.path("surfaces"), "hero-profile").path("availability").path("allowed").asBoolean());
+        assertFalse(findById(itemSurfaces.path("surfaces"), "hero-profile").path("availability").path("allowed").asBoolean());
         assertTrue(findById(itemSurfaces.path("surfaces"), "payroll-history").path("availability").path("allowed").asBoolean());
         assertTrue(findById(itemSurfaces.path("surfaces"), "mission-participations").path("availability").path("allowed").asBoolean());
         assertTrue(findById(itemSurfaces.path("surfaces"), "dependents").path("availability").path("allowed").asBoolean());
@@ -487,8 +489,16 @@ class QuickstartMetadataMigrationIntegrationTest {
         assertNotNull(findById(itemCapabilities.path("surfaces"), "career-history"));
         assertEquals(2, itemCapabilities.path("actions").size());
 
-        JsonNode heroProfile = body(restTemplate.getForEntity(
+        HttpHeaders heroHeaders = new HttpHeaders();
+        heroHeaders.add(HttpHeaders.COOKIE, "SESSION=" + jwtTokenService.generate("admin", "ADMIN", List.of(
+                HrAnalyticsAuthorities.AGGREGATE_READ,
+                HrAnalyticsAuthorities.NOMINAL_READ,
+                HrAnalyticsAuthorities.EMPLOYEE_360_READ
+        )));
+        JsonNode heroProfile = body(restTemplate.exchange(
                 "/api/human-resources/funcionarios/1/hero-profile",
+                HttpMethod.GET,
+                new HttpEntity<>(heroHeaders),
                 String.class
         ));
         assertEquals("Batman", heroProfile.path("data").path("codinome").asText());
@@ -800,10 +810,8 @@ class QuickstartMetadataMigrationIntegrationTest {
         assertNotNull(findById(readOnlySurfaces.path("surfaces"), "detail"));
         assertNull(findById(readOnlySurfaces.path("surfaces"), "create"));
 
-        JsonNode readOnlyCapabilities = body(restTemplate.getForEntity(
-                "/api/human-resources/vw-analytics-folha-pagamento/capabilities",
-                String.class
-        ));
+        JsonNode readOnlyCapabilities = body(authorizedAnalyticsGet(
+                "/api/human-resources/vw-analytics-folha-pagamento/capabilities"));
         assertFalse(readOnlyCapabilities.path("canonicalOperations").path("create").asBoolean());
         assertFalse(readOnlyCapabilities.path("canonicalOperations").path("update").asBoolean());
         assertFalse(readOnlyCapabilities.path("canonicalOperations").path("delete").asBoolean());
@@ -879,10 +887,8 @@ class QuickstartMetadataMigrationIntegrationTest {
 
     @Test
     void shouldExposeHypermediaDiscoveryLinksForReadOnlyAnalyticsView() throws Exception {
-        JsonNode collectionEnvelope = body(restTemplate.getForEntity(
-                "/api/human-resources/vw-analytics-folha-pagamento/all",
-                String.class
-        ));
+        JsonNode collectionEnvelope = body(authorizedAnalyticsGet(
+                "/api/human-resources/vw-analytics-folha-pagamento/all"));
         assertTrue(collectionEnvelope.has("_links"));
         assertTrue(collectionEnvelope.path("_links").isObject());
         assertTrue(collectionEnvelope.path("data").path(0).path("_links").isObject());
@@ -902,7 +908,7 @@ class QuickstartMetadataMigrationIntegrationTest {
         assertNotNull(findById(collectionSurfaces.path("surfaces"), "detail"));
         assertNull(findById(collectionSurfaces.path("surfaces"), "create"));
 
-        JsonNode collectionCapabilities = body(getHref(collectionCapabilitiesHref));
+        JsonNode collectionCapabilities = body(authorizedAnalyticsGet(collectionCapabilitiesHref));
         assertFalse(collectionCapabilities.path("canonicalOperations").path("create").asBoolean());
         assertFalse(collectionCapabilities.path("canonicalOperations").path("update").asBoolean());
         assertFalse(collectionCapabilities.path("canonicalOperations").path("delete").asBoolean());
@@ -912,10 +918,8 @@ class QuickstartMetadataMigrationIntegrationTest {
         assertFalse(collectionCapabilities.path("operations").path("delete").path("supported").asBoolean());
         assertEquals(0, collectionCapabilities.path("actions").size());
 
-        JsonNode itemEnvelope = body(restTemplate.getForEntity(
-                "/api/human-resources/vw-analytics-folha-pagamento/10",
-                String.class
-        ));
+        JsonNode itemEnvelope = body(authorizedAnalyticsGet(
+                "/api/human-resources/vw-analytics-folha-pagamento/10"));
         assertTrue(itemEnvelope.has("_links"));
         assertTrue(itemEnvelope.path("_links").isObject());
 
@@ -931,7 +935,7 @@ class QuickstartMetadataMigrationIntegrationTest {
         assertNull(itemUpdateHref);
         assertNull(itemDeleteHref);
 
-        JsonNode itemSurfaces = body(getHref(itemSurfacesHref));
+        JsonNode itemSurfaces = body(authorizedAnalyticsGet(itemSurfacesHref));
         JsonNode detailSurface = findById(itemSurfaces.path("surfaces"), "detail");
         assertNotNull(detailSurface);
 
@@ -939,7 +943,7 @@ class QuickstartMetadataMigrationIntegrationTest {
         assertTrue(detailSchema.path("properties").has("nomeCompleto"));
         assertTrue(detailSchema.path("properties").has("salarioLiquido"));
 
-        JsonNode itemCapabilities = body(getHref(itemCapabilitiesHref));
+        JsonNode itemCapabilities = body(authorizedAnalyticsGet(itemCapabilitiesHref));
         assertTrue(itemCapabilities.path("operations").path("view").path("supported").asBoolean());
         assertFalse(itemCapabilities.path("operations").path("edit").path("supported").asBoolean());
         assertNotNull(findById(itemCapabilities.path("surfaces"), "detail"));
@@ -957,6 +961,15 @@ class QuickstartMetadataMigrationIntegrationTest {
         headers.setContentType(MediaType.APPLICATION_JSON);
         headers.add(HttpHeaders.COOKIE, "SESSION=" + jwtTokenService.generate("admin", "ADMIN"));
         return new HttpEntity<>(json, headers);
+    }
+
+    private ResponseEntity<String> authorizedAnalyticsGet(String path) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.add(HttpHeaders.COOKIE, "SESSION=" + jwtTokenService.generate(
+                "admin",
+                "ADMIN",
+                List.of(HrAnalyticsAuthorities.AGGREGATE_READ, HrAnalyticsAuthorities.NOMINAL_READ)));
+        return restTemplate.exchange(path, HttpMethod.GET, new HttpEntity<>(headers), String.class);
     }
 
     private JsonNode findById(JsonNode items, String id) {

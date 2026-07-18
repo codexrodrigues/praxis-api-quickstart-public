@@ -2,7 +2,9 @@ package com.example.praxis.apiquickstart.hr.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.*;
-import org.praxisplatform.uischema.annotation.AiUsageMode;
+import org.praxisplatform.uischema.annotation.AiControlledUseMode;
+import org.praxisplatform.uischema.annotation.AiTrainingUseMode;
+import org.praxisplatform.uischema.annotation.AiVisibilityMode;
 import org.praxisplatform.uischema.annotation.AiUsagePolicy;
 import org.praxisplatform.uischema.annotation.DomainClassification;
 import org.praxisplatform.uischema.annotation.DomainDataCategory;
@@ -50,7 +52,7 @@ public class FolhasPagamentoDTO {
             classification = DomainClassification.CONFIDENTIAL,
             dataCategory = DomainDataCategory.FINANCIAL,
             complianceTags = {"LGPD", "INTERNAL_POLICY"},
-            aiUsage = @AiUsagePolicy(visibility = AiUsageMode.MASK, trainingUse = AiUsageMode.DENY, ruleAuthoring = AiUsageMode.REVIEW_REQUIRED, reasoningUse = AiUsageMode.ALLOW),
+            aiUsage = @AiUsagePolicy(visibility = AiVisibilityMode.MASK, trainingUse = AiTrainingUseMode.DENY, ruleAuthoring = AiControlledUseMode.REVIEW_REQUIRED, reasoningUse = AiControlledUseMode.ALLOW),
             reason = "Valor bruto da folha."
     )
     @Schema(
@@ -66,7 +68,7 @@ public class FolhasPagamentoDTO {
             classification = DomainClassification.CONFIDENTIAL,
             dataCategory = DomainDataCategory.FINANCIAL,
             complianceTags = {"LGPD", "INTERNAL_POLICY"},
-            aiUsage = @AiUsagePolicy(visibility = AiUsageMode.MASK, trainingUse = AiUsageMode.DENY, ruleAuthoring = AiUsageMode.REVIEW_REQUIRED, reasoningUse = AiUsageMode.ALLOW),
+            aiUsage = @AiUsagePolicy(visibility = AiVisibilityMode.MASK, trainingUse = AiTrainingUseMode.DENY, ruleAuthoring = AiControlledUseMode.REVIEW_REQUIRED, reasoningUse = AiControlledUseMode.ALLOW),
             reason = "Total de descontos da folha."
     )
     @Schema(
@@ -82,7 +84,7 @@ public class FolhasPagamentoDTO {
             classification = DomainClassification.CONFIDENTIAL,
             dataCategory = DomainDataCategory.FINANCIAL,
             complianceTags = {"LGPD", "INTERNAL_POLICY"},
-            aiUsage = @AiUsagePolicy(visibility = AiUsageMode.MASK, trainingUse = AiUsageMode.DENY, ruleAuthoring = AiUsageMode.REVIEW_REQUIRED, reasoningUse = AiUsageMode.ALLOW),
+            aiUsage = @AiUsagePolicy(visibility = AiVisibilityMode.MASK, trainingUse = AiTrainingUseMode.DENY, ruleAuthoring = AiControlledUseMode.REVIEW_REQUIRED, reasoningUse = AiControlledUseMode.ALLOW),
             reason = "Valor liquido pago ao colaborador."
     )
     @Schema(

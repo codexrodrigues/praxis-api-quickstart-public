@@ -2,28 +2,48 @@ package com.example.praxis.apiquickstart.rulelab;
 
 import com.example.praxis.apiquickstart.rulelab.dto.ExtraordinaryBenefitEvaluationRequest;
 import com.example.praxis.apiquickstart.rulelab.dto.ExtraordinaryBenefitEvaluationResponse;
+import java.util.Objects;
+import java.util.UUID;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/** Persiste um unico ALLOW em transacao independente, permitindo lote com falha parcial explicita. */
+/**
+ * Persiste um único ALLOW na transação corrente.
+ *
+ * <p>O lote público chama este bean sem transação externa e obtém uma unidade por item. A prova
+ * `STATEMENT_ATOMIC` fornece uma transação externa para que todos os itens compartilhem a mesma
+ * unidade, sem duplicar o mapeamento de persistência.</p>
+ */
 @Service
 public class ExtraordinaryBenefitPersistenceItemService {
     private final ExtraordinaryBenefitRequestRepository repository;
     private final ExtraordinaryBenefitRequestMapper mapper;
+    private final ExtraordinaryBenefitTransformationAuditStore transformationAuditStore;
 
     public ExtraordinaryBenefitPersistenceItemService(
             ExtraordinaryBenefitRequestRepository repository,
-            ExtraordinaryBenefitRequestMapper mapper) {
+            ExtraordinaryBenefitRequestMapper mapper,
+            ExtraordinaryBenefitTransformationAuditStore transformationAuditStore) {
         this.repository = repository;
         this.mapper = mapper;
+        this.transformationAuditStore = transformationAuditStore;
     }
 
     @Transactional
     public com.example.praxis.apiquickstart.rulelab.dto.ExtraordinaryBenefitRequestResponse persistAllowed(
             ExtraordinaryBenefitEvaluationRequest request,
-            ExtraordinaryBenefitEvaluationResponse evaluation,
-            String actorSubject) {
+            ExtraordinaryBenefitEvaluatedDecision decision,
+            String factReference,
+            RuleFactProvenance factProvenance,
+            String actorSubject,
+            String correlationId,
+            UUID operationId,
+            RuleLabOperationCardinality cardinality) {
+        ExtraordinaryBenefitEvaluationResponse evaluation = Objects.requireNonNull(
+                decision, "decision is required").response();
+        ExtraordinaryBenefitTransformationAuditEvidence evidence = Objects.requireNonNull(
+                decision.transformationEvidence(), "ALLOW transformation evidence is required");
         ExtraordinaryBenefitRequestEntity entity = new ExtraordinaryBenefitRequestEntity();
         entity.setRequestReference(request.requestReference());
         entity.setReasonCode(request.reasonCode());
@@ -48,6 +68,15 @@ public class ExtraordinaryBenefitPersistenceItemService {
         entity.setRuleSetKey(evaluation.ruleSetKey());
         entity.setRuleSetVersion(evaluation.ruleSetVersion());
         entity.setFactsDigest(evaluation.factsDigest());
+        if (factProvenance != null) {
+            entity.setFactReference(requireText(factReference, "factReference"));
+            entity.setFactProviderKey(factProvenance.providerKey());
+            entity.setFactSourceRecordDigest(factProvenance.sourceRecordDigest());
+            entity.setFactSourceVersion(factProvenance.sourceVersion());
+            entity.setFactSourceRecordedAt(factProvenance.sourceRecordedAt());
+            entity.setFactScopeDigest(factProvenance.scopeDigest());
+            entity.setFactAsOf(factProvenance.asOf());
+        }
         entity.setPlanDigest(evaluation.planDigest());
         entity.setPlannedEffectIntent(evaluation.plannedEffectIntent());
         entity.setEvaluationBusinessMessage(evaluation.businessMessage());
@@ -56,6 +85,37 @@ public class ExtraordinaryBenefitPersistenceItemService {
         entity.setEvaluatedAt(evaluation.evaluatedAtUtc());
         entity.setCreatedBy(actorSubject);
         entity.setLastTransitionBy(actorSubject);
-        return mapper.toResponse(repository.saveAndFlush(entity));
+        ExtraordinaryBenefitRequestEntity persisted = repository.saveAndFlush(entity);
+        transformationAuditStore.append(new ExtraordinaryBenefitTransformationAudit(
+                UUID.randomUUID(), persisted.getId(), operationId,
+                Objects.requireNonNull(cardinality, "cardinality is required"), evidence, evaluation,
+                requireText(correlationId, "correlationId")));
+        return mapper.toResponse(persisted);
+    }
+
+    /**
+     * Compatibility boundary for the host-only QL-08 statement atomicity proof.
+     * Rows created here deliberately have no authoritative provenance and therefore fail closed
+     * in the public apply action. Remove this boundary when QL-08 acquires facts through the host
+     * provider in its own coordinated migration.
+     */
+    @Transactional
+    com.example.praxis.apiquickstart.rulelab.dto.ExtraordinaryBenefitRequestResponse
+            persistNonApplicableStatementProof(
+                    ExtraordinaryBenefitEvaluationRequest request,
+                    ExtraordinaryBenefitEvaluatedDecision decision,
+                    String actorSubject,
+                    String correlationId,
+                    UUID operationId,
+                    RuleLabOperationCardinality cardinality) {
+        return persistAllowed(
+                request, decision, null, null, actorSubject, correlationId, operationId, cardinality);
+    }
+
+    private String requireText(String value, String field) {
+        if (value == null || value.isBlank()) {
+            throw new IllegalArgumentException(field + " is required");
+        }
+        return value.trim();
     }
 }

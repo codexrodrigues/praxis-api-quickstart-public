@@ -6,7 +6,9 @@ import jakarta.validation.constraints.*;
 import org.praxisplatform.uischema.FieldControlType;
 import org.praxisplatform.uischema.FieldDataType;
 import org.praxisplatform.uischema.extension.annotation.UISchema;
-import org.praxisplatform.uischema.annotation.AiUsageMode;
+import org.praxisplatform.uischema.annotation.AiControlledUseMode;
+import org.praxisplatform.uischema.annotation.AiTrainingUseMode;
+import org.praxisplatform.uischema.annotation.AiVisibilityMode;
 import org.praxisplatform.uischema.annotation.AiUsagePolicy;
 import org.praxisplatform.uischema.annotation.DomainClassification;
 import org.praxisplatform.uischema.annotation.DomainDataCategory;
@@ -34,10 +36,10 @@ public class IndenizacaoDTO {
         complianceTags = {"INTERNAL_POLICY"},
         reason = "Valores indenizatórios são acordos financeiros confidenciais entre a empresa, seguradora e as partes envolvidas.",
         aiUsage = @AiUsagePolicy(
-            visibility = AiUsageMode.SUMMARIZE_ONLY,
-            trainingUse = AiUsageMode.DENY,
-            ruleAuthoring = AiUsageMode.REVIEW_REQUIRED,
-            reasoningUse = AiUsageMode.ALLOW
+            visibility = AiVisibilityMode.SUMMARIZE_ONLY,
+            trainingUse = AiTrainingUseMode.DENY,
+            ruleAuthoring = AiControlledUseMode.REVIEW_REQUIRED,
+            reasoningUse = AiControlledUseMode.ALLOW
         )
     )
     @UISchema(label = "Valor", type = FieldDataType.NUMBER, controlType = FieldControlType.CURRENCY_INPUT, required = true, helpText = "Montante aprovado para indenização.", icon = "payments")

@@ -95,6 +95,27 @@ public class ExtraordinaryBenefitRequestEntity {
     @Column(name = "facts_digest", nullable = false, length = 64)
     private String factsDigest;
 
+    @Column(name = "fact_reference", length = 120)
+    private String factReference;
+
+    @Column(name = "fact_provider_key", length = 160)
+    private String factProviderKey;
+
+    @Column(name = "fact_source_record_digest", length = 64)
+    private String factSourceRecordDigest;
+
+    @Column(name = "fact_source_version")
+    private Long factSourceVersion;
+
+    @Column(name = "fact_source_recorded_at")
+    private Instant factSourceRecordedAt;
+
+    @Column(name = "fact_scope_digest", length = 64)
+    private String factScopeDigest;
+
+    @Column(name = "fact_as_of")
+    private Instant factAsOf;
+
     @Column(name = "plan_digest", nullable = false, length = 64)
     private String planDigest;
 

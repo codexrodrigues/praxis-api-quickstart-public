@@ -41,6 +41,7 @@ public class ResourceActionExecution {
         this.executionStatus="STARTED"; this.startedAt=Instant.now();
     }
     public String getRequestHash() { return requestHash; }
+    public UUID getExecutionId() { return executionId; }
     public String getExecutionStatus() { return executionStatus; }
     public JsonNode getResponsePayload() { return responsePayload; }
     public String getActorSubject() { return actorSubject; }
@@ -48,6 +49,7 @@ public class ResourceActionExecution {
     public void complete(JsonNode payload) { this.executionStatus="COMPLETED"; this.responsePayload=payload; this.completedAt=Instant.now(); this.failureCode=null; this.failureMessage=null; }
     public void fail(String code, String message) {
         this.executionStatus = "FAILED";
+        this.responsePayload = null;
         this.completedAt = Instant.now();
         this.failureCode = truncate(code, 120);
         this.failureMessage = truncate(message == null ? "Workflow execution failed." : message, 1000);

@@ -16,7 +16,9 @@ class PublicReleaseWorkflowContractTest {
 
         assertThat(workflow)
                 .contains("tags:\n      - 'v*'")
-                .contains("token: ${{ secrets.RELEASE_PAT }}")
+                .contains("contents: read")
+                .contains("ssh-key: ${{ secrets.SOURCE_RELEASE_SSH_KEY }}")
+                .contains("ssh-strict: true")
                 .contains("run: mvn -B verify")
                 .contains("mvn -q versions:set -DnewVersion=\"$VERSION\"")
                 .contains("git push --atomic origin \"HEAD:${GITHUB_REF_NAME}\" \"$TAG\"")
@@ -26,7 +28,9 @@ class PublicReleaseWorkflowContractTest {
         assertThat(workflow)
                 .doesNotContain("branches:\n      - main")
                 .doesNotContain("github.event.release")
-                .doesNotContain("release_ref");
+                .doesNotContain("release_ref")
+                .doesNotContain("RELEASE_PAT")
+                .doesNotContain("contents: write");
     }
 
     @Test

@@ -1,0 +1,107 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://praxisplatform.org/schemas/absence-analytics-operational-golden-suite-v1.schema.json",
+  "title": "HR Absence Analytics Operational Golden Suite",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "timezone", "policy", "cases"],
+  "properties": {
+    "schemaVersion": { "const": "1.0" },
+    "timezone": { "const": "America/Sao_Paulo" },
+    "policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "version", "attentionMinDays", "criticalMinDays"],
+      "properties": {
+        "id": { "const": "hr-absence-criticality-v1" },
+        "version": { "const": "2026-07-15" },
+        "attentionMinDays": { "const": 7 },
+        "criticalMinDays": { "const": 15 }
+      }
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 5,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "currentCompetencia", "previousCompetencia", "assignments", "absences", "expectedRows", "expectedComparison", "expectedDiagnostics"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^G2A-[0-9]{2}$" },
+          "currentCompetencia": { "type": "string", "format": "date" },
+          "previousCompetencia": { "type": "string", "format": "date" },
+          "assignments": { "$ref": "#/$defs/assignments" },
+          "absences": { "$ref": "#/$defs/absences" },
+          "expectedRows": { "$ref": "#/$defs/rows" },
+          "expectedComparison": { "$ref": "#/$defs/comparison" },
+          "expectedDiagnostics": {
+            "type": "array",
+            "items": { "type": "string", "minLength": 1 },
+            "uniqueItems": true
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "assignments": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["employeeId", "departmentId", "effectiveFrom", "effectiveTo"],
+        "properties": {
+          "employeeId": { "type": "integer", "minimum": 1 },
+          "departmentId": { "type": "integer", "minimum": 1 },
+          "effectiveFrom": { "type": "string", "format": "date" },
+          "effectiveTo": { "type": ["string", "null"], "format": "date" }
+        }
+      }
+    },
+    "absences": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["employeeId", "from", "to"],
+        "properties": {
+          "employeeId": { "type": "integer", "minimum": 1 },
+          "from": { "type": "string", "format": "date" },
+          "to": { "type": "string", "format": "date" }
+        }
+      }
+    },
+    "rows": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["employeeId", "departmentId", "competencia", "periodoInicio", "periodoFim", "diasAfastado", "criticalityLevel"],
+        "properties": {
+          "employeeId": { "type": "integer", "minimum": 1 },
+          "departmentId": { "type": "integer", "minimum": 1 },
+          "competencia": { "type": "string", "format": "date" },
+          "periodoInicio": { "type": "string", "format": "date" },
+          "periodoFim": { "type": "string", "format": "date" },
+          "diasAfastado": { "type": "integer", "minimum": 1 },
+          "criticalityLevel": { "enum": ["STANDARD", "ATTENTION", "CRITICAL"] }
+        }
+      }
+    },
+    "comparison": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["departmentId", "currentEmployees", "currentDays", "previousEmployees", "previousDays"],
+        "properties": {
+          "departmentId": { "type": "integer", "minimum": 1 },
+          "currentEmployees": { "type": "integer", "minimum": 0 },
+          "currentDays": { "type": "integer", "minimum": 0 },
+          "previousEmployees": { "type": "integer", "minimum": 0 },
+          "previousDays": { "type": "integer", "minimum": 0 }
+        }
+      }
+    }
+  }
+}

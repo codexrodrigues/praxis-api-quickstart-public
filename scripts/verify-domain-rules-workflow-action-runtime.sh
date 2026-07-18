@@ -75,9 +75,7 @@ cat > "$TMPDIR_RUN/definition.json" <<JSON
   },
   "governance": {
     "requiredApprovals": []
-  },
-  "createdByType": "llm",
-  "createdBy": "runtime-smoke"
+  }
 }
 JSON
 

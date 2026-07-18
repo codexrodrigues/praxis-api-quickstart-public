@@ -6,7 +6,9 @@ import jakarta.validation.constraints.*;
 import org.praxisplatform.uischema.FieldControlType;
 import org.praxisplatform.uischema.FieldDataType;
 import org.praxisplatform.uischema.extension.annotation.UISchema;
-import org.praxisplatform.uischema.annotation.AiUsageMode;
+import org.praxisplatform.uischema.annotation.AiControlledUseMode;
+import org.praxisplatform.uischema.annotation.AiTrainingUseMode;
+import org.praxisplatform.uischema.annotation.AiVisibilityMode;
 import org.praxisplatform.uischema.annotation.AiUsagePolicy;
 import org.praxisplatform.uischema.annotation.DomainClassification;
 import org.praxisplatform.uischema.annotation.DomainDataCategory;
@@ -51,10 +53,10 @@ public class HistoricoSalarialDTO {
         complianceTags = {"INTERNAL_POLICY", "FINANCIAL_PRIVACY"},
         reason = "O valor nominal do salário é estritamente confidencial e não deve ser exposto de forma bruta por IAs.",
         aiUsage = @AiUsagePolicy(
-            visibility = AiUsageMode.SUMMARIZE_ONLY,
-            trainingUse = AiUsageMode.DENY,
-            ruleAuthoring = AiUsageMode.REVIEW_REQUIRED,
-            reasoningUse = AiUsageMode.ALLOW
+            visibility = AiVisibilityMode.SUMMARIZE_ONLY,
+            trainingUse = AiTrainingUseMode.DENY,
+            ruleAuthoring = AiControlledUseMode.REVIEW_REQUIRED,
+            reasoningUse = AiControlledUseMode.ALLOW
         )
     )
     @UISchema(label = "Salário", type = FieldDataType.NUMBER, controlType = FieldControlType.CURRENCY_INPUT, required = true, helpText = "Valor da remuneração no período.", icon = "payments")

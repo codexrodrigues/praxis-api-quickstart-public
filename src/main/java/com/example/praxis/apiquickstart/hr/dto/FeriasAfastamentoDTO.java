@@ -8,7 +8,9 @@ import jakarta.validation.constraints.Size;
 import org.praxisplatform.uischema.FieldControlType;
 import org.praxisplatform.uischema.FieldDataType;
 import org.praxisplatform.uischema.extension.annotation.UISchema;
-import org.praxisplatform.uischema.annotation.AiUsageMode;
+import org.praxisplatform.uischema.annotation.AiControlledUseMode;
+import org.praxisplatform.uischema.annotation.AiTrainingUseMode;
+import org.praxisplatform.uischema.annotation.AiVisibilityMode;
 import org.praxisplatform.uischema.annotation.AiUsagePolicy;
 import org.praxisplatform.uischema.annotation.DomainClassification;
 import org.praxisplatform.uischema.annotation.DomainDataCategory;
@@ -36,10 +38,10 @@ public class FeriasAfastamentoDTO {
         complianceTags = {"LGPD", "GDPR"},
         reason = "O tipo de afastamento pode revelar informações médicas, como licenças de saúde, configurando dado sensível.",
         aiUsage = @AiUsagePolicy(
-            visibility = AiUsageMode.MASK,
-            trainingUse = AiUsageMode.DENY,
-            ruleAuthoring = AiUsageMode.REVIEW_REQUIRED,
-            reasoningUse = AiUsageMode.REVIEW_REQUIRED
+            visibility = AiVisibilityMode.MASK,
+            trainingUse = AiTrainingUseMode.DENY,
+            ruleAuthoring = AiControlledUseMode.REVIEW_REQUIRED,
+            reasoningUse = AiControlledUseMode.REVIEW_REQUIRED
         )
     )
     @UISchema(label = "Tipo", required = true, maxLength = 100, group = "Principal", order = 10, helpText = "Motivo da ausência (ex: Férias, Licença médica).", icon = "event_busy")
@@ -70,10 +72,10 @@ public class FeriasAfastamentoDTO {
         complianceTags = {"LGPD", "GDPR"},
         reason = "Pode conter laudos, diagnósticos e transcrições de atestados médicos protegidos por sigilo. Não deve ser lido sem máscara por IA.",
         aiUsage = @AiUsagePolicy(
-            visibility = AiUsageMode.MASK,
-            trainingUse = AiUsageMode.DENY,
-            ruleAuthoring = AiUsageMode.REVIEW_REQUIRED,
-            reasoningUse = AiUsageMode.REVIEW_REQUIRED
+            visibility = AiVisibilityMode.MASK,
+            trainingUse = AiTrainingUseMode.DENY,
+            ruleAuthoring = AiControlledUseMode.REVIEW_REQUIRED,
+            reasoningUse = AiControlledUseMode.REVIEW_REQUIRED
         )
     )
     @UISchema(label = "Observações", controlType = FieldControlType.TEXTAREA, maxLength = 2000, group = "Principal", order = 40, helpText = "Detalhes e anotações de aprovação.", icon = "notes")

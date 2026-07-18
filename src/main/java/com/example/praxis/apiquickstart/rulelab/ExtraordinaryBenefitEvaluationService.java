@@ -22,14 +22,18 @@ public final class ExtraordinaryBenefitEvaluationService {
     private final ExtraordinaryGrantRuleLabService ruleLabService;
     private final ObjectMapper objectMapper;
     private final Clock clock;
+    private final ExtraordinaryBenefitTransformationMaterializer transformationMaterializer;
 
     public ExtraordinaryBenefitEvaluationService(
             ExtraordinaryGrantRuleLabService ruleLabService,
             ObjectMapper objectMapper,
-            Clock clock) {
+            Clock clock,
+            ExtraordinaryBenefitTransformationMaterializer transformationMaterializer) {
         this.ruleLabService = Objects.requireNonNull(ruleLabService, "ruleLabService is required");
         this.objectMapper = Objects.requireNonNull(objectMapper, "objectMapper is required");
         this.clock = Objects.requireNonNull(clock, "clock is required");
+        this.transformationMaterializer = Objects.requireNonNull(
+                transformationMaterializer, "transformationMaterializer is required");
     }
 
     /** Avalia sem persistir pedido e sem executar o efeito planejado pelo RuleSet. */
@@ -37,7 +41,7 @@ public final class ExtraordinaryBenefitEvaluationService {
             ExtraordinaryBenefitEvaluationRequest request,
             Set<String> actorPermissions) {
         Objects.requireNonNull(request, "request is required");
-        return evaluateAt(request, actorPermissions, clock.instant());
+        return evaluateDecisionAt(request, actorPermissions, clock.instant()).response();
     }
 
     /** Reusa um instante ja congelado pelo orquestrador shadow, sem alterar a semantica do engine. */
@@ -51,7 +55,58 @@ public final class ExtraordinaryBenefitEvaluationService {
         ObjectNode facts = freezeFacts(request, actorPermissions);
         ExtraordinaryGrantRuleEvaluation evaluation =
                 ruleLabService.evaluateWithSnapshot(facts, evaluatedAt, userTimeZone);
-        return toResponse(request, evaluatedAt, evaluation);
+        return toDecision(request, evaluatedAt, evaluation).response();
+    }
+
+    /** Reuses both the operation instant and its immutable snapshot reference. */
+    ExtraordinaryBenefitEvaluationResponse evaluateAt(
+            ExtraordinaryBenefitEvaluationRequest request,
+            Set<String> actorPermissions,
+            Instant evaluatedAt,
+            ExtraordinaryGrantRuleSnapshotSession snapshotSession) {
+        Objects.requireNonNull(request, "request is required");
+        Objects.requireNonNull(evaluatedAt, "evaluatedAt is required");
+        Objects.requireNonNull(snapshotSession, "snapshotSession is required");
+        ZoneId userTimeZone = ZoneId.of(request.userTimeZone());
+        ObjectNode facts = freezeFacts(request, actorPermissions);
+        ExtraordinaryGrantRuleEvaluation evaluation =
+                ruleLabService.evaluateWithSnapshot(snapshotSession, facts, evaluatedAt, userTimeZone);
+        return toDecision(request, evaluatedAt, evaluation).response();
+    }
+
+    ExtraordinaryBenefitEvaluatedDecision evaluateDecision(
+            ExtraordinaryBenefitEvaluationRequest request,
+            Set<String> actorPermissions) {
+        Objects.requireNonNull(request, "request is required");
+        return evaluateDecisionAt(request, actorPermissions, clock.instant());
+    }
+
+    ExtraordinaryBenefitEvaluatedDecision evaluateDecisionAt(
+            ExtraordinaryBenefitEvaluationRequest request,
+            Set<String> actorPermissions,
+            Instant evaluatedAt) {
+        Objects.requireNonNull(request, "request is required");
+        Objects.requireNonNull(evaluatedAt, "evaluatedAt is required");
+        ZoneId userTimeZone = ZoneId.of(request.userTimeZone());
+        ObjectNode facts = freezeFacts(request, actorPermissions);
+        ExtraordinaryGrantRuleEvaluation evaluation =
+                ruleLabService.evaluateWithSnapshot(facts, evaluatedAt, userTimeZone);
+        return toDecision(request, evaluatedAt, evaluation);
+    }
+
+    ExtraordinaryBenefitEvaluatedDecision evaluateDecisionAt(
+            ExtraordinaryBenefitEvaluationRequest request,
+            Set<String> actorPermissions,
+            Instant evaluatedAt,
+            ExtraordinaryGrantRuleSnapshotSession snapshotSession) {
+        Objects.requireNonNull(request, "request is required");
+        Objects.requireNonNull(evaluatedAt, "evaluatedAt is required");
+        Objects.requireNonNull(snapshotSession, "snapshotSession is required");
+        ZoneId userTimeZone = ZoneId.of(request.userTimeZone());
+        ObjectNode facts = freezeFacts(request, actorPermissions);
+        ExtraordinaryGrantRuleEvaluation evaluation =
+                ruleLabService.evaluateWithSnapshot(snapshotSession, facts, evaluatedAt, userTimeZone);
+        return toDecision(request, evaluatedAt, evaluation);
     }
 
     private ObjectNode freezeFacts(
@@ -88,20 +143,18 @@ public final class ExtraordinaryBenefitEvaluationService {
         return permissions == null ? Set.of() : Set.copyOf(permissions);
     }
 
-    private ExtraordinaryBenefitEvaluationResponse toResponse(
+    private ExtraordinaryBenefitEvaluatedDecision toDecision(
             ExtraordinaryBenefitEvaluationRequest request,
             Instant evaluatedAt,
             ExtraordinaryGrantRuleEvaluation evaluation) {
         RuleEvaluationResult result = evaluation.result();
-        JsonNode calculation = output(result, "grant.amount-calculation");
         JsonNode effectPlan = output(result, "grant.effect-plan");
-        BigDecimal recommendedAmount = calculation == null
-                ? null
-                : calculation.path("recommendedAmount").decimalValue();
-        String currency = textOrNull(calculation, "currency");
+        ExtraordinaryBenefitMaterializedTransformation materialized = transformationMaterializer.materialize(result);
+        BigDecimal recommendedAmount = materialized == null ? null : materialized.amount();
+        String currency = recommendedAmount == null ? null : "BRL";
         ExtraordinaryBenefitEvaluationOutcome outcome =
                 ExtraordinaryBenefitEvaluationOutcome.valueOf(result.decision().name());
-        return new ExtraordinaryBenefitEvaluationResponse(
+        ExtraordinaryBenefitEvaluationResponse response = new ExtraordinaryBenefitEvaluationResponse(
                 request.requestReference(),
                 outcome,
                 businessMessage(outcome),
@@ -120,6 +173,10 @@ public final class ExtraordinaryBenefitEvaluationService {
                 textOrNull(effectPlan, "status"),
                 false,
                 false);
+        ExtraordinaryBenefitTransformationAuditEvidence evidence = materialized == null
+                ? null
+                : ExtraordinaryBenefitTransformationAuditEvidence.from(materialized.proposal(), result);
+        return new ExtraordinaryBenefitEvaluatedDecision(response, evidence);
     }
 
     private JsonNode output(RuleEvaluationResult result, String bindingKey) {

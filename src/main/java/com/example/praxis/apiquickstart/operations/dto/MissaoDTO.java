@@ -4,7 +4,9 @@ import com.example.praxis.apiquickstart.operations.enums.MissaoPrioridade;
 import com.example.praxis.apiquickstart.operations.enums.MissaoStatus;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.*;
-import org.praxisplatform.uischema.annotation.AiUsageMode;
+import org.praxisplatform.uischema.annotation.AiControlledUseMode;
+import org.praxisplatform.uischema.annotation.AiTrainingUseMode;
+import org.praxisplatform.uischema.annotation.AiVisibilityMode;
 import org.praxisplatform.uischema.annotation.AiUsagePolicy;
 import org.praxisplatform.uischema.annotation.DomainClassification;
 import org.praxisplatform.uischema.annotation.DomainDataCategory;
@@ -36,7 +38,7 @@ public class MissaoDTO {
             classification = DomainClassification.CONFIDENTIAL,
             dataCategory = DomainDataCategory.OPERATIONAL,
             complianceTags = {"INTERNAL_POLICY"},
-            aiUsage = @AiUsagePolicy(visibility = AiUsageMode.SUMMARIZE_ONLY, trainingUse = AiUsageMode.DENY, ruleAuthoring = AiUsageMode.REVIEW_REQUIRED, reasoningUse = AiUsageMode.REVIEW_REQUIRED),
+            aiUsage = @AiUsagePolicy(visibility = AiVisibilityMode.SUMMARIZE_ONLY, trainingUse = AiTrainingUseMode.DENY, ruleAuthoring = AiControlledUseMode.REVIEW_REQUIRED, reasoningUse = AiControlledUseMode.REVIEW_REQUIRED),
             reason = "Objetivo operacional da missao."
     )
     @Schema(
@@ -51,7 +53,7 @@ public class MissaoDTO {
             classification = DomainClassification.CONFIDENTIAL,
             dataCategory = DomainDataCategory.OPERATIONAL,
             complianceTags = {"INTERNAL_POLICY"},
-            aiUsage = @AiUsagePolicy(visibility = AiUsageMode.SUMMARIZE_ONLY, trainingUse = AiUsageMode.DENY, ruleAuthoring = AiUsageMode.REVIEW_REQUIRED, reasoningUse = AiUsageMode.REVIEW_REQUIRED),
+            aiUsage = @AiUsagePolicy(visibility = AiVisibilityMode.SUMMARIZE_ONLY, trainingUse = AiTrainingUseMode.DENY, ruleAuthoring = AiControlledUseMode.REVIEW_REQUIRED, reasoningUse = AiControlledUseMode.REVIEW_REQUIRED),
             reason = "Prioridade operacional da missao."
     )
     @Schema(description = "Nivel de urgencia operacional; afeta alocacao de recursos e SLAs de equipa.")
@@ -64,7 +66,7 @@ public class MissaoDTO {
             classification = DomainClassification.INTERNAL,
             dataCategory = DomainDataCategory.LEGAL,
             complianceTags = {"INTERNAL_POLICY", "REGULATORY"},
-            aiUsage = @AiUsagePolicy(visibility = AiUsageMode.ALLOW, trainingUse = AiUsageMode.DENY, ruleAuthoring = AiUsageMode.REVIEW_REQUIRED, reasoningUse = AiUsageMode.ALLOW),
+            aiUsage = @AiUsagePolicy(visibility = AiVisibilityMode.ALLOW, trainingUse = AiTrainingUseMode.DENY, ruleAuthoring = AiControlledUseMode.REVIEW_REQUIRED, reasoningUse = AiControlledUseMode.ALLOW),
             reason = "Status governado do ciclo operacional da missao."
     )
     @Schema(description = "Ponto do fluxo de vida da missao; governa acoes, licencas e publicacao em dashboards regulados.")
@@ -77,7 +79,7 @@ public class MissaoDTO {
             classification = DomainClassification.CONFIDENTIAL,
             dataCategory = DomainDataCategory.OPERATIONAL,
             complianceTags = {"INTERNAL_POLICY"},
-            aiUsage = @AiUsagePolicy(visibility = AiUsageMode.SUMMARIZE_ONLY, trainingUse = AiUsageMode.DENY, ruleAuthoring = AiUsageMode.REVIEW_REQUIRED, reasoningUse = AiUsageMode.REVIEW_REQUIRED),
+            aiUsage = @AiUsagePolicy(visibility = AiVisibilityMode.SUMMARIZE_ONLY, trainingUse = AiTrainingUseMode.DENY, ruleAuthoring = AiControlledUseMode.REVIEW_REQUIRED, reasoningUse = AiControlledUseMode.REVIEW_REQUIRED),
             reason = "Local operacional da missao."
     )
     @Schema(

@@ -22,6 +22,8 @@ import com.example.praxis.apiquickstart.hr.service.FuncionarioService;
 import com.example.praxis.apiquickstart.hr.service.HistoricosCargoService;
 import com.example.praxis.apiquickstart.hr.service.VwAnalyticsFolhaPagamentoService;
 import com.example.praxis.apiquickstart.hr.service.VwPerfilHeroiService;
+import com.example.praxis.apiquickstart.hr.security.HrAnalyticsAuthorities;
+import com.example.praxis.apiquickstart.hr.security.HrDepartmentScopeAccess;
 import com.example.praxis.apiquickstart.operations.dto.MissaoParticipanteDTO;
 import com.example.praxis.apiquickstart.operations.service.MissaoParticipanteService;
 import org.praxisplatform.uischema.annotation.ApiGroup;
@@ -96,6 +98,7 @@ public class FuncionarioController extends AbstractQuickstartCrudController<Func
     private final FuncionarioService service;
     private final FuncionarioMapper mapper;
     private final VwPerfilHeroiService perfilHeroiService;
+    private final HrDepartmentScopeAccess departmentScopeAccess;
     private final VwAnalyticsFolhaPagamentoService analyticsFolhaPagamentoService;
     private final MissaoParticipanteService missaoParticipanteService;
     private final DependenteService dependenteService;
@@ -108,6 +111,7 @@ public class FuncionarioController extends AbstractQuickstartCrudController<Func
             FuncionarioService service,
             FuncionarioMapper mapper,
             VwPerfilHeroiService perfilHeroiService,
+            HrDepartmentScopeAccess departmentScopeAccess,
             VwAnalyticsFolhaPagamentoService analyticsFolhaPagamentoService,
             MissaoParticipanteService missaoParticipanteService,
             DependenteService dependenteService,
@@ -118,6 +122,7 @@ public class FuncionarioController extends AbstractQuickstartCrudController<Func
         this.service = service;
         this.mapper = mapper;
         this.perfilHeroiService = perfilHeroiService;
+        this.departmentScopeAccess = departmentScopeAccess;
         this.analyticsFolhaPagamentoService = analyticsFolhaPagamentoService;
         this.missaoParticipanteService = missaoParticipanteService;
         this.dependenteService = dependenteService;
@@ -151,7 +156,11 @@ public class FuncionarioController extends AbstractQuickstartCrudController<Func
                             id = "employee-admission-comparison",
                             intent = AnalyticsIntent.COMPARISON,
                             sourceOperation = AnalyticsOperation.COMPARISON,
-                            primaryDimension = @AnalyticsDimensionBinding(field = "departamento", label = "Departamento"),
+                            primaryDimension = @AnalyticsDimensionBinding(
+                                    field = "departamento",
+                                    label = "Departamento",
+                                    keyFilterField = "departamentoIdsIn"
+                            ),
                             comparisonPeriod = @AnalyticsComparisonPeriodBinding(
                                     field = "dataAdmissao",
                                     timezone = "America/Sao_Paulo",
@@ -363,7 +372,8 @@ public class FuncionarioController extends AbstractQuickstartCrudController<Func
             relatedChildResourcePath = ApiPaths.HumanResources.VW_PERFIL_HEROI,
             relatedChildParentField = "funcionarioId",
             relatedSelectable = true,
-            relatedSelectionKeyField = "funcionarioId"
+            relatedSelectionKeyField = "funcionarioId",
+            requiredAuthorities = {HrAnalyticsAuthorities.EMPLOYEE_360_READ}
     )
     @ResourceIntent(
             id = "employee-360",
@@ -377,6 +387,7 @@ public class FuncionarioController extends AbstractQuickstartCrudController<Func
             @ApiResponse(responseCode = "404", description = "Perfil 360 não encontrado.")
     })
     public ResponseEntity<RestApiResponse<VwPerfilHeroiDTO>> getHeroProfile(@PathVariable Integer id) {
+        departmentScopeAccess.requireDepartment(service.findById(id).getDepartamentoId());
         VwPerfilHeroiDTO profile = perfilHeroiService.findById(id);
         Links links = Links.of(
                 linkToSelf(id),
@@ -664,4 +675,3 @@ public class FuncionarioController extends AbstractQuickstartCrudController<Func
         return super.deleteBatch(ids);
     }
 }
-

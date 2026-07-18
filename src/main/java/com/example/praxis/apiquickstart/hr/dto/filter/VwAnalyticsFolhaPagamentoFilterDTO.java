@@ -3,6 +3,7 @@ package com.example.praxis.apiquickstart.hr.dto.filter;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import com.example.praxis.apiquickstart.constants.ApiPaths;
+import com.example.praxis.apiquickstart.hr.security.HrDepartmentScopedFilter;
 import org.praxisplatform.uischema.FieldControlType;
 import org.praxisplatform.uischema.FieldDataType;
 import org.praxisplatform.uischema.NumericFormat;
@@ -24,7 +25,7 @@ import java.util.List;
         name = "VwAnalyticsFolhaPagamentoFilterDTO",
         description = "Criterios de busca sobre a projecao VwAnalyticsFolhaPagamento (vista, nao entidade a persistir). "
                 + "Filtra linhas agregadas de folha com contexto de colaborador, organograma, operacoes e buckets de remuneracao, sem substituir o contrato transacional de FolhaPagamento.")
-public class VwAnalyticsFolhaPagamentoFilterDTO implements GenericFilterDTO {
+public class VwAnalyticsFolhaPagamentoFilterDTO implements GenericFilterDTO, HrDepartmentScopedFilter {
     @UISchema(label = "Mostrar colaboradores", type = FieldDataType.NUMBER, controlType = FieldControlType.INLINE_ENTITY_LOOKUP, order = 15,
             multiple = true,
             valueField = "id", displayField = "label",
@@ -89,11 +90,18 @@ public class VwAnalyticsFolhaPagamentoFilterDTO implements GenericFilterDTO {
 
     @UISchema(label = "Departamento", type = FieldDataType.NUMBER, controlType = FieldControlType.ASYNC_SELECT, order = 110,
             valueField = "id", displayField = "label",
-            endpoint = ApiPaths.HumanResources.DEPARTAMENTOS_DEPARTMENT_LOOKUP_OPTIONS, helpText = "Filtrar análise por departamento.", icon = "apartment")
+            endpoint = ApiPaths.HumanResources.DEPARTAMENTOS_DEPARTMENT_LOOKUP_OPTIONS, helpText = "Filtrar pela lotação efetiva na competência.", icon = "apartment")
     @Filterable(operation = Filterable.FilterOperation.EQUAL, relation = "departamentoId")
     @Schema(
-            description = "Departamento organizacional associado ao colaborador na linha analitica.")
+            description = "Departamento efetivo no primeiro dia da competência, sem fallback para o cadastro atual do colaborador.")
     private Integer departamentoId;
+
+    @UISchema(label = "Departamentos", type = FieldDataType.NUMBER, controlType = FieldControlType.INLINE_ENTITY_LOOKUP, order = 115,
+            multiple = true, valueField = "id", displayField = "label",
+            endpoint = ApiPaths.HumanResources.DEPARTAMENTOS_DEPARTMENT_LOOKUP_OPTIONS, formHidden = true, icon = "apartment")
+    @Filterable(operation = Filterable.FilterOperation.IN, relation = "departamentoId")
+    @Schema(description = "Conjunto de departamentos efetivos. O backend intersecta este filtro com o escopo organizacional resolvido para o principal.")
+    private List<Integer> departamentoIdsIn;
 
     @UISchema(label = "Equipe", type = FieldDataType.NUMBER, controlType = FieldControlType.INLINE_ENTITY_LOOKUP, order = 120,
             valueField = "id", displayField = "label",
@@ -241,6 +249,8 @@ public class VwAnalyticsFolhaPagamentoFilterDTO implements GenericFilterDTO {
     public void setDepartamento(String departamento) { this.departamento = departamento; }
     public Integer getDepartamentoId() { return departamentoId; }
     public void setDepartamentoId(Integer departamentoId) { this.departamentoId = departamentoId; }
+    public List<Integer> getDepartamentoIdsIn() { return departamentoIdsIn; }
+    public void setDepartamentoIdsIn(List<Integer> departamentoIdsIn) { this.departamentoIdsIn = departamentoIdsIn; }
     public String getEquipe() { return equipe; }
     public void setEquipe(String equipe) { this.equipe = equipe; }
     public Integer getEquipeId() { return equipeId; }

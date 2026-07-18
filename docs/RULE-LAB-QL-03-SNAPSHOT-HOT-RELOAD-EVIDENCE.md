@@ -25,8 +25,9 @@ verdade do plano ativo.
 - O host aceita apenas `ownerServiceKey=praxis-api-quickstart`,
   `ruleSetKey=extraordinary-grant-eligibility`, tenant/environment configurados
   e `requiredHostContractVersion=quickstart/1.0`.
-- Implementações Java são resolvidas por chave e versão exatas no registry
-  executável do host.
+- Implementações Java são resolvidas por chave, versão e atestação exatas no
+  registry executável do host. Extensões Java de cliente exigem evidência
+  externa e não podem autorizar a si mesmas pelo payload publicado.
 - O hash retornado pelo control plane deve coincidir com o hash recompilado pelo
   engine.
 - `activationRevision` impede que respostas reordenadas substituam um head mais
@@ -71,10 +72,10 @@ código de falha; fatos, expressões e mensagens internas não são expostos.
 
 ## Coordenadas públicas
 
-- `io.github.codexrodrigues:praxis-rules-engine:0.1.0-beta.10`
-- `io.github.codexrodrigues:praxis-config-starter:0.1.0-rc.74`
+- `io.github.codexrodrigues:praxis-rules-engine:0.1.0-beta.13`
+- `io.github.codexrodrigues:praxis-config-starter:0.1.0-rc.78`
 
-O Config Starter `rc.74` e o Quickstart exigem Java 21. Não há override de Maven
+O Config Starter `rc.78` e o Quickstart exigem Java 21. Não há override de Maven
 local na prova downstream final.
 
 ## Validação focal

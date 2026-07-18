@@ -11,15 +11,16 @@ public final class RuleLabQl07SnapshotPayload {
     }
 
     public static void main(String[] args) throws Exception {
-        if (args.length != 2) {
-            throw new IllegalArgumentException("Expected two approved source definition UUIDs.");
+        if (args.length != 3) {
+            throw new IllegalArgumentException("Expected two approved source definition UUIDs and the next RuleSet version.");
         }
         UUID.fromString(args[0]);
         UUID.fromString(args[1]);
+        int ruleSetVersion = Integer.parseInt(args[2]);
 
         ObjectMapper mapper = new ObjectMapper().findAndRegisterModules();
         ObjectNode request = mapper.createObjectNode();
-        request.set("ruleSet", mapper.valueToTree(ExtraordinaryGrantRuleSetFactory.definition()));
+        request.set("ruleSet", mapper.valueToTree(ExtraordinaryGrantRuleSetFactory.definition(ruleSetVersion)));
         ArrayNode sources = request.putArray("sourceDefinitionIds");
         sources.add(args[0]);
         sources.add(args[1]);
@@ -27,7 +28,6 @@ public final class RuleLabQl07SnapshotPayload {
         request.put("requiredHostContractVersion", ExtraordinaryGrantRuleSnapshotRuntime.HOST_CONTRACT_VERSION);
         request.put("validFromUtc", "2026-01-01T00:00:00Z");
         request.putNull("validUntilUtc");
-        request.put("publishedBy", "ql07-release-manager");
         System.out.println(mapper.writeValueAsString(request));
     }
 }

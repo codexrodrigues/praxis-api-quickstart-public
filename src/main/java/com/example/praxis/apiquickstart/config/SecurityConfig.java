@@ -23,6 +23,7 @@ import com.example.praxis.apiquickstart.security.ConfigScopedEncodedSlashHttpFir
 import com.example.praxis.apiquickstart.security.ConfigOriginRestrictionFilter;
 import com.example.praxis.apiquickstart.security.PublicApiRateLimitFilter;
 import com.example.praxis.apiquickstart.security.SpaCsrfTokenRequestHandler;
+import com.example.praxis.apiquickstart.hr.security.HrAnalyticsAuthorities;
 import org.praxisplatform.uischema.constants.ApiPaths;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -94,7 +95,7 @@ public class SecurityConfig {
                 ApiPaths.Framework.COCKPIT_PATTERN);
         log.info("[SECURITY] /actuator/env requires authentication (and is not exposed by default).");
         if (readOpen) {
-            log.info("[SECURITY] Read-Open=true -> GET/HEAD allowed for /api/**");
+                    log.info("[SECURITY] Read-Open=true -> GET/HEAD allowed for /api/** except protected HR analytics and employee-360 paths");
             log.info("[SECURITY] Read-Open=true -> Extra GET allowed: {}, {}, {}, {}, {}",
                     "/api/*/*/schemas/**",
                     "/api/*/*/schema/**",
@@ -181,10 +182,59 @@ public class SecurityConfig {
                         ApiPaths.Framework.COCKPIT + "/",
                         ApiPaths.Framework.COCKPIT_PATTERN
                 ).permitAll()
+                .requestMatchers(HttpMethod.POST,
+                        "/api/praxis/config/domain-rules/definitions")
+                    .hasAuthority(com.example.praxis.apiquickstart.security.RuleGovernanceAuthorities.DEFINITION_AUTHOR)
+                .requestMatchers(HttpMethod.PATCH,
+                        "/api/praxis/config/domain-rules/definitions/*/status")
+                    .hasAuthority(com.example.praxis.apiquickstart.security.RuleGovernanceAuthorities.DEFINITION_APPROVER)
+                .requestMatchers(HttpMethod.POST,
+                        "/api/praxis/config/domain-rules/snapshots/composition-manifest")
+                    .hasAuthority(com.example.praxis.apiquickstart.security.RuleGovernanceAuthorities.SNAPSHOT_PUBLISHER)
+                .requestMatchers(HttpMethod.POST,
+                        "/api/praxis/config/domain-rules/snapshots/composition-approvals")
+                    .hasAuthority(com.example.praxis.apiquickstart.security.RuleGovernanceAuthorities.COMPOSITION_APPROVER)
+                .requestMatchers(HttpMethod.POST,
+                        "/api/praxis/config/domain-rules/snapshots")
+                    .hasAuthority(com.example.praxis.apiquickstart.security.RuleGovernanceAuthorities.SNAPSHOT_PUBLISHER)
                 // Endpoints do config-store/RAG (ingestão de registry/catalog)
                 .requestMatchers("/api/praxis/config/**").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/praxis/config/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/praxis/config/**").permitAll()
+                // Dados de RH do piloto corporativo nunca seguem a abertura generica de leitura.
+                .requestMatchers(HttpMethod.POST,
+                        com.example.praxis.apiquickstart.constants.ApiPaths.HumanResources.VW_ANALYTICS_AFASTAMENTOS + "/stats/comparison",
+                        com.example.praxis.apiquickstart.constants.ApiPaths.HumanResources.VW_ANALYTICS_FOLHA_PAGAMENTO + "/stats/comparison")
+                    .hasAuthority(HrAnalyticsAuthorities.AGGREGATE_READ)
+                .requestMatchers(HttpMethod.GET,
+                        com.example.praxis.apiquickstart.constants.ApiPaths.HumanResources.VW_ANALYTICS_AFASTAMENTOS + "/capabilities",
+                        com.example.praxis.apiquickstart.constants.ApiPaths.HumanResources.VW_ANALYTICS_FOLHA_PAGAMENTO + "/capabilities")
+                    .hasAnyAuthority(
+                            HrAnalyticsAuthorities.AGGREGATE_READ,
+                            HrAnalyticsAuthorities.NOMINAL_READ)
+                .requestMatchers(HttpMethod.GET,
+                        com.example.praxis.apiquickstart.constants.ApiPaths.HumanResources.VW_ANALYTICS_AFASTAMENTOS + "/**",
+                        com.example.praxis.apiquickstart.constants.ApiPaths.HumanResources.VW_ANALYTICS_FOLHA_PAGAMENTO + "/**")
+                    .hasAuthority(HrAnalyticsAuthorities.NOMINAL_READ)
+                .requestMatchers(HttpMethod.HEAD,
+                        com.example.praxis.apiquickstart.constants.ApiPaths.HumanResources.VW_ANALYTICS_AFASTAMENTOS + "/**",
+                        com.example.praxis.apiquickstart.constants.ApiPaths.HumanResources.VW_ANALYTICS_FOLHA_PAGAMENTO + "/**")
+                    .hasAuthority(HrAnalyticsAuthorities.NOMINAL_READ)
+                .requestMatchers(HttpMethod.POST,
+                        com.example.praxis.apiquickstart.constants.ApiPaths.HumanResources.VW_ANALYTICS_AFASTAMENTOS + "/**",
+                        com.example.praxis.apiquickstart.constants.ApiPaths.HumanResources.VW_ANALYTICS_FOLHA_PAGAMENTO + "/**")
+                    .hasAuthority(HrAnalyticsAuthorities.NOMINAL_READ)
+                .requestMatchers(HttpMethod.GET,
+                        com.example.praxis.apiquickstart.constants.ApiPaths.HumanResources.FUNCIONARIOS + "/*/hero-profile",
+                        com.example.praxis.apiquickstart.constants.ApiPaths.HumanResources.VW_PERFIL_HEROI + "/**")
+                    .hasAuthority(HrAnalyticsAuthorities.EMPLOYEE_360_READ)
+                .requestMatchers(HttpMethod.HEAD,
+                        com.example.praxis.apiquickstart.constants.ApiPaths.HumanResources.FUNCIONARIOS + "/*/hero-profile",
+                        com.example.praxis.apiquickstart.constants.ApiPaths.HumanResources.VW_PERFIL_HEROI + "/**")
+                    .hasAuthority(HrAnalyticsAuthorities.EMPLOYEE_360_READ)
+                .requestMatchers(HttpMethod.POST,
+                        com.example.praxis.apiquickstart.constants.ApiPaths.HumanResources.VW_PERFIL_HEROI + "/**")
+                    .hasAuthority(HrAnalyticsAuthorities.EMPLOYEE_360_READ)
                 ;
 
                 if (schemasAggregatorEnabled) {

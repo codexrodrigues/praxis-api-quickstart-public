@@ -55,7 +55,8 @@ class ExtraordinaryGrantRuleLabServiceTest {
         businessService = new ExtraordinaryBenefitEvaluationService(
                 service,
                 JSON,
-                Clock.fixed(NOW, ZoneOffset.UTC));
+                Clock.fixed(NOW, ZoneOffset.UTC),
+                new ExtraordinaryBenefitTransformationMaterializer());
     }
 
     @Test
@@ -86,7 +87,7 @@ class ExtraordinaryGrantRuleLabServiceTest {
 
         assertEquals(ExtraordinaryBenefitEvaluationOutcome.DENY, response.outcome());
         assertEquals(List.of("BUDGET_INSUFFICIENT"), response.reasonCodes());
-        assertEquals(new BigDecimal("2500.00"), response.recommendedAmount().setScale(2));
+        assertNull(response.recommendedAmount());
         assertNull(response.plannedEffectStatus());
         assertFalse(response.effectExecuted());
     }
@@ -122,13 +123,26 @@ class ExtraordinaryGrantRuleLabServiceTest {
 
         assertEquals(RuleDecision.ALLOW, result.decision());
         assertEquals(original, facts);
-        assertEquals("1.1", result.compatibility().engineContractVersion());
+        assertEquals("1.4", result.compatibility().engineContractVersion());
         assertEquals(RuleRuntimeCompatibility.JSON_LOGIC_CORPUS_SHA256, result.compatibility().jsonLogicCorpusSha256());
-        assertEquals(2, result.implementationRefs().size());
+        assertEquals(3, result.implementationRefs().size());
+        var customerImplementation = result.implementationRefs().stream()
+                .filter(ref -> ref.implementationKey().equals("customer:extraordinary-grant-additional-eligibility"))
+                .findFirst()
+                .orElseThrow();
+        assertEquals("lab-fixture:customer-policy-signer",
+                customerImplementation.extensionTrust().signatureIdentity());
         assertEquals(11, result.bindingResults().size());
-        assertEquals("2500.00", binding(result, "grant.amount-calculation")
-                .output().path("recommendedAmount").decimalValue().setScale(2).toPlainString());
-        assertEquals("BRL", binding(result, "grant.amount-calculation").output().path("currency").asText());
+        assertNull(binding(result, "grant.amount-transformation").output());
+        assertEquals(1, result.transformationProposals().size());
+        var transformation = result.transformationProposals().getFirst();
+        assertEquals(ExtraordinaryBenefitTransformationMaterializer.PROPOSAL_KEY, transformation.proposalKey());
+        assertEquals(ExtraordinaryBenefitTransformationMaterializer.TARGET_PATH, transformation.targetPath());
+        assertEquals("2500.00", transformation.after().value()
+                .decimalValue().setScale(2).toPlainString());
+        var auditEvidence = ExtraordinaryBenefitTransformationAuditEvidence.from(transformation, result);
+        assertEquals(transformation.beforeDigest(), auditEvidence.beforeDigest());
+        assertEquals(transformation.afterDigest(), auditEvidence.afterDigest());
         assertEquals("PLANNED_NOT_EXECUTED", binding(result, "grant.effect-plan").output().path("status").asText());
     }
 
@@ -143,7 +157,7 @@ class ExtraordinaryGrantRuleLabServiceTest {
         assertEquals(List.of("REQUEST_NOT_AUTHORIZED"), result.reasonCodes());
         assertEquals(1, result.bindingResults().size());
         assertFalse(result.bindingResults().stream()
-                .anyMatch(item -> item.bindingKey().equals("grant.amount-calculation")));
+                .anyMatch(item -> item.bindingKey().equals("grant.amount-transformation")));
     }
 
     @Test
@@ -155,7 +169,9 @@ class ExtraordinaryGrantRuleLabServiceTest {
 
         assertEquals(RuleDecision.NOT_APPLICABLE, result.decision());
         assertEquals(List.of("PROGRAM_NOT_APPLICABLE"), binding(result, "program.applicability").reasonCodes());
-        assertNull(binding(result, "grant.amount-calculation").output());
+        assertEquals(RuleDecision.NOT_APPLICABLE,
+                binding(result, "grant.amount-transformation").decision());
+        assertTrue(result.transformationProposals().isEmpty());
         assertNull(binding(result, "grant.effect-plan").output());
     }
 
@@ -172,7 +188,7 @@ class ExtraordinaryGrantRuleLabServiceTest {
     }
 
     @Test
-    void insufficientBudgetDeniesAfterPureCalculationAndBeforeEffectPlan() throws Exception {
+    void insufficientBudgetDeniesBeforeTransformationAndEffectPlanning() throws Exception {
         ObjectNode facts = eligibleFacts();
         facts.withObject("/budget").put("availableAmount", 1000.00);
 
@@ -180,7 +196,9 @@ class ExtraordinaryGrantRuleLabServiceTest {
 
         assertEquals(RuleDecision.DENY, result.decision());
         assertEquals(List.of("BUDGET_INSUFFICIENT"), result.reasonCodes());
-        assertEquals("BRL", binding(result, "grant.amount-calculation").output().path("currency").asText());
+        assertTrue(result.transformationProposals().isEmpty());
+        assertFalse(result.bindingResults().stream()
+                .anyMatch(item -> item.bindingKey().equals("grant.amount-transformation")));
         assertFalse(result.bindingResults().stream()
                 .anyMatch(item -> item.bindingKey().equals("grant.effect-plan")));
     }

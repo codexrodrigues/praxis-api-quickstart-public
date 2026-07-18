@@ -20,9 +20,11 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.io.ByteArrayInputStream;
+import java.time.Duration;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -82,6 +84,11 @@ class FuncionarioExportSmokeHttpTest {
 
     @BeforeEach
     void seedFuncionarioTables() {
+        SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
+        requestFactory.setConnectTimeout(Duration.ofSeconds(10));
+        requestFactory.setReadTimeout(Duration.ofSeconds(60));
+        restTemplate.getRestTemplate().setRequestFactory(requestFactory);
+
         jdbcTemplate.execute("drop table if exists public.funcionarios");
         jdbcTemplate.execute("drop table if exists public.cargos");
         jdbcTemplate.execute("drop table if exists public.departamentos");

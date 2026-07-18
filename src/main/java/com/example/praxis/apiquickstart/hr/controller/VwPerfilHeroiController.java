@@ -25,10 +25,12 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.security.access.prepost.PreAuthorize;
 import java.util.List;
 
 @ApiResource(value = ApiPaths.HumanResources.VW_PERFIL_HEROI, resourceKey = "human-resources.vw-perfil-heroi")
 @ApiGroup("human-resources")
+@PreAuthorize("@hrDepartmentScopeAccess.isUnscoped(authentication)")
 public class VwPerfilHeroiController extends AbstractQuickstartReadOnlyController<VwPerfilHeroi, VwPerfilHeroiDTO, Integer, VwPerfilHeroiFilterDTO> {
 
     private final VwPerfilHeroiService service;
@@ -134,7 +136,6 @@ public class VwPerfilHeroiController extends AbstractQuickstartReadOnlyControlle
         return super.getById(id);
     }
 }
-
 
 
 

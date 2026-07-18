@@ -5,7 +5,9 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.*;
 import org.praxisplatform.uischema.FieldControlType;
 import org.praxisplatform.uischema.extension.annotation.UISchema;
-import org.praxisplatform.uischema.annotation.AiUsageMode;
+import org.praxisplatform.uischema.annotation.AiControlledUseMode;
+import org.praxisplatform.uischema.annotation.AiTrainingUseMode;
+import org.praxisplatform.uischema.annotation.AiVisibilityMode;
 import org.praxisplatform.uischema.annotation.AiUsagePolicy;
 import org.praxisplatform.uischema.annotation.DomainClassification;
 import org.praxisplatform.uischema.annotation.DomainDataCategory;
@@ -49,10 +51,10 @@ public class IdentidadeSecretaDTO {
         complianceTags = {"INTERNAL_POLICY", "SECURITY"},
         reason = "Vincular publicamente a identidade civil a este codinome compromete o sigilo e segurança operacional das missões.",
         aiUsage = @AiUsagePolicy(
-            visibility = AiUsageMode.MASK,
-            trainingUse = AiUsageMode.DENY,
-            ruleAuthoring = AiUsageMode.REVIEW_REQUIRED,
-            reasoningUse = AiUsageMode.DENY
+            visibility = AiVisibilityMode.MASK,
+            trainingUse = AiTrainingUseMode.DENY,
+            ruleAuthoring = AiControlledUseMode.REVIEW_REQUIRED,
+            reasoningUse = AiControlledUseMode.DENY
         )
     )
     @UISchema(label = "Codinome", controlType = FieldControlType.INPUT, required = true, maxLength = 120, helpText = "Nome público (alter ego) do herói.", icon = "theater_comedy")

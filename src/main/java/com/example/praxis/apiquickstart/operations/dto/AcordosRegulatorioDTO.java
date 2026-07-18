@@ -3,7 +3,9 @@ package com.example.praxis.apiquickstart.operations.dto;
 import com.example.praxis.apiquickstart.operations.enums.AcordoStatus;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.*;
-import org.praxisplatform.uischema.annotation.AiUsageMode;
+import org.praxisplatform.uischema.annotation.AiControlledUseMode;
+import org.praxisplatform.uischema.annotation.AiTrainingUseMode;
+import org.praxisplatform.uischema.annotation.AiVisibilityMode;
 import org.praxisplatform.uischema.annotation.AiUsagePolicy;
 import org.praxisplatform.uischema.annotation.DomainClassification;
 import org.praxisplatform.uischema.annotation.DomainDataCategory;
@@ -34,7 +36,7 @@ public class AcordosRegulatorioDTO {
             classification = DomainClassification.INTERNAL,
             dataCategory = DomainDataCategory.LEGAL,
             complianceTags = {"INTERNAL_POLICY", "REGULATORY"},
-            aiUsage = @AiUsagePolicy(visibility = AiUsageMode.ALLOW, trainingUse = AiUsageMode.DENY, ruleAuthoring = AiUsageMode.REVIEW_REQUIRED, reasoningUse = AiUsageMode.ALLOW),
+            aiUsage = @AiUsagePolicy(visibility = AiVisibilityMode.ALLOW, trainingUse = AiTrainingUseMode.DENY, ruleAuthoring = AiControlledUseMode.REVIEW_REQUIRED, reasoningUse = AiControlledUseMode.ALLOW),
             reason = "Jurisdicao regulatoria aplicavel ao acordo."
     )
     @Schema(
@@ -49,7 +51,7 @@ public class AcordosRegulatorioDTO {
             classification = DomainClassification.INTERNAL,
             dataCategory = DomainDataCategory.LEGAL,
             complianceTags = {"INTERNAL_POLICY", "REGULATORY"},
-            aiUsage = @AiUsagePolicy(visibility = AiUsageMode.ALLOW, trainingUse = AiUsageMode.DENY, ruleAuthoring = AiUsageMode.REVIEW_REQUIRED, reasoningUse = AiUsageMode.ALLOW),
+            aiUsage = @AiUsagePolicy(visibility = AiVisibilityMode.ALLOW, trainingUse = AiTrainingUseMode.DENY, ruleAuthoring = AiControlledUseMode.REVIEW_REQUIRED, reasoningUse = AiControlledUseMode.ALLOW),
             reason = "Status regulatorio do acordo."
     )
     @Schema(description = "Ciclo de vida do acordo: rascunho, em vigor, vencido ou arquivado (semantica do enum do dominio).")

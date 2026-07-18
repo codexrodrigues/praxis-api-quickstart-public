@@ -155,6 +155,27 @@ class OpenApiGroupResolutionIsolatedIntegrationTest {
     }
 
     @Test
+    void shouldPublishSupplierCreateBusinessSemanticsInGroupedOpenApi() throws Exception {
+        ResponseEntity<String> groupDocResponse = restTemplate.getForEntity(
+                "/v3/api-docs/{group}",
+                String.class,
+                "api-procurement-suppliers"
+        );
+        assertEquals(HttpStatus.OK, groupDocResponse.getStatusCode());
+
+        JsonNode createOperation = objectMapper.readTree(groupDocResponse.getBody())
+                .path("paths")
+                .path("/api/procurement/suppliers")
+                .path("post");
+        assertEquals("Cadastrar fornecedor governado", createOperation.path("summary").asText());
+
+        String description = createOperation.path("description").asText().toLowerCase();
+        assertTrue(description.contains("fornecedor"));
+        assertTrue(description.contains("elegibilidade"));
+        assertTrue(description.contains("pedidos de compra"));
+    }
+
+    @Test
     void shouldPublishDomainSpecificDescriptionsForCriticalCommandSchemas() {
         List<String> commandSchemaPaths = List.of(
                 "/api/human-resources/cargos",
@@ -580,11 +601,71 @@ class OpenApiGroupResolutionIsolatedIntegrationTest {
         Map<String, Object> employeeComparison = employeeComparisonProjections.get(0);
         assertEquals("comparison", ((Map<String, Object>) employeeComparison.get("source")).get("operation"));
         Map<String, Object> employeeComparisonBindings = (Map<String, Object>) employeeComparison.get("bindings");
+        Map<String, Object> employeeComparisonDimension =
+                (Map<String, Object>) employeeComparisonBindings.get("primaryDimension");
+        assertEquals("departamentoIdsIn", employeeComparisonDimension.get("keyFilterField"));
+        assertFalse(employeeComparisonDimension.containsKey("keyPropertyPath"));
+        assertFalse(employeeComparisonDimension.containsKey("labelPropertyPath"));
         Map<String, Object> employeeComparisonPeriod = (Map<String, Object>) employeeComparisonBindings.get("comparisonPeriod");
         assertEquals("dataAdmissao", employeeComparisonPeriod.get("field"));
         assertEquals("America/Sao_Paulo", employeeComparisonPeriod.get("timezone"));
         assertEquals("LAST_30_DAYS", employeeComparisonPeriod.get("preset"));
         assertEquals("PREVIOUS_ALIGNED", employeeComparisonPeriod.get("mode"));
+
+        ResponseEntity<Map> absenceComparisonSchemaResponse = restTemplate.getForEntity(
+                "/schemas/filtered?path={path}&operation=post&schemaType=response",
+                Map.class,
+                "/api/human-resources/vw-analytics-afastamentos/stats/comparison"
+        );
+        assertEquals(HttpStatus.OK, absenceComparisonSchemaResponse.getStatusCode());
+        Map<String, Object> absenceComparisonXUi = (Map<String, Object>) absenceComparisonSchemaResponse.getBody().get("x-ui");
+        assertNotNull(absenceComparisonXUi);
+        Map<String, Object> absenceComparisonAnalytics = (Map<String, Object>) absenceComparisonXUi.get("analytics");
+        assertNotNull(absenceComparisonAnalytics);
+        List<Map<String, Object>> absenceComparisonProjections = (List<Map<String, Object>>) absenceComparisonAnalytics.get("projections");
+        assertEquals(1, absenceComparisonProjections.size());
+        Map<String, Object> absenceComparison = absenceComparisonProjections.get(0);
+        assertEquals("absence-department-comparison", absenceComparison.get("id"));
+        assertEquals("comparison", ((Map<String, Object>) absenceComparison.get("source")).get("operation"));
+        Map<String, Object> absenceComparisonBindings = (Map<String, Object>) absenceComparison.get("bindings");
+        Map<String, Object> absenceComparisonDimension =
+                (Map<String, Object>) absenceComparisonBindings.get("primaryDimension");
+        assertEquals("departamentoIdsIn", absenceComparisonDimension.get("keyFilterField"));
+        assertFalse(absenceComparisonDimension.containsKey("keyPropertyPath"));
+        assertFalse(absenceComparisonDimension.containsKey("labelPropertyPath"));
+        Map<String, Object> absenceComparisonPeriod = (Map<String, Object>) absenceComparisonBindings.get("comparisonPeriod");
+        assertEquals("competencia", absenceComparisonPeriod.get("field"));
+        assertEquals("THIS_MONTH", absenceComparisonPeriod.get("preset"));
+        assertEquals("PREVIOUS_CALENDAR_PERIOD", absenceComparisonPeriod.get("mode"));
+        List<Map<String, Object>> absenceComparisonMetrics = (List<Map<String, Object>>) absenceComparisonBindings.get("primaryMetrics");
+        assertEquals("funcionarioId", absenceComparisonMetrics.get(0).get("field"));
+        assertEquals("diasAfastado", absenceComparisonMetrics.get(1).get("field"));
+        Map<String, Object> absenceComparisonGovernance = (Map<String, Object>) absenceComparison.get("governance");
+        assertNotNull(absenceComparisonGovernance);
+        List<Map<String, Object>> absenceComparisonPolicyRefs =
+                (List<Map<String, Object>>) absenceComparisonGovernance.get("policyRefs");
+        assertEquals(1, absenceComparisonPolicyRefs.size());
+        Map<String, Object> absenceCriticalityPolicy = absenceComparisonPolicyRefs.get(0);
+        assertEquals("hr-absence-criticality-v1", absenceCriticalityPolicy.get("policyId"));
+        assertEquals("2026-07-15", absenceCriticalityPolicy.get("policyVersion"));
+        assertEquals("criticality", absenceCriticalityPolicy.get("role"));
+        assertEquals("criticalityLevel", absenceCriticalityPolicy.get("resultField"));
+        Map<String, Object> absenceCriticalityAttestation =
+                (Map<String, Object>) absenceCriticalityPolicy.get("attestation");
+        assertEquals("criticalityPolicyId", absenceCriticalityAttestation.get("policyIdField"));
+        assertEquals("criticalityPolicyVersion", absenceCriticalityAttestation.get("policyVersionField"));
+        assertFalse(absenceCriticalityPolicy.containsKey("thresholds"));
+        assertFalse(absenceCriticalityPolicy.containsKey("expression"));
+        Map<String, Object> absenceInteractions = (Map<String, Object>) absenceComparison.get("interactions");
+        assertEquals(true, absenceInteractions.get("crossFilter"));
+        assertFalse(absenceInteractions.containsKey("drillDown"));
+        Map<String, Object> recordOpen = (Map<String, Object>) absenceInteractions.get("recordOpen");
+        assertEquals("funcionarioId", recordOpen.get("sourceIdentityField"));
+        Map<String, Object> recordOpenTarget = (Map<String, Object>) recordOpen.get("target");
+        assertEquals("human-resources.funcionarios", recordOpenTarget.get("resourceKey"));
+        assertEquals("hero-profile", recordOpenTarget.get("surfaceId"));
+        assertFalse(recordOpenTarget.containsKey("path"));
+        assertFalse(recordOpenTarget.containsKey("schemaUrl"));
     }
 
     @Test

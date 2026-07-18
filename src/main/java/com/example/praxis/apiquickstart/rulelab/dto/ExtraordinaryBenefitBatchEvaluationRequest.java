@@ -13,7 +13,7 @@ public record ExtraordinaryBenefitBatchEvaluationRequest(
         @NotEmpty
         @Size(max = 50)
         @Schema(description = "Solicitacoes processadas na ordem recebida, limitadas a cinquenta para manter custo e resposta previsiveis.")
-        List<@Valid ExtraordinaryBenefitEvaluationRequest> requests) {
+        List<@Valid ExtraordinaryBenefitAuthoritativeEvaluationRequest> requests) {
     public ExtraordinaryBenefitBatchEvaluationRequest {
         requests = requests == null ? List.of() : List.copyOf(requests);
     }

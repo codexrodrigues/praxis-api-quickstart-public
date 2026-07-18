@@ -5,7 +5,7 @@
 .DESCRIPTION
   Uses fictitious data, records only allowlisted evidence, compares all four operational
   ledger counts around ALLOW/DENY shadow calls, exercises the persisted lifecycle, and
-  deterministically removes the disposable lifecycle fixture before returning.
+  verifies the retained fictitious lifecycle fixture without weakening append-only audit retention.
 #>
 [CmdletBinding()]
 param(
@@ -38,7 +38,10 @@ function Import-DotEnv {
         if ($value.Length -ge 2 -and $value.StartsWith('"') -and $value.EndsWith('"')) {
             $value = $value.Substring(1, $value.Length - 2)
         }
-        if ($name -match '^[A-Za-z_][A-Za-z0-9_]*$') { Set-Item "Env:$name" $value }
+        if ($name -match '^[A-Za-z_][A-Za-z0-9_]*$' -and
+                [string]::IsNullOrWhiteSpace([Environment]::GetEnvironmentVariable($name, 'Process'))) {
+            Set-Item "Env:$name" $value
+        }
     }
 }
 
@@ -88,7 +91,12 @@ function Invoke-JsonRequest {
         $parameters.ContentType = 'application/json'
         $parameters.Body = ($Body | ConvertTo-Json -Depth 12 -Compress)
     }
-    $response = Invoke-WebRequest @parameters
+    try {
+        $response = Invoke-WebRequest @parameters
+    } catch {
+        $actualStatus = if ($null -ne $_.Exception.Response) { [int] $_.Exception.Response.StatusCode } else { $null }
+        throw "HTTP request failed for $Method $Path with $(if ($null -eq $actualStatus) { 'no response' } else { "status $actualStatus" })."
+    }
     $json = if ($response.Content) { $response.Content | ConvertFrom-Json } else { $null }
     [pscustomobject]@{ Status = [int] $response.StatusCode; Headers = $response.Headers; Raw = $response.Content; Json = $json }
 }
@@ -96,7 +104,12 @@ function Invoke-JsonRequest {
 function Assert-ExpectedStatus {
     param([string] $Method, [string] $Path, [int] $ExpectedStatus, $Body = $null)
     try {
-        $null = Invoke-JsonRequest -Method $Method -Path $Path -Body $Body
+        $parameters = @{ Uri = "$BaseUrl$Path"; Method = $Method; UseBasicParsing = $true; ErrorAction = 'Stop' }
+        if ($null -ne $Body) {
+            $parameters.ContentType = 'application/json'
+            $parameters.Body = ($Body | ConvertTo-Json -Depth 12 -Compress)
+        }
+        $null = Invoke-WebRequest @parameters
         throw "Expected HTTP $ExpectedStatus for $Method $Path."
     } catch {
         $response = $_.Exception.Response
@@ -150,6 +163,7 @@ $baseline = Invoke-LedgerProbe $probe
 $runToken = "ql07-$([Guid]::NewGuid().ToString('N').Substring(0, 12))"
 $fixtureReference = "QL07-$([Guid]::NewGuid().ToString('N').Substring(0, 16).ToUpperInvariant())"
 $fixtureCreated = $false
+$proofCompleted = $false
 
 $payload = [ordered]@{
     requestReference = $fixtureReference
@@ -164,6 +178,15 @@ $payload = [ordered]@{
     requestedPaymentDate = '2026-07-20'
     allowedPaymentDates = @('2026-07-20', '2026-08-05')
     availableBudgetAmount = 100000.00
+    userTimeZone = 'America/Sao_Paulo'
+}
+$evaluatePayload = [ordered]@{
+    requestReference = $fixtureReference
+    reasonCode = 'FAMILY_HARDSHIP'
+    eventDate = '2026-07-13'
+    requestedAmount = 2500.00
+    factReference = 'QL10-FICTIONAL-001'
+    requestedPaymentDate = '2026-07-20'
     userTimeZone = 'America/Sao_Paulo'
 }
 
@@ -190,6 +213,8 @@ try {
     $requestSchemaData = Get-Data $requestSchema.Json
     $shadowSchemaData = Get-Data $shadowSchema.Json
     Assert-True ($null -ne $requestSchemaData.properties.requestReference) 'Evaluate request schema is incomplete.'
+    Assert-True ($null -ne $requestSchemaData.properties.factReference) 'Evaluate request schema does not expose the host fact reference.'
+    Assert-True ($null -eq $requestSchemaData.properties.workerStatus) 'Evaluate request schema still accepts caller-owned worker status.'
     Assert-True ($null -ne $shadowSchemaData.properties.comparisonStatus) 'Shadow response schema is incomplete.'
     Assert-True ($null -eq $shadowSchemaData.properties.requestReference) 'Shadow response schema leaks request identity.'
 
@@ -210,7 +235,7 @@ try {
     Assert-CountsEqual $baseline $afterShadow 'Shadow ALLOW/DENY proof'
 
     $evaluateHeaders = @{ Accept = 'application/json'; 'Idempotency-Key' = "$runToken-evaluate"; 'X-Correlation-ID' = "$runToken-evaluate" }
-    $evaluation = Invoke-JsonRequest POST '/api/human-resources/extraordinary-benefit-requests/actions/evaluate' $evaluateHeaders $payload $session
+    $evaluation = Invoke-JsonRequest POST '/api/human-resources/extraordinary-benefit-requests/actions/evaluate' $evaluateHeaders $evaluatePayload $session
     $evaluationData = Get-Data $evaluation.Json
     Assert-True ($evaluationData.evaluation.outcome -eq 'ALLOW') 'Persisted evaluation was not ALLOW.'
     Assert-True ($evaluationData.resource.lifecycleStatus -eq 'EVALUATED') 'Persisted resource did not start in EVALUATED.'
@@ -267,16 +292,21 @@ try {
             approved = $true
             applied = $true
             effectExactlyOnce = $true
-            cleanupRequired = $true
+            retentionRequired = $true
         }
     }
     New-Item -ItemType Directory -Path (Split-Path -Parent $EvidencePath) -Force | Out-Null
     $evidence | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $EvidencePath -Encoding UTF8
     $evidence | ConvertTo-Json -Depth 8
+    $proofCompleted = $true
 } finally {
     if ($fixtureCreated) {
-        $null = Invoke-LedgerProbe $probe @('cleanup', $fixtureReference, $runToken)
+        $retainedFixture = Invoke-LedgerProbe $probe @('fixture', $fixtureReference, $runToken)
+        if ($proofCompleted) {
+            Assert-True ($retainedFixture.requests -eq 1) 'QL-07 retained fixture request count is invalid.'
+            Assert-True ($retainedFixture.effects -eq 1) 'QL-07 retained fixture effect count is invalid.'
+            Assert-True ($retainedFixture.executions -eq 4) 'QL-07 retained fixture action execution count is invalid.'
+            Assert-True ($retainedFixture.transitions -eq 3) 'QL-07 retained fixture transition count is invalid.'
+        }
     }
-    $afterCleanup = Invoke-LedgerProbe $probe
-    Assert-CountsEqual $baseline $afterCleanup 'QL-07 fixture cleanup'
 }

@@ -1,0 +1,269 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://praxisplatform.org/schemas/absence-analytics-semantic-golden-suite-v1.schema.json",
+  "title": "Praxis Absence Analytics Semantic Golden Suite",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "labRef",
+    "semantics",
+    "aiProjection",
+    "accessProfiles",
+    "expectedComposition",
+    "scenarios"
+  ],
+  "properties": {
+    "schemaVersion": { "const": "1.0" },
+    "labRef": {
+      "type": "object",
+      "required": ["domainKey", "boundedContextKey", "scenarioKey", "policyId", "policyVersion"],
+      "additionalProperties": false,
+      "properties": {
+        "domainKey": { "const": "human-resources" },
+        "boundedContextKey": { "const": "absence-management" },
+        "scenarioKey": { "const": "department-period-critical-employees" },
+        "policyId": { "const": "hr-absence-criticality-v1" },
+        "policyVersion": { "const": "2026-07-15" }
+      }
+    },
+    "semantics": {
+      "type": "object",
+      "required": [
+        "primaryMetric",
+        "secondaryMetric",
+        "periodStrategy",
+        "dateBoundary",
+        "departmentAttribution",
+        "overlapPolicy",
+        "timezone",
+        "criticalityThresholdDays"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "primaryMetric": { "const": "DISTINCT_EMPLOYEES_WITH_ABSENCE_OVERLAP" },
+        "secondaryMetric": { "const": "UNIQUE_CALENDAR_DAYS_ABSENT" },
+        "periodStrategy": { "const": "CURRENT_CALENDAR_MONTH_VS_PREVIOUS_CALENDAR_MONTH" },
+        "dateBoundary": { "const": "INCLUSIVE" },
+        "departmentAttribution": { "const": "EFFECTIVE_ASSIGNMENT_PER_ABSENCE_DAY" },
+        "overlapPolicy": { "const": "UNION_EMPLOYEE_DAYS" },
+        "timezone": { "const": "America/Sao_Paulo" },
+        "criticalityThresholdDays": { "const": 15 }
+      }
+    },
+    "aiProjection": {
+      "type": "object",
+      "required": ["allowedFields", "forbiddenFields"],
+      "additionalProperties": false,
+      "properties": {
+        "allowedFields": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 1 },
+          "uniqueItems": true
+        },
+        "forbiddenFields": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 1 },
+          "uniqueItems": true
+        }
+      }
+    },
+    "accessProfiles": {
+      "type": "array",
+      "minItems": 4,
+      "maxItems": 4,
+      "items": {
+        "type": "object",
+        "required": ["id", "aggregate", "criticalEmployees", "surfaceOpen", "scope"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "enum": ["HR_ANALYST", "DEPARTMENT_MANAGER", "AGGREGATE_ONLY", "UNAUTHORIZED"] },
+          "aggregate": { "type": "boolean" },
+          "criticalEmployees": { "type": "boolean" },
+          "surfaceOpen": { "type": "boolean" },
+          "scope": { "enum": ["ALL_AUTHORIZED", "OWN_DEPARTMENT", "AGGREGATES_ONLY", "NONE"] }
+        }
+      }
+    },
+    "expectedComposition": {
+      "type": "object",
+      "required": ["widgets", "links", "surfaceOpen"],
+      "additionalProperties": false,
+      "properties": {
+        "widgets": {
+          "type": "array",
+          "minItems": 4,
+          "maxItems": 4,
+          "items": { "type": "string", "minLength": 1 },
+          "uniqueItems": true
+        },
+        "links": {
+          "type": "array",
+          "minItems": 4,
+          "items": { "type": "string", "minLength": 1 },
+          "uniqueItems": true
+        },
+        "surfaceOpen": {
+          "type": "object",
+          "required": ["resourceKey", "identityField", "surfaceId", "intent"],
+          "additionalProperties": false,
+          "properties": {
+            "resourceKey": { "const": "human-resources.funcionarios" },
+            "identityField": { "const": "funcionarioId" },
+            "surfaceId": { "const": "hero-profile" },
+            "intent": { "const": "employee-360" }
+          }
+        }
+      }
+    },
+    "scenarios": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "items": {
+        "type": "object",
+        "required": ["id", "nowDate", "employees", "assignments", "absences", "expected"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string", "pattern": "^ALG-[0-9]{2}$" },
+          "nowDate": { "type": "string", "format": "date" },
+          "employees": {
+            "type": "array",
+            "minItems": 1,
+            "items": { "$ref": "#/$defs/employee" }
+          },
+          "assignments": {
+            "type": "array",
+            "items": { "$ref": "#/$defs/assignment" }
+          },
+          "absences": {
+            "type": "array",
+            "minItems": 1,
+            "items": { "$ref": "#/$defs/absence" }
+          },
+          "expected": {
+            "type": "object",
+            "required": ["status", "reasonCodes", "departments", "criticalEmployees"],
+            "additionalProperties": false,
+            "properties": {
+              "status": { "enum": ["READY", "INCONCLUSIVE"] },
+              "reasonCodes": {
+                "type": "array",
+                "items": { "type": "string", "minLength": 1 },
+                "uniqueItems": true
+              },
+              "departments": {
+                "type": "array",
+                "items": { "$ref": "#/$defs/expectedDepartment" }
+              },
+              "criticalEmployees": {
+                "type": "array",
+                "items": { "$ref": "#/$defs/expectedCriticalEmployee" }
+              }
+            },
+            "allOf": [
+              {
+                "if": { "properties": { "status": { "const": "READY" } } },
+                "then": { "properties": { "reasonCodes": { "maxItems": 0 } } }
+              },
+              {
+                "if": { "properties": { "status": { "const": "INCONCLUSIVE" } } },
+                "then": { "properties": { "reasonCodes": { "minItems": 1 } } }
+              }
+            ]
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "employee": {
+      "type": "object",
+      "required": ["id", "resourceId", "name"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "resourceId": { "type": "integer", "minimum": 1 },
+        "name": { "type": "string", "minLength": 1 }
+      }
+    },
+    "assignment": {
+      "type": "object",
+      "required": ["employeeId", "departmentId", "departmentName", "validFrom"],
+      "additionalProperties": false,
+      "properties": {
+        "employeeId": { "type": "string", "minLength": 1 },
+        "departmentId": { "type": "string", "minLength": 1 },
+        "departmentName": { "type": "string", "minLength": 1 },
+        "validFrom": { "type": "string", "format": "date" },
+        "validTo": { "type": "string", "format": "date" }
+      }
+    },
+    "absence": {
+      "type": "object",
+      "required": ["id", "employeeId", "start", "end", "restricted"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "employeeId": { "type": "string", "minLength": 1 },
+        "start": { "type": "string", "format": "date" },
+        "end": { "type": "string", "format": "date" },
+        "restricted": {
+          "type": "object",
+          "required": ["tipo", "observacoes"],
+          "additionalProperties": false,
+          "properties": {
+            "tipo": { "type": "string", "minLength": 1 },
+            "observacoes": { "type": "string", "minLength": 1 }
+          }
+        }
+      }
+    },
+    "expectedDepartment": {
+      "type": "object",
+      "required": [
+        "departmentId",
+        "resourceId",
+        "departmentName",
+        "currentEmployeeCount",
+        "previousEmployeeCount",
+        "currentAbsentDays",
+        "previousAbsentDays",
+        "deltaEmployeeCount",
+        "deltaPercent",
+        "baselineMissing"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "departmentId": { "type": "string", "minLength": 1 },
+        "resourceId": { "type": "integer", "minimum": 1 },
+        "departmentName": { "type": "string", "minLength": 1 },
+        "currentEmployeeCount": { "type": "integer", "minimum": 0 },
+        "previousEmployeeCount": { "type": "integer", "minimum": 0 },
+        "currentAbsentDays": { "type": "integer", "minimum": 0 },
+        "previousAbsentDays": { "type": "integer", "minimum": 0 },
+        "deltaEmployeeCount": { "type": "integer" },
+        "deltaPercent": { "type": ["number", "null"] },
+        "baselineMissing": { "type": "boolean" }
+      }
+    },
+    "expectedCriticalEmployee": {
+      "type": "object",
+      "required": ["employeeId", "employeeName", "currentAbsentDays", "departmentIds"],
+      "additionalProperties": false,
+      "properties": {
+        "employeeId": { "type": "string", "minLength": 1 },
+        "employeeName": { "type": "string", "minLength": 1 },
+        "currentAbsentDays": { "type": "integer", "minimum": 1 },
+        "departmentIds": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 1 },
+          "uniqueItems": true
+        }
+      }
+    }
+  },
+  "additionalProperties": false
+}

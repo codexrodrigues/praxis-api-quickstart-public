@@ -8,7 +8,9 @@ import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import org.praxisplatform.uischema.FieldControlType;
 import org.praxisplatform.uischema.extension.annotation.UISchema;
-import org.praxisplatform.uischema.annotation.AiUsageMode;
+import org.praxisplatform.uischema.annotation.AiControlledUseMode;
+import org.praxisplatform.uischema.annotation.AiTrainingUseMode;
+import org.praxisplatform.uischema.annotation.AiVisibilityMode;
 import org.praxisplatform.uischema.annotation.AiUsagePolicy;
 import org.praxisplatform.uischema.annotation.DomainClassification;
 import org.praxisplatform.uischema.annotation.DomainDataCategory;
@@ -38,10 +40,10 @@ public class EnderecoDTO {
         complianceTags = {"LGPD", "PHYSICAL_SECURITY"},
         reason = "A via pública e localização de residência do colaborador oferecem riscos à segurança física e identificação (LGPD).",
         aiUsage = @AiUsagePolicy(
-            visibility = AiUsageMode.MASK,
-            trainingUse = AiUsageMode.DENY,
-            ruleAuthoring = AiUsageMode.REVIEW_REQUIRED,
-            reasoningUse = AiUsageMode.REVIEW_REQUIRED
+            visibility = AiVisibilityMode.MASK,
+            trainingUse = AiTrainingUseMode.DENY,
+            ruleAuthoring = AiControlledUseMode.REVIEW_REQUIRED,
+            reasoningUse = AiControlledUseMode.REVIEW_REQUIRED
         )
     )
     @UISchema(label = "Logradouro", required = true, group = "Endereço", order = 10, helpText = "Rua, avenida ou alameda principal.", icon = "home")
@@ -88,10 +90,10 @@ public class EnderecoDTO {
         complianceTags = {"LGPD", "PHYSICAL_SECURITY"},
         reason = "O CEP delimita uma área geográfica muito pequena que expõe a região de residência do colaborador.",
         aiUsage = @AiUsagePolicy(
-            visibility = AiUsageMode.MASK,
-            trainingUse = AiUsageMode.DENY,
-            ruleAuthoring = AiUsageMode.REVIEW_REQUIRED,
-            reasoningUse = AiUsageMode.ALLOW
+            visibility = AiVisibilityMode.MASK,
+            trainingUse = AiTrainingUseMode.DENY,
+            ruleAuthoring = AiControlledUseMode.REVIEW_REQUIRED,
+            reasoningUse = AiControlledUseMode.ALLOW
         )
     )
     @UISchema(label = "CEP", required = true, group = "Endereço", order = 70, helpText = "Código postal no formato 00000-000.", icon = "local_post_office")

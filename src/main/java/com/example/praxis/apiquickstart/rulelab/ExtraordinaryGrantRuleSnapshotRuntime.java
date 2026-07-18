@@ -115,11 +115,29 @@ public final class ExtraordinaryGrantRuleSnapshotRuntime {
     /** Evaluates and returns evidence from the same atomically selected snapshot. */
     public ExtraordinaryGrantRuleEvaluation evaluateWithSnapshot(
             JsonNode facts, Instant nowUtc, ZoneId userTimeZone) {
+        Instant evaluationInstant = Objects.requireNonNull(nowUtc, "nowUtc is required");
+        return evaluateWithSnapshot(captureSnapshot(evaluationInstant), facts, evaluationInstant, userTimeZone);
+    }
+
+    /** Captures one immutable compiled snapshot reference for a complete host operation. */
+    ExtraordinaryGrantRuleSnapshotSession captureSnapshot(Instant nowUtc) {
         ActiveSnapshot selected = active.get();
         if (selected == null) {
             throw new ExtraordinaryGrantRuleSnapshotUnavailableException(
                     "No governed extraordinary-grant RuleSet snapshot is active");
         }
+        Instant evaluationInstant = Objects.requireNonNull(nowUtc, "nowUtc is required");
+        verifyValidity(selected.compiled().snapshot(), evaluationInstant);
+        return new ExtraordinaryGrantRuleSnapshotSession(selected.compiled(), selected.activationRevision());
+    }
+
+    /** Evaluates against a previously captured operation snapshot, independent of later reloads. */
+    ExtraordinaryGrantRuleEvaluation evaluateWithSnapshot(
+            ExtraordinaryGrantRuleSnapshotSession session,
+            JsonNode facts,
+            Instant nowUtc,
+            ZoneId userTimeZone) {
+        ExtraordinaryGrantRuleSnapshotSession selected = Objects.requireNonNull(session, "session is required");
         Instant evaluationInstant = Objects.requireNonNull(nowUtc, "nowUtc is required");
         verifyValidity(selected.compiled().snapshot(), evaluationInstant);
         RuleEvaluationResult result = engine.evaluate(
@@ -129,8 +147,8 @@ public final class ExtraordinaryGrantRuleSnapshotRuntime {
                 Objects.requireNonNull(userTimeZone, "userTimeZone is required").getId());
         return new ExtraordinaryGrantRuleEvaluation(
                 result,
-                selected.compiled().snapshot().snapshotKey(),
-                selected.compiled().snapshotContentHash(),
+                selected.snapshotKey(),
+                selected.snapshotContentHash(),
                 selected.activationRevision());
     }
 

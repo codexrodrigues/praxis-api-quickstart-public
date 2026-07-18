@@ -512,6 +512,28 @@ Exemplos de referencia no quickstart:
   `plan-coverage` e stats por tipo, colaborador e periodo de inicio/fim. No cockpit, isso
   materializa perguntas de disponibilidade corporativa: quem esta fora, por que tipo de ausencia,
   em que janela de cobertura operacional e qual plano foi registrado para cobrir a ausencia.
+- `human-resources.vw-analytics-afastamentos` publica uma projection read-only mensal por lotacao
+  historica efetiva. Ela omite motivo, observacoes e nome do colaborador, mas suporta
+  `stats/comparison` por departamento com `DISTINCT_COUNT(funcionarioId)` e `SUM(diasAfastado)`,
+  alem de criticidade versionada para listas corporativas de atencao. O schema exato da operacao
+  publica a referencia governada da policy e seus campos de atestacao em
+  `x-ui.analytics.projections[].governance.policyRefs[]`, sem duplicar thresholds ou execucao. A
+  mesma projection liga `bucket.key` ao filtro publico `departamentoIdsIn` e declara
+  `recordOpen=funcionarioId -> human-resources.funcionarios/hero-profile`; o snapshot de
+  capabilities separa comparison agregada, lista nominal e surface employee-360 pelas
+  authorities independentes do host. Na lista nominal, `includeIds` reidrata selecoes autorizadas
+  mesmo fora do filtro funcional corrente, mas a base reaplica o escopo de linhas resolvido pelo
+  servidor e nunca aceita IDs do cliente como autorizacao.
+- `human-resources.vw-analytics-folha-pagamento` publica comparison de massa salarial por lotacao
+  efetiva no primeiro dia da competencia. O bucket usa `departamentoId` como key e `departamento`
+  como label, comparando bruto, descontos e liquido no mesmo request. A migration operacional
+  `V20260716_003__payroll_analytics_effective_department.sql` usa a validade semiaberta das lotacoes,
+  nao faz fallback para o departamento atual e deixa o drift check denunciar folhas sem vinculo.
+  `HR_ANALYTICS_AGGREGATE_READ` permite somente buckets agregados; linhas, export, options e demais
+  consultas nominais exigem `HR_ANALYTICS_NOMINAL_READ` e recebem escopo departamental server-side.
+  O mesmo escopo governa a pagina normal e a reidratacao de `includeIds`, sem reaplicar o filtro
+  funcional aos IDs selecionados nem expor folhas de departamentos externos.
+  O guia completo esta em [`docs/PAYROLL-ANALYTICS-DASHBOARDS.md`](docs/PAYROLL-ANALYTICS-DASHBOARDS.md).
 - `human-resources.vw-ranking-reputacao` publica a surface `reputation-ranking-board` e stats por
   equipe, score publico, score governamental, media e posicao. Essa leitura transforma reputacao
   em painel executivo comparavel, sem tratar score reputacional como decisao legal ou regra
@@ -692,6 +714,13 @@ curl -i -s -X POST 'http://localhost:8088/api/human-resources/folhas-pagamento/f
 ```
 Observacao: verifique o cabecalho `X-Data-Version` na resposta para estrategias de cache.
 
+Folhas de Pagamento tambem publica um exemplo operacional de atalhos corporativos de date range no `x-ui` do filtro `dataPagamentoBetween`. O dominio/backend ja entrega os intervalos resolvidos; o frontend apenas materializa o payload canonico `{startDate,endDate}` e nao executa regras recebidas por JSON metadata.
+
+```
+curl -s 'http://localhost:8088/schemas/filtered?path=/api/human-resources/folhas-pagamento/filter&operation=post&schemaType=request' \
+  | jq '.properties.dataPagamentoBetween["x-ui"] | {shortcuts, inlineQuickPresets, inlineOverlay}'
+```
+
 ### Acoes em lote (Eventos de Folha)
 
 O recurso piloto `eventos-folha` ja usa o core resource-oriented novo do starter:
@@ -861,6 +890,12 @@ transação por item e devolve resultados parciais estáveis.
 - Evidência QL-05: [docs/RULE-LAB-QL-05-PERSISTENCE-EFFECTS-EVIDENCE.md](docs/RULE-LAB-QL-05-PERSISTENCE-EFFECTS-EVIDENCE.md)
 - Contrato anterior QL-04: [docs/RULE-LAB-QL-04-BUSINESS-HTTP-EVIDENCE.md](docs/RULE-LAB-QL-04-BUSINESS-HTTP-EVIDENCE.md)
 
+FND-06 endurece esse fluxo: `evaluate` recebe somente dados comandaveis e uma `factReference`;
+situacao funcional, duplicidade, vigencia, limites, calendario e saldo sao adquiridos pelo host.
+Imediatamente antes do efeito, `apply` recaptura esses facts e reexecuta o snapshot governado na
+mesma transacao. Mudanca de elegibilidade, valor, plano ou snapshot retorna 412, mantem `APPROVED`
+e nao grava ledger. O efeito positivo persiste provenance redigida da revalidacao.
+
 ### Piloto Rule Lab QL-06 — shadow comparison sem efeitos
 
 `POST /api/human-resources/extraordinary-benefit-requests/actions/shadow-compare` executa uma
@@ -876,6 +911,7 @@ avança lifecycle e não executa efeito. Métricas de baixa cardinalidade são r
 Micrometer configurado no ambiente.
 
 - Evidência QL-06: [docs/RULE-LAB-QL-06-SHADOW-OPERATION-EVIDENCE.md](docs/RULE-LAB-QL-06-SHADOW-OPERATION-EVIDENCE.md)
+- Privacidade e retenção P2F-ADR-12: [docs/RULE-LAB-P2F-ADR-12-PRIVACY-RETENTION.md](docs/RULE-LAB-P2F-ADR-12-PRIVACY-RETENTION.md)
 
 ### Piloto Rule Lab QL-07 — prova downstream pública
 
@@ -883,15 +919,64 @@ O gate QL-07 empacota o Quickstart com repositório Maven isolado e confirma que
 Config Starter e Rules Engine são resolvidos pelas coordenadas oficiais do Maven Central, sem
 `mvn install`, repositório de arquivo ou override local. Em seguida, o host é exercitado por HTTP
 autenticado sobre um snapshot governado: discovery e schemas, shadow ALLOW/DENY sem mutação,
-lifecycle completo com ETag/If-Match, efeito exatamente uma vez e cleanup determinístico.
+lifecycle completo com ETag/If-Match, efeito exatamente uma vez e retenção verificável da evidência
+fictícia aplicada. O gate não apaga auditoria append-only para simular um cleanup incompatível com
+o contrato corporativo de retenção.
 
 O launcher oficial exige `PRAXIS_RESOURCE_VERSION_ETAG_SECRET` independente do JWT para não
 anunciar actions versionadas em uma configuração incapaz de produzir ETags. O shadow usa timeout
 padrão de 1 s, configurável entre 1 ms e 5 s por `PRAXIS_RULE_LAB_SHADOW_TIMEOUT_MS`.
 
 - Preflight Maven: `scripts/workspace/Test-RuleLabQl07PublicMaven.ps1`
+  Quando o registry Angular não estiver no checkout irmão padrão, informe
+  `-AngularRegistryPath <arquivo-gerado>`. O parâmetro altera somente o fixture
+  de teste, nunca coordenadas Maven, e seu SHA-256 é registrado sem expor o
+  caminho local no JSON de evidência.
+- Provisionamento maker-checker: `scripts/workspace/Initialize-RuleLabQl07Snapshot.ps1`.
+  O comportamento padrão é idempotente; use `-ForceSupersession` somente em uma
+  prova de release para publicar uma nova revisão governada sobre o head saudável.
 - Prova HTTP: `scripts/workspace/Invoke-RuleLabQl07HttpProof.ps1`
 - Evidência QL-07: [docs/RULE-LAB-QL-07-PUBLIC-DOWNSTREAM-EVIDENCE.md](docs/RULE-LAB-QL-07-PUBLIC-DOWNSTREAM-EVIDENCE.md)
+
+O provisionamento atual exige dois aprovadores e um publicador autenticados distintos. No
+laboratório local, `APP_AUTH_GOVERNANCE_LAB_ENABLED=true` habilita somente as três identidades
+configuradas por ambiente. O publicador acumula `RULE_DEFINITION_AUTHOR` e
+`RULE_SNAPSHOT_PUBLISHER`; cada checker acumula `RULE_DEFINITION_APPROVER` e
+`RULE_COMPOSITION_APPROVER`. Essa ponte é desabilitada por padrão e não é uma solução IAM de
+produção: hosts corporativos devem obter os mesmos roles do IdP e manter maker, checker e publisher
+segregados. O script prova também que o publicador não pode aprovar e que um aprovador não pode
+publicar; o autor também não pode aprovar a própria definição. Se
+`praxis.ai.security.corporate-mode` estiver desabilitado, o gate falha.
+
+### Piloto Rule Lab QL-08 — stress report Ergon-like
+
+QL-08 consolida treze cenários estruturais de migração em uma matriz machine-readable validada por
+JUnit. A prova cobre transformação pura, cardinalidade por item, concorrência, idempotência,
+rollback, visibilidade local pós-write, isolamento tenant/environment e ativação atômica de
+snapshots. Capacidades ainda não comprovadas permanecem com owner e decisão residual explícitos;
+nenhuma é convertida em adaptação local do Quickstart.
+
+O gate confirmou exatamente um efeito local sob `apply` concorrente, read-after-failure íntegro,
+`STATEMENT_ATOMIC` com snapshot imutável capturado uma vez, barreira agregada e cleanup do contexto
+explícito em commit/rollback, inclusive sob hot reload concorrente. O host agora também prova
+fingerprint/replay do statement, outbox no mesmo commit, lease recuperável, retry limitado,
+dead-letter, reconciliação de resultado HTTP ambíguo contra um inbox independente e replay governado
+com quarentena, probe e auditoria append-only. Ainda permanecem
+blockers a transformação tipada, drills distribuídos na infraestrutura corporativa e
+baseline DB-backed real. Portanto, QL-08 fecha o laboratório neutro, mas não abre Fase 9,
+preflight ou autoridade.
+
+- Matriz executável: `src/test/resources/rule-lab/rule-lab-ql08-stress-matrix.json`
+- Evidência QL-08: [docs/RULE-LAB-QL-08-ERGON-STRESS-REPORT.md](docs/RULE-LAB-QL-08-ERGON-STRESS-REPORT.md)
+- Drill distribuído opt-in: [docs/RULE-LAB-QL-08-DISTRIBUTED-OUTBOX-RUNBOOK.md](docs/RULE-LAB-QL-08-DISTRIBUTED-OUTBOX-RUNBOOK.md)
+- Operação corporativa: [docs/RULE-LAB-QL-08-CORPORATE-OPERATIONS.md](docs/RULE-LAB-QL-08-CORPORATE-OPERATIONS.md)
+
+Como fundação posterior ao QL-08, o host também oferece um `FactProvider` interno, opt-in e somente
+leitura. Ele adquire facts de elegibilidade por tenant, ambiente, organização, referência, versão e
+`asOf`, rejeita ausência ou sobreposição temporal e publica apenas proveniência redigida com escopo
+protegido por HMAC. A decisão interna preserva a proveniência exata dos facts usados. O adapter
+quando habilitado governa o endpoint persistente e a revalidação de `apply`; isso não abre Fase 9
+ou shadow real. Veja a seção FND-06 no contrato operacional.
 
 ### Schemas enriquecidos (/schemas/filtered)
 - Solicita o schema do endpoint informando `path`, `operation` (get|post|put|delete) e `schemaType` (request|response).
@@ -942,6 +1027,7 @@ curl -s -X POST 'http://localhost:8088/api/human-resources/funcionarios/options/
 - Este quickstart deve consumir a versao mais recente do starter disponivel para o ciclo corrente para refletir no host operacional os contratos atuais de `ETag`, `If-None-Match`, `If-Match`, `412 Precondition Failed` e authoring AI em `/api/praxis/config/**`.
 - Com `praxis-config-starter:0.1.0-rc.71`, o quickstart tambem prova `GET /api/praxis/runtime/context`, `PUT /api/praxis/runtime/context`, `GET /api/praxis/runtime/tenants`, `GET /api/praxis/runtime/navigation` e `GET /api/praxis/runtime/security-events` com um provider demonstrativo nao-Ergon (`QuickstartEnterpriseRuntimeContextProvider`). Esse provider apenas projeta contexto publico seguro, uma lista de tenants demonstrativa, uma troca de contexto demo com headers de propagacao, uma arvore de navegacao com refs canonicas Praxis e eventos runtime sanitizados para shell/AI grounding; autenticacao, autorizacao privada, roles reais, tenant entitlement, menus corporativos e auditoria privada continuam sendo responsabilidade do host corporativo.
 - Este quickstart ativa explicitamente `praxis.ai.authoring.reference-ui-composition-provider-enabled=true` porque e o host de referencia que demonstra composicoes ricas de RH/folha. O `praxis-config-starter` generico nao registra esse provider por padrao; hosts reais devem alimentar authoring por catalogo, contexto semantico e providers proprios quando precisarem de planos especializados.
+- `APP_OPENAPI_INTERNAL_BASE_URL` alimenta tanto `praxis.ai.schemas.base-url` quanto `praxis.ai.capabilities.base-url`. Essa URL interna permite que o authoring valide schema e `GET /{resource}/capabilities` no proprio host; dashboards e graficos falham fechados quando os campos estatisticos nao podem ser verificados.
 
 ### Validacao downstream do AI patch
 Para releases do `praxis-config-starter`, este quickstart agora possui dois niveis distintos de validacao para `/api/praxis/config/ai/patch`:

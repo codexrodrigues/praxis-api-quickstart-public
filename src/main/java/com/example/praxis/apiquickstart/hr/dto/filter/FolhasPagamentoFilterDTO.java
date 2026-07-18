@@ -1,7 +1,9 @@
 package com.example.praxis.apiquickstart.hr.dto.filter;
 
+import io.swagger.v3.oas.annotations.extensions.ExtensionProperty;
 import io.swagger.v3.oas.annotations.media.Schema;
 
+import com.example.praxis.apiquickstart.core.dto.filter.support.QuickstartBusinessDateRangeUiOptions;
 import com.example.praxis.apiquickstart.constants.ApiPaths;
 import org.praxisplatform.uischema.FieldControlType;
 import org.praxisplatform.uischema.FieldDataType;
@@ -46,7 +48,13 @@ public class FolhasPagamentoFilterDTO implements GenericFilterDTO {
             description = "Colaborador cuja folha deve ser localizada para atendimento, conferencia individual ou conciliacao de pagamento.")
     private Integer funcionarioId;
 
-    @UISchema(label = "Período de Pagamento", type = FieldDataType.DATE, controlType = FieldControlType.DATE_RANGE, order = 40, helpText = "Buscar por intervalo de data de pagamento.", icon = "event")
+    @UISchema(label = "Período de Pagamento", type = FieldDataType.DATE, controlType = FieldControlType.DATE_RANGE, order = 40,
+            helpText = "Buscar por intervalo de data de pagamento.", icon = "event",
+            extraProperties = {
+                    @ExtensionProperty(name = "shortcuts", value = QuickstartBusinessDateRangeUiOptions.PAYROLL_PAYMENT_SHORTCUTS_JSON),
+                    @ExtensionProperty(name = "inlineQuickPresets", value = QuickstartBusinessDateRangeUiOptions.FOOTER_INLINE_PRESETS_JSON),
+                    @ExtensionProperty(name = "inlineOverlay", value = QuickstartBusinessDateRangeUiOptions.EXPLICIT_INLINE_OVERLAY_JSON)
+            })
     @Filterable(operation = Filterable.FilterOperation.BETWEEN, relation = "dataPagamento")
     @Schema(
             description = "Intervalo de datas efetivas de credito ou liquidacao, usado para reconciliacao bancaria e controle de lote.")

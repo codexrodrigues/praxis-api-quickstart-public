@@ -18,11 +18,12 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Converte o cookie de sessao do quickstart em autenticacao Spring Security.
+ * Converte a sessao do quickstart em autenticacao Spring Security.
  *
  * <p>Este filtro e a ponte entre o login simplificado do host e o restante da cadeia de seguranca:
- * ele le o cookie HttpOnly configurado para a sessao, valida o JWT localmente e popula o contexto
- * de autenticacao usado pelos endpoints protegidos.</p>
+ * ele aceita o cookie HttpOnly do browser ou um Bearer JWT emitido pelo proprio host para chamadas
+ * internas governadas, valida o token localmente e popula o contexto usado pelos endpoints
+ * protegidos.</p>
  */
 @Component
 public class CookieJwtAuthenticationFilter extends OncePerRequestFilter {
@@ -41,7 +42,7 @@ public class CookieJwtAuthenticationFilter extends OncePerRequestFilter {
             throws ServletException, IOException {
 
         if (SecurityContextHolder.getContext().getAuthentication() == null) {
-            String token = extractSessionCookie(request);
+            String token = extractToken(request);
             if (token != null && !token.isBlank()) {
                 JwtTokenService.JwtValidationResult result = jwtTokenService.validate(token);
                 if (result.valid()) {
@@ -64,8 +65,15 @@ public class CookieJwtAuthenticationFilter extends OncePerRequestFilter {
         filterChain.doFilter(request, response);
     }
 
-    /** Extrai o valor do cookie de sessao configurado para o host atual. */
-    private String extractSessionCookie(HttpServletRequest request) {
+    private String extractToken(HttpServletRequest request) {
+        String authorization = request.getHeader("Authorization");
+        if (authorization != null && authorization.regionMatches(true, 0, "Bearer ", 0, 7)) {
+            String bearer = authorization.substring(7).trim();
+            if (!bearer.isEmpty()) {
+                return bearer;
+            }
+        }
+
         Cookie[] cookies = request.getCookies();
         if (cookies == null) return null;
         for (Cookie c : cookies) {

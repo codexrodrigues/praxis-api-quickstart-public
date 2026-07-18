@@ -234,6 +234,50 @@ class FolhasPagamentoPilotIntegrationTest {
     }
 
     @Test
+    void shouldExposeResolvedBusinessDateRangeShortcutsInPayrollFilterSchema() throws Exception {
+        JsonNode filterSchema = body(restTemplate.getForEntity(
+                "/schemas/filtered?path={path}&operation=post&schemaType=request",
+                String.class,
+                "/api/human-resources/folhas-pagamento/filter"
+        ));
+
+        JsonNode paymentPeriodUi = filterSchema.path("properties").path("dataPagamentoBetween").path("x-ui");
+        assertEquals("dateRange", paymentPeriodUi.path("controlType").asText());
+        assertFalse(paymentPeriodUi.has("shortcutId"));
+
+        JsonNode shortcuts = paymentPeriodUi.path("shortcuts");
+        assertTrue(shortcuts.isArray(), paymentPeriodUi.toPrettyString());
+        assertEquals("today", shortcuts.get(0).asText());
+        assertEquals("thisWeek", shortcuts.get(1).asText());
+        assertEquals("thisMonth", shortcuts.get(2).asText());
+
+        JsonNode fiscalPreset = shortcuts.get(3);
+        assertEquals("payroll-q1-2026", fiscalPreset.path("id").asText());
+        assertEquals("Folha Q1 2026", fiscalPreset.path("label").asText());
+        assertEquals("2026-01-01", fiscalPreset.path("startDate").asText());
+        assertEquals("2026-03-31", fiscalPreset.path("endDate").asText());
+        assertEquals("America/Sao_Paulo", fiscalPreset.path("timeZone").asText());
+        assertEquals("info", fiscalPreset.path("tone").asText());
+        assertFalse(fiscalPreset.has("calculateRange"));
+
+        JsonNode legalPreset = shortcuts.get(4);
+        assertEquals("payroll-legal-audit-window-2026", legalPreset.path("id").asText());
+        assertEquals("2026-04-01", legalPreset.path("startDate").asText());
+        assertEquals("2026-04-30", legalPreset.path("endDate").asText());
+        assertEquals("warning", legalPreset.path("tone").asText());
+
+        JsonNode inlineQuickPresets = paymentPeriodUi.path("inlineQuickPresets");
+        assertTrue(inlineQuickPresets.path("enabled").asBoolean());
+        assertEquals("footer", inlineQuickPresets.path("position").asText());
+        assertFalse(inlineQuickPresets.has("density"));
+
+        JsonNode inlineOverlay = paymentPeriodUi.path("inlineOverlay");
+        assertEquals("explicit", inlineOverlay.path("applyMode").asText());
+        assertEquals("Cancelar", inlineOverlay.path("actions").path("cancel").path("label").asText());
+        assertEquals("Aplicar", inlineOverlay.path("actions").path("apply").path("label").asText());
+    }
+
+    @Test
     void shouldScheduleApproveEventsAndMarkPayrollAsPaid() throws Exception {
         LocalDate today = LocalDate.now();
 

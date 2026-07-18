@@ -4,7 +4,9 @@ import io.swagger.v3.oas.annotations.media.Schema;
 
 import org.praxisplatform.uischema.FieldControlType;
 import org.praxisplatform.uischema.FieldDataType;
-import org.praxisplatform.uischema.annotation.AiUsageMode;
+import org.praxisplatform.uischema.annotation.AiControlledUseMode;
+import org.praxisplatform.uischema.annotation.AiTrainingUseMode;
+import org.praxisplatform.uischema.annotation.AiVisibilityMode;
 import org.praxisplatform.uischema.annotation.AiUsagePolicy;
 import org.praxisplatform.uischema.annotation.DomainClassification;
 import org.praxisplatform.uischema.annotation.DomainDataCategory;
@@ -39,10 +41,10 @@ public class VwIndicadoresIncidenteDTO {
             dataCategory = DomainDataCategory.OPERATIONAL,
             complianceTags = {"INTERNAL_POLICY"},
             aiUsage = @AiUsagePolicy(
-                    visibility = AiUsageMode.SUMMARIZE_ONLY,
-                    trainingUse = AiUsageMode.DENY,
-                    ruleAuthoring = AiUsageMode.REVIEW_REQUIRED,
-                    reasoningUse = AiUsageMode.REVIEW_REQUIRED),
+                    visibility = AiVisibilityMode.SUMMARIZE_ONLY,
+                    trainingUse = AiTrainingUseMode.DENY,
+                    ruleAuthoring = AiControlledUseMode.REVIEW_REQUIRED,
+                    reasoningUse = AiControlledUseMode.REVIEW_REQUIRED),
             reason = "Narrativa de incidente pode conter contexto operacional sensivel."
     )
     @Schema(
@@ -56,10 +58,10 @@ public class VwIndicadoresIncidenteDTO {
             dataCategory = DomainDataCategory.OPERATIONAL,
             complianceTags = {"INTERNAL_POLICY"},
             aiUsage = @AiUsagePolicy(
-                    visibility = AiUsageMode.ALLOW,
-                    trainingUse = AiUsageMode.DENY,
-                    ruleAuthoring = AiUsageMode.REVIEW_REQUIRED,
-                    reasoningUse = AiUsageMode.ALLOW),
+                    visibility = AiVisibilityMode.ALLOW,
+                    trainingUse = AiTrainingUseMode.DENY,
+                    ruleAuthoring = AiControlledUseMode.REVIEW_REQUIRED,
+                    reasoningUse = AiControlledUseMode.ALLOW),
             reason = "Local do incidente direciona triagem e dashboards, mas ainda pertence ao contexto operacional."
     )
     @Schema(
@@ -78,10 +80,10 @@ public class VwIndicadoresIncidenteDTO {
             dataCategory = DomainDataCategory.FINANCIAL,
             complianceTags = {"FINANCIAL_CONTROL", "RISK_AUDIT"},
             aiUsage = @AiUsagePolicy(
-                    visibility = AiUsageMode.SUMMARIZE_ONLY,
-                    trainingUse = AiUsageMode.DENY,
-                    ruleAuthoring = AiUsageMode.REVIEW_REQUIRED,
-                    reasoningUse = AiUsageMode.ALLOW),
+                    visibility = AiVisibilityMode.SUMMARIZE_ONLY,
+                    trainingUse = AiTrainingUseMode.DENY,
+                    ruleAuthoring = AiControlledUseMode.REVIEW_REQUIRED,
+                    reasoningUse = AiControlledUseMode.ALLOW),
             reason = "Valor financeiro agregado deve ser usado preferencialmente em analises agregadas e decisoes auditaveis."
     )
     @Schema(
@@ -95,10 +97,10 @@ public class VwIndicadoresIncidenteDTO {
             dataCategory = DomainDataCategory.FINANCIAL,
             complianceTags = {"FINANCIAL_CONTROL", "RISK_AUDIT"},
             aiUsage = @AiUsagePolicy(
-                    visibility = AiUsageMode.SUMMARIZE_ONLY,
-                    trainingUse = AiUsageMode.DENY,
-                    ruleAuthoring = AiUsageMode.REVIEW_REQUIRED,
-                    reasoningUse = AiUsageMode.ALLOW),
+                    visibility = AiVisibilityMode.SUMMARIZE_ONLY,
+                    trainingUse = AiTrainingUseMode.DENY,
+                    ruleAuthoring = AiControlledUseMode.REVIEW_REQUIRED,
+                    reasoningUse = AiControlledUseMode.ALLOW),
             reason = "Total de indenizacoes compoe analise financeira de risco e exige rastreabilidade."
     )
     @Schema(
@@ -112,10 +114,10 @@ public class VwIndicadoresIncidenteDTO {
             dataCategory = DomainDataCategory.FINANCIAL,
             complianceTags = {"FINANCIAL_CONTROL", "RISK_AUDIT"},
             aiUsage = @AiUsagePolicy(
-                    visibility = AiUsageMode.SUMMARIZE_ONLY,
-                    trainingUse = AiUsageMode.DENY,
-                    ruleAuthoring = AiUsageMode.REVIEW_REQUIRED,
-                    reasoningUse = AiUsageMode.ALLOW),
+                    visibility = AiVisibilityMode.SUMMARIZE_ONLY,
+                    trainingUse = AiTrainingUseMode.DENY,
+                    ruleAuthoring = AiControlledUseMode.REVIEW_REQUIRED,
+                    reasoningUse = AiControlledUseMode.ALLOW),
             reason = "Valor liquidado deve ser explicado como metrica agregada, nao como dado transacional de pagamento individual."
     )
     @Schema(
@@ -129,10 +131,10 @@ public class VwIndicadoresIncidenteDTO {
             dataCategory = DomainDataCategory.FINANCIAL,
             complianceTags = {"FINANCIAL_CONTROL", "RISK_AUDIT"},
             aiUsage = @AiUsagePolicy(
-                    visibility = AiUsageMode.SUMMARIZE_ONLY,
-                    trainingUse = AiUsageMode.DENY,
-                    ruleAuthoring = AiUsageMode.REVIEW_REQUIRED,
-                    reasoningUse = AiUsageMode.ALLOW),
+                    visibility = AiVisibilityMode.SUMMARIZE_ONLY,
+                    trainingUse = AiTrainingUseMode.DENY,
+                    ruleAuthoring = AiControlledUseMode.REVIEW_REQUIRED,
+                    reasoningUse = AiControlledUseMode.ALLOW),
             reason = "Saldo pendente direciona priorizacao e deve manter governanca financeira."
     )
     @Schema(

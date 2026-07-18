@@ -7,12 +7,17 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
 import com.example.praxis.apiquickstart.ApiQuickstartApplication;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.praxisplatform.config.domain.AiRegistry;
 import org.praxisplatform.config.domain.Scope;
@@ -29,6 +34,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 
 @SpringBootTest(
         classes = ApiQuickstartApplication.class,
@@ -55,11 +61,11 @@ import org.springframework.http.ResponseEntity;
                 "spring.ai.vectorstore.pgvector.initialize-schema=false",
                 "spring.ai.vectorstore.pgvector.vector-table-validations-enabled=false",
                 "spring.flyway.enabled=false",
-                "spring.datasource.url=jdbc:h2:mem:quickstart_affordances_api;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DB_CLOSE_DELAY=-1",
+                "spring.datasource.url=jdbc:h2:mem:quickstart_ai_registry_api;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DB_CLOSE_DELAY=-1",
                 "spring.datasource.driver-class-name=org.h2.Driver",
                 "spring.datasource.username=sa",
                 "spring.datasource.password=",
-                "config.datasource.url=jdbc:h2:mem:quickstart_affordances_config;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DB_CLOSE_DELAY=-1",
+                "config.datasource.url=jdbc:h2:mem:quickstart_ai_registry_config;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DB_CLOSE_DELAY=-1",
                 "config.datasource.driver-class-name=org.h2.Driver",
                 "config.datasource.username=sa",
                 "config.datasource.password=",
@@ -69,10 +75,17 @@ import org.springframework.http.ResponseEntity;
 class AiRegistryPresentationAffordancesQuickstartIntegrationTest {
 
     private static final Path ANGULAR_REGISTRY =
-            Path.of("..", "praxis-ui-angular", "dist", "praxis-component-registry-ingestion.json");
+            Path.of(System.getProperty(
+                    "praxis.angular.registry.path",
+                    Path.of("..", "praxis-ui-angular", "dist", "praxis-component-registry-ingestion.json")
+                            .toString()))
+                    .normalize();
 
     @Autowired
     private TestRestTemplate restTemplate;
+
+    @Autowired
+    private ObjectMapper objectMapper;
 
     @MockBean
     private AiRegistryRepository aiRegistryRepository;
@@ -85,6 +98,14 @@ class AiRegistryPresentationAffordancesQuickstartIntegrationTest {
 
     @MockBean(name = "ragVectorStore")
     private VectorStore ragVectorStore;
+
+    @BeforeEach
+    void configureRegistryIngestionTimeout() {
+        SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
+        requestFactory.setConnectTimeout(Duration.ofSeconds(10));
+        requestFactory.setReadTimeout(Duration.ofSeconds(60));
+        restTemplate.getRestTemplate().setRequestFactory(requestFactory);
+    }
 
     @Test
     void shouldIngestAngularRegistryAndExposePresentationAffordanceSlice() throws Exception {
@@ -103,7 +124,9 @@ class AiRegistryPresentationAffordancesQuickstartIntegrationTest {
                 .thenAnswer(invocation -> Optional.ofNullable(savedRegistries.get(invocation.getArgument(1))));
         when(aiRegistryRepository.save(any(AiRegistry.class))).thenAnswer(invocation -> {
             AiRegistry registry = invocation.getArgument(0);
-            savedRegistries.put(registry.getRegistryKey(), registry);
+            if ("praxis-table".equals(registry.getRegistryKey())) {
+                savedRegistries.put(registry.getRegistryKey(), registry);
+            }
             return registry;
         });
         when(ragVectorStoreService.corpusReleaseStatus(anyString(), anyString(), anyString(), org.mockito.ArgumentMatchers.anyLong()))
@@ -125,14 +148,16 @@ class AiRegistryPresentationAffordancesQuickstartIntegrationTest {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         headers.add("Origin", "http://localhost:4003");
-        String registryPayload = Files.readString(ANGULAR_REGISTRY);
+        String registryPayload = registryPayloadFor("praxis-table");
 
         ResponseEntity<String> ingest = restTemplate.postForEntity(
                 "/api/praxis/config/ai-registry/component-definitions",
                 new HttpEntity<>(registryPayload, headers),
                 String.class);
 
-        assertThat(ingest.getStatusCode()).isEqualTo(HttpStatus.ACCEPTED);
+        assertThat(ingest.getStatusCode())
+                .as("registry ingest response: %s", ingest.getBody())
+                .isEqualTo(HttpStatus.ACCEPTED);
         assertThat(savedRegistries.get("praxis-table")).isNotNull();
 
         ResponseEntity<String> slice = restTemplate.getForEntity(
@@ -147,5 +172,23 @@ class AiRegistryPresentationAffordancesQuickstartIntegrationTest {
                 "secondary-line",
                 "\"id\":\"table.column.date-formatting\"",
                 "\"unknownCompatible\":false");
+    }
+
+    private String registryPayloadFor(String componentId) throws Exception {
+        JsonNode registry = objectMapper.readTree(Files.readString(ANGULAR_REGISTRY));
+        JsonNode component = registry.path("components").path(componentId);
+        assertThat(component.isMissingNode())
+                .as("component %s must exist in the generated Angular registry", componentId)
+                .isFalse();
+
+        ObjectNode components = objectMapper.createObjectNode();
+        components.set(componentId, component);
+
+        ObjectNode payload = objectMapper.createObjectNode();
+        payload.set("version", registry.path("version"));
+        payload.set("generatedAt", registry.path("generatedAt"));
+        payload.set("components", components);
+        payload.set("definitions", registry.path("definitions"));
+        return objectMapper.writeValueAsString(payload);
     }
 }

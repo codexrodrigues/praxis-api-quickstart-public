@@ -134,10 +134,10 @@ Campos sensiveis devem publicar governanca explicitamente:
     classification = "confidential",
     complianceTags = {"LGPD", "GDPR"},
     aiUsage = @AiUsagePolicy(
-        visibility = AiUsageMode.MASK,
-        trainingUse = AiUsageMode.DENY,
-        ruleAuthoring = AiUsageMode.REVIEW_REQUIRED,
-        reasoningUse = AiUsageMode.REVIEW_REQUIRED
+        visibility = AiVisibilityMode.MASK,
+        trainingUse = AiTrainingUseMode.DENY,
+        ruleAuthoring = AiControlledUseMode.REVIEW_REQUIRED,
+        reasoningUse = AiControlledUseMode.REVIEW_REQUIRED
     )
 )
 ```

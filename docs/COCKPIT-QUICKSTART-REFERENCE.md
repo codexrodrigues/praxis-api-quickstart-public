@@ -47,7 +47,7 @@ producao.
 
 | Dominio no cockpit | Grupo OpenAPI | Recursos | Surfaces explicitas | Workflow actions explicitas | Leitura de aderencia |
 | --- | --- | ---: | ---: | ---: | --- |
-| Pessoas e RH | `human-resources` | 21 | 12 | 14 | `ja-suportado-mal-nomeado-ou-mal-materializado`: perfil 360, folha, participacoes em missoes, dependentes, endereco cadastral, matriz de competencias, historico de cargos, disponibilidade por afastamentos, actions de ciclo do funcionario, actions de folha/eventos, action de cobertura, lifecycle persistente e shadow sanitizado de beneficio extraordinario, ranking reputacional e governanca de codigos legados de folha ja existem; a proxima melhoria deve aprofundar operacao sem criar surface decorativa. |
+| Pessoas e RH | `human-resources` | 22 | 12 | 14 | `ja-suportado-mal-nomeado-ou-mal-materializado`: perfil 360, folha, participacoes em missoes, dependentes, endereco cadastral, matriz de competencias, historico de cargos, disponibilidade por afastamentos, analytics de afastamentos por lotacao historica, actions de ciclo do funcionario, actions de folha/eventos, action de cobertura, lifecycle persistente e shadow sanitizado de beneficio extraordinario, ranking reputacional e governanca de codigos legados de folha ja existem; a proxima melhoria deve aprofundar operacao sem criar surface decorativa. |
 | Operacoes | `operations` | 12 | 12 | 10 | `ja-suportado-mal-nomeado-ou-mal-materializado`: e o melhor dominio para demonstrar actions/surfaces; cockpit deve usar esse dominio como referencia visual de workflows, composicao de equipes, capacidade operacional e ponte transacional para leituras analiticas derivadas. |
 | Suprimentos | `procurement` | 5 | 10 | 8 | `ja-suportado-mal-nomeado-ou-mal-materializado`: recursos, schemas, option sources, surfaces e actions de fornecedor, contrato e pedido existem; o cockpit deve materializar a jornada fornecedor -> contrato -> catalogo -> pedido -> recebimento como fluxo navegavel. |
 | Ativos Operacionais | `assets` | 4 | 6 | 7 | `ja-suportado-mal-nomeado-ou-mal-materializado`: recursos, lookups, surfaces, actions de disponibilidade e actions de custodia existem; o cockpit deve materializar inventario -> custodia -> frota -> missao -> devolucao/perda/dano como fluxo navegavel. |
@@ -176,6 +176,7 @@ Fonte no Quickstart:
 Recursos atuais com maior potencial:
 
 - `human-resources.vw-analytics-folha-pagamento`;
+- `human-resources.vw-analytics-afastamentos`;
 - `operations.vw-resumo-missoes`;
 - `risk-intelligence.vw-indicadores-incidentes`.
 - `assets.equipamentos`;
@@ -203,6 +204,11 @@ Em `human-resources`, as perguntas ja materializadas pelo host exemplar sao:
 - "Como a folha se comporta por departamento, perfil e competência?" via
   `POST /api/human-resources/vw-analytics-folha-pagamento/stats/group-by` e
   `POST /api/human-resources/vw-analytics-folha-pagamento/stats/timeseries`;
+- "Quais departamentos concentram afastamentos no periodo atual versus anterior?" via
+  `POST /api/human-resources/vw-analytics-afastamentos/stats/comparison` com
+  `DISTINCT_COUNT(funcionarioId)` e `SUM(diasAfastado)`. O schema exato publica em
+  `x-ui.analytics.projections[].governance.policyRefs[]` a policy de criticidade versionada e os
+  campos de atestacao por linha, sem transferir thresholds ou execucao ao cockpit;
 - "Quais universos e perfis 360 aparecem na base?" via
   `POST /api/human-resources/vw-perfil-heroi/stats/group-by` com
   `field=universo`;

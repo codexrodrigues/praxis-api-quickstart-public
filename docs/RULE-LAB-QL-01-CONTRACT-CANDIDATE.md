@@ -114,8 +114,8 @@ Fixture mínima:
 | 50 | `customer.additional-eligibility` | `DOMAIN_DECISION` | JSON Logic | `CUSTOMER` | `RESTRICT` | `RESTRICT_ONLY` |
 | 60 | `payment.calendar-policy` | `DOMAIN_DECISION` | JSON Logic | `PRODUCT/CUSTOMER` | `REPLACE_EXACT` | `REPLACEABLE` |
 | 70 | `grant.amount-parameters` | `DOMAIN_DECISION` | parameters | `PRODUCT/CUSTOMER` | `PARAMETERIZE` | `PARAMETERIZABLE` |
-| 80 | `grant.amount-calculation` | `DOMAIN_DECISION` | Java | `PRODUCT` | — | `FORBIDDEN` |
-| 90 | `budget.availability` | `POST_DECISION` | JSON Logic | `PRODUCT` | `RESTRICT` | `RESTRICT_ONLY` |
+| 80 | `budget.availability` | `POST_DECISION` | JSON Logic | `PRODUCT` | `RESTRICT` | `RESTRICT_ONLY` |
+| 90 | `grant.amount-transformation` | `TRANSFORMATION_INTENT` | Java | `PRODUCT` | — | `FORBIDDEN` |
 | 100 | `grant.effect-plan` | `EFFECT_INTENT` | host | `GENERATED_INFRASTRUCTURE` | — | `FORBIDDEN` |
 
 Composição descreve como bindings participam da decisão. Override do produto

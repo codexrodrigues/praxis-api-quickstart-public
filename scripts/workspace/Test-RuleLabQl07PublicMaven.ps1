@@ -11,6 +11,7 @@
 param(
     [string] $ProjectRoot = "",
     [string] $MavenRepository = "",
+    [string] $AngularRegistryPath = "",
     [switch] $ResetRepository
 )
 
@@ -27,6 +28,20 @@ $settings = Join-Path $ProjectRoot ".mvn\ql07-central-only-settings.xml"
 $target = Join-Path $ProjectRoot "target"
 $treeFile = Join-Path $target "ql07-public-dependency-tree.txt"
 $evidenceFile = Join-Path $target "ql07-public-maven-evidence.json"
+$verifyArguments = @("verify")
+$angularRegistrySha256 = $null
+
+if ($AngularRegistryPath) {
+    $resolvedAngularRegistry = [IO.Path]::GetFullPath($AngularRegistryPath)
+    if (-not (Test-Path -LiteralPath $resolvedAngularRegistry -PathType Leaf)) {
+        throw "Angular ingestion registry was not found: $resolvedAngularRegistry"
+    }
+    $verifyArguments = @(
+        "-Dpraxis.angular.registry.path=$resolvedAngularRegistry",
+        "verify"
+    )
+    $angularRegistrySha256 = (Get-FileHash -Algorithm SHA256 -LiteralPath $resolvedAngularRegistry).Hash.ToLowerInvariant()
+}
 
 if ($ResetRepository -and (Test-Path -LiteralPath $MavenRepository)) {
     $resolvedRoot = [IO.Path]::GetFullPath($ProjectRoot).TrimEnd('\')
@@ -75,7 +90,7 @@ try {
         }
     }
 
-    Invoke-Maven @("verify")
+    Invoke-Maven $verifyArguments
 
     $artifacts = foreach ($coordinate in $expected) {
         $parts = $coordinate.Split(':')
@@ -95,6 +110,8 @@ try {
         verifiedAtUtc = [DateTimeOffset]::UtcNow.ToString("O")
         registry = "https://repo.maven.apache.org/maven2"
         isolatedRepository = $true
+        angularRegistryOverride = [bool] $AngularRegistryPath
+        angularRegistrySha256 = $angularRegistrySha256
         projectVersion = [string] $pom.project.version
         javaVersion = (& javac -version | Select-Object -First 1).ToString()
         artifacts = @($artifacts)

@@ -36,11 +36,20 @@ public class ResourceActionExecutionService {
     public Optional<ResourceActionExecution> findCompletedReplay(
             String resourceKey, Object resourceId, String actionId, String idempotencyKey, Object command
     ) {
+        return findCompletedReplay(
+                resourceKey, resourceId, actionId, idempotencyKey, command, currentActorSubject());
+    }
+
+    /** Resolves service-level replay when the authenticated actor was already validated by the host. */
+    public Optional<ResourceActionExecution> findCompletedReplay(
+            String resourceKey, Object resourceId, String actionId, String idempotencyKey, Object command,
+            String actorSubject
+    ) {
         if (idempotencyKey == null || idempotencyKey.isBlank()) return Optional.empty();
         String hash = hash(command);
         Optional<ResourceActionExecution> existing = repository
                 .findByResourceKeyAndResourceIdAndActionIdAndActorSubjectAndIdempotencyKey(
-                        resourceKey, normalizeResourceId(resourceId), actionId, currentActorSubject(), idempotencyKey.trim());
+                        resourceKey, normalizeResourceId(resourceId), actionId, normalizeActor(actorSubject), idempotencyKey.trim());
         if (existing.isPresent()) {
             verifyCommandHash(existing.get(), hash);
             if ("COMPLETED".equals(existing.get().getExecutionStatus())) return existing;
@@ -90,6 +99,10 @@ public class ResourceActionExecutionService {
     }
     public void fail(ResourceActionExecution execution, RuntimeException failure) {
         execution.fail("WORKFLOW_EXECUTION_FAILED", failure.getMessage());
+        repository.saveAndFlush(execution);
+    }
+    public void fail(ResourceActionExecution execution, String failureCode, String safeFailureMessage) {
+        execution.fail(failureCode, safeFailureMessage);
         repository.saveAndFlush(execution);
     }
     private void verifyCommandHash(ResourceActionExecution execution, String hash) {

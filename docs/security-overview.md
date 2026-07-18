@@ -37,6 +37,16 @@ Workflow actions tipadas
 - Nesta migração piloto o workflow permanece sem enforcement RBAC dedicado; o catálogo publica apenas hints de estado (`allowedStates`) e a política de autorização corporativa continua fora do escopo do host de referência.
 - O login demo (`POST /auth/login` com o usuário admin) emite um cookie `SESSION` autenticado suficiente para exercitar o fluxo do piloto e o restante da proteção HTTP/CSRF.
 
+Maker-checker do Rule Lab
+- O Config Starter exige `RULE_DEFINITION_AUTHOR` para intake/criação,
+  `RULE_DEFINITION_APPROVER` para aprovar conteúdo exato,
+  `RULE_COMPOSITION_APPROVER` para aprovar o digest da composição e
+  `RULE_SNAPSHOT_PUBLISHER` para publicar o mesmo candidato;
+  `HttpServletRequest.isUserInRole` é a fronteira consumida pelo starter.
+- O admin demo não recebe esses roles. Para a prova local, `APP_AUTH_GOVERNANCE_LAB_ENABLED=true` habilita dois aprovadores e um publisher configurados por variáveis de ambiente, todos com usernames distintos entre si e do admin.
+- O gate deve rodar com `PRAXIS_AI_SECURITY_CORPORATE_MODE=true` e prova negativas cruzadas (`publisher -> definition/composition approve = 403` e `approver -> publish = 403`). A identidade não é transportada no payload.
+- Esse catálogo local permanece desabilitado em produção. Um host corporativo deve substituir `/auth/login` pelo IdP/BFF e mapear os roles no principal autenticado, sem transportar ator ou autorização em payload/headers do caller.
+
 Leitura arquitetural correta:
 - `workflow action` significa comando de negócio explícito, não CRUD disfarçado.
 - a segurança HTTP protege o endpoint real; o catálogo semântico apenas publica que a action existe e em quais estados ela faz sentido.

@@ -8,6 +8,7 @@ import com.example.praxis.apiquickstart.rulelab.dto.ExtraordinaryBenefitBatchEva
 import com.example.praxis.apiquickstart.rulelab.dto.ExtraordinaryBenefitBatchEvaluationResponse;
 import com.example.praxis.apiquickstart.rulelab.dto.ExtraordinaryBenefitEvaluationCommandResponse;
 import com.example.praxis.apiquickstart.rulelab.dto.ExtraordinaryBenefitEvaluationRequest;
+import com.example.praxis.apiquickstart.rulelab.dto.ExtraordinaryBenefitAuthoritativeEvaluationRequest;
 import com.example.praxis.apiquickstart.rulelab.dto.ExtraordinaryBenefitRequestFilter;
 import com.example.praxis.apiquickstart.rulelab.dto.ExtraordinaryBenefitRequestResponse;
 import com.example.praxis.apiquickstart.rulelab.dto.ExtraordinaryBenefitShadowObservation;
@@ -115,13 +116,15 @@ public class ExtraordinaryBenefitRequestController extends AbstractReadOnlyResou
     public ResponseEntity<RestApiResponse<ExtraordinaryBenefitEvaluationCommandResponse>> evaluate(
             @RequestHeader("Idempotency-Key") String idempotencyKey,
             @RequestHeader(value = "X-Correlation-ID", required = false) String correlationId,
-            @Valid @RequestBody ExtraordinaryBenefitEvaluationRequest request) {
+            @Valid @RequestBody ExtraordinaryBenefitAuthoritativeEvaluationRequest request) {
         requireAdmin();
         String actor = actorSubject();
+        String effectiveCorrelation = correlation(correlationId);
         return executeIdempotentCollection(
-                "evaluate", idempotencyKey, request, correlationId, actor,
+                "evaluate", idempotencyKey, request, effectiveCorrelation, actor,
                 ExtraordinaryBenefitEvaluationCommandResponse.class,
-                () -> workflowService.evaluateAndPersist(request, resolveActorPermissions(), actor));
+                () -> workflowService.evaluateAndPersist(
+                        request, resolveActorPermissions(), actor, effectiveCorrelation));
     }
 
     @PostMapping("/actions/evaluate-batch")
@@ -148,10 +151,12 @@ public class ExtraordinaryBenefitRequestController extends AbstractReadOnlyResou
             @Valid @RequestBody ExtraordinaryBenefitBatchEvaluationRequest request) {
         requireAdmin();
         String actor = actorSubject();
+        String effectiveCorrelation = correlation(correlationId);
         return executeIdempotentCollection(
-                "evaluate-batch", idempotencyKey, request, correlationId, actor,
+                "evaluate-batch", idempotencyKey, request, effectiveCorrelation, actor,
                 ExtraordinaryBenefitBatchEvaluationResponse.class,
-                () -> workflowService.evaluateBatch(request, resolveActorPermissions(), actor));
+                () -> workflowService.evaluateBatch(
+                        request, resolveActorPermissions(), actor, effectiveCorrelation));
     }
 
     @PostMapping("/actions/shadow-compare")
@@ -238,7 +243,8 @@ public class ExtraordinaryBenefitRequestController extends AbstractReadOnlyResou
             @RequestHeader(value = "X-Correlation-ID", required = false) String correlationId,
             @Valid @RequestBody ExtraordinaryBenefitTransitionRequest request) {
         return executeTransition("apply", id, ifMatch, idempotencyKey, correlationId, request,
-                () -> workflowService.apply(id, request, actorSubject(), correlation(correlationId)));
+                () -> workflowService.apply(
+                        id, request, resolveActorPermissions(), actorSubject(), correlation(correlationId)));
     }
 
     private ResponseEntity<RestApiResponse<ExtraordinaryBenefitTransitionResponse>> executeTransition(

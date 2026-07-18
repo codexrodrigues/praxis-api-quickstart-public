@@ -5,7 +5,9 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Getter;
 import lombok.Setter;
 import org.praxisplatform.uischema.FieldControlType;
-import org.praxisplatform.uischema.annotation.AiUsageMode;
+import org.praxisplatform.uischema.annotation.AiControlledUseMode;
+import org.praxisplatform.uischema.annotation.AiTrainingUseMode;
+import org.praxisplatform.uischema.annotation.AiVisibilityMode;
 import org.praxisplatform.uischema.annotation.AiUsagePolicy;
 import org.praxisplatform.uischema.annotation.DomainClassification;
 import org.praxisplatform.uischema.annotation.DomainDataCategory;
@@ -43,7 +45,7 @@ public class ProcurementSupplierDTO {
             classification = DomainClassification.CONFIDENTIAL,
             dataCategory = DomainDataCategory.PERSONAL,
             complianceTags = {"LGPD", "GDPR"},
-            aiUsage = @AiUsagePolicy(visibility = AiUsageMode.MASK, trainingUse = AiUsageMode.DENY, ruleAuthoring = AiUsageMode.REVIEW_REQUIRED, reasoningUse = AiUsageMode.REVIEW_REQUIRED),
+            aiUsage = @AiUsagePolicy(visibility = AiVisibilityMode.MASK, trainingUse = AiTrainingUseMode.DENY, ruleAuthoring = AiControlledUseMode.REVIEW_REQUIRED, reasoningUse = AiControlledUseMode.REVIEW_REQUIRED),
             reason = "Documento de identificacao cadastral do fornecedor."
     )
     @Schema(
@@ -57,7 +59,7 @@ public class ProcurementSupplierDTO {
             classification = DomainClassification.INTERNAL,
             dataCategory = DomainDataCategory.LEGAL,
             complianceTags = {"INTERNAL_POLICY", "REGULATORY"},
-            aiUsage = @AiUsagePolicy(visibility = AiUsageMode.ALLOW, trainingUse = AiUsageMode.DENY, ruleAuthoring = AiUsageMode.REVIEW_REQUIRED, reasoningUse = AiUsageMode.ALLOW),
+            aiUsage = @AiUsagePolicy(visibility = AiVisibilityMode.ALLOW, trainingUse = AiTrainingUseMode.DENY, ruleAuthoring = AiControlledUseMode.REVIEW_REQUIRED, reasoningUse = AiControlledUseMode.ALLOW),
             reason = "Homologacao necessaria para compras governadas."
     )
     @Schema(
@@ -71,7 +73,7 @@ public class ProcurementSupplierDTO {
             classification = DomainClassification.CONFIDENTIAL,
             dataCategory = DomainDataCategory.OPERATIONAL,
             complianceTags = {"INTERNAL_POLICY"},
-            aiUsage = @AiUsagePolicy(visibility = AiUsageMode.SUMMARIZE_ONLY, trainingUse = AiUsageMode.DENY, ruleAuthoring = AiUsageMode.REVIEW_REQUIRED, reasoningUse = AiUsageMode.REVIEW_REQUIRED),
+            aiUsage = @AiUsagePolicy(visibility = AiVisibilityMode.SUMMARIZE_ONLY, trainingUse = AiTrainingUseMode.DENY, ruleAuthoring = AiControlledUseMode.REVIEW_REQUIRED, reasoningUse = AiControlledUseMode.REVIEW_REQUIRED),
             reason = "Nivel de risco operacional do fornecedor."
     )
     @Schema(description = "Categoria de risco de terceiro; impacta aprovacoes, limites de pedido e monitoramento.")
@@ -83,7 +85,7 @@ public class ProcurementSupplierDTO {
             classification = DomainClassification.INTERNAL,
             dataCategory = DomainDataCategory.LEGAL,
             complianceTags = {"INTERNAL_POLICY", "REGULATORY"},
-            aiUsage = @AiUsagePolicy(visibility = AiUsageMode.ALLOW, trainingUse = AiUsageMode.DENY, ruleAuthoring = AiUsageMode.REVIEW_REQUIRED, reasoningUse = AiUsageMode.ALLOW),
+            aiUsage = @AiUsagePolicy(visibility = AiVisibilityMode.ALLOW, trainingUse = AiTrainingUseMode.DENY, ruleAuthoring = AiControlledUseMode.REVIEW_REQUIRED, reasoningUse = AiControlledUseMode.ALLOW),
             reason = "Status que governa elegibilidade do fornecedor para compras."
     )
     @Schema(description = "Elegibilidade geral (ACTIVE, INACTIVE, BLOCKED); bloqueia novos pedidos quando aplicavel.")
@@ -95,7 +97,7 @@ public class ProcurementSupplierDTO {
             classification = DomainClassification.INTERNAL,
             dataCategory = DomainDataCategory.LEGAL,
             complianceTags = {"INTERNAL_POLICY", "REGULATORY"},
-            aiUsage = @AiUsagePolicy(visibility = AiUsageMode.ALLOW, trainingUse = AiUsageMode.DENY, ruleAuthoring = AiUsageMode.REVIEW_REQUIRED, reasoningUse = AiUsageMode.ALLOW),
+            aiUsage = @AiUsagePolicy(visibility = AiVisibilityMode.ALLOW, trainingUse = AiTrainingUseMode.DENY, ruleAuthoring = AiControlledUseMode.REVIEW_REQUIRED, reasoningUse = AiControlledUseMode.ALLOW),
             reason = "Motivo documental para bloqueio do fornecedor."
     )
     @Schema(

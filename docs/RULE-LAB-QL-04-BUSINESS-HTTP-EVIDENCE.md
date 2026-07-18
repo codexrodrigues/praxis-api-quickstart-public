@@ -57,10 +57,10 @@ GET /schemas/filtered?path=/api/human-resources/extraordinary-benefit-requests/a
 GET /schemas/filtered?path=/api/human-resources/extraordinary-benefit-requests/actions/evaluate&operation=post&schemaType=response
 ```
 
-O request documenta propriedade por propriedade a semântica de domínio e publica
-`x-ui` para valor monetário, datas, toggles, lista de calendário, motivo e fuso.
-O campo `customerAdditionalEligible` é intencionalmente opcional: omiti-lo prova
-que o runtime não inventa `false` nem `true` e termina de forma inconclusiva.
+O contrato original abaixo foi endurecido por FND-06. O endpoint persistente agora publica `x-ui`
+somente para dados comandáveis e `factReference`; situação funcional, duplicidade, vigência,
+limites, calendário e saldo são adquiridos pelo host. O DTO completo de facts permanece apenas na
+fronteira interna de avaliação e na operação shadow sintética, que não persiste nem executa efeito.
 
 ## Exemplo operacional
 
@@ -74,14 +74,8 @@ curl -X POST \
     "reasonCode":"FAMILY_HARDSHIP",
     "eventDate":"2026-07-13",
     "requestedAmount":2500.00,
-    "workerStatus":"ACTIVE",
-    "duplicateGrant":false,
-    "programActive":true,
-    "programMaximumAmount":5000.00,
-    "customerAdditionalEligible":true,
+    "factReference":"QL10-FICTIONAL-001",
     "requestedPaymentDate":"2026-07-20",
-    "allowedPaymentDates":["2026-07-20","2026-08-05"],
-    "availableBudgetAmount":100000.00,
     "userTimeZone":"America/Sao_Paulo"
   }'
 ```
@@ -93,9 +87,9 @@ mvn -Dtest=ExtraordinaryGrantRuleLabServiceTest,ExtraordinaryGrantRuleSnapshotRu
 mvn -Dtest=ExtraordinaryBenefitRequestPilotIntegrationTest test
 ```
 
-Os testes cobrem `ALLOW`, negação por orçamento, autorização resolvida pelo host,
-fato ausente inconclusivo, hashes/evidência atômica, ausência de persistência e
-efeitos, autenticação HTTP, action catalog, capabilities e schema filtrado com
+Os testes cobrem `ALLOW`, negação por facts autoritativos, impossibilidade de o caller fornecer
+estado funcional, autorização resolvida pelo host, hashes/evidência atômica, ausência de
+persistência em negação, autenticação HTTP, action catalog, capabilities e schema filtrado com
 `x-ui`.
 
 ## Próximo gate

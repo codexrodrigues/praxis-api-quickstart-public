@@ -7,7 +7,9 @@ import io.swagger.v3.oas.annotations.extensions.ExtensionProperty;
 import org.praxisplatform.uischema.FieldControlType;
 import org.praxisplatform.uischema.FieldDataType;
 import org.praxisplatform.uischema.NumericFormat;
-import org.praxisplatform.uischema.annotation.AiUsageMode;
+import org.praxisplatform.uischema.annotation.AiControlledUseMode;
+import org.praxisplatform.uischema.annotation.AiTrainingUseMode;
+import org.praxisplatform.uischema.annotation.AiVisibilityMode;
 import org.praxisplatform.uischema.annotation.AiUsagePolicy;
 import org.praxisplatform.uischema.annotation.DomainClassification;
 import org.praxisplatform.uischema.annotation.DomainDataCategory;
@@ -80,10 +82,10 @@ public class FuncionarioDTO {
         dataCategory = DomainDataCategory.PERSONAL,
         complianceTags = {"LGPD", "GDPR"},
         aiUsage = @AiUsagePolicy(
-            visibility = AiUsageMode.MASK,
-            trainingUse = AiUsageMode.DENY,
-            ruleAuthoring = AiUsageMode.REVIEW_REQUIRED,
-            reasoningUse = AiUsageMode.REVIEW_REQUIRED
+            visibility = AiVisibilityMode.MASK,
+            trainingUse = AiTrainingUseMode.DENY,
+            ruleAuthoring = AiControlledUseMode.REVIEW_REQUIRED,
+            reasoningUse = AiControlledUseMode.REVIEW_REQUIRED
         ),
         reason = "Documento pessoal usado para identificacao fiscal do colaborador."
     )
@@ -116,10 +118,10 @@ public class FuncionarioDTO {
         dataCategory = DomainDataCategory.PERSONAL,
         complianceTags = {"LGPD", "GDPR"},
         aiUsage = @AiUsagePolicy(
-            visibility = AiUsageMode.MASK,
-            trainingUse = AiUsageMode.DENY,
-            ruleAuthoring = AiUsageMode.REVIEW_REQUIRED,
-            reasoningUse = AiUsageMode.REVIEW_REQUIRED
+            visibility = AiVisibilityMode.MASK,
+            trainingUse = AiTrainingUseMode.DENY,
+            ruleAuthoring = AiControlledUseMode.REVIEW_REQUIRED,
+            reasoningUse = AiControlledUseMode.REVIEW_REQUIRED
         ),
         reason = "Data de nascimento usada para identificacao pessoal."
     )
@@ -153,10 +155,10 @@ public class FuncionarioDTO {
         dataCategory = DomainDataCategory.PERSONAL,
         complianceTags = {"LGPD", "GDPR"},
         aiUsage = @AiUsagePolicy(
-            visibility = AiUsageMode.MASK,
-            trainingUse = AiUsageMode.DENY,
-            ruleAuthoring = AiUsageMode.REVIEW_REQUIRED,
-            reasoningUse = AiUsageMode.REVIEW_REQUIRED
+            visibility = AiVisibilityMode.MASK,
+            trainingUse = AiTrainingUseMode.DENY,
+            ruleAuthoring = AiControlledUseMode.REVIEW_REQUIRED,
+            reasoningUse = AiControlledUseMode.REVIEW_REQUIRED
         ),
         reason = "Contato pessoal do colaborador."
     )
@@ -173,10 +175,10 @@ public class FuncionarioDTO {
         dataCategory = DomainDataCategory.PERSONAL,
         complianceTags = {"LGPD", "GDPR"},
         aiUsage = @AiUsagePolicy(
-            visibility = AiUsageMode.MASK,
-            trainingUse = AiUsageMode.DENY,
-            ruleAuthoring = AiUsageMode.REVIEW_REQUIRED,
-            reasoningUse = AiUsageMode.REVIEW_REQUIRED
+            visibility = AiVisibilityMode.MASK,
+            trainingUse = AiTrainingUseMode.DENY,
+            ruleAuthoring = AiControlledUseMode.REVIEW_REQUIRED,
+            reasoningUse = AiControlledUseMode.REVIEW_REQUIRED
         ),
         reason = "Canal de contato pessoal do colaborador."
     )
@@ -209,10 +211,10 @@ public class FuncionarioDTO {
         dataCategory = DomainDataCategory.FINANCIAL,
         complianceTags = {"LGPD", "INTERNAL_POLICY"},
         aiUsage = @AiUsagePolicy(
-            visibility = AiUsageMode.MASK,
-            trainingUse = AiUsageMode.DENY,
-            ruleAuthoring = AiUsageMode.REVIEW_REQUIRED,
-            reasoningUse = AiUsageMode.ALLOW
+            visibility = AiVisibilityMode.MASK,
+            trainingUse = AiTrainingUseMode.DENY,
+            ruleAuthoring = AiControlledUseMode.REVIEW_REQUIRED,
+            reasoningUse = AiControlledUseMode.ALLOW
         ),
         reason = "Remuneracao individual do colaborador."
     )

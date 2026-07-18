@@ -58,6 +58,11 @@ Nenhuma tag recebe rule facts, tenant, usuário, referência ou exception messag
 exportação durável pertencem ao backend Micrometer/observabilidade configurado no ambiente; o host
 não mantém uma segunda base de autoridade em memória.
 
+P2F-ADR-12 formaliza essa separação: a resposta shadow transitória não é ledger
+durável, enquanto atos administrativos e transformações materializadas seguem
+retenção/legal hold governados conforme
+`RULE-LAB-P2F-ADR-12-PRIVACY-RETENTION.md`.
+
 ## Gates de promoção, pausa e rollback
 
 Para um futuro piloto corporativo, promoção só pode ser considerada após uma janela contínua de ao

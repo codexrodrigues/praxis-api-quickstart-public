@@ -5,6 +5,8 @@ import com.example.praxis.apiquickstart.hr.dto.VwAnalyticsFolhaPagamentoDTO;
 import com.example.praxis.apiquickstart.hr.dto.filter.VwAnalyticsFolhaPagamentoFilterDTO;
 import com.example.praxis.apiquickstart.hr.entity.VwAnalyticsFolhaPagamento;
 import com.example.praxis.apiquickstart.hr.mapper.VwAnalyticsFolhaPagamentoMapper;
+import com.example.praxis.apiquickstart.hr.controller.base.AbstractHrDepartmentScopedAnalyticsController;
+import com.example.praxis.apiquickstart.hr.security.HrDepartmentScopeAccess;
 import com.example.praxis.apiquickstart.hr.service.VwAnalyticsFolhaPagamentoService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -12,6 +14,7 @@ import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import org.praxisplatform.uischema.annotation.AnalyticsComparisonPeriodBinding;
 import org.praxisplatform.uischema.annotation.AnalyticsDimensionBinding;
 import org.praxisplatform.uischema.annotation.AnalyticsGranularity;
 import org.praxisplatform.uischema.annotation.AnalyticsIntent;
@@ -24,8 +27,14 @@ import org.praxisplatform.uischema.annotation.AnalyticsSortDirection;
 import org.praxisplatform.uischema.annotation.ApiGroup;
 import org.praxisplatform.uischema.annotation.ApiResource;
 import org.praxisplatform.uischema.annotation.UiAnalytics;
-import com.example.praxis.apiquickstart.core.controller.base.AbstractQuickstartReadOnlyController;
 import org.praxisplatform.uischema.rest.response.RestApiResponse;
+import org.praxisplatform.uischema.exporting.CollectionExportRequest;
+import org.praxisplatform.uischema.stats.ComparisonPeriodMode;
+import org.praxisplatform.uischema.stats.ComparisonPeriodPreset;
+import org.praxisplatform.uischema.stats.dto.ComparisonStatsRequest;
+import org.praxisplatform.uischema.stats.dto.ComparisonStatsResponse;
+import org.praxisplatform.uischema.stats.dto.DistributionStatsRequest;
+import org.praxisplatform.uischema.stats.dto.DistributionStatsResponse;
 import org.praxisplatform.uischema.stats.dto.GroupByStatsRequest;
 import org.praxisplatform.uischema.stats.dto.GroupByStatsResponse;
 import org.praxisplatform.uischema.stats.dto.TimeSeriesStatsRequest;
@@ -54,7 +63,7 @@ import java.util.List;
 @ApiResource(value = ApiPaths.HumanResources.VW_ANALYTICS_FOLHA_PAGAMENTO, resourceKey = "human-resources.vw-analytics-folha-pagamento")
 @ApiGroup("human-resources")
 @RestController
-public class VwAnalyticsFolhaPagamentoController extends AbstractQuickstartReadOnlyController<VwAnalyticsFolhaPagamento, VwAnalyticsFolhaPagamentoDTO, Integer, VwAnalyticsFolhaPagamentoFilterDTO> {
+public class VwAnalyticsFolhaPagamentoController extends AbstractHrDepartmentScopedAnalyticsController<VwAnalyticsFolhaPagamento, VwAnalyticsFolhaPagamentoDTO, Integer, VwAnalyticsFolhaPagamentoFilterDTO> {
 
     private static final String GROUP_BY_STATS_REQUEST_EXAMPLE = """
             {
@@ -110,7 +119,12 @@ public class VwAnalyticsFolhaPagamentoController extends AbstractQuickstartReadO
     private final VwAnalyticsFolhaPagamentoMapper mapper;
 
     @Autowired
-    public VwAnalyticsFolhaPagamentoController(VwAnalyticsFolhaPagamentoService service, VwAnalyticsFolhaPagamentoMapper mapper) {
+    public VwAnalyticsFolhaPagamentoController(
+            VwAnalyticsFolhaPagamentoService service,
+            VwAnalyticsFolhaPagamentoMapper mapper,
+            HrDepartmentScopeAccess departmentScopeAccess
+    ) {
+        super(departmentScopeAccess, VwAnalyticsFolhaPagamentoFilterDTO::new);
         this.service = service;
         this.mapper = mapper;
     }
@@ -197,6 +211,58 @@ public class VwAnalyticsFolhaPagamentoController extends AbstractQuickstartReadO
     })
     public ResponseEntity<List<org.praxisplatform.uischema.dto.OptionDTO<Integer>>> getOptionsByIds(@RequestParam(name = "ids", required = false) List<Integer> ids) {
         return super.getOptionsByIds(ids);
+    }
+
+    @Override
+    @PostMapping("/export")
+    public ResponseEntity<?> exportCollection(@RequestBody CollectionExportRequest<VwAnalyticsFolhaPagamentoFilterDTO> request) {
+        return super.exportCollection(request);
+    }
+
+    @Override
+    @PostMapping("/stats/comparison")
+    @UiAnalytics(
+            projections = {
+                    @AnalyticsProjection(
+                            id = "payroll-department-comparison",
+                            intent = AnalyticsIntent.COMPARISON,
+                            sourceOperation = AnalyticsOperation.COMPARISON,
+                            sourceResource = ApiPaths.HumanResources.VW_ANALYTICS_FOLHA_PAGAMENTO,
+                            primaryDimension = @AnalyticsDimensionBinding(
+                                    field = "departamento",
+                                    label = "Departamento",
+                                    keyFilterField = "departamentoId"
+                            ),
+                            comparisonPeriod = @AnalyticsComparisonPeriodBinding(
+                                    field = "competencia",
+                                    timezone = "America/Sao_Paulo",
+                                    preset = ComparisonPeriodPreset.THIS_MONTH,
+                                    mode = ComparisonPeriodMode.PREVIOUS_CALENDAR_PERIOD
+                            ),
+                            primaryMetrics = {
+                                    @AnalyticsMetricBinding(field = "salarioBruto", aggregation = "sum", label = "Massa bruta"),
+                                    @AnalyticsMetricBinding(field = "totalDescontos", aggregation = "sum", label = "Descontos"),
+                                    @AnalyticsMetricBinding(field = "salarioLiquido", aggregation = "sum", label = "Massa líquida")
+                            },
+                            defaultSort = {
+                                    @AnalyticsSort(field = "salarioBruto", direction = AnalyticsSortDirection.DESC)
+                            },
+                            preferredFamilies = {
+                                    AnalyticsPresentationFamily.ANALYTIC_TABLE,
+                                    AnalyticsPresentationFamily.CHART
+                            },
+                            crossFilter = true
+                    )
+            }
+    )
+    @Operation(
+            summary = "Comparar massa salarial por lotação efetiva",
+            description = "Compara bruto, descontos e líquido do período atual e anterior por departamento efetivo na competência."
+    )
+    public ResponseEntity<RestApiResponse<ComparisonStatsResponse>> comparisonStats(
+            @RequestBody ComparisonStatsRequest<VwAnalyticsFolhaPagamentoFilterDTO> request
+    ) {
+        return super.comparisonStats(request);
     }
 
     @Override
@@ -326,6 +392,14 @@ public class VwAnalyticsFolhaPagamentoController extends AbstractQuickstartReadO
         return super.timeSeriesStats(request);
     }
 
+    @Override
+    @PostMapping("/stats/distribution")
+    public ResponseEntity<RestApiResponse<DistributionStatsResponse>> distributionStats(
+            @RequestBody DistributionStatsRequest<VwAnalyticsFolhaPagamentoFilterDTO> request
+    ) {
+        return super.distributionStats(request);
+    }
+
     @GetMapping("/{id}")
     @Operation(summary = "Obter detalhe analítico de folha de um colaborador", description = "Retorna a linha analítica de folha com contexto de colaborador, organização, operação, competência, valores de folha, eventos e faixas financeiras para leitura gerencial ou composição de visões derivadas.")
     @ApiResponses({
@@ -333,12 +407,7 @@ public class VwAnalyticsFolhaPagamentoController extends AbstractQuickstartReadO
             @ApiResponse(responseCode = "404", description = "Registro não encontrado.")
     })
     public ResponseEntity<RestApiResponse<VwAnalyticsFolhaPagamentoDTO>> getById(@PathVariable Integer id) {
+        requireDepartment(service.findById(id).getDepartamentoId());
         return super.getById(id);
     }
 }
-
-
-
-
-
-

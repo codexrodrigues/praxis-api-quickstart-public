@@ -83,6 +83,18 @@ public class ProcurementSupplierController extends AbstractQuickstartCrudControl
     protected Integer getDtoId(ProcurementSupplierDTO dto) { return dto.getId(); }
 
     @Override
+    @PostMapping
+    @Operation(
+            summary = "Cadastrar fornecedor governado",
+            description = "Cadastra um fornecedor com dados de homologacao, risco, status e bloqueio de compliance que governam sua elegibilidade para selecao em pedidos de compra."
+    )
+    public ResponseEntity<RestApiResponse<ProcurementSupplierDTO>> create(
+            @jakarta.validation.Valid @RequestBody CreateProcurementSupplierDTO dto
+    ) {
+        return super.create(dto);
+    }
+
+    @Override
     @PostMapping("/filter")
     @UiSurface(
             id = "supplier-homologation-board",

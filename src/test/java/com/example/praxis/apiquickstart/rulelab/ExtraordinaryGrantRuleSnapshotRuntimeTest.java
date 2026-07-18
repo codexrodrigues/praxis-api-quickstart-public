@@ -4,19 +4,26 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Clock;
 import java.time.Instant;
+import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.praxisplatform.config.dto.DomainRuleSnapshotActivationResponse;
+import org.praxisplatform.config.service.DomainRuleImplementationScope;
 import org.praxisplatform.config.service.DomainRuleSnapshotReader;
 import org.praxisplatform.rules.contract.PublishedRuleSnapshot;
+import org.praxisplatform.rules.contract.RuleDecision;
+import org.praxisplatform.rules.contract.RuleExtensionTrust;
+import org.praxisplatform.rules.contract.RuleImplementationRef;
 import org.praxisplatform.rules.contract.RuleSnapshotApproval;
 import org.praxisplatform.rules.contract.RuleSnapshotSource;
 import org.praxisplatform.rules.runtime.RuleBindingExecutorRegistry;
+import org.praxisplatform.rules.runtime.PraxisRuleSetEngine;
 import org.praxisplatform.rules.snapshot.PraxisRuleSnapshotCompiler;
 import org.springframework.boot.actuate.health.Status;
 
@@ -30,6 +37,27 @@ class ExtraordinaryGrantRuleSnapshotRuntimeTest {
     void setUp() {
         registry = new ExtraordinaryGrantRuleLabConfiguration().extraordinaryGrantRuleExecutorRegistry();
         runtime = new ExtraordinaryGrantRuleSnapshotRuntime(registry);
+    }
+
+    @Test
+    void hostCatalogAdmitsAttestedCustomerExtensionOnlyForTheConfiguredScope() {
+        var catalog = new ExtraordinaryGrantRuleLabConfiguration()
+                .extraordinaryGrantRuleImplementationCatalog("desenv", "local");
+
+        var admitted = catalog.allowedImplementations(new DomainRuleImplementationScope(
+                "desenv", "local", ExtraordinaryGrantRuleSnapshotRuntime.OWNER_SERVICE_KEY));
+
+        assertThat(admitted).hasSize(3);
+        assertThat(admitted).filteredOn(ref -> ref.implementationKey().startsWith("customer:"))
+                .singleElement()
+                .satisfies(ref -> {
+                    assertThat(ref.extensionTrust()).isNotNull();
+                    assertThat(ref.extensionTrust().signatureIdentity())
+                            .isEqualTo("lab-fixture:customer-policy-signer");
+                });
+        assertThat(catalog.allowedImplementations(new DomainRuleImplementationScope(
+                "another-tenant", "local", ExtraordinaryGrantRuleSnapshotRuntime.OWNER_SERVICE_KEY)))
+                .isEmpty();
     }
 
     @Test
@@ -63,6 +91,111 @@ class ExtraordinaryGrantRuleSnapshotRuntimeTest {
         assertThat(status.activeSnapshotKey()).isEqualTo("snapshot-v1");
         assertThat(status.activeHeadEtag()).isEqualTo("head-1");
         assertThat(status.lastFailureCode()).isEqualTo("SNAPSHOT_HOST_INCOMPATIBLE");
+    }
+
+    @Test
+    void customerAttestationSubstitutionFailsBeforeExtensionExecution() throws Exception {
+        PublishedRuleSnapshot candidate = snapshot("snapshot-v2", "quickstart/1.0", 2);
+        var substitutedTrust = new RuleExtensionTrust(
+                "A".repeat(64),
+                "untrusted-fixture:substituted-signer",
+                "lab-policy:customer-extension-v1",
+                "B".repeat(64));
+        var substitutedCatalog = RuleBindingExecutorRegistry.planning(List.of(
+                new RuleImplementationRef(
+                        "customer:extraordinary-grant-additional-eligibility", "1.0.0", substitutedTrust),
+                new RuleImplementationRef("benefits:extraordinary-grant-amount-transformation", "1.0.0"),
+                new RuleImplementationRef("benefits:extraordinary-grant-effect-plan", "1.0.0")));
+        var substitutedPlan = new PraxisRuleSnapshotCompiler(substitutedCatalog)
+                .compile(candidate, ExtraordinaryGrantRuleSnapshotRuntime.HOST_CONTRACT_VERSION)
+                .plan();
+
+        var result = new PraxisRuleSetEngine(registry).evaluate(
+                substitutedPlan,
+                new ObjectMapper().readTree("""
+                        {
+                          "actor": {"permissions": ["benefit:request"]},
+                          "worker": {"status": "ACTIVE"},
+                          "grant": {"hasDuplicate": false},
+                          "program": {"active": true},
+                          "customer": {"additionalEligible": true}
+                        }
+                        """),
+                NOW.toString(),
+                "America/Sao_Paulo");
+
+        assertThat(result.decision()).isEqualTo(RuleDecision.TECHNICAL_ERROR);
+        assertThat(result.reasonCodes()).containsExactly("IMPLEMENTATION_TRUST_MISMATCH");
+        assertThat(result.bindingResults()).hasSize(6);
+        assertThat(result.bindingResults().getLast().bindingKey())
+                .isEqualTo("customer.additional-eligibility");
+        assertThat(result.bindingResults().getLast().reasonCodes())
+                .containsExactly("IMPLEMENTATION_TRUST_MISMATCH");
+    }
+
+    @Test
+    void capturedOperationSessionRemainsPinnedWhenActiveHeadChanges() throws Exception {
+        runtime.activate(
+                activation(snapshot("snapshot-v1", "quickstart/1.0", 1), "head-1", 1),
+                "desenv", "local", NOW);
+        ExtraordinaryGrantRuleSnapshotSession session = runtime.captureSnapshot(NOW);
+
+        runtime.activate(
+                activation(snapshot("snapshot-v2", "quickstart/1.0", 2), "head-2", 2),
+                "desenv", "local", NOW.plusSeconds(30));
+        var evaluation = runtime.evaluateWithSnapshot(
+                session,
+                new ObjectMapper().readTree("""
+                        {
+                          "request": {"requestedAmount": 2500.00},
+                          "actor": {"permissions": ["benefit:request"]},
+                          "worker": {"status": "ACTIVE"},
+                          "grant": {"hasDuplicate": false},
+                          "program": {"active": true, "maxAmount": 5000.00},
+                          "customer": {"additionalEligible": true},
+                          "payment": {
+                            "requestedDate": "2026-07-20",
+                            "allowedDates": ["2026-07-20", "2026-08-05"]
+                          },
+                          "budget": {"availableAmount": 100000.00}
+                        }
+                        """),
+                NOW.plusSeconds(30),
+                ZoneId.of("America/Sao_Paulo"));
+
+        assertThat(runtime.status().activeSnapshotKey()).isEqualTo("snapshot-v2");
+        assertThat(evaluation.snapshotKey()).isEqualTo("snapshot-v1");
+        assertThat(evaluation.activationRevision()).isEqualTo(1);
+        assertThat(evaluation.result().ruleSetRef().version()).isEqualTo(1);
+    }
+
+    @Test
+    void rejectsCrossBoundaryCandidatesAndPreservesLastKnownGoodSnapshot() {
+        runtime.activate(
+                activation(snapshot("snapshot-v1", "quickstart/1.0", 1), "head-1", 1),
+                "desenv", "local", NOW);
+        PublishedRuleSnapshot base = snapshot("snapshot-v2", "quickstart/1.0", 2);
+        PublishedRuleSnapshot crossTenant = new PublishedRuleSnapshot(
+                base.snapshotContractVersion(), base.snapshotKey(), "tenant-b", base.environment(),
+                base.ownerServiceKey(), base.publicationRevision(), base.publishedAtUtc(),
+                base.supersedesSnapshotKey(), base.requiredHostContractVersion(), base.validFromUtc(),
+                base.validUntilUtc(), base.sources(), base.approvals(), base.ruleSet());
+        PublishedRuleSnapshot crossEnvironment = new PublishedRuleSnapshot(
+                base.snapshotContractVersion(), base.snapshotKey(), base.tenantId(), "production",
+                base.ownerServiceKey(), base.publicationRevision(), base.publishedAtUtc(),
+                base.supersedesSnapshotKey(), base.requiredHostContractVersion(), base.validFromUtc(),
+                base.validUntilUtc(), base.sources(), base.approvals(), base.ruleSet());
+
+        for (PublishedRuleSnapshot crossBoundary : List.of(crossTenant, crossEnvironment)) {
+            var status = runtime.activate(
+                    activation(crossBoundary, "head-2", 2),
+                    "desenv", "local", NOW.plusSeconds(30));
+
+            assertThat(status.ready()).isTrue();
+            assertThat(status.activeSnapshotKey()).isEqualTo("snapshot-v1");
+            assertThat(status.activeHeadEtag()).isEqualTo("head-1");
+            assertThat(status.lastFailureCode()).isEqualTo("SNAPSHOT_REJECTED");
+        }
     }
 
     @Test

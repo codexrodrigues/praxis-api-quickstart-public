@@ -43,12 +43,16 @@ public class VwAnalyticsFolhaPagamentoDTO {
             example = "true")
     private Boolean exposicaoPublica;
 
-    @UISchema(label = "Cargo", helpText = "Cargo atual no momento da folha.", icon = "work")
-    @Schema(description = "Descricao de cargo exibida na linha; texto da vista, nao FK de Cargo.")
+    @UISchema(label = "Cargo", helpText = "Cargo cadastrado na origem da view.", icon = "work")
+    @Schema(description = "Descricao de cargo do cadastro atual, sem semantica temporal; texto da vista, nao FK de Cargo.")
     private String cargo;
 
-    @UISchema(label = "Departamento", helpText = "Departamento alocado.", icon = "apartment")
-    @Schema(description = "Celula organica; desnormalizado para corte de custo e headcount.")
+    @UISchema(label = "Cód. Departamento", formHidden = true, icon = "apartment")
+    @Schema(description = "Identificador da lotacao efetiva no primeiro dia da competencia; chave estavel para autorizacao e cross-filter.")
+    private Integer departamentoId;
+
+    @UISchema(label = "Departamento", helpText = "Lotação efetiva na competência.", icon = "apartment")
+    @Schema(description = "Nome da lotacao efetiva no primeiro dia da competencia, desnormalizado para cortes de massa salarial.")
     private String departamento;
 
     @UISchema(label = "Equipe", helpText = "Equipe tática do herói.", icon = "groups")
@@ -182,6 +186,8 @@ public class VwAnalyticsFolhaPagamentoDTO {
     public void setExposicaoPublica(Boolean exposicaoPublica) { this.exposicaoPublica = exposicaoPublica; }
     public String getCargo() { return cargo; }
     public void setCargo(String cargo) { this.cargo = cargo; }
+    public Integer getDepartamentoId() { return departamentoId; }
+    public void setDepartamentoId(Integer departamentoId) { this.departamentoId = departamentoId; }
     public String getDepartamento() { return departamento; }
     public void setDepartamento(String departamento) { this.departamento = departamento; }
     public String getEquipe() { return equipe; }
