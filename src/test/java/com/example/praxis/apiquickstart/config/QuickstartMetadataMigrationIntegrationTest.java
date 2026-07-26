@@ -812,6 +812,33 @@ class QuickstartMetadataMigrationIntegrationTest {
 
         JsonNode readOnlyCapabilities = body(authorizedAnalyticsGet(
                 "/api/human-resources/vw-analytics-folha-pagamento/capabilities"));
+        JsonNode filterSchema = body(restTemplate.getForEntity(
+                "/schemas/filtered?path={path}&operation=post&schemaType=request",
+                String.class,
+                "/api/human-resources/vw-analytics-folha-pagamento/filter"
+        ));
+        JsonNode schemaCapabilities = filterSchema.path("x-ui").path("resource").path("capabilities");
+        JsonNode canonicalOperations = readOnlyCapabilities.path("canonicalOperations");
+
+        for (String capability : List.of(
+                "options",
+                "optionSources",
+                "statsGroupBy",
+                "statsTimeSeries",
+                "statsDistribution",
+                "statsComparison",
+                "export"
+        )) {
+            assertEquals(
+                    schemaCapabilities.path(capability).asBoolean(),
+                    canonicalOperations.path(capability).asBoolean(),
+                    "Schema e snapshot devem materializar o mesmo suporte estrutural para " + capability
+            );
+        }
+        assertTrue(schemaCapabilities.path("optionSources").asBoolean());
+        assertTrue(schemaCapabilities.path("statsGroupBy").asBoolean());
+        assertTrue(readOnlyCapabilities.path("stats").path("fields").isArray());
+        assertFalse(readOnlyCapabilities.path("stats").path("fields").isEmpty());
         assertFalse(readOnlyCapabilities.path("canonicalOperations").path("create").asBoolean());
         assertFalse(readOnlyCapabilities.path("canonicalOperations").path("update").asBoolean());
         assertFalse(readOnlyCapabilities.path("canonicalOperations").path("delete").asBoolean());

@@ -32,8 +32,12 @@ Filtros enviados pelo cliente nunca substituem o escopo organizacional resolvido
 
 ## Acesso agregado e nominal
 
-- `HR_ANALYTICS_AGGREGATE_READ`: permite comparison agregada e discovery de capabilities.
-- `HR_ANALYTICS_NOMINAL_READ`: permite linhas, filtros, stats nominais, export e option sources.
+- No modo corporativo (`app.security.read-open=false`), `HR_ANALYTICS_AGGREGATE_READ` permite
+  comparison agregada e discovery de capabilities.
+- No modo corporativo, `HR_ANALYTICS_NOMINAL_READ` permite linhas, filtros, stats nominais, export
+  e option sources.
+- No modo local de demonstração (`app.security.read-open=true`), os dados fictícios e suas consultas
+  são públicos; nenhuma mutação passa a ser pública por causa dessa configuração.
 - principals com escopo departamental recebem a intersecao server-side em todas as consultas;
 - principal sem escopo ou filtro totalmente fora do escopo recebe `403`.
 

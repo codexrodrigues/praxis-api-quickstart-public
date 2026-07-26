@@ -219,12 +219,25 @@ class HrLightLookupGovernanceIntegrationTest {
                 ApiPaths.HumanResources.CARGOS,
                 ApiPaths.HumanResources.CARGOS_JOB_ROLE_LOOKUP_OPTIONS
         );
+        JsonNode employeeDepartmentFilter = employeeFilterSchema.path("properties").path("departamentoIdsIn");
         assertLightLookupUi(
-                employeeFilterSchema.path("properties").path("departamentoIdsIn").path("x-ui"),
+                employeeDepartmentFilter.path("x-ui"),
                 ApiPaths.HumanResources.DEPARTAMENTOS_DEPARTMENT_LOOKUP_SOURCE,
                 ApiPaths.HumanResources.DEPARTAMENTOS,
                 ApiPaths.HumanResources.DEPARTAMENTOS_DEPARTMENT_LOOKUP_OPTIONS
         );
+        assertEquals(
+                "allow",
+                employeeDepartmentFilter.path("x-domain-governance")
+                        .path("aiUsage").path("visibility").asText());
+        assertEquals(
+                "allow",
+                employeeDepartmentFilter.path("x-domain-governance")
+                        .path("aiUsage").path("reasoningUse").asText());
+        assertEquals(
+                "review_required",
+                employeeDepartmentFilter.path("x-domain-governance")
+                        .path("aiUsage").path("ruleAuthoring").asText());
 
         JsonNode careerFilterSchema = body(restTemplate.getForEntity(
                 "/schemas/filtered?path={path}&operation=post&schemaType=request",
@@ -309,6 +322,19 @@ class HrLightLookupGovernanceIntegrationTest {
         assertEquals(2, selectedDepartamentos.size());
         assertEquals("Pesquisa Aplicada", selectedDepartamentos.get(0).path("label").asText());
         assertEquals("Operacoes Globais", selectedDepartamentos.get(1).path("label").asText());
+
+        ResponseEntity<String> contextualReloadResponse = restTemplate.postForEntity(
+                ApiPaths.HumanResources.DEPARTAMENTOS + "/option-sources/"
+                        + ApiPaths.HumanResources.DEPARTAMENTOS_DEPARTMENT_LOOKUP_SOURCE
+                        + "/options/by-ids",
+                authorizedJson("{\"filter\":{},\"filters\":[],\"ids\":[11,10]}"),
+                String.class
+        );
+        JsonNode contextuallyReloadedDepartamentos = body(contextualReloadResponse);
+        assertEquals(2, contextuallyReloadedDepartamentos.size());
+        assertEquals("Pesquisa Aplicada", contextuallyReloadedDepartamentos.get(0).path("label").asText());
+        assertEquals("Operacoes Globais", contextuallyReloadedDepartamentos.get(1).path("label").asText());
+        assertNotNull(contextualReloadResponse.getHeaders().getFirst("X-Data-Version"));
 
         JsonNode habilidades = body(restTemplate.postForEntity(
                 ApiPaths.HumanResources.HABILIDADES_SKILL_LOOKUP_OPTIONS + "?search=Telepatia",

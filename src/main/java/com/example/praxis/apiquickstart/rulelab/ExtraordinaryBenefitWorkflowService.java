@@ -180,7 +180,7 @@ public class ExtraordinaryBenefitWorkflowService {
                     current.snapshotKey(), current.snapshotContentHash(), current.factsDigest(),
                     provenance.providerKey(), provenance.sourceRecordDigest(), provenance.sourceVersion(),
                     provenance.sourceRecordedAt(), provenance.asOf(), provenance.scopeDigest()));
-            entity.setEffectStatus(ExtraordinaryBenefitEffectStatus.EXECUTED);
+            entity.setEffectStatus(ExtraordinaryBenefitEffectStatus.LOCAL_RECORDED);
             entity.setAppliedAt(now);
         } else if (target == ExtraordinaryBenefitLifecycleStatus.SUBMITTED) {
             entity.setSubmittedAt(now);

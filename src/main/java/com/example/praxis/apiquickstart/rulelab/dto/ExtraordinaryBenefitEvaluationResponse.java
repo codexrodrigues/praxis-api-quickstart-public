@@ -7,7 +7,7 @@ import java.util.List;
 
 @Schema(
         name = "ExtraordinaryBenefitEvaluationResponse",
-        description = "Resultado explicavel e auditavel da avaliacao deterministica, incluindo se o host persistiu a solicitacao elegivel e se o efeito ja foi executado em etapa posterior.")
+        description = "Resultado explicavel da avaliacao deterministica e do eventual registro local simulado; nao confirma efeito em sistema externo.")
 public record ExtraordinaryBenefitEvaluationResponse(
         @Schema(description = "Referencia recebida do processo solicitante e preservada como identidade externa do recurso quando a avaliacao ALLOW e persistida.")
         String requestReference,
@@ -37,14 +37,14 @@ public record ExtraordinaryBenefitEvaluationResponse(
         BigDecimal recommendedAmount,
         @Schema(description = "Moeda do valor calculado; o piloto atual opera exclusivamente em BRL.")
         String currency,
-        @Schema(description = "Tipo do efeito que uma etapa posterior poderia executar apos persistencia e aprovacao.")
+        @Schema(description = "Tipo da intencao que o laboratorio pode registrar localmente apos persistencia e aprovacao; integracao externa nao esta implementada.")
         String plannedEffectIntent,
         @Schema(description = "Estado da intencao pura produzida pelo engine; a execucao posterior continua responsabilidade transacional do host.")
         String plannedEffectStatus,
         @Schema(description = "Indica se esta avaliacao ALLOW originou uma solicitacao persistida pelo host.")
         boolean persisted,
-        @Schema(description = "Indica se o host ja executou o efeito em uma action posterior; a avaliacao em si nunca executa o efeito.")
-        boolean effectExecuted) {
+        @Schema(description = "Indica somente se a action posterior registrou o ledger local simulado; nao confirma execucao externa.")
+        boolean localEffectRecorded) {
 
     public ExtraordinaryBenefitEvaluationResponse {
         reasonCodes = reasonCodes == null ? List.of() : List.copyOf(reasonCodes);

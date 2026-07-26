@@ -119,6 +119,22 @@ class RiskIntelligenceCockpitIntegrationTest {
                 "Monitoramento de ameacas"
         );
         assertRiskSurface(
+                "risk-intelligence.ameacas",
+                "detail",
+                "VIEW",
+                "ITEM",
+                "Obter ameaça monitorada"
+        );
+        JsonNode threatItemSurfaces = body(restTemplate.getForEntity(
+                ApiPaths.RiskIntelligence.AMEACAS + "/1/surfaces",
+                String.class
+        ));
+        JsonNode threatDetail = findById(threatItemSurfaces.path("surfaces"), "detail");
+        assertNotNull(threatDetail);
+        assertEquals("ITEM", threatDetail.path("scope").asText());
+        assertEquals("GET", threatDetail.path("method").asText());
+        assertTrue(threatDetail.path("availability").path("allowed").asBoolean());
+        assertRiskSurface(
                 "risk-intelligence.vw-indicadores-incidentes",
                 "incident-intelligence-board",
                 "VIEW",

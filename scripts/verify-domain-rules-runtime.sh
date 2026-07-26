@@ -970,9 +970,7 @@ jq -n \
         }
       }
     },
-    sourceHash: "runtime-smoke-lgpd-cpf",
-    appliedByType: "llm",
-    appliedBy: "runtime-smoke"
+    sourceHash: "runtime-smoke-lgpd-cpf"
   }' > "$materialization_request"
 
 echo
@@ -994,8 +992,6 @@ jq '{status: "materialization-created", id, materializationKey, ruleKey, ruleVer
 jq -n \
   '{
     status: "applied",
-    decidedByType: "human",
-    decidedBy: "privacy-office",
     validationResult: {
       review: "approved",
       checks: ["form-rule-materialization-compatible"]
@@ -1040,9 +1036,7 @@ if [[ "$REQUIRE_PUBLICATION" != "false" ]]; then
     --arg ruleDefinitionId "$publication_definition_id" \
     '{
       ruleDefinitionId: $ruleDefinitionId,
-      applyEligibleMaterializations: true,
-      publishedByType: "human",
-      publishedBy: "procurement-owner"
+      applyEligibleMaterializations: true
     }' > "$publication_request"
 
   echo "Publishing shared rule definition ${publication_definition_id}."
@@ -1111,9 +1105,7 @@ if [[ "$REQUIRE_PUBLICATION" != "false" ]]; then
         --arg ruleDefinitionId "$backend_validation_definition_id" \
         '{
           ruleDefinitionId: $ruleDefinitionId,
-          applyEligibleMaterializations: true,
-          publishedByType: "human",
-          publishedBy: "procurement-owner"
+          applyEligibleMaterializations: true
         }' > "$backend_validation_publication_request"
 
       echo "Publishing backend_validation shared rule definition ${backend_validation_definition_id}."
@@ -1229,9 +1221,7 @@ if [[ "$REQUIRE_PUBLICATION" != "false" ]]; then
         --arg ruleDefinitionId "$workflow_action_definition_id" \
         '{
           ruleDefinitionId: $ruleDefinitionId,
-          applyEligibleMaterializations: true,
-          publishedByType: "human",
-          publishedBy: "payroll-compliance"
+          applyEligibleMaterializations: true
         }' > "$workflow_action_publication_request"
 
       echo "Publishing workflow_action shared rule definition ${workflow_action_definition_id}."
@@ -1343,9 +1333,7 @@ if [[ "$REQUIRE_PUBLICATION" != "false" ]]; then
         --arg ruleDefinitionId "$approval_policy_definition_id" \
         '{
           ruleDefinitionId: $ruleDefinitionId,
-          applyEligibleMaterializations: true,
-          publishedByType: "human",
-          publishedBy: "payroll-manager"
+          applyEligibleMaterializations: true
         }' > "$approval_policy_publication_request"
 
       echo "Publishing approval_policy shared rule definition ${approval_policy_definition_id}."

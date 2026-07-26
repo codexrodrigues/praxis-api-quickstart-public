@@ -196,6 +196,14 @@ QL-08 fecha o laboratório neutro, mas não fecha a fundação completa. P2F-ADR
 `praxis-rules-engine/docs/p2f-adr-10-transactions-batches-and-effects.md`, sem promover capacidade
 não implementada. Permanecem blockers:
 
+Após a revisão abrangente, os endpoints que recebem `workerStatus`, orçamento, duplicidade,
+programa e calendário do caller foram classificados explicitamente como simulação. Eles ficam
+fail-closed por padrão e sempre no profile `prod`. A action separada `evaluate-authoritative`
+substitui esses inputs por um FactProvider DB-backed somente no preflight read-only; sua migration
+ainda precisa ser aplicada e validada no ambiente publicado. Escrita continua proibida até
+revalidação transacional e reserva concorrente. Da mesma forma, `apply` significa somente registro
+único no ledger local do laboratório, e não efeito confirmado em folha/ERP.
+
 - P2F-ADR-05 para protected extensions;
 - validação do adapter no sistema externo real e política corporativa de retenção; restart, rotação e
   runbook laboratorial do P2F-ADR-10 foram concluídos em Neon. O host já oferece métricas bounded,
@@ -206,7 +214,7 @@ não implementada. Permanecem blockers:
   aprovação da política; o contrato neutro, a fronteira SQL, a matriz
   laboratorial de papéis e a prova concorrente já estão implementados no host;
 - P2F-09/RF-01–RF-05 para factory e provenance;
-- baseline DB-backed Ergon e dispatcher corporativo real;
+- baseline DB-backed Ergon, revalidação transacional de facts e dispatcher corporativo real;
 - owner do primeiro deployable/regra piloto;
 - readiness report assinado e `part2-foundation-readiness-v1.json=READY`.
 

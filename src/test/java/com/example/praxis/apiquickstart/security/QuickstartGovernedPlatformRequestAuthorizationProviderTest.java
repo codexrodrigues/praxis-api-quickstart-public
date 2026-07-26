@@ -67,6 +67,29 @@ class QuickstartGovernedPlatformRequestAuthorizationProviderTest {
     }
 
     @Test
+    void delegatesOnlyCanonicalSameOriginOptionSourceReads() {
+        String authorization = provider.authorizationHeader(request(
+                GovernedPlatformRequest.Surface.OPTION_SOURCE_VALUES,
+                "http://localhost:8088",
+                "http://localhost:8088/api/human-resources/departamentos/option-sources/department/options/filter",
+                "admin")).orElseThrow();
+
+        JwtTokenService.JwtValidationResult result = tokenService.validate(bearerToken(authorization));
+
+        assertThat(result.valid()).isTrue();
+        assertThat(provider.authorizationHeader(request(
+                GovernedPlatformRequest.Surface.OPTION_SOURCE_VALUES,
+                "http://localhost:8088",
+                "http://localhost:8088/api/human-resources/departamentos/option-sources/department/options/delete",
+                "admin"))).isEmpty();
+        assertThat(provider.authorizationHeader(request(
+                GovernedPlatformRequest.Surface.OPTION_SOURCE_VALUES,
+                "http://metadata.example",
+                "http://localhost:8088/api/human-resources/departamentos/options/by-ids",
+                "admin"))).isEmpty();
+    }
+
+    @Test
     void doesNotPromoteTheLocalReferencePrincipalInCorporateMode() {
         QuickstartGovernedPlatformRequestAuthorizationProvider corporateProvider =
                 new QuickstartGovernedPlatformRequestAuthorizationProvider(
@@ -96,8 +119,20 @@ class QuickstartGovernedPlatformRequestAuthorizationProviderTest {
     }
 
     private GovernedPlatformRequest request(String requestBaseUrl, String targetUrl, String userId) {
-        return new GovernedPlatformRequest(
+        return request(
                 GovernedPlatformRequest.Surface.RESOURCE_CAPABILITIES,
+                requestBaseUrl,
+                targetUrl,
+                userId);
+    }
+
+    private GovernedPlatformRequest request(
+            GovernedPlatformRequest.Surface surface,
+            String requestBaseUrl,
+            String targetUrl,
+            String userId) {
+        return new GovernedPlatformRequest(
+                surface,
                 URI.create(requestBaseUrl),
                 URI.create(targetUrl),
                 "desenv",

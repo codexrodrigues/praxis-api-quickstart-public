@@ -43,7 +43,7 @@ um plano com identidade de outro.
 - `401/403`: sessão ausente ou action indisponível pela política do host.
 - `412`: não existe snapshot governado ativo e vigente.
 
-`persisted=false` e `effectExecuted=false` são invariantes públicos desta etapa.
+`persisted=false` e `localEffectRecorded=false` são invariantes públicos desta etapa.
 Uma decisão `ALLOW` apenas informa que a solicitação pode avançar para o fluxo
 persistente e aprovativo planejado em QL-05.
 

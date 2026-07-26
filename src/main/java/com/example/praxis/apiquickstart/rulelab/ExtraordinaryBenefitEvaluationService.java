@@ -201,7 +201,7 @@ public final class ExtraordinaryBenefitEvaluationService {
             case DENY -> "A solicitacao foi negada por uma ou mais restricoes de negocio.";
             case NOT_APPLICABLE -> "O programa avaliado nao se aplica ao contexto informado.";
             case INCONCLUSIVE -> "Faltam fatos obrigatorios para concluir a avaliacao com seguranca.";
-            case TECHNICAL_ERROR -> "A avaliacao terminou em falha tecnica controlada e nenhum efeito foi executado.";
+            case TECHNICAL_ERROR -> "A avaliacao terminou em falha tecnica controlada e nenhum registro local foi criado.";
         };
     }
 }

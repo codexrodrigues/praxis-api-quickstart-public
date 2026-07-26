@@ -43,7 +43,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @TestPropertySource(properties = {
         "app.security.csrf.disable=true",
         "app.security.config-origin-restriction.enabled=false",
-        "app.security.read-open=true",
+        "app.security.read-open=false",
         "app.security.write-disabled=false",
         "app.security.schemas-aggregator.enabled=true",
         "app.rate-limit.enabled=false",
@@ -63,7 +63,7 @@ class HrAnalyticsSecurityPolicyTest {
     private RateLimiterService rateLimiterService;
 
     @Test
-    void shouldNotLetReadOpenBypassNominalAnalyticsAuthority() throws Exception {
+    void shouldRequireNominalAnalyticsAuthorityWhenReadOpenIsDisabled() throws Exception {
         mockMvc.perform(get(ANALYTICS + "/row-1"))
                 .andExpect(status().isForbidden());
         mockMvc.perform(get(PAYROLL + "/101"))

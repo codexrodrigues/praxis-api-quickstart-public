@@ -86,6 +86,7 @@ import org.springframework.web.server.ResponseStatusException;
                 "praxis.rule-lab.snapshot.environment=local",
                 "praxis.rule-lab.shadow.timeout-ms=5000",
                 "praxis.rule-lab.authoritative-facts.enabled=true",
+                "praxis.rule-lab.http-simulation-enabled=true",
                 "praxis.rule-lab.authoritative-facts.organization-key=DEMO-ORG",
                 "praxis.rule-lab.authoritative-facts.scope-hmac-key=0123456789abcdef0123456789abcdef",
                 "praxis.rule-lab.outbox.maximum-attempts=2",

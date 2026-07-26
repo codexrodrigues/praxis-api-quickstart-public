@@ -73,7 +73,7 @@ class ExtraordinaryGrantRuleLabServiceTest {
         assertEquals("REGISTER_EXTRAORDINARY_GRANT", response.plannedEffectIntent());
         assertEquals("PLANNED_NOT_EXECUTED", response.plannedEffectStatus());
         assertFalse(response.persisted());
-        assertFalse(response.effectExecuted());
+        assertFalse(response.localEffectRecorded());
         assertTrue(response.factsDigest().matches("[A-F0-9]{64}"));
         assertTrue(response.snapshotContentHash().matches("[A-F0-9]{64}"));
     }
@@ -89,7 +89,7 @@ class ExtraordinaryGrantRuleLabServiceTest {
         assertEquals(List.of("BUDGET_INSUFFICIENT"), response.reasonCodes());
         assertNull(response.recommendedAmount());
         assertNull(response.plannedEffectStatus());
-        assertFalse(response.effectExecuted());
+        assertFalse(response.localEffectRecorded());
     }
 
     @Test

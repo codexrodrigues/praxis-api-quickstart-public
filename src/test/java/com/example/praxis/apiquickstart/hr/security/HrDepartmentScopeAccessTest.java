@@ -139,6 +139,24 @@ class HrDepartmentScopeAccessTest {
         assertEquals(HttpStatus.FORBIDDEN, failure.getStatusCode());
     }
 
+    @Test
+    void shouldTreatAnonymousDemoQueriesAsUnrestrictedWhenReadOpenIsEnabled() {
+        HrDepartmentScopeAccess access = new HrDepartmentScopeAccess(
+                subject -> Optional.of(Set.of()),
+                true
+        );
+
+        assertTrue(access.isUnscoped(null));
+        access.requireUnscoped();
+        access.requireNominalRead();
+        assertEquals(ResourceFilterAccessScope.Mode.UNRESTRICTED,
+                access.resolveAnalyticsResourceFilterAccessScope().mode());
+        assertNull(access.applyAnalyticsScope(
+                new VwAnalyticsAfastamentoFilterDTO(),
+                VwAnalyticsAfastamentoFilterDTO::new
+        ).getDepartamentoIdsIn());
+    }
+
     private void authenticate(String subject, String... authorities) {
         SecurityContextHolder.getContext().setAuthentication(
                 UsernamePasswordAuthenticationToken.authenticated(

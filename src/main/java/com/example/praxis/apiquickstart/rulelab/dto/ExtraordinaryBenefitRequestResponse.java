@@ -17,7 +17,7 @@ public record ExtraordinaryBenefitRequestResponse(
         ExtraordinaryBenefitEvaluationRequest facts,
         @Schema(description = "Decisao ALLOW e evidencia exata do snapshot que autorizou a persistencia.")
         ExtraordinaryBenefitEvaluationResponse evaluation,
-        @Schema(description = "Estado host-side do efeito planejado; EXECUTED existe apenas depois da action apply.")
+        @Schema(description = "Estado do laboratorio: PLANNED ou LOCAL_RECORDED; nenhum deles confirma efeito externo.")
         ExtraordinaryBenefitEffectStatus effectStatus,
         @Schema(description = "Versao persistida do agregado usada para produzir e validar o ETag de recurso.")
         Long version,
@@ -27,6 +27,6 @@ public record ExtraordinaryBenefitRequestResponse(
         Instant submittedAtUtc,
         @Schema(description = "Instante UTC em que a aprovacao foi confirmada, quando aplicavel.")
         Instant approvedAtUtc,
-        @Schema(description = "Instante UTC em que o efeito foi executado e o pedido tornou-se aplicado.")
+        @Schema(description = "Instante UTC em que o ledger local simulado foi registrado e o pedido tornou-se aplicado.")
         Instant appliedAtUtc) {
 }

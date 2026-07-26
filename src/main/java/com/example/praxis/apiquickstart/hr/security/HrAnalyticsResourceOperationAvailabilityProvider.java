@@ -5,6 +5,7 @@ import org.praxisplatform.uischema.capability.ResourceOperationAvailabilityConte
 import org.praxisplatform.uischema.capability.ResourceOperationAvailabilityProvider;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -21,6 +22,14 @@ import java.util.Set;
 @Component
 public final class HrAnalyticsResourceOperationAvailabilityProvider
         implements ResourceOperationAvailabilityProvider {
+
+    private final boolean readOpen;
+
+    public HrAnalyticsResourceOperationAvailabilityProvider(
+            @Value("${app.security.read-open:false}") boolean readOpen
+    ) {
+        this.readOpen = readOpen;
+    }
 
     static final Set<String> RESOURCE_KEYS = Set.of(
             "human-resources.vw-analytics-afastamentos",
@@ -46,6 +55,13 @@ public final class HrAnalyticsResourceOperationAvailabilityProvider
     public AvailabilityDecision evaluate(ResourceOperationAvailabilityContext context) {
         if (context == null || !RESOURCE_KEYS.contains(context.resourceKey())) {
             return AvailabilityDecision.allowAll();
+        }
+
+        if (readOpen) {
+            return AvailabilityDecision.allow(Map.of(
+                    "policy", POLICY_ID,
+                    "mode", "demo-read-open"
+            ));
         }
 
         String requiredAuthority = requiredAuthority(context.operationId());

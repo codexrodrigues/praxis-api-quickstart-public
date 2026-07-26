@@ -3,6 +3,7 @@ package com.example.praxis.apiquickstart.config;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
@@ -193,6 +194,13 @@ class AiRegistryChartAuthoringQuickstartIntegrationTest {
 
     private void stubRegistryIngestion(Map<String, AiRegistry> savedRegistries) {
         when(embeddingService.embed(anyString())).thenReturn(List.of(0.01f, 0.02f, 0.03f));
+        when(embeddingService.embedAll(anyList()))
+                .thenAnswer(invocation -> {
+                    List<?> inputs = invocation.getArgument(0);
+                    return inputs.stream()
+                            .map(ignored -> List.of(0.01f, 0.02f, 0.03f))
+                            .toList();
+                });
         when(aiRegistryRepository.findByRegistryTypeAndRegistryKeyAndComponentTypeAndScopeAndScopeKey(
                         anyString(),
                         anyString(),
@@ -200,6 +208,25 @@ class AiRegistryChartAuthoringQuickstartIntegrationTest {
                         any(Scope.class),
                         anyString()))
                 .thenAnswer(invocation -> Optional.ofNullable(savedRegistries.get(invocation.getArgument(1))));
+        when(aiRegistryRepository.findAuthoringManifestPayload(
+                        "component_definition",
+                        "praxis-chart",
+                        "component-definition",
+                        Scope.SYSTEM.name(),
+                        "GLOBAL"))
+                .thenAnswer(invocation -> Optional.ofNullable(savedRegistries.get("praxis-chart"))
+                        .map(AiRegistry::getPayload)
+                        .map(payload -> {
+                            try {
+                                return objectMapper.readTree(payload)
+                                        .path("componentDefinition")
+                                        .path("jsonSchema")
+                                        .path("authoringManifest")
+                                        .toString();
+                            } catch (Exception exception) {
+                                throw new IllegalStateException("Invalid saved registry payload", exception);
+                            }
+                        }));
         when(aiRegistryRepository.save(any(AiRegistry.class))).thenAnswer(invocation -> {
             AiRegistry registry = invocation.getArgument(0);
             if ("praxis-chart".equals(registry.getRegistryKey())) {
@@ -297,7 +324,9 @@ class AiRegistryChartAuthoringQuickstartIntegrationTest {
                 new HttpEntity<>(objectMapper.writeValueAsString(payload), headers),
                 String.class);
 
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getStatusCode())
+                .as("%s response: %s", path, response.getBody())
+                .isEqualTo(HttpStatus.OK);
         assertThat(response.getBody()).isNotNull();
         return objectMapper.readTree(response.getBody());
     }

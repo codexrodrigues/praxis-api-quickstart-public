@@ -2,6 +2,8 @@ package com.example.praxis.apiquickstart.hr.security;
 
 import org.praxisplatform.uischema.service.base.ResourceFilterAccessScope;
 import org.springframework.http.HttpStatus;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
@@ -16,9 +18,19 @@ import java.util.function.Supplier;
 @Component("hrDepartmentScopeAccess")
 public class HrDepartmentScopeAccess {
     private final HrDepartmentScopeProvider scopeProvider;
+    private final boolean readOpen;
 
-    public HrDepartmentScopeAccess(HrDepartmentScopeProvider scopeProvider) {
+    @Autowired
+    public HrDepartmentScopeAccess(
+            HrDepartmentScopeProvider scopeProvider,
+            @Value("${app.security.read-open:false}") boolean readOpen
+    ) {
         this.scopeProvider = scopeProvider;
+        this.readOpen = readOpen;
+    }
+
+    HrDepartmentScopeAccess(HrDepartmentScopeProvider scopeProvider) {
+        this(scopeProvider, false);
     }
 
     public <F extends HrDepartmentScopedFilter> F applyAnalyticsScope(F filter, Supplier<F> emptyFilterFactory) {
@@ -81,6 +93,9 @@ public class HrDepartmentScopeAccess {
     }
 
     public void requireNominalRead() {
+        if (readOpen) {
+            return;
+        }
         if (!hasAuthority(HrAnalyticsAuthorities.NOMINAL_READ)) {
             throw forbidden("Nominal HR analytics authority is required for option sources.");
         }
@@ -110,6 +125,9 @@ public class HrDepartmentScopeAccess {
     }
 
     private Optional<Set<Integer>> scopeFor(Authentication authentication) {
+        if (readOpen) {
+            return Optional.empty();
+        }
         if (authentication == null || !authentication.isAuthenticated()) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Authenticated principal required.");
         }
@@ -125,6 +143,9 @@ public class HrDepartmentScopeAccess {
     }
 
     private boolean hasAuthority(String requiredAuthority) {
+        if (readOpen) {
+            return true;
+        }
         return currentAuthentication().getAuthorities().stream()
                 .anyMatch(authority -> requiredAuthority.equals(authority.getAuthority()));
     }

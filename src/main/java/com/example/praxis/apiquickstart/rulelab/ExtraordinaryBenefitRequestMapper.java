@@ -27,7 +27,7 @@ public class ExtraordinaryBenefitRequestMapper {
                 parseDates(entity.getAllowedPaymentDates()),
                 entity.getAvailableBudgetAmount(),
                 entity.getUserTimeZone());
-        boolean effectExecuted = entity.getEffectStatus() == ExtraordinaryBenefitEffectStatus.EXECUTED;
+        boolean localEffectRecorded = entity.getEffectStatus() == ExtraordinaryBenefitEffectStatus.LOCAL_RECORDED;
         ExtraordinaryBenefitEvaluationResponse evaluation = new ExtraordinaryBenefitEvaluationResponse(
                 entity.getRequestReference(),
                 ExtraordinaryBenefitEvaluationOutcome.ALLOW,
@@ -44,9 +44,9 @@ public class ExtraordinaryBenefitRequestMapper {
                 entity.getRecommendedAmount(),
                 entity.getCurrency(),
                 entity.getPlannedEffectIntent(),
-                effectExecuted ? "EXECUTED_BY_HOST" : "PLANNED_NOT_EXECUTED",
+                localEffectRecorded ? "LOCAL_RECORDED" : "PLANNED_NOT_EXECUTED",
                 true,
-                effectExecuted);
+                localEffectRecorded);
         return new ExtraordinaryBenefitRequestResponse(
                 entity.getId(),
                 entity.getLifecycleStatus(),

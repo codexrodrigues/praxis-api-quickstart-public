@@ -183,8 +183,8 @@ ingest_resource() {
   local ingest_response
   local ingest_status_file
   local ingest_status
-  ingest_response="$(mktemp "${TMPDIR:-/tmp}/praxis-domain-catalog-ingest.XXXXXX.json")"
-  ingest_status_file="$(mktemp "${TMPDIR:-/tmp}/praxis-domain-catalog-ingest-status.XXXXXX.txt")"
+  ingest_response="$(mktemp "${TMPDIR:-/tmp}/praxis-domain-catalog-ingest.XXXXXX")"
+  ingest_status_file="$(mktemp "${TMPDIR:-/tmp}/praxis-domain-catalog-ingest-status.XXXXXX")"
 
   curl -sS -X POST "${BACKEND_URL%/}/api/praxis/config/domain-catalog/ingest" \
     --connect-timeout "$CURL_CONNECT_TIMEOUT" \
@@ -242,9 +242,9 @@ if [[ "${#resource_keys[@]}" -eq 0 ]]; then
   exit 2
 fi
 
-releases_file="$(mktemp "${TMPDIR:-/tmp}/praxis-domain-catalog-releases.XXXXXX.json")"
-items_file="$(mktemp "${TMPDIR:-/tmp}/praxis-domain-catalog-items.XXXXXX.json")"
-catalog_file="$(mktemp "${TMPDIR:-/tmp}/praxis-domain-catalog.XXXXXX.json")"
+releases_file="$(mktemp "${TMPDIR:-/tmp}/praxis-domain-catalog-releases.XXXXXX")"
+items_file="$(mktemp "${TMPDIR:-/tmp}/praxis-domain-catalog-items.XXXXXX")"
+catalog_file="$(mktemp "${TMPDIR:-/tmp}/praxis-domain-catalog.XXXXXX")"
 trap 'rm -f "$releases_file" "$items_file" "$catalog_file"' EXIT
 
 echo "Ensuring persisted domain catalog governance context."

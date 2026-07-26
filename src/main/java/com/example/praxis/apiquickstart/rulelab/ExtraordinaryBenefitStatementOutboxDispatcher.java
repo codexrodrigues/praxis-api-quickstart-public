@@ -60,9 +60,6 @@ public final class ExtraordinaryBenefitStatementOutboxDispatcher {
         var claimed = claim.delivery();
         try {
             sink.deliver(claimed);
-            leaseService.markDelivered(claimed.messageId(), claim.leaseToken(), clock.instant());
-            return result(sample, ExtraordinaryBenefitStatementDispatchOutcome.DELIVERED,
-                    claimed.messageId(), claimed.attempt());
         } catch (Exception failure) {
             if (failure instanceof InterruptedException) {
                 Thread.currentThread().interrupt();
@@ -80,6 +77,16 @@ public final class ExtraordinaryBenefitStatementOutboxDispatcher {
                     ? ExtraordinaryBenefitStatementDispatchOutcome.DEAD_LETTERED
                     : ExtraordinaryBenefitStatementDispatchOutcome.RETRY_SCHEDULED;
             return result(sample, outcome, claimed.messageId(), claimed.attempt());
+        }
+        try {
+            leaseService.markDelivered(claimed.messageId(), claim.leaseToken(), clock.instant());
+            return result(sample, ExtraordinaryBenefitStatementDispatchOutcome.DELIVERED,
+                    claimed.messageId(), claimed.attempt());
+        } catch (RuntimeException acknowledgementFailure) {
+            // Delivery may already have committed externally. Never turn an acknowledgement-write
+            // failure into a transport retry; the expired lease and independent probe reconcile it.
+            return result(sample, ExtraordinaryBenefitStatementDispatchOutcome.ACKNOWLEDGEMENT_UNCERTAIN,
+                    claimed.messageId(), claimed.attempt());
         }
     }
 

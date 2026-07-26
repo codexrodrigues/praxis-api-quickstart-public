@@ -66,7 +66,11 @@ public class DataSourceConfig {
                 .dataSource(dataSource)
                 .packages("com.example.praxis.apiquickstart")
                 .persistenceUnit("api")
-                .properties(jpaVendorProperties(environment, "spring.datasource.url", "spring.jpa.hibernate.ddl-auto"))
+                .properties(jpaVendorProperties(
+                        environment,
+                        "spring.datasource.url",
+                        "spring.jpa.hibernate.ddl-auto",
+                        "spring.jpa.properties"))
                 .build();
     }
 
@@ -110,27 +114,68 @@ public class DataSourceConfig {
                 .dataSource(dataSource)
                 .packages("org.praxisplatform.config.domain")
                 .persistenceUnit("config")
-                .properties(jpaVendorProperties(environment, "config.datasource.url", "config.jpa.hibernate.ddl-auto"))
+                .properties(jpaVendorProperties(
+                        environment,
+                        "config.datasource.url",
+                        "config.jpa.hibernate.ddl-auto",
+                        "config.jpa.properties"))
                 .build();
     }
 
-    private Map<String, Object> jpaVendorProperties(
+    Map<String, Object> jpaVendorProperties(
             Environment environment,
             String datasourceUrlProperty,
-            String ddlAutoProperty) {
+            String ddlAutoProperty,
+            String vendorPropertiesPrefix) {
         Map<String, Object> properties = new HashMap<>();
         String datasourceUrl = environment.getProperty(datasourceUrlProperty, "");
         boolean h2 = datasourceUrl.startsWith("jdbc:h2:");
         properties.put("hibernate.dialect", h2
                 ? "org.hibernate.dialect.H2Dialect"
                 : "org.hibernate.dialect.PostgreSQLDialect");
-        String ddlAuto = environment.getProperty(
-                ddlAutoProperty,
-                environment.getProperty("spring.jpa.hibernate.ddl-auto", ""));
-        if (!ddlAuto.isBlank()) {
+        String ddlAuto = environment.getProperty(ddlAutoProperty, "");
+        if (ddlAuto == null || ddlAuto.isBlank()) {
+            ddlAuto = environment.getProperty("spring.jpa.hibernate.ddl-auto", "");
+        }
+        if (ddlAuto != null && !ddlAuto.isBlank()) {
             properties.put("hibernate.hbm2ddl.auto", ddlAuto);
         }
+        copyJpaProperty(
+                environment,
+                vendorPropertiesPrefix,
+                "hibernate.jdbc.batch_size",
+                properties);
+        copyJpaProperty(
+                environment,
+                vendorPropertiesPrefix,
+                "hibernate.order_inserts",
+                properties);
+        copyJpaProperty(
+                environment,
+                vendorPropertiesPrefix,
+                "hibernate.order_updates",
+                properties);
         return properties;
+    }
+
+    /**
+     * Carries the host's governed Hibernate settings into each explicitly-created persistence
+     * unit. The config-store factory is not auto-configured by Spring Boot, so relying only on
+     * {@code spring.jpa.properties.*} would silently drop batching for large semantic catalogs.
+     */
+    private void copyJpaProperty(
+            Environment environment,
+            String vendorPropertiesPrefix,
+            String hibernateProperty,
+            Map<String, Object> target) {
+        String scopedProperty = vendorPropertiesPrefix + "." + hibernateProperty;
+        String value = environment.getProperty(scopedProperty);
+        if ((value == null || value.isBlank()) && !"spring.jpa.properties".equals(vendorPropertiesPrefix)) {
+            value = environment.getProperty("spring.jpa.properties." + hibernateProperty);
+        }
+        if (value != null && !value.isBlank()) {
+            target.put(hibernateProperty, value);
+        }
     }
 
     @Bean(name = "configTransactionManager")

@@ -5,6 +5,7 @@ public enum ExtraordinaryBenefitStatementDispatchOutcome {
     NO_SINK,
     EMPTY,
     DELIVERED,
+    ACKNOWLEDGEMENT_UNCERTAIN,
     RETRY_SCHEDULED,
     DEAD_LETTERED
 }

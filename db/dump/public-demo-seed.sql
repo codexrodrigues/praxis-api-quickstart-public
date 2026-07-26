@@ -667,7 +667,7 @@ CREATE TABLE public.extraordinary_benefit_request (
     CONSTRAINT ck_extraordinary_benefit_request_lifecycle
         CHECK (lifecycle_status IN ('EVALUATED', 'SUBMITTED', 'APPROVED', 'APPLIED')),
     CONSTRAINT ck_extraordinary_benefit_request_effect
-        CHECK (effect_status IN ('PLANNED', 'EXECUTED'))
+        CHECK (effect_status IN ('PLANNED', 'LOCAL_RECORDED'))
 );
 
 ALTER TABLE public.extraordinary_benefit_request OWNER TO praxis_demo_owner;

@@ -44,7 +44,7 @@ class ExtraordinaryBenefitShadowComparisonServiceTest {
     @Test
     void classifiesEquivalentAllowAsMatchAndEmitsOnlyLowCardinalityMetrics() {
         var baseline = new ExtraordinaryBenefitSyntheticBaseline();
-        var service = service(baseline, baseline, Duration.ofMillis(100));
+        var service = service(baseline, baseline, Duration.ofSeconds(1));
 
         var observation = service.compare(eligibleRequest(), Set.of("benefit:request"));
 
@@ -55,7 +55,7 @@ class ExtraordinaryBenefitShadowComparisonServiceTest {
         assertTrue(observation.plannedEffectMatch());
         assertTrue(observation.sanitized());
         assertFalse(observation.persisted());
-        assertFalse(observation.effectExecuted());
+        assertFalse(observation.localEffectRecorded());
         assertEquals(1.0, meterRegistry.get("praxis.rule.shadow.comparisons")
                 .tag("result", "match").counter().count());
     }

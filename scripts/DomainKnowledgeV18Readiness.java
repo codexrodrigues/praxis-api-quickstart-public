@@ -39,7 +39,30 @@ public final class DomainKnowledgeV18Readiness {
             printDatabaseIdentity(connection);
             printFlywayHistory(connection);
             printTablePresence(connection);
+            printCheckConstraint(connection, "domain_knowledge_binding", "ck_domain_knowledge_binding_type");
+            printCheckConstraint(connection, "domain_knowledge_relationship", "ck_domain_knowledge_relationship_type");
             connection.rollback();
+        }
+    }
+
+    private static void printCheckConstraint(
+            Connection connection,
+            String tableName,
+            String constraintName) throws SQLException {
+        try (PreparedStatement statement = connection.prepareStatement("""
+                select pg_get_constraintdef(c.oid) as definition
+                from pg_constraint c
+                join pg_class relation on relation.oid = c.conrelid
+                join pg_namespace namespace on namespace.oid = relation.relnamespace
+                where namespace.nspname = 'public'
+                  and relation.relname = ?
+                  and c.conname = ?
+                """)) {
+            statement.setString(1, tableName);
+            statement.setString(2, constraintName);
+            try (ResultSet rs = statement.executeQuery()) {
+                printResultSet("constraint." + constraintName, rs);
+            }
         }
     }
 

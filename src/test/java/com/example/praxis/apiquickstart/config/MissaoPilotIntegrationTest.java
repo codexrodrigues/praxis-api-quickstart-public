@@ -373,10 +373,17 @@ class MissaoPilotIntegrationTest {
         assertTrue(optionSource.path("capabilities").path("byIds").asBoolean());
         assertTrue(optionSource.path("selectionPolicy").path("allowRetainInvalidExistingValue").asBoolean());
         assertEquals("status", optionSource.path("selectionPolicy").path("statusPropertyPath").asText());
+        assertEquals("surface", optionSource.path("detail").path("kind").asText());
+        assertEquals("detail", optionSource.path("detail").path("surfaceId").asText());
+        assertEquals("drawer", optionSource.path("detail").path("presentation").asText());
+        assertTrue(optionSource.path("detail").path("routeTemplate").isMissingNode()
+                || optionSource.path("detail").path("routeTemplate").isNull());
+        assertTrue(optionSource.path("detail").path("hrefTemplate").isMissingNode()
+                || optionSource.path("detail").path("hrefTemplate").isNull());
 
         JsonNode threats = body(restTemplate.postForEntity(
-                "/api/risk-intelligence/ameacas/option-sources/threat/options/filter?search=Omega",
-                authorizedJson("{}"),
+                "/api/risk-intelligence/ameacas/option-sources/threat/options/filter",
+                authorizedJson("{\"search\":\"Omega\"}"),
                 String.class
         ));
         assertEquals(1, threats.path("content").size());

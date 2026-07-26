@@ -40,5 +40,5 @@ public record ExtraordinaryBenefitShadowObservation(
         @Schema(description = "Sempre falso: o caminho shadow nao cria nem altera solicitacao.")
         boolean persisted,
         @Schema(description = "Sempre falso: o caminho shadow nao executa ledger nem integracao externa.")
-        boolean effectExecuted) {
+        boolean localEffectRecorded) {
 }

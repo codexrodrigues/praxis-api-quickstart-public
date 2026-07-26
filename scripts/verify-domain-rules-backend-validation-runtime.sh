@@ -86,9 +86,7 @@ jq '{status: "definition-created", id, ruleKey, ruleType, resourceKey, statusVal
 cat > "$TMPDIR_RUN/publication.json" <<JSON
 {
   "ruleDefinitionId": "${definition_id}",
-  "applyEligibleMaterializations": true,
-  "publishedByType": "human",
-  "publishedBy": "procurement-owner"
+  "applyEligibleMaterializations": true
 }
 JSON
 

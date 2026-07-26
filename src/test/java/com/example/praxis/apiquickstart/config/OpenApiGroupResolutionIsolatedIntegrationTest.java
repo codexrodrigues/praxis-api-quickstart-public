@@ -29,7 +29,7 @@ import org.springframework.http.client.SimpleClientHttpRequestFactory;
         properties = {
                 "app.rate-limit.enabled=false",
                 "app.security.config-origin-restriction.enabled=false",
-                "app.security.read-open=false",
+                "app.security.read-open=true",
                 "app.security.write-disabled=false",
                 "app.security.schemas-aggregator.enabled=true",
                 "app.security.csrf.disable=true",

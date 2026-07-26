@@ -16,7 +16,7 @@ import org.praxisplatform.uischema.extension.annotation.UISchema;
 
 @Schema(
         name = "ExtraordinaryBenefitEvaluationRequest",
-        description = "Fatos de negocio congelados pelo host para avaliar a elegibilidade de uma solicitacao de beneficio extraordinario; apenas uma conclusao ALLOW pode originar o recurso persistido.")
+        description = "Payload exclusivamente sintetico do Rule Lab. Os fatos sao informados pelo caller para simulacao e nao constituem evidencia corporativa autoritativa; o profile prod bloqueia este fluxo ate existir FactProvider host-side.")
 public record ExtraordinaryBenefitEvaluationRequest(
         @NotBlank
         @Size(max = 80)

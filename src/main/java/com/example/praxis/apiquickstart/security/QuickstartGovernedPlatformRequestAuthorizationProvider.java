@@ -54,6 +54,9 @@ public class QuickstartGovernedPlatformRequestAuthorizationProvider
                     && path.startsWith("/api/")
                     && path.endsWith("/capabilities");
             case RESOURCE_SURFACE_CATALOG -> "/schemas/surfaces".equals(path);
+            case OPTION_SOURCE_VALUES -> path != null
+                    && path.startsWith("/api/")
+                    && (path.endsWith("/options/filter") || path.endsWith("/options/by-ids"));
         };
     }
 }

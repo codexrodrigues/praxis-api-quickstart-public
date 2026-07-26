@@ -11,7 +11,7 @@ import java.time.Instant;
 import java.util.UUID;
 import lombok.Getter;
 
-/** Ledger do efeito realmente executado pelo host, separado da intencao pura do engine. */
+/** Registro local simulado da intencao aprovada; nao comprova efeito em folha ou ERP externo. */
 @Getter
 @Entity
 @Table(name = "extraordinary_benefit_grant_effect", schema = "public")

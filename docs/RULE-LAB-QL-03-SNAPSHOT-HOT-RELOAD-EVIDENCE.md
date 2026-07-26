@@ -47,6 +47,7 @@ O scope do laboratório é configuração explícita do host:
 
 ```properties
 praxis.rule-lab.snapshot.enabled=${PRAXIS_RULE_LAB_SNAPSHOT_ENABLED:false}
+praxis.rule-lab.snapshot.readiness-required=${PRAXIS_RULE_LAB_READINESS_REQUIRED:false}
 praxis.rule-lab.snapshot.tenant-id=${PRAXIS_RULE_LAB_TENANT_ID:desenv}
 praxis.rule-lab.snapshot.environment=${PRAXIS_RULE_LAB_ENVIRONMENT:local}
 praxis.rule-lab.snapshot.initial-delay-ms=${PRAXIS_RULE_LAB_INITIAL_DELAY_MS:5000}
@@ -90,3 +91,10 @@ Os testes cobrem os cinco caminhos de negócio anteriores e acrescentam:
 - rejeição de contrato de host incompatível com retenção do last-known-good;
 - rollback `v1 -> v2 -> v1` com novo head;
 - indisponibilidade do control plane sem perda do plano ativo.
+## Publicação com aprovação da composição
+
+Publicação é um fluxo de duas etapas: o Config Starter canonicaliza a composição
+e o catálogo host-governed; duas decisões `RULE_COMPOSITION_APPROVER` aprovam o
+digest retornado; somente então o candidato inalterado pode avançar o head. O
+Quickstart registra explicitamente as duas coordenadas Java admitidas e um teste
+impede drift entre esse catálogo de planejamento e o registry executável.

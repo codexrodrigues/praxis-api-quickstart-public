@@ -83,7 +83,16 @@ public class AmeacaService extends AbstractQuickstartCrudService<Ameaca, AmeacaD
                                     "Selecione uma ameaca em ciclo operacional."
                             ),
                             new LookupCapabilities(true, true, true, false, false, true, false, false, false, true),
-                            new LookupDetailDescriptor(ApiPaths.RiskIntelligence.AMEACAS + "/{id}", "/risk-intelligence/ameacas/{id}", "route")
+                            new LookupDetailDescriptor(
+                                    null,
+                                    null,
+                                    null,
+                                    "surface",
+                                    "detail",
+                                    "drawer",
+                                    "praxis-dynamic-form",
+                                    "view"
+                            )
                     )
             ))
             .build();

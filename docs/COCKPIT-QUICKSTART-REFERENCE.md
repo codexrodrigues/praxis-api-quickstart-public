@@ -218,16 +218,18 @@ Em `human-resources`, as perguntas ja materializadas pelo host exemplar sao:
 - "Uma solicitacao de beneficio extraordinario e elegivel, por qual regra e sob qual snapshot?" via
   `/schemas/actions?resource=human-resources.extraordinary-benefit-requests`,
   `GET /api/human-resources/extraordinary-benefit-requests/capabilities` e
-  `POST /api/human-resources/extraordinary-benefit-requests/actions/evaluate`. No QL-05, o recurso
-  publica query read-only e lifecycle por actions: somente `ALLOW` persiste, `submit/approve/apply`
-  exigem ETag e idempotencia, e o efeito executado fica em ledger host-side exatamente uma vez;
+  `POST /api/human-resources/extraordinary-benefit-requests/actions/evaluate-authoritative`. O
+  preflight resolve fatos no datasource operacional e não persiste. O fluxo QL-05 sintético
+  `evaluate` permanece simulation-only; quando habilitado fora de `prod`, somente `ALLOW` persiste,
+  `submit/approve/apply` exigem ETag e idempotencia, e `apply` grava apenas um registro idempotente
+  no ledger local simulado;
 - "Baseline e snapshot Praxis concordam sem produzir efeito?" via
   `POST /api/human-resources/extraordinary-benefit-requests/actions/shadow-compare`. A action QL-06
   é administrativa, não usa ledger idempotente e devolve somente observação sanitizada com
   `MATCH`, `MISMATCH`, `INCONCLUSIVE` ou `TECHNICAL_ERROR`;
 - "Esse contrato continua íntegro quando consumido apenas dos registries públicos?" O QL-07 prova
   build Maven isolado e o fluxo HTTP autenticado completo, incluindo snapshot governado,
-  invariância dos quatro ledgers no shadow, ETag/If-Match no lifecycle, efeito exatamente uma vez e
+  invariância dos quatro ledgers no shadow, ETag/If-Match no lifecycle, registro idempotente no ledger local e
   cleanup da fixture. A evidência sanitizada está em
   `docs/RULE-LAB-QL-07-PUBLIC-DOWNSTREAM-EVIDENCE.md`;
 - "Quem esta fora da operacao e em que janela de cobertura?" via

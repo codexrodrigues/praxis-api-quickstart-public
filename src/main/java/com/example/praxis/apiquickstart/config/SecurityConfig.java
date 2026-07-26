@@ -95,7 +95,7 @@ public class SecurityConfig {
                 ApiPaths.Framework.COCKPIT_PATTERN);
         log.info("[SECURITY] /actuator/env requires authentication (and is not exposed by default).");
         if (readOpen) {
-                    log.info("[SECURITY] Read-Open=true -> GET/HEAD allowed for /api/** except protected HR analytics and employee-360 paths");
+            log.info("[SECURITY] Read-Open=true -> GET/HEAD allowed for /api/**, including demo HR analytics and employee-360 reads");
             log.info("[SECURITY] Read-Open=true -> Extra GET allowed: {}, {}, {}, {}, {}",
                     "/api/*/*/schemas/**",
                     "/api/*/*/schema/**",
@@ -200,42 +200,45 @@ public class SecurityConfig {
                 // Endpoints do config-store/RAG (ingestão de registry/catalog)
                 .requestMatchers("/api/praxis/config/**").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/praxis/config/**").permitAll()
-                .requestMatchers(HttpMethod.GET, "/api/praxis/config/**").permitAll()
-                // Dados de RH do piloto corporativo nunca seguem a abertura generica de leitura.
-                .requestMatchers(HttpMethod.POST,
+                .requestMatchers(HttpMethod.GET, "/api/praxis/config/**").permitAll();
+
+                if (!readOpen) {
+                    // Fora do modo explicitamente aberto de demonstracao, analytics de RH
+                    // permanecem protegidos por finalidade e granularidade do dado.
+                    auth.requestMatchers(HttpMethod.POST,
                         com.example.praxis.apiquickstart.constants.ApiPaths.HumanResources.VW_ANALYTICS_AFASTAMENTOS + "/stats/comparison",
                         com.example.praxis.apiquickstart.constants.ApiPaths.HumanResources.VW_ANALYTICS_FOLHA_PAGAMENTO + "/stats/comparison")
-                    .hasAuthority(HrAnalyticsAuthorities.AGGREGATE_READ)
-                .requestMatchers(HttpMethod.GET,
+                        .hasAuthority(HrAnalyticsAuthorities.AGGREGATE_READ)
+                    .requestMatchers(HttpMethod.GET,
                         com.example.praxis.apiquickstart.constants.ApiPaths.HumanResources.VW_ANALYTICS_AFASTAMENTOS + "/capabilities",
                         com.example.praxis.apiquickstart.constants.ApiPaths.HumanResources.VW_ANALYTICS_FOLHA_PAGAMENTO + "/capabilities")
-                    .hasAnyAuthority(
+                        .hasAnyAuthority(
                             HrAnalyticsAuthorities.AGGREGATE_READ,
                             HrAnalyticsAuthorities.NOMINAL_READ)
-                .requestMatchers(HttpMethod.GET,
+                    .requestMatchers(HttpMethod.GET,
                         com.example.praxis.apiquickstart.constants.ApiPaths.HumanResources.VW_ANALYTICS_AFASTAMENTOS + "/**",
                         com.example.praxis.apiquickstart.constants.ApiPaths.HumanResources.VW_ANALYTICS_FOLHA_PAGAMENTO + "/**")
-                    .hasAuthority(HrAnalyticsAuthorities.NOMINAL_READ)
-                .requestMatchers(HttpMethod.HEAD,
+                        .hasAuthority(HrAnalyticsAuthorities.NOMINAL_READ)
+                    .requestMatchers(HttpMethod.HEAD,
                         com.example.praxis.apiquickstart.constants.ApiPaths.HumanResources.VW_ANALYTICS_AFASTAMENTOS + "/**",
                         com.example.praxis.apiquickstart.constants.ApiPaths.HumanResources.VW_ANALYTICS_FOLHA_PAGAMENTO + "/**")
-                    .hasAuthority(HrAnalyticsAuthorities.NOMINAL_READ)
-                .requestMatchers(HttpMethod.POST,
+                        .hasAuthority(HrAnalyticsAuthorities.NOMINAL_READ)
+                    .requestMatchers(HttpMethod.POST,
                         com.example.praxis.apiquickstart.constants.ApiPaths.HumanResources.VW_ANALYTICS_AFASTAMENTOS + "/**",
                         com.example.praxis.apiquickstart.constants.ApiPaths.HumanResources.VW_ANALYTICS_FOLHA_PAGAMENTO + "/**")
-                    .hasAuthority(HrAnalyticsAuthorities.NOMINAL_READ)
-                .requestMatchers(HttpMethod.GET,
+                        .hasAuthority(HrAnalyticsAuthorities.NOMINAL_READ)
+                    .requestMatchers(HttpMethod.GET,
                         com.example.praxis.apiquickstart.constants.ApiPaths.HumanResources.FUNCIONARIOS + "/*/hero-profile",
                         com.example.praxis.apiquickstart.constants.ApiPaths.HumanResources.VW_PERFIL_HEROI + "/**")
-                    .hasAuthority(HrAnalyticsAuthorities.EMPLOYEE_360_READ)
-                .requestMatchers(HttpMethod.HEAD,
+                        .hasAuthority(HrAnalyticsAuthorities.EMPLOYEE_360_READ)
+                    .requestMatchers(HttpMethod.HEAD,
                         com.example.praxis.apiquickstart.constants.ApiPaths.HumanResources.FUNCIONARIOS + "/*/hero-profile",
                         com.example.praxis.apiquickstart.constants.ApiPaths.HumanResources.VW_PERFIL_HEROI + "/**")
-                    .hasAuthority(HrAnalyticsAuthorities.EMPLOYEE_360_READ)
-                .requestMatchers(HttpMethod.POST,
+                        .hasAuthority(HrAnalyticsAuthorities.EMPLOYEE_360_READ)
+                    .requestMatchers(HttpMethod.POST,
                         com.example.praxis.apiquickstart.constants.ApiPaths.HumanResources.VW_PERFIL_HEROI + "/**")
-                    .hasAuthority(HrAnalyticsAuthorities.EMPLOYEE_360_READ)
-                ;
+                        .hasAuthority(HrAnalyticsAuthorities.EMPLOYEE_360_READ);
+                }
 
                 if (schemasAggregatorEnabled) {
                     auth.requestMatchers(HttpMethod.GET, "/schemas/**").permitAll();

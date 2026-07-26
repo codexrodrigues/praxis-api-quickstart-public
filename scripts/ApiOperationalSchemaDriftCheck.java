@@ -24,6 +24,15 @@ public final class ApiOperationalSchemaDriftCheck {
         Class.forName("org.postgresql.Driver");
         try (Connection connection = DriverManager.getConnection(url, username, password)) {
             List<String> failures = new ArrayList<>();
+            if (args.length == 1 && "--scope=authoritative-facts".equals(args[0])) {
+                checkAuthoritativeFacts(connection, failures);
+                assertNoFailures(failures, "Authoritative-facts operational datasource");
+                return;
+            }
+            if (args.length > 0) {
+                throw new IllegalArgumentException(
+                        "Usage: ApiOperationalSchemaDriftCheck [--scope=authoritative-facts]");
+            }
             checkTable(connection, "public", "legacy_pay_codes", failures);
             checkColumn(connection, "public", "legacy_pay_codes", "code", failures);
             checkColumn(connection, "public", "legacy_pay_codes", "description", failures);
@@ -73,6 +82,21 @@ public final class ApiOperationalSchemaDriftCheck {
             checkColumn(connection, "public", "extraordinary_benefit_request", "fact_as_of", failures);
             checkColumn(connection, "public", "extraordinary_benefit_request", "evaluation_reason_codes", failures);
             checkColumn(connection, "public", "extraordinary_benefit_request", "version", failures);
+            checkTable(connection, "public", "extraordinary_benefit_program_policy", failures);
+            checkColumn(connection, "public", "extraordinary_benefit_program_policy", "reason_code", failures);
+            checkColumn(connection, "public", "extraordinary_benefit_program_policy", "version", failures);
+            checkColumn(connection, "public", "extraordinary_benefit_program_policy", "effective_from", failures);
+            checkColumn(connection, "public", "extraordinary_benefit_program_policy", "effective_until", failures);
+            checkColumn(connection, "public", "extraordinary_benefit_program_policy", "maximum_amount", failures);
+            checkColumn(connection, "public", "extraordinary_benefit_program_policy", "available_budget_amount", failures);
+            checkTable(connection, "public", "extraordinary_benefit_payment_window", failures);
+            checkColumn(connection, "public", "extraordinary_benefit_payment_window", "policy_id", failures);
+            checkColumn(connection, "public", "extraordinary_benefit_payment_window", "payment_date", failures);
+            checkTable(connection, "public", "extraordinary_benefit_grant_history", failures);
+            checkColumn(connection, "public", "extraordinary_benefit_grant_history", "worker_id", failures);
+            checkColumn(connection, "public", "extraordinary_benefit_grant_history", "reason_code", failures);
+            checkColumn(connection, "public", "extraordinary_benefit_grant_history", "event_date", failures);
+            checkColumn(connection, "public", "extraordinary_benefit_grant_history", "status", failures);
             checkTable(connection, "public", "extraordinary_benefit_grant_effect", failures);
             checkColumn(connection, "public", "extraordinary_benefit_grant_effect", "effect_execution_id", failures);
             checkColumn(connection, "public", "extraordinary_benefit_grant_effect", "benefit_request_id", failures);
@@ -199,16 +223,58 @@ public final class ApiOperationalSchemaDriftCheck {
                     failures
             );
 
-            if (!failures.isEmpty()) {
-                System.err.println("API operational datasource drift detected:");
-                for (String failure : failures) {
-                    System.err.println("- " + failure);
-                }
-                System.exit(1);
-            }
-
-            System.out.println("API operational datasource drift check passed.");
+            assertNoFailures(failures, "API operational datasource");
         }
+    }
+
+    private static void checkAuthoritativeFacts(Connection connection, List<String> failures) throws SQLException {
+        for (String table : List.of(
+                "extraordinary_benefit_program_policy",
+                "extraordinary_benefit_payment_window",
+                "extraordinary_benefit_grant_history")) {
+            checkTable(connection, "public", table, failures);
+            checkTablePrivilege(connection, "public", table, "SELECT", failures);
+        }
+        checkColumn(connection, "public", "extraordinary_benefit_program_policy", "reason_code", failures);
+        checkColumn(connection, "public", "extraordinary_benefit_program_policy", "version", failures);
+        checkColumn(connection, "public", "extraordinary_benefit_program_policy", "effective_from", failures);
+        checkColumn(connection, "public", "extraordinary_benefit_program_policy", "effective_until", failures);
+        checkColumn(connection, "public", "extraordinary_benefit_program_policy", "maximum_amount", failures);
+        checkColumn(connection, "public", "extraordinary_benefit_program_policy", "available_budget_amount", failures);
+        checkColumn(connection, "public", "extraordinary_benefit_payment_window", "policy_id", failures);
+        checkColumn(connection, "public", "extraordinary_benefit_payment_window", "payment_date", failures);
+        checkColumn(connection, "public", "extraordinary_benefit_grant_history", "worker_id", failures);
+        checkColumn(connection, "public", "extraordinary_benefit_grant_history", "reason_code", failures);
+        checkColumn(connection, "public", "extraordinary_benefit_grant_history", "event_date", failures);
+        checkColumn(connection, "public", "extraordinary_benefit_grant_history", "status", failures);
+    }
+
+    private static void checkTablePrivilege(
+            Connection connection,
+            String schema,
+            String table,
+            String privilege,
+            List<String> failures) throws SQLException {
+        try (PreparedStatement statement = connection.prepareStatement("select has_table_privilege(?, ?)")) {
+            statement.setString(1, schema + "." + table);
+            statement.setString(2, privilege);
+            try (ResultSet resultSet = statement.executeQuery()) {
+                if (!resultSet.next() || !resultSet.getBoolean(1)) {
+                    failures.add("Current role lacks " + privilege + " on " + schema + "." + table);
+                }
+            }
+        }
+    }
+
+    private static void assertNoFailures(List<String> failures, String label) {
+        if (!failures.isEmpty()) {
+            System.err.println(label + " drift detected:");
+            for (String failure : failures) {
+                System.err.println("- " + failure);
+            }
+            throw new IllegalStateException(label + " drift check failed with " + failures.size() + " issue(s).");
+        }
+        System.out.println(label + " drift check passed.");
     }
 
     private static void checkTable(Connection connection, String schema, String table, List<String> failures)

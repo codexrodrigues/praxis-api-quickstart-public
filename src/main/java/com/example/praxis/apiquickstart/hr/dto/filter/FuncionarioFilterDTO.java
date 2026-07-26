@@ -8,6 +8,14 @@ import com.example.praxis.apiquickstart.hr.enums.EstadoCivil;
 import org.praxisplatform.uischema.FieldControlType;
 import org.praxisplatform.uischema.FieldDataType;
 import org.praxisplatform.uischema.NumericFormat;
+import org.praxisplatform.uischema.annotation.AiControlledUseMode;
+import org.praxisplatform.uischema.annotation.AiTrainingUseMode;
+import org.praxisplatform.uischema.annotation.AiUsagePolicy;
+import org.praxisplatform.uischema.annotation.AiVisibilityMode;
+import org.praxisplatform.uischema.annotation.DomainClassification;
+import org.praxisplatform.uischema.annotation.DomainDataCategory;
+import org.praxisplatform.uischema.annotation.DomainGovernance;
+import org.praxisplatform.uischema.annotation.DomainGovernanceKind;
 import org.praxisplatform.uischema.extension.annotation.UISchema;
 import org.praxisplatform.uischema.filter.annotation.Filterable;
 import org.praxisplatform.uischema.filter.dto.GenericFilterDTO;
@@ -72,6 +80,17 @@ public class FuncionarioFilterDTO implements GenericFilterDTO {
             multiple = true,
             valueField = "id", displayField = "label",
             endpoint = ApiPaths.HumanResources.DEPARTAMENTOS_DEPARTMENT_LOOKUP_OPTIONS, helpText = "Filtrar funcionários por um ou mais departamentos.", icon = "apartment")
+    @DomainGovernance(
+            kind = DomainGovernanceKind.SECURITY,
+            classification = DomainClassification.INTERNAL,
+            dataCategory = DomainDataCategory.OPERATIONAL,
+            complianceTags = {"ORGANIZATIONAL_ACCESS"},
+            reason = "Identificadores e nomes de departamentos podem fundamentar filtros assistidos por IA apenas dentro do escopo autorizado do host.",
+            aiUsage = @AiUsagePolicy(
+                    visibility = AiVisibilityMode.ALLOW,
+                    trainingUse = AiTrainingUseMode.DENY,
+                    ruleAuthoring = AiControlledUseMode.REVIEW_REQUIRED,
+                    reasoningUse = AiControlledUseMode.ALLOW))
     @Filterable(operation = Filterable.FilterOperation.IN, relation = "departamento.id")
     @Schema(
             description = "Conjunto de departamentos organizacionais que deve limitar a busca de colaboradores.")
@@ -80,7 +99,7 @@ public class FuncionarioFilterDTO implements GenericFilterDTO {
     @UISchema(label = "Departamento", controlType = FieldControlType.INPUT, maxLength = 160, order = 55, helpText = "Filtrar funcionários pelo nome do departamento.", icon = "apartment")
     @Filterable(operation = Filterable.FilterOperation.LIKE, relation = "departamento.nome")
     @Schema(
-            description = "Trecho do nome do departamento usado para localizar colaboradores por lotacao organizacional.")
+            description = "Trecho do nome do departamento ou area organizacional usado para localizar colaboradores por lotacao organizacional.")
     private String departamentoNome;
 
     @UISchema(label = "Período de Admissão", type = FieldDataType.DATE, controlType = FieldControlType.DATE_RANGE, order = 60, helpText = "Buscar admissões em um intervalo de tempo.", icon = "event")

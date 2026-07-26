@@ -529,8 +529,11 @@ Exemplos de referencia no quickstart:
   como label, comparando bruto, descontos e liquido no mesmo request. A migration operacional
   `V20260716_003__payroll_analytics_effective_department.sql` usa a validade semiaberta das lotacoes,
   nao faz fallback para o departamento atual e deixa o drift check denunciar folhas sem vinculo.
-  `HR_ANALYTICS_AGGREGATE_READ` permite somente buckets agregados; linhas, export, options e demais
-  consultas nominais exigem `HR_ANALYTICS_NOMINAL_READ` e recebem escopo departamental server-side.
+  No modo corporativo (`app.security.read-open=false`), `HR_ANALYTICS_AGGREGATE_READ` permite somente
+  buckets agregados; linhas, export, options e demais consultas nominais exigem
+  `HR_ANALYTICS_NOMINAL_READ` e recebem escopo departamental server-side. No modo local de
+  demonstração (`app.security.read-open=true`), as consultas sobre esses dados fictícios são
+  públicas, preservando a separação entre query POST e mutação.
   O mesmo escopo governa a pagina normal e a reidratacao de `includeIds`, sem reaplicar o filtro
   funcional aos IDs selecionados nem expor folhas de departamentos externos.
   O guia completo esta em [`docs/PAYROLL-ANALYTICS-DASHBOARDS.md`](docs/PAYROLL-ANALYTICS-DASHBOARDS.md).

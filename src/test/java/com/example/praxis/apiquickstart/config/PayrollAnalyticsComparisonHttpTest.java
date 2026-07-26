@@ -34,7 +34,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
         properties = {
                 "app.rate-limit.enabled=false",
                 "app.security.config-origin-restriction.enabled=false",
-                "app.security.read-open=true",
+                "app.security.read-open=false",
                 "app.security.write-disabled=false",
                 "app.security.schemas-aggregator.enabled=true",
                 "app.security.csrf.disable=true",

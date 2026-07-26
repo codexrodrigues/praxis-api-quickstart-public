@@ -6,6 +6,7 @@ import com.example.praxis.apiquickstart.core.service.ResourceActionExecutionServ
 import com.example.praxis.apiquickstart.core.service.ResourceActionTransactionCoordinator;
 import com.example.praxis.apiquickstart.rulelab.dto.ExtraordinaryBenefitBatchEvaluationRequest;
 import com.example.praxis.apiquickstart.rulelab.dto.ExtraordinaryBenefitBatchEvaluationResponse;
+import com.example.praxis.apiquickstart.rulelab.dto.ExtraordinaryBenefitAuthoritativeEvaluationResponse;
 import com.example.praxis.apiquickstart.rulelab.dto.ExtraordinaryBenefitEvaluationCommandResponse;
 import com.example.praxis.apiquickstart.rulelab.dto.ExtraordinaryBenefitEvaluationRequest;
 import com.example.praxis.apiquickstart.rulelab.dto.ExtraordinaryBenefitAuthoritativeEvaluationRequest;
@@ -20,6 +21,8 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import jakarta.validation.Valid;
 import java.time.DateTimeException;
+import java.time.Clock;
+import java.util.List;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
@@ -42,6 +45,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -55,7 +60,7 @@ import org.springframework.web.server.ResponseStatusException;
         value = ApiPaths.HumanResources.EXTRAORDINARY_BENEFIT_REQUESTS,
         resourceKey = ExtraordinaryBenefitRequestController.RESOURCE_KEY,
         title = "Solicitacoes de beneficio extraordinario",
-        description = "Fila persistida de beneficios elegiveis com lifecycle e efeito auditavel, acompanhada por comparacao shadow sanitizada que nunca altera o negocio.",
+        description = "Laboratório de decisões com simulação explícita e preflight read-only por FactProvider DB-backed; persistência e efeitos corporativos permanecem bloqueados até revalidação transacional e IAM.",
         icon = "volunteer_activism",
         visualTone = "support")
 @ApiGroup("human-resources")
@@ -69,6 +74,10 @@ public class ExtraordinaryBenefitRequestController extends AbstractReadOnlyResou
     private final ResourceActionExecutionService actionExecutionService;
     private final ResourceActionTransactionCoordinator transactionCoordinator;
     private final ObjectMapper objectMapper;
+    private final RuleLabHttpSimulationPolicy simulationPolicy;
+    private final ObjectProvider<ExtraordinaryBenefitAuthoritativeEvaluationService> authoritativeEvaluationProvider;
+    private final ObjectProvider<ExtraordinaryBenefitFactLookupFactory> factLookupFactoryProvider;
+    private final Clock ruleClock;
 
     public ExtraordinaryBenefitRequestController(
             ExtraordinaryBenefitRequestQueryService queryService,
@@ -76,13 +85,21 @@ public class ExtraordinaryBenefitRequestController extends AbstractReadOnlyResou
             ExtraordinaryBenefitShadowComparisonService shadowComparisonService,
             ResourceActionExecutionService actionExecutionService,
             ResourceActionTransactionCoordinator transactionCoordinator,
-            ObjectMapper objectMapper) {
+            ObjectMapper objectMapper,
+            RuleLabHttpSimulationPolicy simulationPolicy,
+            ObjectProvider<ExtraordinaryBenefitAuthoritativeEvaluationService> authoritativeEvaluationProvider,
+            ObjectProvider<ExtraordinaryBenefitFactLookupFactory> factLookupFactoryProvider,
+            @Qualifier("extraordinaryGrantRuleClock") Clock ruleClock) {
         this.queryService = queryService;
         this.workflowService = workflowService;
         this.shadowComparisonService = shadowComparisonService;
         this.actionExecutionService = actionExecutionService;
         this.transactionCoordinator = transactionCoordinator;
         this.objectMapper = objectMapper;
+        this.simulationPolicy = simulationPolicy;
+        this.authoritativeEvaluationProvider = authoritativeEvaluationProvider;
+        this.factLookupFactoryProvider = factLookupFactoryProvider;
+        this.ruleClock = ruleClock;
     }
 
     @Override
@@ -95,11 +112,54 @@ public class ExtraordinaryBenefitRequestController extends AbstractReadOnlyResou
         return response.id();
     }
 
+    @PostMapping("/actions/evaluate-authoritative")
+    @WorkflowAction(
+            id = "evaluate-authoritative",
+            title = "Pré-avaliar com fatos corporativos",
+            description = "Resolve situação funcional, duplicidade, programa, calendário e orçamento no banco do host e avalia sem persistir solicitação ou efeito.",
+            scope = ActionScope.COLLECTION,
+            requiredAuthorities = {"ROLE_ADMIN"},
+            order = 5,
+            successMessage = "Pré-avaliação autoritativa concluída",
+            tags = {"human-resources", "benefits", "authoritative-facts", "read-only"})
+    @Operation(summary = "Pré-avaliar usando fatos DB-backed do host",
+            description = "O caller informa somente a intenção. O FactProvider executa leitura repeatable-read, congela os fatos e devolve proveniência sanitizada; nenhum agregado ou efeito é persistido.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Decisão read-only e proveniência sanitizada do snapshot de fatos."),
+            @ApiResponse(responseCode = "403", description = "Ator sem autoridade para executar o preflight."),
+            @ApiResponse(responseCode = "404", description = "Colaborador não encontrado."),
+            @ApiResponse(responseCode = "412", description = "Política ou calendário corporativo efetivo indisponível.")
+    })
+    public ResponseEntity<RestApiResponse<ExtraordinaryBenefitAuthoritativeEvaluationResponse>> evaluateAuthoritative(
+            @Valid @RequestBody ExtraordinaryBenefitAuthoritativeEvaluationRequest request) {
+        requireAdmin();
+        ExtraordinaryBenefitAuthoritativeEvaluationService service = authoritativeEvaluationProvider.getIfAvailable();
+        ExtraordinaryBenefitFactLookupFactory factLookupFactory = factLookupFactoryProvider.getIfAvailable();
+        if (service == null || factLookupFactory == null) {
+            throw new ResponseStatusException(
+                    HttpStatus.PRECONDITION_FAILED,
+                    "Authoritative fact acquisition is not configured for this host.");
+        }
+        ExtraordinaryBenefitAuthoritativeEvaluationResult evaluated = service.evaluate(
+                new ExtraordinaryBenefitAuthoritativeEvaluationCommand(
+                        request.requestReference(), request.reasonCode(), request.eventDate(), request.requestedAmount(),
+                        request.factReference(), request.requestedPaymentDate(), request.userTimeZone()),
+                factLookupFactory.create(request.factReference(), ruleClock.instant()),
+                resolveActorPermissions());
+        RuleFactProvenance provenance = evaluated.factProvenance();
+        var response = new ExtraordinaryBenefitAuthoritativeEvaluationResponse(
+                evaluated.decision().response(),
+                new com.example.praxis.apiquickstart.rulelab.dto.ExtraordinaryBenefitFactEvidence(
+                        provenance.sourceRecordDigest(), provenance.asOf(),
+                        List.of(provenance.providerKey(), provenance.sourceSystem()), provenance.sourceVersion()));
+        return ResponseEntity.ok(RestApiResponse.success(response, null));
+    }
+
     @PostMapping("/actions/evaluate")
     @WorkflowAction(
             id = "evaluate",
             title = "Avaliar e registrar beneficio",
-            description = "Avalia fatos congelados e persiste somente ALLOW; negacao, inconclusao e falha nunca criam solicitacao nem efeito.",
+            description = "Simulacao: avalia fatos informados pelo caller e persiste somente ALLOW fora de producao.",
             scope = ActionScope.COLLECTION,
             requiredAuthorities = {"ROLE_ADMIN"},
             order = 10,
@@ -118,6 +178,7 @@ public class ExtraordinaryBenefitRequestController extends AbstractReadOnlyResou
             @RequestHeader(value = "X-Correlation-ID", required = false) String correlationId,
             @Valid @RequestBody ExtraordinaryBenefitAuthoritativeEvaluationRequest request) {
         requireAdmin();
+        simulationPolicy.requireAvailable();
         String actor = actorSubject();
         String effectiveCorrelation = correlation(correlationId);
         return executeIdempotentCollection(
@@ -150,6 +211,7 @@ public class ExtraordinaryBenefitRequestController extends AbstractReadOnlyResou
             @RequestHeader(value = "X-Correlation-ID", required = false) String correlationId,
             @Valid @RequestBody ExtraordinaryBenefitBatchEvaluationRequest request) {
         requireAdmin();
+        simulationPolicy.requireAvailable();
         String actor = actorSubject();
         String effectiveCorrelation = correlation(correlationId);
         return executeIdempotentCollection(
@@ -178,6 +240,7 @@ public class ExtraordinaryBenefitRequestController extends AbstractReadOnlyResou
     public ResponseEntity<RestApiResponse<ExtraordinaryBenefitShadowObservation>> shadowCompare(
             @Valid @RequestBody ExtraordinaryBenefitEvaluationRequest request) {
         requireAdmin();
+        simulationPolicy.requireAvailable();
         ExtraordinaryBenefitShadowObservation observation =
                 shadowComparisonService.compare(request, resolveActorPermissions());
         return ResponseEntity.ok(RestApiResponse.success(observation, null));
@@ -226,10 +289,10 @@ public class ExtraordinaryBenefitRequestController extends AbstractReadOnlyResou
     }
 
     @PostMapping("/{id}/actions/apply")
-    @WorkflowAction(id = "apply", title = "Aplicar beneficio", description = "Executa exatamente uma vez a intencao aprovada e fecha o lifecycle.", scope = ActionScope.ITEM, requiredAuthorities = {"ROLE_ADMIN"}, allowedStates = {"APPROVED"}, order = 120)
-    @Operation(summary = "Executar efeito aprovado")
+    @WorkflowAction(id = "apply", title = "Registrar efeito local simulado", description = "Registra uma unica vez o ledger local do laboratorio; nao executa folha ou ERP externo.", scope = ActionScope.ITEM, requiredAuthorities = {"ROLE_ADMIN"}, allowedStates = {"APPROVED"}, order = 120)
+    @Operation(summary = "Registrar efeito local simulado")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Efeito aplicado exatamente uma vez ou replay devolvido."),
+            @ApiResponse(responseCode = "200", description = "Ledger local simulado registrado uma unica vez ou replay devolvido."),
             @ApiResponse(responseCode = "403", description = "Ator ou estado sem disponibilidade para a action."),
             @ApiResponse(responseCode = "404", description = "Solicitacao inexistente."),
             @ApiResponse(responseCode = "409", description = "Estado, ledger ou chave idempotente conflitante."),
@@ -256,6 +319,7 @@ public class ExtraordinaryBenefitRequestController extends AbstractReadOnlyResou
             ExtraordinaryBenefitTransitionRequest request,
             Supplier<ExtraordinaryBenefitTransitionResponse> transition) {
         requireAdmin();
+        simulationPolicy.requireAvailable();
         validateIdempotencyKey(idempotencyKey);
         var replay = actionExecutionService.findCompletedReplay(RESOURCE_KEY, id, actionId, idempotencyKey, request);
         if (replay.isPresent()) {

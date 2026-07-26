@@ -223,11 +223,14 @@ public class ExtraordinaryGrantRuleLabConfiguration {
                 baseline, candidate, executor, meterRegistry, clock, Duration.ofMillis(timeoutMs));
     }
 
-    /** Contributes safe readiness diagnostics when the Rule Lab is explicitly enabled. */
+    /**
+     * Contributes safe readiness diagnostics only when this optional pilot is explicitly declared
+     * critical to the host. Enabling hot reload alone must not make the whole Quickstart unavailable.
+     */
     @Bean
     @ConditionalOnProperty(
             prefix = "praxis.rule-lab.snapshot",
-            name = "enabled",
+            name = "readiness-required",
             havingValue = "true")
     ExtraordinaryGrantRuleSnapshotHealthIndicator extraordinaryGrantRuleSnapshotHealthIndicator(
             ExtraordinaryGrantRuleSnapshotRuntime runtime) {

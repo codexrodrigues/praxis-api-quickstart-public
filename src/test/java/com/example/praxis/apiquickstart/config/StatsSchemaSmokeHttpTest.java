@@ -18,7 +18,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
         properties = {
                 "app.rate-limit.enabled=false",
                 "app.security.config-origin-restriction.enabled=false",
-                "app.security.read-open=false",
+                "app.security.read-open=true",
                 "app.security.write-disabled=false",
                 "app.security.csrf.disable=false",
                 "app.session.cookie-name=SESSION",
