@@ -152,7 +152,7 @@ validate_authoring_candidates() {
   local output_file="$1"
   local authoring_query="$2"
   local artifact_kind="$3"
-  local expected_resource_key="$4"
+  local expected_resource_keys="$4"
   local expected_authoring_flow="${5:-}"
   local expected_item_type="${6:-}"
   local legacy_materialization_operation="${7:-}"
@@ -198,7 +198,7 @@ validate_authoring_candidates() {
   local quick_reply_count
   local resource_key_count
   local contract_shape_count
-  local payroll_resource_count
+  local expected_resource_count
   local relationship_count
   local intent_count
   local expected_authoring_flow_count
@@ -215,7 +215,12 @@ validate_authoring_candidates() {
     (.contextHints.domainCatalog.query // "") != "" and
     ((.contextHints.domainCatalog.limit // 0) > 0)
   )] | length' "$output_file")"
-  payroll_resource_count="$(jq --arg resourceKey "$expected_resource_key" '[.quickReplies[] | select((.contextHints.domainCatalog.resourceKey // "") == $resourceKey)] | length' "$output_file")"
+  expected_resource_count="$(jq --arg resourceKeys "$expected_resource_keys" '
+    ($resourceKeys | split(" ")) as $expected
+    | [.quickReplies[]
+        | select((.contextHints.domainCatalog.resourceKey // "") as $actual
+          | $expected | index($actual))] | length
+  ' "$output_file")"
   relationship_count="$(jq '[.quickReplies[] | select((.contextHints.domainCatalog.relationships.enabled // false) == true and (.contextHints.domainCatalog.relationships.federated // false) == true)] | length' "$output_file")"
   intent_count="$(jq '[.quickReplies[] | select((.contextHints.domainCatalog.intent // "") == "authoring")] | length' "$output_file")"
   expected_authoring_flow_count="$(jq --arg flow "$expected_authoring_flow" 'if $flow == "" then 1 else [.quickReplies[] | select((.contextHints.domainCatalog.recommendedAuthoringFlow // "") == $flow)] | length end' "$output_file")"
@@ -249,8 +254,8 @@ validate_authoring_candidates() {
     return 1
   fi
 
-  if [[ "$payroll_resource_count" -eq 0 ]]; then
-    echo "Expected at least one quick reply for resourceKey=${expected_resource_key}." >&2
+  if [[ "$expected_resource_count" -eq 0 ]]; then
+    echo "Expected at least one quick reply for one of resourceKeys=${expected_resource_keys}." >&2
     jq '{quickReplies: [.quickReplies[] | {id, resourcePath: .contextHints.resourcePath, resourceKey: .contextHints.domainCatalog.resourceKey}]}' "$output_file" >&2
     return 1
   fi
@@ -423,7 +428,8 @@ echo
 validate_context "operations.missoes" "status" "false" "$context_file"
 
 echo
-validate_authoring_candidates "$authoring_file" "$AUTHORING_QUERY" "$AUTHORING_ARTIFACT_KIND" "human-resources.folhas-pagamento"
+validate_authoring_candidates "$authoring_file" "$AUTHORING_QUERY" "$AUTHORING_ARTIFACT_KIND" \
+  "human-resources.vw-analytics-folha-pagamento human-resources.folhas-pagamento"
 
 echo
 validate_authoring_candidates "$authoring_file" "$FORM_RULE_AUTHORING_QUERY" "$FORM_RULE_AUTHORING_ARTIFACT_KIND" "human-resources.funcionarios" "shared_rule_authoring" "governance" "rule.visualBlockGuidance.add"
