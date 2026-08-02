@@ -85,6 +85,46 @@ assert_surface_exists() {
   fi
 }
 
+assert_related_surface_contract() {
+  local output_file="$1"
+  local surface_id="$2"
+  local child_resource="$3"
+  local filter_field="$4"
+
+  if ! jq -e \
+    --arg surface_id "$surface_id" \
+    --arg child_resource "$child_resource" \
+    --arg filter_field "$filter_field" \
+    '.surfaces[] | select(.id == $surface_id) |
+      .relatedResource.childResourceKey == $child_resource
+      and .relatedResource.childParentField == $filter_field' \
+    "$output_file" >/dev/null; then
+    echo "Expected surface '${surface_id}' to relate '${child_resource}' through '${filter_field}'." >&2
+    jq --arg surface_id "$surface_id" \
+      '.surfaces[] | select(.id == $surface_id) | {id, relatedResource}' \
+      "$output_file" >&2
+    return 1
+  fi
+}
+
+assert_related_surface_read_operations() {
+  local output_file="$1"
+  local surface_id="$2"
+
+  if ! jq -e \
+    --arg surface_id "$surface_id" \
+    '.surfaces[] | select(.id == $surface_id) |
+      (.relatedResource.childOperations | index("FILTER")) != null
+      and (.relatedResource.childOperations | index("LIST")) != null' \
+    "$output_file" >/dev/null; then
+    echo "Expected surface '${surface_id}' to publish FILTER and LIST related operations." >&2
+    jq --arg surface_id "$surface_id" \
+      '.surfaces[] | select(.id == $surface_id) | {id, relatedResource}' \
+      "$output_file" >&2
+    return 1
+  fi
+}
+
 assert_action_exists() {
   local output_file="$1"
   local action_id="$2"
@@ -92,6 +132,33 @@ assert_action_exists() {
   if ! jq -e --arg action_id "$action_id" '.actions[] | select(.id == $action_id)' "$output_file" >/dev/null; then
     echo "Expected action '${action_id}' to be published." >&2
     jq '{resourceKey, actions: [.actions[] | {id, scope, title, path}]}' "$output_file" >&2
+    return 1
+  fi
+}
+
+assert_page_has_rows() {
+  local output_file="$1"
+  local resource_name="$2"
+  local actual
+
+  actual="$(jq '.data.content // [] | length' "$output_file")"
+  if [[ "$actual" -lt 1 ]]; then
+    echo "Expected '${resource_name}' filter to return at least one row, got ${actual}." >&2
+    jq '{data, error}' "$output_file" >&2
+    return 1
+  fi
+}
+
+assert_action_availability() {
+  local output_file="$1"
+  local action_id="$2"
+  local expected="$3"
+  local actual
+
+  actual="$(jq -r --arg action_id "$action_id" '[.actions[] | select(.id == $action_id) | .availability.allowed][0] // false' "$output_file")"
+  if [[ "$actual" != "$expected" ]]; then
+    echo "Expected action '${action_id}' availability.allowed=${expected}, got ${actual}." >&2
+    jq --arg action_id "$action_id" '{resourceKey, resourceId, action: [.actions[] | select(.id == $action_id) | {id, availability}]}' "$output_file" >&2
     return 1
   fi
 }
@@ -175,6 +242,37 @@ assert_surface_exists "$employee_surfaces" "profile"
 assert_surface_exists "$employee_surfaces" "hero-profile"
 assert_surface_exists "$employee_surfaces" "payroll-history"
 assert_surface_exists "$employee_surfaces" "mission-participations"
+assert_surface_exists "$employee_surfaces" "equipment-custody"
+assert_related_surface_contract \
+  "$employee_surfaces" \
+  "payroll-history" \
+  "human-resources.vw-analytics-folha-pagamento" \
+  "funcionarioId"
+assert_related_surface_read_operations "$employee_surfaces" "payroll-history"
+assert_related_surface_contract \
+  "$employee_surfaces" \
+  "equipment-custody" \
+  "assets.equipamento-alocacoes" \
+  "funcionarioId"
+assert_related_surface_read_operations "$employee_surfaces" "equipment-custody"
+
+employee_actions_catalog="$TMPDIR_RUN/employee-actions-catalog.json"
+get_json "/schemas/actions?resource=human-resources.funcionarios" "$employee_actions_catalog"
+assert_action_exists "$employee_actions_catalog" "deactivate"
+assert_action_exists "$employee_actions_catalog" "reactivate"
+
+employee_record="$TMPDIR_RUN/employee-record.json"
+get_json "/api/human-resources/funcionarios/1" "$employee_record"
+
+employee_item_actions="$TMPDIR_RUN/employee-item-actions.json"
+get_json "/api/human-resources/funcionarios/1/actions" "$employee_item_actions"
+if jq -e '.data.ativo == true' "$employee_record" >/dev/null; then
+  assert_action_availability "$employee_item_actions" "deactivate" "true"
+  assert_action_availability "$employee_item_actions" "reactivate" "false"
+else
+  assert_action_availability "$employee_item_actions" "deactivate" "false"
+  assert_action_availability "$employee_item_actions" "reactivate" "true"
+fi
 
 payroll_surfaces="$TMPDIR_RUN/payroll-surfaces.json"
 get_json "/schemas/surfaces?resource=human-resources.folhas-pagamento" "$payroll_surfaces"
@@ -188,6 +286,14 @@ assert_action_exists "$payroll_actions" "mark-paid"
 payroll_event_actions="$TMPDIR_RUN/payroll-event-actions.json"
 get_json "/schemas/actions?resource=human-resources.eventos-folha" "$payroll_event_actions"
 assert_action_exists "$payroll_event_actions" "bulk-approve"
+
+payroll_rows="$TMPDIR_RUN/payroll-rows.json"
+post_json "/api/human-resources/folhas-pagamento/filter?page=0&size=5" '{}' "$payroll_rows"
+assert_page_has_rows "$payroll_rows" "human-resources.folhas-pagamento"
+
+payroll_event_rows="$TMPDIR_RUN/payroll-event-rows.json"
+post_json "/api/human-resources/eventos-folha/filter?page=0&size=5" '{}' "$payroll_event_rows"
+assert_page_has_rows "$payroll_event_rows" "human-resources.eventos-folha"
 
 absence_surfaces="$TMPDIR_RUN/absence-surfaces.json"
 get_json "/schemas/surfaces?resource=human-resources.ferias-afastamentos" "$absence_surfaces"
@@ -277,6 +383,9 @@ jq -n \
   --slurpfile absenceTimeline "$absence_timeline" \
   --slurpfile reputationTeam "$reputation_team" \
   --slurpfile reputationMedia "$reputation_media" \
+  --slurpfile employeeItemActions "$employee_item_actions" \
+  --slurpfile payrollRows "$payroll_rows" \
+  --slurpfile payrollEventRows "$payroll_event_rows" \
   '{
     status: "human-resources-runtime-ready",
     backendUrl: env.BACKEND_URL,
@@ -291,5 +400,8 @@ jq -n \
     absenceType: $absenceType[0].data.buckets | map({key, count}),
     absenceTimelinePoints: ($absenceTimeline[0].data.points | length),
     reputationTeams: $reputationTeam[0].data.buckets | map({key, count}),
-    reputationMediaBuckets: ($reputationMedia[0].data.buckets | length)
+    reputationMediaBuckets: ($reputationMedia[0].data.buckets | length),
+    employeeActions: $employeeItemActions[0].actions | map({id, allowed: .availability.allowed}),
+    payrollRows: ($payrollRows[0].data.content | length),
+    payrollEventRows: ($payrollEventRows[0].data.content | length)
   }'

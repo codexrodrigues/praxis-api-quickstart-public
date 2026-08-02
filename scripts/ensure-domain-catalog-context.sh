@@ -16,6 +16,8 @@ DEFAULT_RESOURCE_KEYS=(
   "human-resources.funcionarios"
   "human-resources.cargos"
   "human-resources.departamentos"
+  "human-resources.ferias-afastamentos"
+  "human-resources.eventos-folha"
   "human-resources.folhas-pagamento"
   "human-resources.vw-analytics-folha-pagamento"
   "operations.missoes"
@@ -54,6 +56,12 @@ default_verify_query_for() {
       ;;
     human-resources.departamentos)
       echo "departamento"
+      ;;
+    human-resources.ferias-afastamentos)
+      echo "data-inicio"
+      ;;
+    human-resources.eventos-folha)
+      echo "status"
       ;;
     human-resources.folhas-pagamento)
       echo "salario"

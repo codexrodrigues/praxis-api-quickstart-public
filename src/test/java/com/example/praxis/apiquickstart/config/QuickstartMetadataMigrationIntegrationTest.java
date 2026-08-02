@@ -97,6 +97,7 @@ class QuickstartMetadataMigrationIntegrationTest {
 
     @BeforeEach
     void seedTables() {
+        jdbcTemplate.execute("drop table if exists public.praxis_resource_action_execution");
         jdbcTemplate.execute("drop table if exists public.praxis_resource_action_transition");
         jdbcTemplate.execute("drop table if exists public.vw_perfil_heroi");
         jdbcTemplate.execute("drop table if exists public.vw_analytics_folha_pagamento");
@@ -170,6 +171,21 @@ class QuickstartMetadataMigrationIntegrationTest {
                     performed_at timestamp with time zone not null, actor_subject varchar(255) not null,
                     actor_authorities varchar(1000), correlation_id varchar(255) not null, request_id varchar(255),
                     idempotency_key varchar(255), version_before bigint, version_after bigint
+                )
+                """);
+
+        jdbcTemplate.execute("""
+                create table public.praxis_resource_action_execution (
+                    execution_id uuid primary key, resource_key varchar(200) not null,
+                    resource_id varchar(128) not null, action_id varchar(120) not null,
+                    action_scope varchar(32) not null, idempotency_key varchar(255) not null,
+                    request_hash varchar(128) not null, execution_status varchar(32) not null,
+                    response_payload json, correlation_id varchar(255) not null,
+                    request_id varchar(255), actor_subject varchar(255) not null,
+                    actor_authorities varchar(1000), started_at timestamp with time zone not null,
+                    completed_at timestamp with time zone, failure_code varchar(120),
+                    failure_message varchar(1000),
+                    unique(resource_key, resource_id, action_id, actor_subject, idempotency_key)
                 )
                 """);
 
@@ -488,6 +504,18 @@ class QuickstartMetadataMigrationIntegrationTest {
         assertNotNull(findById(itemCapabilities.path("surfaces"), "skills"));
         assertNotNull(findById(itemCapabilities.path("surfaces"), "career-history"));
         assertEquals(2, itemCapabilities.path("actions").size());
+        JsonNode deactivateAction = findById(itemCapabilities.path("actions"), "deactivate");
+        assertTrue(deactivateAction.path("availability").path("allowed").asBoolean());
+        assertEquals("FORM", deactivateAction.path("execution").path("interaction").path("mode").asText());
+        assertEquals("HIGH", deactivateAction.path("execution").path("interaction").path("riskLevel").asText());
+        assertTrue(deactivateAction.path("execution").path("interaction").path("confirmationRequired").asBoolean());
+        assertEquals("REQUIRED", deactivateAction.path("execution").path("preconditions").path("idempotencyKey").asText());
+        assertEquals("REQUIRED", deactivateAction.path("execution").path("preconditions").path("resourceVersion").asText());
+        assertEquals("IF_MATCH", deactivateAction.path("execution").path("preconditions").path("resourceVersionTransport").asText());
+        assertEquals("resourceVersion", deactivateAction.path("execution").path("preconditions").path("resourceVersionField").asText());
+        assertTrue(deactivateAction.path("execution").path("refresh").path("item").asBoolean());
+        assertFalse(findById(itemCapabilities.path("actions"), "reactivate")
+                .path("availability").path("allowed").asBoolean());
 
         HttpHeaders heroHeaders = new HttpHeaders();
         heroHeaders.add(HttpHeaders.COOKIE, "SESSION=" + jwtTokenService.generate("admin", "ADMIN", List.of(
@@ -741,6 +769,7 @@ class QuickstartMetadataMigrationIntegrationTest {
         headers.setContentType(MediaType.APPLICATION_JSON);
         headers.add(HttpHeaders.COOKIE, "SESSION=" + jwtTokenService.generate("admin", "ADMIN"));
         headers.setIfMatch(etag);
+        headers.set("Idempotency-Key", "employee-deactivate-success");
         headers.set("X-Correlation-ID", "employee-deactivate-test");
         ResponseEntity<String> response = restTemplate.exchange(
                 "/api/human-resources/funcionarios/1/actions/deactivate",
@@ -752,6 +781,53 @@ class QuickstartMetadataMigrationIntegrationTest {
         assertFalse(body(response).path("data").path("ativo").asBoolean(true));
         assertEquals(false, jdbcTemplate.queryForObject("select ativo from public.funcionarios where id = 1", Boolean.class));
         assertEquals(1, jdbcTemplate.queryForObject("select count(*) from public.praxis_resource_action_transition where action_id = 'deactivate'", Integer.class));
+
+        JsonNode itemActions = body(restTemplate.getForEntity(
+                "/api/human-resources/funcionarios/1/actions",
+                String.class
+        ));
+        assertFalse(findById(itemActions.path("actions"), "deactivate")
+                .path("availability").path("allowed").asBoolean());
+        assertTrue(findById(itemActions.path("actions"), "reactivate")
+                .path("availability").path("allowed").asBoolean());
+    }
+
+    @Test
+    void shouldReplayFuncionarioDeactivationWithoutRepeatingTheTransition() throws Exception {
+        String endpoint = "/api/human-resources/funcionarios/1/actions/deactivate";
+        String command = "{\"effectiveAt\":\"2026-07-11\",\"reasonCode\":\"REORG\",\"comment\":\"Replay corporativo após timeout.\"}";
+        String initialEtag = restTemplate.getForEntity(
+                "/api/human-resources/funcionarios/1", String.class).getHeaders().getETag();
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.add(HttpHeaders.COOKIE, "SESSION=" + jwtTokenService.generate("admin", "ADMIN"));
+        headers.setIfMatch(initialEtag);
+        headers.set("Idempotency-Key", "employee-deactivate-replay");
+
+        ResponseEntity<String> first = restTemplate.exchange(
+                endpoint, HttpMethod.POST, new HttpEntity<>(command, headers), String.class);
+        ResponseEntity<String> replay = restTemplate.exchange(
+                endpoint, HttpMethod.POST, new HttpEntity<>(command, headers), String.class);
+        ResponseEntity<String> conflictingReplay = restTemplate.exchange(
+                endpoint,
+                HttpMethod.POST,
+                new HttpEntity<>(
+                        "{\"effectiveAt\":\"2026-07-12\",\"reasonCode\":\"OTHER\",\"comment\":\"Mesmo key, outro comando.\"}",
+                        headers),
+                String.class);
+
+        assertEquals(HttpStatus.OK, first.getStatusCode());
+        assertEquals(HttpStatus.OK, replay.getStatusCode());
+        assertEquals(HttpStatus.CONFLICT, conflictingReplay.getStatusCode());
+        assertEquals(body(first).path("data").path("transitionId").asText(),
+                body(replay).path("data").path("transitionId").asText());
+        assertEquals(1, jdbcTemplate.queryForObject(
+                "select count(*) from public.praxis_resource_action_transition where action_id = 'deactivate'",
+                Integer.class));
+        assertEquals(1, jdbcTemplate.queryForObject(
+                "select count(*) from public.praxis_resource_action_execution where action_id = 'deactivate' and idempotency_key = 'employee-deactivate-replay'",
+                Integer.class));
     }
 
     @Test
@@ -759,6 +835,7 @@ class QuickstartMetadataMigrationIntegrationTest {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         headers.add(HttpHeaders.COOKIE, "SESSION=" + jwtTokenService.generate("admin", "ADMIN"));
+        headers.set("Idempotency-Key", "employee-deactivate-missing-etag");
         ResponseEntity<String> response = restTemplate.exchange(
                 "/api/human-resources/funcionarios/1/actions/deactivate", HttpMethod.POST,
                 new HttpEntity<>("{\"effectiveAt\":\"2026-07-11\",\"reasonCode\":\"TEST\",\"comment\":\"Teste de precondição.\"}", headers), String.class);
@@ -773,6 +850,7 @@ class QuickstartMetadataMigrationIntegrationTest {
         assertEquals(HttpStatus.OK, profile.getStatusCode());
         HttpHeaders headers = new HttpHeaders(); headers.setContentType(MediaType.APPLICATION_JSON); headers.setIfMatch(staleEtag);
         headers.add(HttpHeaders.COOKIE, "SESSION=" + jwtTokenService.generate("admin", "ADMIN"));
+        headers.set("Idempotency-Key", "employee-deactivate-stale-etag");
         ResponseEntity<String> response = restTemplate.exchange("/api/human-resources/funcionarios/1/actions/deactivate", HttpMethod.POST,
                 new HttpEntity<>("{\"effectiveAt\":\"2026-07-11\",\"reasonCode\":\"TEST\",\"comment\":\"Teste de versão obsoleta.\"}", headers), String.class);
         assertEquals(HttpStatus.PRECONDITION_FAILED, response.getStatusCode());
@@ -784,6 +862,7 @@ class QuickstartMetadataMigrationIntegrationTest {
         String etag = restTemplate.getForEntity("/api/human-resources/funcionarios/1", String.class).getHeaders().getETag();
         HttpHeaders headers = new HttpHeaders(); headers.setContentType(MediaType.APPLICATION_JSON); headers.setIfMatch(etag);
         headers.add(HttpHeaders.COOKIE, "SESSION=" + jwtTokenService.generate("admin", "ADMIN"));
+        headers.set("Idempotency-Key", "employee-deactivate-invalid-state");
         ResponseEntity<String> response = restTemplate.exchange("/api/human-resources/funcionarios/1/actions/deactivate", HttpMethod.POST,
                 new HttpEntity<>("{\"effectiveAt\":\"2026-07-11\",\"reasonCode\":\"TEST\",\"comment\":\"Teste de estado inválido.\"}", headers), String.class);
         assertEquals(HttpStatus.CONFLICT, response.getStatusCode());
@@ -795,10 +874,20 @@ class QuickstartMetadataMigrationIntegrationTest {
         String etag = restTemplate.getForEntity("/api/human-resources/funcionarios/1", String.class).getHeaders().getETag();
         HttpHeaders headers = new HttpHeaders(); headers.setContentType(MediaType.APPLICATION_JSON); headers.setIfMatch(etag);
         headers.add(HttpHeaders.COOKIE, "SESSION=" + jwtTokenService.generate("admin", "ADMIN"));
+        headers.set("Idempotency-Key", "employee-reactivate-success");
         ResponseEntity<String> response = restTemplate.exchange("/api/human-resources/funcionarios/1/actions/reactivate", HttpMethod.POST,
                 new HttpEntity<>("{\"effectiveAt\":\"2026-07-11\",\"reasonCode\":\"RETURN\",\"comment\":\"Retorno validado pelo piloto.\"}", headers), String.class);
         assertTrue(body(response).path("data").path("ativo").asBoolean());
         assertEquals(1, jdbcTemplate.queryForObject("select count(*) from public.praxis_resource_action_transition where action_id = 'reactivate'", Integer.class));
+
+        JsonNode itemActions = body(restTemplate.getForEntity(
+                "/api/human-resources/funcionarios/1/actions",
+                String.class
+        ));
+        assertTrue(findById(itemActions.path("actions"), "deactivate")
+                .path("availability").path("allowed").asBoolean());
+        assertFalse(findById(itemActions.path("actions"), "reactivate")
+                .path("availability").path("allowed").asBoolean());
     }
 
     @Test

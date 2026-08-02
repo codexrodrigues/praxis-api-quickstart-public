@@ -52,6 +52,14 @@ public class FuncionarioDTO {
     )
     private Integer id;
 
+    @Schema(description = "Versão persistida usada em comandos com concorrência otimista.", example = "3", accessMode = Schema.AccessMode.READ_ONLY)
+    @UISchema(label = "Versão", readOnly = true, formHidden = true, tableHidden = true)
+    private Long version;
+
+    @Schema(description = "ETag opaco da versão persistida usado por comandos governados.", example = "\"eyJ...\"", accessMode = Schema.AccessMode.READ_ONLY)
+    @UISchema(label = "Token de versão", readOnly = true, formHidden = true, tableHidden = true)
+    private String resourceVersion;
+
     @UISchema(
         label = "Foto",
         type = FieldDataType.URL,
@@ -332,6 +340,10 @@ public class FuncionarioDTO {
 
     public Integer getId() { return id; }
     public void setId(Integer id) { this.id = id; }
+    public Long getVersion() { return version; }
+    public void setVersion(Long version) { this.version = version; }
+    public String getResourceVersion() { return resourceVersion; }
+    public void setResourceVersion(String resourceVersion) { this.resourceVersion = resourceVersion; }
     public String getAvatarUrl() { return avatarUrl; }
     public void setAvatarUrl(String avatarUrl) { this.avatarUrl = avatarUrl; }
     public String getNomeCompleto() { return nomeCompleto; }

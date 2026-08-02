@@ -3,6 +3,7 @@ package com.example.praxis.apiquickstart.hr.controller;
 import com.example.praxis.apiquickstart.hr.dto.EventosFolhaResponseDTO;
 import com.example.praxis.apiquickstart.hr.dto.actions.BulkApproveEventosFolhaResultDTO;
 import com.example.praxis.apiquickstart.hr.dto.filter.EventosFolhaFilterDTO;
+import com.example.praxis.apiquickstart.hr.enums.StatusEventoFolha;
 import com.example.praxis.apiquickstart.hr.service.EventosFolhaService;
 import com.example.praxis.apiquickstart.core.RateLimiterService;
 import org.junit.jupiter.api.Test;
@@ -174,6 +175,24 @@ class EventosFolhaControllerTest {
         assertEquals(2, dto.getValorBetween().size());
         assertEquals(0, dto.getValorBetween().get(0).compareTo(new BigDecimal("6500")));
         assertEquals(0, dto.getValorBetween().get(1).compareTo(new BigDecimal("15000")));
+    }
+
+    @Test
+    void filter_shouldPreserveGovernedWorkflowStatus() throws Exception {
+        stubEmptyFilterPage();
+
+        mockMvc.perform(post("/api/human-resources/eventos-folha/filter")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "status": "PENDENTE"
+                                }
+                                """))
+                .andExpect(status().isOk());
+
+        ArgumentCaptor<EventosFolhaFilterDTO> captor = ArgumentCaptor.forClass(EventosFolhaFilterDTO.class);
+        verify(service).filter(captor.capture(), any(Pageable.class), any());
+        assertEquals(StatusEventoFolha.PENDENTE, captor.getValue().getStatus());
     }
 
     @Test

@@ -278,6 +278,25 @@ class FolhasPagamentoPilotIntegrationTest {
     }
 
     @Test
+    void shouldExecutePayrollFilterAgainstSeededRows() throws Exception {
+        ResponseEntity<String> response = restTemplate.exchange(
+                "/api/human-resources/folhas-pagamento/filter?page=0&size=10",
+                HttpMethod.POST,
+                authorizedJson("""
+                        {
+                          "ano": 2026,
+                          "funcionarioId": 1
+                        }
+                        """),
+                String.class
+        );
+
+        JsonNode content = body(response).path("data").path("content");
+        assertEquals(3, content.size(), content.toPrettyString());
+        assertTrue(content.findValuesAsText("funcionarioId").stream().allMatch("1"::equals));
+    }
+
+    @Test
     void shouldScheduleApproveEventsAndMarkPayrollAsPaid() throws Exception {
         LocalDate today = LocalDate.now();
 

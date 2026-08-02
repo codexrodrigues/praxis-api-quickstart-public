@@ -3,6 +3,7 @@ package com.example.praxis.apiquickstart.hr.dto.filter;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import com.example.praxis.apiquickstart.constants.ApiPaths;
+import com.example.praxis.apiquickstart.hr.enums.StatusEventoFolha;
 import org.praxisplatform.uischema.FieldControlType;
 import org.praxisplatform.uischema.FieldDataType;
 import org.praxisplatform.uischema.NumericFormat;
@@ -17,7 +18,7 @@ import java.util.List;
  * Filtro dos eventos individuais que compoem uma folha.
  *
  * <p>Ele prioriza os eixos mais uteis para operacao e workflow: descricao,
- * tipo, faixa de valor e a folha dona do evento.
+ * tipo, faixa de valor, folha dona do evento e estado do workflow.
  */
 @Schema(
         name = "EventosFolhaFilterDTO",
@@ -51,6 +52,13 @@ public class EventosFolhaFilterDTO implements GenericFilterDTO {
             description = "Folha de pagamento a que o evento pertence; EQUAL por id (competencia / lote).")
     private Integer folhaPagamentoId;
 
+    @UISchema(label = "Status", controlType = FieldControlType.SELECT, order = 50,
+            helpText = "Filtrar eventos pela situação atual no fluxo de conferência e fechamento.", icon = "approval")
+    @Filterable(operation = Filterable.FilterOperation.EQUAL)
+    @Schema(
+            description = "Estado persistido do evento no workflow de folha: pendente, aprovado ou rejeitado.")
+    private StatusEventoFolha status;
+
     public String getDescricao() { return descricao; }
     public void setDescricao(String descricao) { this.descricao = descricao; }
     public String getTipo() { return tipo; }
@@ -60,4 +68,6 @@ public class EventosFolhaFilterDTO implements GenericFilterDTO {
 
     public Integer getFolhaPagamentoId() { return folhaPagamentoId; }
     public void setFolhaPagamentoId(Integer folhaPagamentoId) { this.folhaPagamentoId = folhaPagamentoId; }
+    public StatusEventoFolha getStatus() { return status; }
+    public void setStatus(StatusEventoFolha status) { this.status = status; }
 }

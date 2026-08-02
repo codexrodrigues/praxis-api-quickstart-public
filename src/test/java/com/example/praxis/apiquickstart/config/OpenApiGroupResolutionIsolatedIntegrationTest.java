@@ -33,6 +33,7 @@ import org.springframework.http.client.SimpleClientHttpRequestFactory;
                 "app.security.write-disabled=false",
                 "app.security.schemas-aggregator.enabled=true",
                 "app.security.csrf.disable=true",
+                "app.hr.analytics.demo-department-scopes=metadata-employee-360-reader=*",
                 "app.session.cookie-name=SESSION",
                 "app.session.secure=false",
                 "app.session.samesite=Lax",

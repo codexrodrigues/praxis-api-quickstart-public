@@ -13,6 +13,9 @@ import com.example.praxis.apiquickstart.hr.dto.VwAnalyticsFolhaPagamentoDTO;
 import com.example.praxis.apiquickstart.hr.dto.VwPerfilHeroiDTO;
 import com.example.praxis.apiquickstart.hr.dto.filter.FuncionarioFilterDTO;
 import com.example.praxis.apiquickstart.core.controller.base.AbstractQuickstartCrudController;
+import com.example.praxis.apiquickstart.core.entity.ResourceActionExecution;
+import com.example.praxis.apiquickstart.core.service.ResourceActionExecutionService;
+import com.example.praxis.apiquickstart.core.service.ResourceActionTransactionCoordinator;
 import com.example.praxis.apiquickstart.hr.entity.Funcionario;
 import com.example.praxis.apiquickstart.hr.mapper.FuncionarioMapper;
 import com.example.praxis.apiquickstart.hr.service.DependenteService;
@@ -26,6 +29,8 @@ import com.example.praxis.apiquickstart.hr.security.HrAnalyticsAuthorities;
 import com.example.praxis.apiquickstart.hr.security.HrDepartmentScopeAccess;
 import com.example.praxis.apiquickstart.operations.dto.MissaoParticipanteDTO;
 import com.example.praxis.apiquickstart.operations.service.MissaoParticipanteService;
+import com.example.praxis.apiquickstart.operationalassets.dto.EquipamentoAlocacaoDTO;
+import com.example.praxis.apiquickstart.operationalassets.service.EquipamentoAlocacaoService;
 import org.praxisplatform.uischema.annotation.ApiGroup;
 import org.praxisplatform.uischema.annotation.ApiResource;
 import org.praxisplatform.uischema.annotation.AnalyticsComparisonPeriodBinding;
@@ -60,6 +65,10 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.praxisplatform.uischema.annotation.WorkflowAction;
 import org.praxisplatform.uischema.action.ActionScope;
+import org.praxisplatform.uischema.action.ActionInteractionMode;
+import org.praxisplatform.uischema.action.ActionRequirement;
+import org.praxisplatform.uischema.action.ActionResourceVersionTransport;
+import org.praxisplatform.uischema.action.ActionRiskLevel;
 import com.example.praxis.apiquickstart.hr.dto.actions.FuncionarioDeactivateRequestDTO;
 import com.example.praxis.apiquickstart.hr.dto.actions.FuncionarioWorkflowResultDTO;
 import java.util.UUID;
@@ -72,6 +81,7 @@ import org.praxisplatform.uischema.stats.ComparisonPeriodPreset;
 import org.praxisplatform.uischema.stats.dto.ComparisonStatsRequest;
 import org.praxisplatform.uischema.stats.dto.ComparisonStatsResponse;
 import java.util.List;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
  * Recurso mutavel de funcionarios usado como referencia principal de CRUD no quickstart.
@@ -95,6 +105,8 @@ import java.util.List;
 @ApiGroup("human-resources")
 public class FuncionarioController extends AbstractQuickstartCrudController<Funcionario, FuncionarioDTO, Integer, FuncionarioFilterDTO, CreateFuncionarioDTO, UpdateFuncionarioDTO> {
 
+    private static final String RESOURCE_KEY = "human-resources.funcionarios";
+
     private final FuncionarioService service;
     private final FuncionarioMapper mapper;
     private final VwPerfilHeroiService perfilHeroiService;
@@ -105,6 +117,10 @@ public class FuncionarioController extends AbstractQuickstartCrudController<Func
     private final EnderecoService enderecoService;
     private final FuncionarioHabilidadeService funcionarioHabilidadeService;
     private final HistoricosCargoService historicosCargoService;
+    private final EquipamentoAlocacaoService equipamentoAlocacaoService;
+    private final ResourceActionExecutionService actionExecutionService;
+    private final ResourceActionTransactionCoordinator transactionCoordinator;
+    private final ObjectMapper objectMapper;
 
     @Autowired
     public FuncionarioController(
@@ -117,7 +133,11 @@ public class FuncionarioController extends AbstractQuickstartCrudController<Func
             DependenteService dependenteService,
             EnderecoService enderecoService,
             FuncionarioHabilidadeService funcionarioHabilidadeService,
-            HistoricosCargoService historicosCargoService
+            HistoricosCargoService historicosCargoService,
+            EquipamentoAlocacaoService equipamentoAlocacaoService,
+            ResourceActionExecutionService actionExecutionService,
+            ResourceActionTransactionCoordinator transactionCoordinator,
+            ObjectMapper objectMapper
     ) {
         this.service = service;
         this.mapper = mapper;
@@ -129,6 +149,10 @@ public class FuncionarioController extends AbstractQuickstartCrudController<Func
         this.enderecoService = enderecoService;
         this.funcionarioHabilidadeService = funcionarioHabilidadeService;
         this.historicosCargoService = historicosCargoService;
+        this.equipamentoAlocacaoService = equipamentoAlocacaoService;
+        this.actionExecutionService = actionExecutionService;
+        this.transactionCoordinator = transactionCoordinator;
+        this.objectMapper = objectMapper;
     }
 
     @Override
@@ -287,36 +311,125 @@ public class FuncionarioController extends AbstractQuickstartCrudController<Func
     }
 
     @PostMapping("/{id}/actions/deactivate")
-    @WorkflowAction(id = "deactivate", title = "Inativar funcionário", description = "Inativa o vínculo do funcionário com motivo, vigência e trilha de auditoria.", scope = ActionScope.ITEM, allowedStates = {"ATIVO"}, successMessage = "Funcionário inativado")
+    @WorkflowAction(
+            id = "deactivate",
+            title = "Inativar funcionário",
+            description = "Inativa o vínculo do funcionário com motivo, vigência e trilha de auditoria.",
+            scope = ActionScope.ITEM,
+            allowedStates = {"ATIVO"},
+            successMessage = "Funcionário inativado",
+            interactionMode = ActionInteractionMode.FORM,
+            riskLevel = ActionRiskLevel.HIGH,
+            confirmationRequired = true,
+            reversible = true,
+            idempotencyKey = ActionRequirement.REQUIRED,
+            correlationId = ActionRequirement.OPTIONAL,
+            resourceVersion = ActionRequirement.REQUIRED,
+            resourceVersionTransport = ActionResourceVersionTransport.IF_MATCH,
+            resourceVersionField = "resourceVersion",
+            refreshItem = true
+    )
     @Operation(summary = "Inativar funcionário")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Funcionário inativado ou replay idempotente retornado."),
+            @ApiResponse(responseCode = "409", description = "Estado ou chave idempotente conflitante."),
+            @ApiResponse(responseCode = "412", description = "ETag não corresponde à versão persistida."),
+            @ApiResponse(responseCode = "428", description = "If-Match não informado.")
+    })
     public ResponseEntity<RestApiResponse<FuncionarioWorkflowResultDTO>> deactivate(
             @PathVariable Integer id,
             @RequestHeader(value = "If-Match", required = false) String ifMatch,
+            @RequestHeader("Idempotency-Key") String idempotencyKey,
             @RequestHeader(value = "X-Correlation-ID", required = false) String correlationId,
             @jakarta.validation.Valid @RequestBody FuncionarioDeactivateRequestDTO command
     ) {
-        requireMatchingResourceVersion(id, ifMatch);
-        String actor = SecurityContextHolder.getContext().getAuthentication() == null
-                ? "anonymous" : SecurityContextHolder.getContext().getAuthentication().getName();
-        String correlation = correlationId == null || correlationId.isBlank() ? UUID.randomUUID().toString() : correlationId;
-        var result = new FuncionarioWorkflowResultDTO(service.deactivate(id, command, actor, correlation), false);
-        return withResourceVersion(ResponseEntity.ok(), id, RestApiResponse.success(result, null));
+        return executeLifecycleAction("deactivate", id, ifMatch, idempotencyKey, correlationId, command, false);
     }
 
     @PostMapping("/{id}/actions/reactivate")
-    @WorkflowAction(id = "reactivate", title = "Reativar funcionário", description = "Reativa o vínculo do funcionário com vigência e trilha de auditoria.", scope = ActionScope.ITEM, allowedStates = {"INATIVO"}, successMessage = "Funcionário reativado")
+    @WorkflowAction(
+            id = "reactivate",
+            title = "Reativar funcionário",
+            description = "Reativa o vínculo do funcionário com vigência e trilha de auditoria.",
+            scope = ActionScope.ITEM,
+            allowedStates = {"INATIVO"},
+            successMessage = "Funcionário reativado",
+            interactionMode = ActionInteractionMode.FORM,
+            riskLevel = ActionRiskLevel.HIGH,
+            confirmationRequired = true,
+            reversible = true,
+            idempotencyKey = ActionRequirement.REQUIRED,
+            correlationId = ActionRequirement.OPTIONAL,
+            resourceVersion = ActionRequirement.REQUIRED,
+            resourceVersionTransport = ActionResourceVersionTransport.IF_MATCH,
+            resourceVersionField = "resourceVersion",
+            refreshItem = true
+    )
     @Operation(summary = "Reativar funcionário")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Funcionário reativado ou replay idempotente retornado."),
+            @ApiResponse(responseCode = "409", description = "Estado ou chave idempotente conflitante."),
+            @ApiResponse(responseCode = "412", description = "ETag não corresponde à versão persistida."),
+            @ApiResponse(responseCode = "428", description = "If-Match não informado.")
+    })
     public ResponseEntity<RestApiResponse<FuncionarioWorkflowResultDTO>> reactivate(
             @PathVariable Integer id,
             @RequestHeader(value = "If-Match", required = false) String ifMatch,
+            @RequestHeader("Idempotency-Key") String idempotencyKey,
             @RequestHeader(value = "X-Correlation-ID", required = false) String correlationId,
             @jakarta.validation.Valid @RequestBody FuncionarioDeactivateRequestDTO command
     ) {
+        return executeLifecycleAction("reactivate", id, ifMatch, idempotencyKey, correlationId, command, true);
+    }
+
+    private ResponseEntity<RestApiResponse<FuncionarioWorkflowResultDTO>> executeLifecycleAction(
+            String actionId,
+            Integer id,
+            String ifMatch,
+            String idempotencyKey,
+            String correlationId,
+            FuncionarioDeactivateRequestDTO command,
+            boolean targetActive
+    ) {
+        var replay = actionExecutionService.findCompletedReplay(RESOURCE_KEY, id, actionId, idempotencyKey, command);
+        if (replay.isPresent()) {
+            return withResourceVersion(ResponseEntity.ok(), id,
+                    RestApiResponse.success(restoreWorkflowResult(replay.get()), null));
+        }
+
         requireMatchingResourceVersion(id, ifMatch);
-        String actor = SecurityContextHolder.getContext().getAuthentication() == null ? "anonymous" : SecurityContextHolder.getContext().getAuthentication().getName();
-        String correlation = correlationId == null || correlationId.isBlank() ? UUID.randomUUID().toString() : correlationId;
-        var result = new FuncionarioWorkflowResultDTO(service.reactivate(id, command, actor, correlation), true);
-        return withResourceVersion(ResponseEntity.ok(), id, RestApiResponse.success(result, null));
+        String actor = SecurityContextHolder.getContext().getAuthentication() == null
+                ? "anonymous" : SecurityContextHolder.getContext().getAuthentication().getName();
+        String correlation = correlationId == null || correlationId.isBlank()
+                ? UUID.randomUUID().toString() : correlationId;
+        var execution = actionExecutionService.reserve(
+                RESOURCE_KEY, id, actionId, ActionScope.ITEM, idempotencyKey, command, correlation, actor);
+        if (execution.isPresent() && "COMPLETED".equals(execution.get().getExecutionStatus())) {
+            return withResourceVersion(ResponseEntity.ok(), id,
+                    RestApiResponse.success(restoreWorkflowResult(execution.get()), null));
+        }
+
+        try {
+            FuncionarioWorkflowResultDTO result = transactionCoordinator.execute(
+                    execution.orElseThrow(),
+                    () -> new FuncionarioWorkflowResultDTO(
+                            targetActive
+                                    ? service.reactivate(id, command, actor, correlation)
+                                    : service.deactivate(id, command, actor, correlation),
+                            targetActive));
+            return withResourceVersion(ResponseEntity.ok(), id, RestApiResponse.success(result, null));
+        } catch (RuntimeException failure) {
+            execution.ifPresent(value -> actionExecutionService.fail(value, failure));
+            throw failure;
+        }
+    }
+
+    private FuncionarioWorkflowResultDTO restoreWorkflowResult(ResourceActionExecution execution) {
+        try {
+            return objectMapper.treeToValue(execution.getResponsePayload(), FuncionarioWorkflowResultDTO.class);
+        } catch (Exception invalidStoredResult) {
+            throw new IllegalStateException("Unable to restore the idempotent employee workflow result.", invalidStoredResult);
+        }
     }
 
     @PatchMapping("/{id}/profile")
@@ -412,7 +525,11 @@ public class FuncionarioController extends AbstractQuickstartCrudController<Func
             relatedChildResourcePath = ApiPaths.HumanResources.VW_ANALYTICS_FOLHA_PAGAMENTO,
             relatedChildParentField = "funcionarioId",
             relatedSelectable = true,
-            relatedSelectionKeyField = "folhaPagamentoId"
+            relatedSelectionKeyField = "folhaPagamentoId",
+            relatedChildOperations = {
+                    RelatedResourceChildOperation.FILTER,
+                    RelatedResourceChildOperation.LIST
+            }
     )
     @ResourceIntent(
             id = "employee-payroll-intelligence",
@@ -653,6 +770,50 @@ public class FuncionarioController extends AbstractQuickstartCrudController<Func
                 linkToUiSchema("/{id}/career-history", "get", "response")
         );
         return withVersion(ResponseEntity.ok(), RestApiResponse.success(careerHistory, hateoasOrNull(links)));
+    }
+
+    @GetMapping("/{id}/equipment-custody")
+    @UiSurface(
+            id = "equipment-custody",
+            kind = SurfaceKind.READ_PROJECTION,
+            scope = SurfaceScope.ITEM,
+            title = "Equipamentos sob custódia",
+            description = "Lista equipamentos alocados ao funcionário, vigências e estado da custódia para atendimento, devolução e auditoria patrimonial.",
+            intent = "employee-equipment-custody",
+            order = 110,
+            tags = {"human-resources", "assets", "equipment", "custody", "audit", "read-projection", "related-resource"},
+            relatedChildResourceKey = "assets.equipamento-alocacoes",
+            relatedChildResourcePath = ApiPaths.Assets.EQUIPAMENTO_ALOCACOES,
+            relatedChildParentField = "funcionarioId",
+            relatedSelectable = true,
+            relatedSelectionKeyField = "id",
+            relatedChildOperations = {
+                    RelatedResourceChildOperation.FILTER,
+                    RelatedResourceChildOperation.LIST,
+                    RelatedResourceChildOperation.CREATE,
+                    RelatedResourceChildOperation.UPDATE,
+                    RelatedResourceChildOperation.DELETE
+            }
+    )
+    @ResourceIntent(
+            id = "employee-equipment-custody",
+            title = "Custódia patrimonial do funcionário",
+            description = "Apresenta alocações e vigências de equipamentos para suporte, devolução, investigação de perdas e auditoria corporativa.",
+            order = 110
+    )
+    @Operation(summary = "Obter equipamentos sob custódia do funcionário", description = "Retorna o histórico de alocações de equipamentos associado ao funcionário selecionado, ordenado pela vigência mais recente.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Custódias de equipamentos retornadas com sucesso.")
+    })
+    public ResponseEntity<RestApiResponse<List<EquipamentoAlocacaoDTO>>> getEquipmentCustody(@PathVariable Integer id) {
+        List<EquipamentoAlocacaoDTO> equipmentCustody = equipamentoAlocacaoService.findByFuncionarioIdForEmployeeSurface(id);
+        Links links = Links.of(
+                linkToSelf(id),
+                linkToAll(),
+                linkToFilter(),
+                linkToUiSchema("/{id}/equipment-custody", "get", "response")
+        );
+        return withVersion(ResponseEntity.ok(), RestApiResponse.success(equipmentCustody, hateoasOrNull(links)));
     }
 
     @DeleteMapping("/{id}")

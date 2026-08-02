@@ -25,8 +25,10 @@ Os contratos de actions tambem sao conferidos por `scripts/verify-cockpit-action
 As surfaces semanticas explicitas sao conferidas por `scripts/verify-cockpit-surface-contracts.sh`, garantindo que cada experiencia composta publicada para o cockpit tenha titulo, descricao, path OpenAPI e schema filtrado materializavel.
 Os relacionamentos navegaveis usados pelo diagrama do cockpit sao conferidos por `scripts/verify-cockpit-related-resource-contracts.sh`, garantindo que cada `relatedResource` aponte para surface, schema, campo pai, chave de selecao e, quando houver recurso filho real, operacoes OpenAPI coerentes.
 Os contratos de analytics e charts sao conferidos por `scripts/verify-cockpit-analytics-contracts.sh`, garantindo que endpoints `/stats/*` publiquem schemas filtrados de request/response e que surfaces `CHART` apontem para projecoes `praxis.stats`.
-Os lookups governados sao conferidos por `scripts/verify-cockpit-option-source-contracts.sh`, garantindo que `x-ui.optionSource` publicado em schemas filtrados tenha endpoints de busca e reidratacao materializaveis para filtros e formularios do cockpit.
+Os lookups governados sao conferidos por `scripts/verify-cockpit-option-source-contracts.sh`, garantindo que `x-ui.optionSource` publicado em schemas filtrados tenha endpoints de busca e reidratacao materializaveis para filtros e formularios do cockpit. O verifier autentica a prova HTTP com `ADMIN_USERNAME` (padrao `admin`) e `ADMIN_PASSWORD` ou `PRACTICE_TEMP_PASSWORD`, preservando o contexto governado exigido por providers protegidos.
 Os contratos estruturais de UI sao conferidos por `scripts/verify-cockpit-structural-ui-contracts.sh`, garantindo que recursos publicados tenham schemas filtrados materializaveis para leitura, filtros, tabelas, criacao e edicao sempre que essas operacoes existirem no OpenAPI.
+
+Depois de um `CI (Java)` verde na `main`, o workflow `Sync Published Domain Catalog` classifica se o commit alterou o produtor de contratos do runtime. Quando aplicavel, ele aguarda o build validado chegar ao Render, sincroniza de forma idempotente os releases atuais e verifica o contexto persistido. O mesmo workflow admite disparo manual para recuperacao do estado publicado sem repetir o smoke amplo, que permanece separado como gate de release e verificacao agendada.
 
 ## Sobre o Praxis (visao geral)
 
@@ -498,6 +500,16 @@ Exemplos de referencia no quickstart:
   `POST /api/human-resources/funcionarios/option-sources/employee/options/filter` e pode ser
   reutilizada por campos consumidores diferentes, como `funcionarioId`, `pilotoId` e
   `proprietarioId`. Por isso, ela nao publica `filterField`; o binding pertence ao DTO consumidor.
+- A mesma fonte declara tres intencoes de busca governadas em
+  `filtering.searchStrategies`: codigo funcional numerico (`employee-code`), nome descritivo
+  (`name`) e documento normalizado (`document`). O cliente deve enviar `searchStrategy`; busca
+  presente sem estrategia, estrategia desconhecida, codigo nao numerico e documento incompleto
+  falham com `422`, antes de consultar o provider.
+- O contrato publico nao revela CPF, o binding persistente do documento, predicados nem escopo de
+  departamentos. O provider privado normaliza e vincula cada estrategia, aplica autenticacao e
+  escopo antes da consulta e retorna somente o sufixo mascarado do documento no label. Consultas
+  e reidratacoes sem contexto autorizado falham fechadas com `403`, inclusive quando `ids` esta
+  vazio; a ordem solicitada em `/options/by-ids` continua deterministica.
 - Em `operations`, relacionamentos operacionais com colaboradores, como
   `operations.base-acessos.funcionarioId`, `operations.equipe-membros.funcionarioId` e
   `operations.licencas-operacao.funcionarioId`, consomem a fonte governada `employee`.

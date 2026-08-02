@@ -206,6 +206,17 @@ class EventosFolhaPilotIntegrationTest {
         assertEquals("/api/human-resources/eventos-folha/actions/bulk-approve", bulkApprove.path("path").asText());
         assertTrue(bulkApprove.path("requestSchemaUrl").asText().contains("schemaType=request"));
         assertTrue(bulkApprove.path("responseSchemaUrl").asText().contains("schemaType=response"));
+        assertEquals("FORM", bulkApprove.path("execution").path("interaction").path("mode").asText());
+        assertEquals("HIGH", bulkApprove.path("execution").path("interaction").path("riskLevel").asText());
+        assertEquals("OPTIONAL", bulkApprove.path("execution").path("preconditions").path("idempotencyKey").asText());
+        assertEquals("REQUIRED", bulkApprove.path("execution").path("preconditions").path("resourceVersion").asText());
+        assertEquals("SELECTION_MAP", bulkApprove.path("execution").path("preconditions").path("resourceVersionTransport").asText());
+        assertEquals("resourceVersion", bulkApprove.path("execution").path("preconditions").path("resourceVersionField").asText());
+        assertEquals("ids", bulkApprove.path("execution").path("selection").path("idsField").asText());
+        assertEquals("expectedVersions", bulkApprove.path("execution").path("selection").path("versionsField").asText());
+        assertEquals(200, bulkApprove.path("execution").path("selection").path("maxItems").asInt());
+        assertEquals("PER_ITEM", bulkApprove.path("execution").path("outcome").path("mode").asText());
+        assertEquals("PER_ITEM", bulkApprove.path("execution").path("outcome").path("atomicity").asText());
 
         JsonNode collectionActions = body(restTemplate.getForEntity(
                 "/api/human-resources/eventos-folha/actions",
@@ -278,6 +289,19 @@ class EventosFolhaPilotIntegrationTest {
         assertTrue(payrollOptionSource.path("capabilities").path("filter").asBoolean());
         assertTrue(payrollOptionSource.path("capabilities").path("byIds").asBoolean());
 
+        JsonNode filterSchema = body(restTemplate.getForEntity(
+                "/schemas/filtered?path={path}&operation=post&schemaType=request",
+                String.class,
+                "/api/human-resources/eventos-folha/filter"
+        ));
+        JsonNode statusFilter = filterSchema.path("properties").path("status");
+        assertEquals("string", statusFilter.path("type").asText());
+        assertEquals("PENDENTE", statusFilter.path("enum").get(0).asText());
+        assertEquals("APROVADO", statusFilter.path("enum").get(1).asText());
+        assertEquals("REJEITADO", statusFilter.path("enum").get(2).asText());
+        assertEquals("select", statusFilter.path("x-ui").path("controlType").asText());
+        assertEquals("Status", statusFilter.path("x-ui").path("label").asText());
+
         JsonNode bulkApproveRequestSchema = body(restTemplate.getForEntity(
                 "/schemas/filtered?path={path}&operation=post&schemaType=request",
                 String.class,
@@ -331,6 +355,26 @@ class EventosFolhaPilotIntegrationTest {
         assertTrue(itemCapabilities.path("operations").path("delete").path("supported").asBoolean());
         assertNotNull(findById(itemCapabilities.path("surfaces"), "detail"));
         assertNotNull(findById(itemCapabilities.path("actions"), "reject"));
+    }
+
+    @Test
+    void shouldExecutePayrollEventFilterAgainstSeededRows() throws Exception {
+        ResponseEntity<String> response = restTemplate.exchange(
+                "/api/human-resources/eventos-folha/filter?page=0&size=10",
+                HttpMethod.POST,
+                authorizedJson("""
+                        {
+                          "status": "PENDENTE",
+                          "folhaPagamentoId": 1
+                        }
+                        """, jwtTokenService.generate("admin", "ADMIN")),
+                String.class
+        );
+
+        JsonNode content = body(response).path("data").path("content");
+        assertEquals(1, content.size(), content.toPrettyString());
+        assertEquals("PENDENTE", content.get(0).path("status").asText());
+        assertEquals(1, content.get(0).path("folhaPagamentoId").asInt());
     }
 
     @Test
@@ -407,6 +451,46 @@ class EventosFolhaPilotIntegrationTest {
         assertTrue(itemCapabilities.path("operations").path("edit").path("supported").asBoolean());
         assertNotNull(findById(itemCapabilities.path("surfaces"), "detail"));
         assertNotNull(findById(itemCapabilities.path("actions"), "reject"));
+    }
+
+    @Test
+    void shouldAcceptOnlyTheFirstOrdinaryUpdateUsingTheSameItemEtag() {
+        String path = "/api/human-resources/eventos-folha/1";
+        ResponseEntity<String> loaded = restTemplate.getForEntity(path, String.class);
+        String originalEtag = loaded.getHeaders().getETag();
+        assertNotNull(originalEtag);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.add(HttpHeaders.COOKIE, "SESSION=" + jwtTokenService.generate("admin", "ADMIN"));
+        headers.setIfMatch(originalEtag);
+        String firstCommand = """
+                {
+                  "descricao": "INSS recalculado",
+                  "tipo": "DESCONTO",
+                  "valor": 130.00,
+                  "folhaPagamentoId": 1
+                }
+                """;
+
+        ResponseEntity<String> first = restTemplate.exchange(
+                path, HttpMethod.PUT, new HttpEntity<>(firstCommand, headers), String.class);
+        assertEquals(HttpStatus.OK, first.getStatusCode());
+        String rotatedEtag = first.getHeaders().getETag();
+        assertNotNull(rotatedEtag);
+        assertFalse(originalEtag.equals(rotatedEtag));
+
+        ResponseEntity<String> stale = restTemplate.exchange(
+                path,
+                HttpMethod.PUT,
+                new HttpEntity<>(firstCommand.replace("130.00", "140.00"), headers),
+                String.class
+        );
+        assertEquals(HttpStatus.PRECONDITION_FAILED, stale.getStatusCode());
+        assertEquals("INSS recalculado", jdbcTemplate.queryForObject(
+                "select descricao from public.eventos_folha where id = 1", String.class));
+        assertEquals(1L, jdbcTemplate.queryForObject(
+                "select version from public.eventos_folha where id = 1", Long.class));
     }
 
     @Test

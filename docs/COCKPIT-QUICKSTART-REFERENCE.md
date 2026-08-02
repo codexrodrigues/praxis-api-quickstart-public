@@ -73,7 +73,10 @@ valida endpoints `/stats/*`, schemas filtrados de request/response e surfaces
 `CHART` com projecoes `praxis.stats`. Os lookups governados devem ser conferidos
 com `scripts/verify-cockpit-option-source-contracts.sh`, que descobre
 `x-ui.optionSource` em schemas filtrados e valida endpoints de busca e reidratacao
-para filtros e formularios. Os contratos estruturais de UI devem ser conferidos
+para filtros e formularios. A prova autentica uma sessao em `/auth/login` usando
+`ADMIN_USERNAME` e `ADMIN_PASSWORD` ou `PRACTICE_TEMP_PASSWORD`, pois providers
+governados podem aplicar escopo do principal mesmo em operacoes somente de leitura.
+Os contratos estruturais de UI devem ser conferidos
 com `scripts/verify-cockpit-structural-ui-contracts.sh`, que valida schemas
 filtrados materializaveis para leitura, filtros, tabelas, criacao e edicao quando
 essas operacoes existem no OpenAPI. A lacuna principal e de exemplaridade no
@@ -139,7 +142,7 @@ Exemplos atuais mais fortes:
 - `assets.equipamentos`: surface de inventario e historico de custodia navegavel;
 - `assets.equipamento-alocacoes`: surface de cadeia de custodia e actions de devolucao, perda e dano;
 - `assets.veiculos`: surface de prontidao da frota e uso em missoes navegavel;
-- `human-resources.funcionarios`: perfil, folha, missoes, dependentes, endereco cadastral, competencias e historico de cargos como composicao navegavel para gestao de pessoas, beneficios, atendimento de RH, capacidade, carreira e privacidade;
+- `human-resources.funcionarios`: perfil, folha, missoes, dependentes, endereco cadastral, competencias, historico de cargos e custodia de equipamentos como composicao navegavel para gestao de pessoas, beneficios, atendimento de RH, capacidade, carreira, ativos e privacidade;
 - `operations.base-acessos`: revisao e governanca de acesso.
 
 ### Actions e workflows
@@ -215,6 +218,20 @@ Em `human-resources`, as perguntas ja materializadas pelo host exemplar sao:
 - "Quais comandos operacionais existem na folha?" via
   `/schemas/actions?resource=human-resources.folhas-pagamento` e
   `/schemas/actions?resource=human-resources.eventos-folha`.
+- "Qual acao de ciclo esta disponivel para este funcionario agora?" via
+  `/schemas/actions?resource=human-resources.funcionarios` e
+  `GET /api/human-resources/funcionarios/{id}/actions`. A disponibilidade de `deactivate` e
+  `reactivate` deriva do estado persistido `ATIVO`/`INATIVO`; o cockpit nao replica essa regra.
+  A execucao exige `If-Match` e `Idempotency-Key`; uma repeticao do mesmo comando pelo mesmo ator
+  devolve o resultado persistido sem gravar uma segunda transicao.
+- "Quais equipamentos estao ou estiveram sob custodia deste funcionario?" via a surface
+  `equipment-custody` e `GET /api/human-resources/funcionarios/{id}/equipment-custody`. A relacao
+  publica `assets.equipamento-alocacoes` como fonte filha e `funcionarioId` como filtro canonico;
+  o cockpit fornece apenas o identificador do pai e nao duplica esse filtro em configuracao local.
+- "Qual e o historico analitico de folha deste funcionario?" via a surface `payroll-history` e
+  `GET /api/human-resources/funcionarios/{id}/payroll-history`. A relacao publica a view read-only
+  `human-resources.vw-analytics-folha-pagamento`, com `FILTER` e `LIST` como operacoes filhas; ela
+  nao anuncia mutacoes de folha por essa projeção analitica.
 - "Uma solicitacao de beneficio extraordinario e elegivel, por qual regra e sob qual snapshot?" via
   `/schemas/actions?resource=human-resources.extraordinary-benefit-requests`,
   `GET /api/human-resources/extraordinary-benefit-requests/capabilities` e
@@ -249,9 +266,11 @@ Em `human-resources`, as perguntas ja materializadas pelo host exemplar sao:
 O smoke `scripts/verify-human-resources-runtime.sh` protege essas evidencias no
 host publicado e confirma as surfaces de perfil 360, historico de folha,
 participacoes em missoes, dependentes, endereco cadastral, matriz de competencias,
-historico de cargos, agenda de pagamento, calendario de disponibilidade, action
+historico de cargos, custodia de equipamentos, agenda de pagamento, calendario de disponibilidade, action
 de cobertura, avaliacao deterministica de beneficio extraordinario, ranking reputacional, actions
-de ciclo do funcionario e actions de folha/eventos.
+de ciclo do funcionario e actions de folha/eventos. O mesmo smoke executa os filtros reais de folhas
+e eventos e falha quando o discovery continua acessivel, mas o datasource operacional publicado esta
+com migrations pendentes.
 
 Em `operations`, as perguntas ja materializadas pelo host exemplar sao:
 

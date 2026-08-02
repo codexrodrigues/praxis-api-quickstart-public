@@ -1,0 +1,138 @@
+name: Sync Published Domain Catalog
+
+on:
+  workflow_run:
+    workflows: [CI (Java)]
+    types: [completed]
+  workflow_dispatch:
+
+concurrency:
+  group: sync-published-domain-catalog-main
+  cancel-in-progress: true
+
+jobs:
+  sync:
+    if: ${{ github.event_name == 'workflow_dispatch' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push' && github.event.workflow_run.head_branch == 'main') }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      BACKEND_URL: https://praxis-api-quickstart.onrender.com
+      TENANT_ID: default
+      ENVIRONMENT: dev
+      ORIGIN: https://praxisui-dev.web.app
+      RESOURCE_KEYS: human-resources.funcionarios human-resources.folhas-pagamento operations.missoes operations.acordos-regulatorios procurement.suppliers
+      EXPECTED_BUILD_AFTER: ${{ github.event.workflow_run.created_at }}
+      RUNTIME_ROLLOUT_WAIT_SECONDS: '900'
+    steps:
+      - name: Checkout validated source
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+          fetch-depth: 2
+
+      - name: Classify runtime impact
+        id: impact
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
+            echo "sync_required=true" >> "${GITHUB_OUTPUT}"
+            echo "wait_required=false" >> "${GITHUB_OUTPUT}"
+            echo "Manual recovery requested; synchronizing the currently published runtime."
+            exit 0
+          fi
+
+          if ! git rev-parse HEAD^ >/dev/null 2>&1; then
+            echo "sync_required=true" >> "${GITHUB_OUTPUT}"
+            echo "wait_required=true" >> "${GITHUB_OUTPUT}"
+            echo "Previous commit unavailable; catalog synchronization remains required."
+            exit 0
+          fi
+
+          changed_files="$(git diff --name-only HEAD^ HEAD)"
+          printf 'Changed files:\n%s\n' "${changed_files}"
+          runtime_files="$(printf '%s\n' "${changed_files}" | grep -E '^(src/main/|pom\.xml$|mvnw$|\.mvn/|system\.properties$|Dockerfile$|render\.yaml$)' || true)"
+
+          if [[ -z "${runtime_files}" ]]; then
+            echo "sync_required=false" >> "${GITHUB_OUTPUT}"
+            echo "wait_required=false" >> "${GITHUB_OUTPUT}"
+            echo "No runtime contract producer changed; skipping published catalog synchronization."
+            exit 0
+          fi
+
+          echo "sync_required=true" >> "${GITHUB_OUTPUT}"
+          echo "wait_required=true" >> "${GITHUB_OUTPUT}"
+          printf 'Runtime catalog synchronization required by:\n%s\n' "${runtime_files}"
+
+      - name: Wait for validated runtime rollout
+        if: ${{ steps.impact.outputs.wait_required == 'true' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import datetime as dt
+          import json
+          import os
+          import time
+          import urllib.request
+
+          backend_url = os.environ["BACKEND_URL"].rstrip("/")
+          expected = dt.datetime.fromisoformat(os.environ["EXPECTED_BUILD_AFTER"].replace("Z", "+00:00"))
+          deadline = time.time() + int(os.environ["RUNTIME_ROLLOUT_WAIT_SECONDS"])
+          last_seen = None
+
+          while time.time() < deadline:
+              try:
+                  with urllib.request.urlopen(f"{backend_url}/actuator/health", timeout=20) as response:
+                      health = json.load(response)
+                  with urllib.request.urlopen(f"{backend_url}/actuator/info", timeout=20) as response:
+                      info = json.load(response)
+
+                  build_time_raw = info.get("build", {}).get("time")
+                  last_seen = {"health": health, "buildTime": build_time_raw}
+                  if health.get("status") == "UP" and build_time_raw:
+                      build_time = dt.datetime.fromisoformat(build_time_raw.replace("Z", "+00:00"))
+                      if build_time >= expected:
+                          print(json.dumps({
+                              "status": "runtime-rollout-ready",
+                              "expectedAfter": expected.isoformat(),
+                              "buildTime": build_time.isoformat()
+                          }))
+                          raise SystemExit(0)
+              except Exception as error:
+                  last_seen = {"error": str(error)}
+
+              print(json.dumps({
+                  "status": "waiting-runtime-rollout",
+                  "expectedAfter": expected.isoformat(),
+                  "lastSeen": last_seen
+              }))
+              time.sleep(20)
+
+          print(json.dumps({
+              "status": "runtime-rollout-not-observed",
+              "expectedAfter": expected.isoformat(),
+              "lastSeen": last_seen
+          }))
+          raise SystemExit(1)
+          PY
+
+      - name: Validate catalog scripts
+        if: ${{ steps.impact.outputs.sync_required == 'true' }}
+        shell: bash
+        run: |
+          bash -n scripts/upload-domain-catalog.sh
+          bash -n scripts/upload-domain-catalog-batch.sh
+          bash -n scripts/verify-domain-catalog-context.sh
+
+      - name: Synchronize current releases
+        if: ${{ steps.impact.outputs.sync_required == 'true' }}
+        shell: bash
+        run: FORCE_INGEST=true scripts/upload-domain-catalog-batch.sh
+
+      - name: Verify persisted catalog context
+        if: ${{ steps.impact.outputs.sync_required == 'true' }}
+        shell: bash
+        run: scripts/verify-domain-catalog-context.sh

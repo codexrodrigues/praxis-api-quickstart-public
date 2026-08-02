@@ -2,6 +2,9 @@
 set -euo pipefail
 
 BACKEND_URL="${BACKEND_URL:-https://praxis-api-quickstart.onrender.com}"
+ORIGIN="${ORIGIN:-https://praxisui-dev.web.app}"
+ADMIN_USERNAME="${ADMIN_USERNAME:-admin}"
+ADMIN_PASSWORD="${ADMIN_PASSWORD:-${PRACTICE_TEMP_PASSWORD:-changeMe!}}"
 export BACKEND_URL
 
 TMPDIR_RUN="$(mktemp -d)"
@@ -9,6 +12,31 @@ cleanup() {
   rm -rf "$TMPDIR_RUN"
 }
 trap cleanup EXIT
+
+auth_cookie_jar="$TMPDIR_RUN/auth-cookies.txt"
+login_request="$TMPDIR_RUN/login.json"
+
+authenticate() {
+  local login_status
+
+  jq -n \
+    --arg username "$ADMIN_USERNAME" \
+    --arg password "$ADMIN_PASSWORD" \
+    '{username: $username, password: $password}' > "$login_request"
+
+  login_status="$(curl -sS "${BACKEND_URL%/}/auth/login" \
+    -c "$auth_cookie_jar" \
+    -H "Origin: ${ORIGIN}" \
+    -H "Content-Type: application/json" \
+    --data-binary "@${login_request}" \
+    -o /dev/null \
+    -w '%{http_code}')"
+
+  if [[ "$login_status" != "200" && "$login_status" != "204" ]]; then
+    echo "Could not authenticate option-source contract probe with /auth/login (HTTP ${login_status}). Configure ADMIN_PASSWORD or PRACTICE_TEMP_PASSWORD with the runtime admin password." >&2
+    exit 1
+  fi
+}
 
 groups=(
   "human-resources"
@@ -23,6 +51,9 @@ get_required_json() {
   local output_file="$2"
 
   curl --retry 6 --retry-all-errors --retry-delay 5 --retry-max-time 180 --max-time 40 -fsS "${BACKEND_URL%/}${path}" \
+    -b "$auth_cookie_jar" \
+    -c "$auth_cookie_jar" \
+    -H "Origin: ${ORIGIN}" \
     -H "Accept: application/json" \
     -o "$output_file"
 }
@@ -33,6 +64,9 @@ post_required_json() {
   local output_file="$3"
 
   curl --retry 6 --retry-all-errors --retry-delay 5 --retry-max-time 180 --max-time 40 -fsS "${BACKEND_URL%/}${path}" \
+    -b "$auth_cookie_jar" \
+    -c "$auth_cookie_jar" \
+    -H "Origin: ${ORIGIN}" \
     -H "Accept: application/json" \
     -H "Content-Type: application/json" \
     -d @"$payload_file" \
@@ -135,6 +169,8 @@ assert_by_ids_response() {
 
 payload_file="$TMPDIR_RUN/empty-filter.json"
 printf '{}\n' > "$payload_file"
+
+authenticate
 
 schema_sources_file="$TMPDIR_RUN/schema-option-sources.jsonl"
 : > "$schema_sources_file"

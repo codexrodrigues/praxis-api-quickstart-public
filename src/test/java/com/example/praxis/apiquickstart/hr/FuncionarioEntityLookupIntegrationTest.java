@@ -3,27 +3,39 @@ package com.example.praxis.apiquickstart.hr;
 import com.example.praxis.apiquickstart.ApiQuickstartApplication;
 import com.example.praxis.apiquickstart.constants.ApiPaths;
 import com.example.praxis.apiquickstart.security.JwtTokenService;
+import com.example.praxis.apiquickstart.hr.options.EmployeeOptionSourceProvider;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.test.mock.mockito.SpyBean;
+import org.springframework.boot.test.system.CapturedOutput;
+import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.JdbcTemplate;
+
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.verify;
 
 @SpringBootTest(
         classes = ApiQuickstartApplication.class,
@@ -32,12 +44,14 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
                 "app.rate-limit.enabled=false",
                 "app.security.config-origin-restriction.enabled=false",
                 "app.security.read-open=true",
+                "app.hr.analytics.demo-department-scopes=demo-manager=20",
                 "app.security.write-disabled=false",
                 "app.security.schemas-aggregator.enabled=true",
                 "app.security.csrf.disable=true",
                 "app.session.cookie-name=SESSION",
                 "app.session.secure=false",
                 "app.session.samesite=Lax",
+                "praxis.resource-version.etag.secret=test-secret-resource-version",
                 "praxis.stats.enabled=true",
                 "praxis.ai.provider=mock",
                 "spring.ai.embedding.provider=mock",
@@ -59,6 +73,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
                 "spring.jpa.hibernate.ddl-auto=none"
         }
 )
+@ExtendWith(OutputCaptureExtension.class)
 class FuncionarioEntityLookupIntegrationTest {
 
     @Autowired
@@ -76,6 +91,9 @@ class FuncionarioEntityLookupIntegrationTest {
 
     @MockBean(name = "ragVectorStore")
     private VectorStore ragVectorStore;
+
+    @SpyBean
+    private EmployeeOptionSourceProvider employeeOptionSourceProvider;
 
     @BeforeEach
     void seedEmployeeTables() {
@@ -143,12 +161,14 @@ class FuncionarioEntityLookupIntegrationTest {
                 values
                     (1, 'Diana Prince', '11111111111', DATE '1990-05-01', 'diana@example.com', '+5511999999991', 12500.00, DATE '2024-01-15', true, 11, 20, null, 'SOLTEIRO', 'Brasil', 'Sao Paulo'),
                     (2, 'Barbara Gordon', '22222222222', DATE '1992-08-10', 'barbara@example.com', '+5511999999992', 8400.00, DATE '2024-04-03', true, 10, 21, null, 'SOLTEIRO', 'Brasil', 'Rio de Janeiro'),
-                    (3, 'Bruce Wayne', '33333333333', DATE '1985-02-19', 'bruce@example.com', '+5511999999993', 15000.00, DATE '2023-10-20', false, 11, 20, null, 'CASADO', 'Brasil', 'Curitiba')
+                    (3, 'Bruce Wayne', '33333333333', DATE '1985-02-19', 'bruce@example.com', '+5511999999993', 15000.00, DATE '2023-10-20', false, 11, 20, null, 'CASADO', 'Brasil', 'Curitiba'),
+                    (4, 'Maria Costa', '44444444444', DATE '1991-03-14', 'maria.costa@example.com', '+5511999999994', 9100.00, DATE '2024-02-01', true, 10, 20, null, 'SOLTEIRO', 'Brasil', 'Recife'),
+                    (5, 'Maria Silva', '55555555555', DATE '1993-06-18', 'maria.silva@example.com', '+5511999999995', 9200.00, DATE '2024-02-02', true, 10, 21, null, 'SOLTEIRO', 'Brasil', 'Salvador')
                 """);
     }
 
     @Test
-    void shouldExposeEmployeeEntityLookupMetadataAndExecuteRealSearch() throws Exception {
+    void shouldExposeEmployeeEntityLookupMetadataAndExecuteGovernedStrategies(CapturedOutput output) throws Exception {
         JsonNode schema = body(restTemplate.getForEntity(
                 "/schemas/filtered?path={path}&operation=post&schemaType=request",
                 String.class,
@@ -169,29 +189,107 @@ class FuncionarioEntityLookupIntegrationTest {
         assertTrue(optionSource.path("capabilities").path("filter").asBoolean());
         assertTrue(optionSource.path("capabilities").path("byIds").asBoolean());
         assertFalse(optionSource.path("capabilities").path("create").asBoolean());
+        assertEquals("required", optionSource.path("selectedReloadPolicy").asText());
+        assertEquals("reject", optionSource.path("invalidSortPolicy").asText());
+        JsonNode strategies = optionSource.path("filtering").path("searchStrategies");
+        assertEquals(3, strategies.size());
+        assertEquals("employee-code", strategies.get(0).path("key").asText());
+        assertEquals("digits", strategies.get(0).path("inputFormat").asText());
+        assertEquals("name", strategies.get(1).path("key").asText());
+        assertEquals("document", strategies.get(2).path("key").asText());
 
         JsonNode employees = body(restTemplate.postForEntity(
-                "/api/human-resources/funcionarios/option-sources/employee/options/filter?search=Diana&page=0&size=5",
+                "/api/human-resources/funcionarios/option-sources/employee/options/filter?search=Diana&searchStrategy=name&page=0&size=5",
                 authorizedJson("{}"),
                 String.class
         ));
         assertEquals(1, employees.path("content").size());
         JsonNode diana = employees.path("content").get(0);
         assertEquals(1, diana.path("id").asInt());
-        assertEquals("Diana Prince", diana.path("label").asText());
+        assertEquals("Diana Prince · CPF ***.***.***-11", diana.path("label").asText());
         assertTrue(diana.path("extra").path("code").isMissingNode());
-        assertEquals("Coordenador de Campo - Operacoes", diana.path("extra").path("description").asText());
+        assertTrue(diana.path("extra").path("description").isMissingNode());
         assertTrue(diana.path("extra").path("selectable").asBoolean());
         assertTrue(diana.path("extra").path("detailHref").isMissingNode());
         assertEquals("employee", diana.path("extra").path("entityKey").asText());
         assertEquals(ApiPaths.HumanResources.FUNCIONARIOS, diana.path("extra").path("resourcePath").asText());
 
-        JsonNode byIds = objectMapper.readTree(restTemplate.getForObject(
-                "/api/human-resources/funcionarios/option-sources/employee/options/by-ids?ids=3",
-                String.class
-        ));
-        assertEquals("Bruce Wayne", byIds.get(0).path("label").asText());
+        JsonNode byCode = body(restTemplate.postForEntity(
+                "/api/human-resources/funcionarios/option-sources/employee/options/filter?search=1&searchStrategy=employee-code&page=0&size=5",
+                authorizedJson("{}"), String.class));
+        assertEquals(1, byCode.path("content").size());
+        assertEquals(1, byCode.path("content").get(0).path("id").asInt());
+
+        JsonNode byFormattedDocument = body(restTemplate.postForEntity(
+                "/api/human-resources/funcionarios/option-sources/employee/options/filter?search=111.111.111-11&searchStrategy=document&page=0&size=5",
+                authorizedJson("{}"), String.class));
+        JsonNode byPlainDocument = body(restTemplate.postForEntity(
+                "/api/human-resources/funcionarios/option-sources/employee/options/filter?search=11111111111&searchStrategy=document&page=0&size=5",
+                authorizedJson("{}"), String.class));
+        assertEquals(byFormattedDocument.path("content"), byPlainDocument.path("content"));
+        assertFalse(byFormattedDocument.toString().contains("11111111111"));
+
+        JsonNode orderedNames = body(restTemplate.postForEntity(
+                "/api/human-resources/funcionarios/option-sources/employee/options/filter?page=0&size=5",
+                authorizedJson("{\"search\":\"Maria\",\"searchStrategy\":\"name\",\"sort\":\"labelAsc\"}"),
+                String.class));
+        assertEquals(List.of("Maria Costa · CPF ***.***.***-44", "Maria Silva · CPF ***.***.***-55"),
+                java.util.stream.StreamSupport.stream(orderedNames.path("content").spliterator(), false)
+                        .map(item -> item.path("label").asText()).toList());
+
+        JsonNode byIds = body(restTemplate.exchange(
+                "/api/human-resources/funcionarios/option-sources/employee/options/by-ids?ids=3&ids=1",
+                HttpMethod.GET, new HttpEntity<>(authorizedJson("").getHeaders()), String.class));
+        assertEquals("Bruce Wayne · CPF ***.***.***-33", byIds.get(0).path("label").asText());
+        assertEquals("Diana Prince · CPF ***.***.***-11", byIds.get(1).path("label").asText());
         assertFalse(byIds.get(0).path("extra").path("selectable").asBoolean());
+
+        String openApi = restTemplate.getForObject(
+                "/v3/api-docs/api-human-resources-funcionarios", String.class);
+        assertNotNull(openApi);
+        assertFalse(openApi.contains("EmployeeOptionSourceProvider"));
+        assertFalse(openApi.contains("authenticatedSubject"));
+        assertFalse(openApi.contains("departmentScopeIds"));
+        assertFalse(openApi.contains("11111111111"));
+        assertFalse(output.getAll().contains("11111111111"));
+    }
+
+    @Test
+    void shouldRejectAmbiguousInvalidAndUnauthorizedSearchesBeforeDataLeaks() throws Exception {
+        reset(employeeOptionSourceProvider);
+        ResponseEntity<String> invalidCode = restTemplate.postForEntity(
+                "/api/human-resources/funcionarios/option-sources/employee/options/filter?search=EMP-1&searchStrategy=employee-code&page=0&size=5",
+                authorizedJson("{}"), String.class);
+        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, invalidCode.getStatusCode());
+        verify(employeeOptionSourceProvider, never()).supports(any(), any(), any());
+        verify(employeeOptionSourceProvider, never()).filter(any());
+
+        ResponseEntity<String> ambiguous = restTemplate.postForEntity(
+                "/api/human-resources/funcionarios/option-sources/employee/options/filter?search=Ana&page=0&size=5",
+                authorizedJson("{}"), String.class);
+        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, ambiguous.getStatusCode());
+
+        ResponseEntity<String> anonymous = restTemplate.postForEntity(
+                "/api/human-resources/funcionarios/option-sources/employee/options/filter?search=Ana&searchStrategy=name&page=0&size=5",
+                new HttpEntity<>("{}", jsonHeaders()), String.class);
+        assertEquals(HttpStatus.FORBIDDEN, anonymous.getStatusCode());
+        assertFalse(String.valueOf(anonymous.getBody()).contains("departmentScope"));
+
+        ResponseEntity<String> anonymousEmptyReload = restTemplate.exchange(
+                "/api/human-resources/funcionarios/option-sources/employee/options/by-ids",
+                HttpMethod.GET,
+                new HttpEntity<>(jsonHeaders()),
+                String.class
+        );
+        assertEquals(HttpStatus.FORBIDDEN, anonymousEmptyReload.getStatusCode());
+        assertFalse(String.valueOf(anonymousEmptyReload.getBody()).contains("departmentScope"));
+
+        JsonNode scoped = body(restTemplate.postForEntity(
+                "/api/human-resources/funcionarios/option-sources/employee/options/filter?searchStrategy=name&page=0&size=5",
+                authorizedJson("{\"search\":\"Maria\"}", "demo-manager", "USER"), String.class));
+        assertEquals(1, scoped.path("content").size());
+        assertEquals(4, scoped.path("content").get(0).path("id").asInt());
+        assertFalse(scoped.toString().contains("Maria Silva"));
     }
 
     @Test
@@ -254,7 +352,8 @@ class FuncionarioEntityLookupIntegrationTest {
         assertEquals("funcionarioId", payrollHistory.path("relatedResource").path("childParentField").asText());
         assertTrue(payrollHistory.path("relatedResource").path("selectable").asBoolean());
         assertEquals("folhaPagamentoId", payrollHistory.path("relatedResource").path("selectionKeyField").asText());
-        assertEquals("[]", payrollHistory.path("relatedResource").path("childOperations").toString());
+        assertEquals("[\"FILTER\",\"LIST\"]",
+                payrollHistory.path("relatedResource").path("childOperations").toString());
         assertRelatedResourceFieldsExistInResponseSchema(payrollHistory);
 
         JsonNode missionParticipations = findById(surfacesCatalog.path("surfaces"), "mission-participations");
@@ -326,6 +425,20 @@ class FuncionarioEntityLookupIntegrationTest {
         assertEquals("[\"FILTER\",\"LIST\",\"CREATE\",\"UPDATE\",\"DELETE\"]",
                 careerHistory.path("relatedResource").path("childOperations").toString());
         assertRelatedResourceFieldsExistInResponseSchema(careerHistory);
+
+        JsonNode equipmentCustody = findById(surfacesCatalog.path("surfaces"), "equipment-custody");
+        assertNotNull(equipmentCustody);
+        assertEquals("READ_PROJECTION", equipmentCustody.path("kind").asText());
+        assertEquals("assets.equipamento-alocacoes",
+                equipmentCustody.path("relatedResource").path("childResourceKey").asText());
+        assertEquals(ApiPaths.Assets.EQUIPAMENTO_ALOCACOES,
+                equipmentCustody.path("relatedResource").path("childResourcePath").asText());
+        assertEquals("funcionarioId", equipmentCustody.path("relatedResource").path("childParentField").asText());
+        assertTrue(equipmentCustody.path("relatedResource").path("selectable").asBoolean());
+        assertEquals("id", equipmentCustody.path("relatedResource").path("selectionKeyField").asText());
+        assertEquals("[\"FILTER\",\"LIST\",\"CREATE\",\"UPDATE\",\"DELETE\"]",
+                equipmentCustody.path("relatedResource").path("childOperations").toString());
+        assertRelatedResourceFieldsExistInResponseSchema(equipmentCustody);
     }
 
     private JsonNode body(ResponseEntity<String> response) throws Exception {
@@ -379,9 +492,18 @@ class FuncionarioEntityLookupIntegrationTest {
     }
 
     private HttpEntity<String> authorizedJson(String json) {
+        return authorizedJson(json, "admin", "ADMIN");
+    }
+
+    private HttpEntity<String> authorizedJson(String json, String subject, String role) {
+        HttpHeaders headers = jsonHeaders();
+        headers.add(HttpHeaders.COOKIE, "SESSION=" + jwtTokenService.generate(subject, role));
+        return new HttpEntity<>(json, headers);
+    }
+
+    private HttpHeaders jsonHeaders() {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
-        headers.add(HttpHeaders.COOKIE, "SESSION=" + jwtTokenService.generate("admin", "ADMIN"));
-        return new HttpEntity<>(json, headers);
+        return headers;
     }
 }

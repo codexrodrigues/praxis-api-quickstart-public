@@ -22,7 +22,9 @@ import org.praxisplatform.uischema.exporting.CollectionExportRequest;
 import org.praxisplatform.uischema.exporting.CollectionExportResult;
 import org.praxisplatform.uischema.exporting.CollectionExportScope;
 import org.praxisplatform.uischema.mapper.base.ResourceMapper;
+import org.praxisplatform.uischema.concurrency.ResourceVersionUpdatePrecondition;
 import org.praxisplatform.uischema.service.base.AbstractBaseResourceService;
+import org.praxisplatform.uischema.service.base.VersionedCreateUpdateResourceService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -53,6 +55,11 @@ import java.util.LinkedHashMap;
 @Slf4j
 public class EventosFolhaService extends AbstractBaseResourceService<
         EventosFolha,
+        EventosFolhaResponseDTO,
+        Integer,
+        EventosFolhaFilterDTO,
+        CreateEventosFolhaDTO,
+        UpdateEventosFolhaDTO> implements VersionedCreateUpdateResourceService<
         EventosFolhaResponseDTO,
         Integer,
         EventosFolhaFilterDTO,
@@ -123,6 +130,27 @@ public class EventosFolhaService extends AbstractBaseResourceService<
                 .map(EventosFolha::getVersion)
                 .map(OptionalLong::of)
                 .orElseGet(OptionalLong::empty);
+    }
+
+    /**
+     * Demonstra o contrato de concorrencia otimista do CRUD comum: o ETag e comparado com a
+     * versao gerenciada dentro da mesma transacao que aplica e persiste a alteracao. O
+     * {@code @Version} da entidade fecha a janela entre duas escritas realmente concorrentes.
+     */
+    @Override
+    @Transactional
+    public EventosFolhaResponseDTO update(
+            Integer id,
+            UpdateEventosFolhaDTO dto,
+            ResourceVersionUpdatePrecondition<Integer> precondition
+    ) {
+        EventosFolha existing = findEntityById(id);
+        precondition.requireMatch(existing.getVersion() == null ? 0L : existing.getVersion());
+        beforeUpdate(id, existing, dto);
+        getResourceMapper().applyUpdate(existing, dto);
+        EventosFolha saved = getRepository().saveAndFlush(existing);
+        afterUpdate(id, saved, dto);
+        return getResourceMapper().toResponse(saved);
     }
 
     @Override

@@ -56,6 +56,7 @@ jobs:
       TENANT_ID: ${{ inputs.tenant_id || 'default' }}
       ENVIRONMENT: ${{ inputs.environment || 'dev' }}
       ORIGIN: https://praxisui-dev.web.app
+      PRACTICE_TEMP_PASSWORD: ${{ secrets.PRACTICE_TEMP_PASSWORD }}
       RESOURCE_KEYS: ${{ inputs.resource_keys || 'human-resources.funcionarios human-resources.folhas-pagamento operations.missoes' }}
       RUN_INGEST_RESILIENCE: ${{ inputs.run_ingest_resilience || 'true' }}
       MAX_IDEMPOTENT_INGEST_MS: ${{ inputs.max_idempotent_ingest_ms || '10000' }}

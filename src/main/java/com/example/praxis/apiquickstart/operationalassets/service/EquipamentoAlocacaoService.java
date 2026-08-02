@@ -16,6 +16,7 @@ import com.example.praxis.apiquickstart.operationalassets.mapper.EquipamentoAloc
 import com.example.praxis.apiquickstart.operationalassets.repository.EquipamentoAlocacaoRepository;
 import com.example.praxis.apiquickstart.operationalassets.repository.EquipamentoRepository;
 import com.example.praxis.apiquickstart.core.service.base.AbstractQuickstartCrudService;
+import org.praxisplatform.uischema.capability.ResourceStateSnapshot;
 import org.praxisplatform.uischema.stats.StatsFieldRegistry;
 import org.praxisplatform.uischema.stats.StatsMetric;
 import org.praxisplatform.uischema.stats.StatsSupportMode;
@@ -27,6 +28,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 @Service
@@ -80,6 +82,13 @@ public class EquipamentoAlocacaoService extends AbstractQuickstartCrudService<Eq
                 .toList();
     }
 
+    @Transactional(readOnly = true)
+    public List<EquipamentoAlocacaoDTO> findByFuncionarioIdForEmployeeSurface(Integer funcionarioId) {
+        return repository.findByFuncionarioIdOrderByInicioDesc(funcionarioId).stream()
+                .map(mapper::toDto)
+                .toList();
+    }
+
     @Override
     public StatsSupportMode getGroupByStatsSupportMode() {
         return StatsSupportMode.AUTO;
@@ -98,6 +107,24 @@ public class EquipamentoAlocacaoService extends AbstractQuickstartCrudService<Eq
     @Override
     public StatsFieldRegistry getStatsFieldRegistry() {
         return STATS_FIELDS;
+    }
+
+    /**
+     * Resolve o estado persistido da custódia para o discovery contextual das workflow actions.
+     *
+     * <p>O catálogo já declara que devolução, perda e dano só são válidos em {@code ATIVO}; este
+     * snapshot conecta a declaração ao estado real do agregado sem duplicar a regra na UI.</p>
+     */
+    @Transactional(readOnly = true)
+    public Optional<ResourceStateSnapshot> resolveStateSnapshot(Object resourceId) {
+        Integer id = coerceInteger(resourceId);
+        if (id == null) {
+            return Optional.empty();
+        }
+        return repository.findById(id)
+                .map(EquipamentoAlocacao::getStatus)
+                .map(Enum::name)
+                .map(ResourceStateSnapshot::of);
     }
 
     @Transactional
@@ -208,8 +235,23 @@ public class EquipamentoAlocacaoService extends AbstractQuickstartCrudService<Eq
         }
         return dto.getMotivo().trim();
     }
+
+    private static Integer coerceInteger(Object resourceId) {
+        if (resourceId instanceof Integer integerId) {
+            return integerId;
+        }
+        if (resourceId instanceof Number number) {
+            return number.intValue();
+        }
+        if (resourceId instanceof String text && !text.isBlank()) {
+            try {
+                return Integer.valueOf(text.trim());
+            } catch (NumberFormatException ignored) {
+                return null;
+            }
+        }
+        return null;
+    }
 }
-
-
 
 

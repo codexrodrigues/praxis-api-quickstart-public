@@ -22,6 +22,12 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import org.praxisplatform.uischema.action.ActionScope;
+import org.praxisplatform.uischema.action.ActionCollectionAtomicity;
+import org.praxisplatform.uischema.action.ActionInteractionMode;
+import org.praxisplatform.uischema.action.ActionOutcomeMode;
+import org.praxisplatform.uischema.action.ActionRequirement;
+import org.praxisplatform.uischema.action.ActionResourceVersionTransport;
+import org.praxisplatform.uischema.action.ActionRiskLevel;
 import org.praxisplatform.uischema.annotation.ApiGroup;
 import org.praxisplatform.uischema.annotation.ApiResource;
 import org.praxisplatform.uischema.annotation.WorkflowAction;
@@ -80,7 +86,29 @@ public class EventosFolhaController extends AbstractResourceController<
             @ApiResponse(responseCode = "400", description = "Comando ou versões esperadas inválidos."),
             @ApiResponse(responseCode = "409", description = "Ação indisponível, conflito de idempotência ou estado não apto.")
     })
-    @WorkflowAction(id = "bulk-approve", title = "Aprovar eventos de folha em lote", description = "Aprova eventos pendentes selecionados para o fechamento de folha, preservando retorno individual.", scope = ActionScope.COLLECTION, order = 100, successMessage = "Eventos aprovados", allowedStates = {"PENDENTE"}, tags = {"payroll", "payroll-events", "approval-workflow", "bulk-action"})
+    @WorkflowAction(
+            id = "bulk-approve",
+            title = "Aprovar eventos de folha em lote",
+            description = "Aprova eventos pendentes selecionados para o fechamento de folha, preservando retorno individual.",
+            scope = ActionScope.COLLECTION,
+            order = 100,
+            successMessage = "Eventos aprovados",
+            allowedStates = {"PENDENTE"},
+            tags = {"payroll", "payroll-events", "approval-workflow", "bulk-action"},
+            interactionMode = ActionInteractionMode.FORM,
+            riskLevel = ActionRiskLevel.HIGH,
+            confirmationRequired = true,
+            idempotencyKey = ActionRequirement.OPTIONAL,
+            correlationId = ActionRequirement.OPTIONAL,
+            resourceVersion = ActionRequirement.REQUIRED,
+            resourceVersionTransport = ActionResourceVersionTransport.SELECTION_MAP,
+            resourceVersionField = "resourceVersion",
+            selectionIdsField = "ids",
+            selectionVersionsField = "expectedVersions",
+            maxSelection = 200,
+            outcomeMode = ActionOutcomeMode.PER_ITEM,
+            atomicity = ActionCollectionAtomicity.PER_ITEM
+    )
     public ResponseEntity<RestApiResponse<BulkApproveEventosFolhaResultDTO>> bulkApprove(
             @RequestHeader(value = "X-Correlation-ID", required = false) String correlationId,
             @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey,
@@ -141,7 +169,24 @@ public class EventosFolhaController extends AbstractResourceController<
     }
 
     @PostMapping("/{id}/actions/reject")
-    @WorkflowAction(id = "reject", title = "Rejeitar evento de folha", description = "Rejeita um evento pendente com vigência e justificativa auditáveis.", scope = ActionScope.ITEM, allowedStates = {"PENDENTE"}, successMessage = "Evento de folha rejeitado", order = 110, tags = {"payroll", "approval-workflow"})
+    @WorkflowAction(
+            id = "reject",
+            title = "Rejeitar evento de folha",
+            description = "Rejeita um evento pendente com vigência e justificativa auditáveis.",
+            scope = ActionScope.ITEM,
+            allowedStates = {"PENDENTE"},
+            successMessage = "Evento de folha rejeitado",
+            order = 110,
+            tags = {"payroll", "approval-workflow"},
+            interactionMode = ActionInteractionMode.FORM,
+            riskLevel = ActionRiskLevel.HIGH,
+            confirmationRequired = true,
+            correlationId = ActionRequirement.OPTIONAL,
+            resourceVersion = ActionRequirement.REQUIRED,
+            resourceVersionTransport = ActionResourceVersionTransport.IF_MATCH,
+            resourceVersionField = "resourceVersion",
+            refreshItem = true
+    )
     @Operation(summary = "Rejeitar evento pendente de folha")
     @ApiResponses({@ApiResponse(responseCode = "200", description = "Evento rejeitado."), @ApiResponse(responseCode = "409", description = "Evento não está pendente."), @ApiResponse(responseCode = "412", description = "A versão do evento está desatualizada.")})
     public ResponseEntity<RestApiResponse<EventoFolhaWorkflowResultDTO>> reject(

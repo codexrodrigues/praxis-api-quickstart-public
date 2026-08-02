@@ -20,13 +20,18 @@ import org.praxisplatform.uischema.exporting.CollectionExportFormat;
 import org.praxisplatform.uischema.exporting.CollectionExportRequest;
 import org.praxisplatform.uischema.exporting.CollectionExportResult;
 import org.praxisplatform.uischema.exporting.CollectionExportScope;
+import org.praxisplatform.uischema.capability.ResourceStateSnapshot;
 import org.praxisplatform.uischema.options.EntityLookupDescriptor;
 import org.praxisplatform.uischema.options.LookupCapabilities;
 import org.praxisplatform.uischema.options.LookupDetailDescriptor;
 import org.praxisplatform.uischema.options.LookupDisplayDescriptor;
 import org.praxisplatform.uischema.options.LookupDisplayFieldDescriptor;
+import org.praxisplatform.uischema.options.LookupFilteringDescriptor;
+import org.praxisplatform.uischema.options.LookupSearchStrategyDefinition;
 import org.praxisplatform.uischema.options.LookupSelectionPolicy;
+import org.praxisplatform.uischema.options.LookupSortOption;
 import org.praxisplatform.uischema.options.OptionSourceDescriptor;
+import org.praxisplatform.uischema.options.OptionSourceExecutionMode;
 import org.praxisplatform.uischema.options.OptionSourcePolicy;
 import org.praxisplatform.uischema.options.OptionSourceRegistry;
 import org.praxisplatform.uischema.options.OptionSourceType;
@@ -135,9 +140,10 @@ public class FuncionarioService extends AbstractQuickstartCrudService<Funcionari
      *
      * <p>Este descritor e intencionalmente mais rico que o endpoint legado
      * {@code /options/filter}: ele ensina hosts Praxis a publicar uma entidade de negocio como
-     * lookup governado, com busca semantica, detalhes navegaveis e politica de selecao. Campos
-     * sensiveis como CPF, telefone e salario ficam fora da busca e da descricao para preservar a
-     * governanca LGPD do recurso.</p>
+     * lookup governado, com busca semantica, detalhes navegaveis e politica de selecao. CPF nunca
+     * aparece como property path pesquisavel nem em descricoes publicas: apenas a intencao
+     * provider-neutral de documento e publicada, enquanto normalizacao, binding e escopo ficam no
+     * provider privado e o label revela somente um sufixo mascarado.</p>
      */
     private static final OptionSourceRegistry OPTION_SOURCES = OptionSourceRegistry.builder()
             .add(Funcionario.class, new OptionSourceDescriptor(
@@ -157,7 +163,7 @@ public class FuncionarioService extends AbstractQuickstartCrudService<Funcionari
                             null,
                             null,
                             null,
-                            List.of("nomeCompleto", "cargo.nome", "departamento.nome"),
+                            List.of("nomeCompleto"),
                             null,
                             new LookupSelectionPolicy(
                                     "ativo",
@@ -193,9 +199,28 @@ public class FuncionarioService extends AbstractQuickstartCrudService<Funcionari
                                     true,
                                     2
                             ),
-                            null
+                            new LookupFilteringDescriptor(
+                                    List.of(),
+                                    Map.of(),
+                                    List.of(
+                                            new LookupSortOption("labelAsc", "nomeCompleto", "asc", "Nome A-Z"),
+                                            new LookupSortOption("labelDesc", "nomeCompleto", "desc", "Nome Z-A"),
+                                            new LookupSortOption("codeAsc", "id", "asc", "Código funcional")
+                                    ),
+                                    "labelAsc",
+                                    List.of(),
+                                    "Informe código funcional, nome ou documento",
+                                    List.of(
+                                            new LookupSearchStrategyDefinition(
+                                                    "employee-code", "business-code", 1, "digits"),
+                                            new LookupSearchStrategyDefinition(
+                                                    "name", "descriptive-text", 3),
+                                            new LookupSearchStrategyDefinition(
+                                                    "document", "normalized-document", 11)
+                                    )
+                            )
                     )
-            ))
+            ).withExecutionMode(OptionSourceExecutionMode.PROVIDER_REQUIRED))
             .build();
 
     private static final StatsFieldRegistry STATS_FIELDS = StatsFieldRegistry.builder()
@@ -243,7 +268,7 @@ public class FuncionarioService extends AbstractQuickstartCrudService<Funcionari
     }
 
     private static OptionSourcePolicy lookupPolicy() {
-        return new OptionSourcePolicy(true, true, "contains", 0, 25, 100, true, false, "label");
+        return new OptionSourcePolicy(true, true, "contains", 0, 25, 100, false, false, "label");
     }
 
     @Override
@@ -256,6 +281,24 @@ public class FuncionarioService extends AbstractQuickstartCrudService<Funcionari
     public java.util.Optional<String> getDatasetVersion() {
         long count = getRepository().count();
         return java.util.Optional.of(getEntityClass().getSimpleName() + ":" + count);
+    }
+
+    /**
+     * Publica o estado de negócio mínimo usado para avaliar as actions contextuais do funcionário.
+     *
+     * <p>A disponibilidade de {@code deactivate} e {@code reactivate} deve nascer do mesmo campo
+     * {@code ativo} que governa a transição no agregado, e não de uma comparação reconstruída no
+     * frontend. IDs inválidos ou inexistentes não produzem um estado artificial.</p>
+     */
+    @Transactional(readOnly = true)
+    public Optional<ResourceStateSnapshot> resolveStateSnapshot(Object resourceId) {
+        Integer id = coerceInteger(resourceId);
+        if (id == null) {
+            return Optional.empty();
+        }
+        return getRepository().findById(id)
+                .map(Funcionario::getAtivo)
+                .map(active -> ResourceStateSnapshot.of(Boolean.TRUE.equals(active) ? "ATIVO" : "INATIVO"));
     }
 
     @Override
@@ -334,6 +377,23 @@ public class FuncionarioService extends AbstractQuickstartCrudService<Funcionari
     @Override
     public StatsSupportMode getDistributionStatsSupportMode() {
         return StatsSupportMode.AUTO;
+    }
+
+    private static Integer coerceInteger(Object resourceId) {
+        if (resourceId instanceof Integer integerId) {
+            return integerId;
+        }
+        if (resourceId instanceof Number number) {
+            return number.intValue();
+        }
+        if (resourceId instanceof String text && !text.isBlank()) {
+            try {
+                return Integer.valueOf(text.trim());
+            } catch (NumberFormatException ignored) {
+                return null;
+            }
+        }
+        return null;
     }
 
     @Override

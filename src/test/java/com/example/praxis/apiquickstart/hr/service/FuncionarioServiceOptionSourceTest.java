@@ -11,6 +11,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.praxisplatform.uischema.exporting.CollectionExportExecutor;
 import org.praxisplatform.uischema.options.EntityLookupDescriptor;
 import org.praxisplatform.uischema.options.OptionSourceDescriptor;
+import org.praxisplatform.uischema.options.OptionSourceExecutionMode;
 import org.praxisplatform.uischema.options.OptionSourceType;
 
 import java.util.List;
@@ -48,7 +49,14 @@ class FuncionarioServiceOptionSourceTest {
         assertEquals("nomeCompleto", descriptor.labelPropertyPath());
         assertEquals("employee", lookup.entityKey());
         assertNull(lookup.codePropertyPath());
-        assertEquals(List.of("nomeCompleto", "cargo.nome", "departamento.nome"), lookup.searchPropertyPaths());
+        assertEquals(List.of("nomeCompleto"), lookup.searchPropertyPaths());
+        assertEquals(OptionSourceExecutionMode.PROVIDER_REQUIRED, descriptor.executionMode());
+        assertFalse(descriptor.policy().allowIncludeIds());
+        assertEquals("labelAsc", lookup.filtering().defaultSort());
+        assertEquals(List.of("employee-code", "name", "document"), lookup.filtering().searchStrategies().stream()
+                .map(strategy -> strategy.key())
+                .toList());
+        assertEquals("digits", lookup.filtering().searchStrategies().getFirst().inputFormat());
         assertEquals(List.of("cargo.nome", "departamento.nome"), lookup.descriptionPropertyPaths());
         assertEquals("ativo", lookup.selectionPolicy().selectablePropertyPath());
         assertTrue(lookup.capabilities().filter());

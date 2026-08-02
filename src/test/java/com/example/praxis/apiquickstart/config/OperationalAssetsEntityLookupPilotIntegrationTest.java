@@ -580,6 +580,17 @@ class OperationalAssetsEntityLookupPilotIntegrationTest {
         assertAction(actionsCatalog, "report-lost", "/api/assets/equipamento-alocacoes/{id}/actions/report-lost");
         assertAction(actionsCatalog, "report-damaged", "/api/assets/equipamento-alocacoes/{id}/actions/report-damaged");
 
+        JsonNode activeCustodyActions = body(restTemplate.getForEntity(
+                "/api/assets/equipamento-alocacoes/10/actions",
+                String.class
+        ));
+        assertTrue(findById(activeCustodyActions.path("actions"), "return-custody")
+                .path("availability").path("allowed").asBoolean());
+        assertTrue(findById(activeCustodyActions.path("actions"), "report-lost")
+                .path("availability").path("allowed").asBoolean());
+        assertTrue(findById(activeCustodyActions.path("actions"), "report-damaged")
+                .path("availability").path("allowed").asBoolean());
+
         ResponseEntity<String> returnResponse = restTemplate.exchange(
                 "/api/assets/equipamento-alocacoes/10/actions/return-custody",
                 HttpMethod.POST,
@@ -595,6 +606,17 @@ class OperationalAssetsEntityLookupPilotIntegrationTest {
         assertEquals("DEVOLVIDO", returned.path("data").path("statusAtual").asText());
         assertFalse(returned.path("_links").path("schema").isMissingNode(), returned.toPrettyString());
         assertEquipmentSelectable(3, true);
+
+        JsonNode returnedCustodyActions = body(restTemplate.getForEntity(
+                "/api/assets/equipamento-alocacoes/10/actions",
+                String.class
+        ));
+        assertFalse(findById(returnedCustodyActions.path("actions"), "return-custody")
+                .path("availability").path("allowed").asBoolean());
+        assertFalse(findById(returnedCustodyActions.path("actions"), "report-lost")
+                .path("availability").path("allowed").asBoolean());
+        assertFalse(findById(returnedCustodyActions.path("actions"), "report-damaged")
+                .path("availability").path("allowed").asBoolean());
 
         ResponseEntity<String> lostResponse = restTemplate.exchange(
                 "/api/assets/equipamento-alocacoes/11/actions/report-lost",

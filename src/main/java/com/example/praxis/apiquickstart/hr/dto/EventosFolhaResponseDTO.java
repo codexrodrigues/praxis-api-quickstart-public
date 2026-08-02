@@ -23,6 +23,14 @@ public class EventosFolhaResponseDTO {
             example = "1")
     private Integer id;
 
+    @Schema(description = "Versão persistida usada por rejeição e aprovação em lote com concorrência otimista.", example = "2", accessMode = Schema.AccessMode.READ_ONLY)
+    @UISchema(label = "Versão", readOnly = true, formHidden = true, tableHidden = true)
+    private Long version;
+
+    @Schema(description = "ETag opaco da versão persistida usado por comandos governados.", example = "\"eyJ...\"", accessMode = Schema.AccessMode.READ_ONLY)
+    @UISchema(label = "Token de versão", readOnly = true, formHidden = true, tableHidden = true)
+    private String resourceVersion;
+
     @NotBlank
     @Size(max = 255)
     @UISchema(label = "Descrição", required = true, maxLength = 255, group = "Principal", order = 10, helpText = "Motivo ou nome do evento na folha.", icon = "description")
@@ -82,6 +90,22 @@ public class EventosFolhaResponseDTO {
 
     public void setId(Integer id) {
         this.id = id;
+    }
+
+    public Long getVersion() {
+        return version;
+    }
+
+    public void setVersion(Long version) {
+        this.version = version;
+    }
+
+    public String getResourceVersion() {
+        return resourceVersion;
+    }
+
+    public void setResourceVersion(String resourceVersion) {
+        this.resourceVersion = resourceVersion;
     }
 
     public String getDescricao() {

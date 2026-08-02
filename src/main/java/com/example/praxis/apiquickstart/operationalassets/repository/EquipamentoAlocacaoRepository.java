@@ -7,6 +7,7 @@ import java.util.List;
 
 public interface EquipamentoAlocacaoRepository extends BaseCrudRepository<EquipamentoAlocacao, Integer> {
     List<EquipamentoAlocacao> findByEquipamentoId(Integer equipamentoId);
-}
 
+    List<EquipamentoAlocacao> findByFuncionarioIdOrderByInicioDesc(Integer funcionarioId);
+}
 
