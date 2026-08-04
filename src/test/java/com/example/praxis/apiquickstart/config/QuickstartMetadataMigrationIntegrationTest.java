@@ -690,6 +690,14 @@ class QuickstartMetadataMigrationIntegrationTest {
                 "/schemas/filtered?path=/api/human-resources/funcionarios/%7Bid%7D&operation=get&schemaType=response",
                 String.class
         ));
+        JsonNode funcionarioIdentity = funcionarioViewSchema.path("x-ui").path("resource").path("identity");
+        assertTrue(funcionarioIdentity.path("valid").asBoolean(false));
+        assertEquals("id", funcionarioIdentity.path("keyField").asText());
+        assertEquals("nomeCompleto", funcionarioIdentity.path("titleField").asText());
+        assertEquals("nomeCompleto", funcionarioIdentity.path("displayLabelField").asText());
+        assertEquals(List.of("cargoNome", "departamentoNome"),
+                objectMapper.convertValue(funcionarioIdentity.path("metadataFields"),
+                        objectMapper.getTypeFactory().constructCollectionType(List.class, String.class)));
         JsonNode idPresentation = funcionarioViewSchema.path("properties").path("id").path("x-ui").path("presentation");
         assertEquals("iconValue", idPresentation.path("presenter").asText());
         assertEquals("tag", idPresentation.path("icon").asText());

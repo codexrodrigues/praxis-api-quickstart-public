@@ -33,6 +33,7 @@ import com.example.praxis.apiquickstart.operationalassets.dto.EquipamentoAlocaca
 import com.example.praxis.apiquickstart.operationalassets.service.EquipamentoAlocacaoService;
 import org.praxisplatform.uischema.annotation.ApiGroup;
 import org.praxisplatform.uischema.annotation.ApiResource;
+import org.praxisplatform.uischema.annotation.ResourceIdentity;
 import org.praxisplatform.uischema.annotation.AnalyticsComparisonPeriodBinding;
 import org.praxisplatform.uischema.annotation.AnalyticsDimensionBinding;
 import org.praxisplatform.uischema.annotation.AnalyticsIntent;
@@ -100,7 +101,13 @@ import com.fasterxml.jackson.databind.ObjectMapper;
         title = "Funcionários",
         description = "Pessoas, perfis, vínculos, reputação e participação operacional que sustentam a execução do serviço.",
         icon = "users",
-        visualTone = "human-resources"
+        visualTone = "human-resources",
+        identity = @ResourceIdentity(
+                keyField = "id",
+                titleField = "nomeCompleto",
+                metadataFields = {"cargoNome", "departamentoNome"},
+                displayLabelField = "nomeCompleto"
+        )
 )
 @ApiGroup("human-resources")
 public class FuncionarioController extends AbstractQuickstartCrudController<Funcionario, FuncionarioDTO, Integer, FuncionarioFilterDTO, CreateFuncionarioDTO, UpdateFuncionarioDTO> {
