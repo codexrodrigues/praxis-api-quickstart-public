@@ -1183,9 +1183,11 @@ scripts/ensure-domain-catalog-context.sh human-resources.funcionarios operations
 ```
 
 O script:
+- baixa primeiro a release deterministica atual de `/schemas/domain?resourceKey=<resourceKey>`;
 - consulta `/api/praxis/config/domain-catalog/releases`;
+- exige correspondencia exata de `releaseKey` e `sourceHash`, sem aceitar uma release historica do mesmo recurso;
 - valida governanca persistida por `/api/praxis/config/domain-catalog/items`;
-- baixa `/schemas/domain?resourceKey=<resourceKey>` e ingere em `POST /api/praxis/config/domain-catalog/ingest` apenas quando faltar contexto;
+- ingere em `POST /api/praxis/config/domain-catalog/ingest` apenas quando a release atual estiver ausente ou incompleta;
 - valida novamente por `/items`, que e o contrato deterministico usado pelos gates E2E.
 
 Para forcar uma nova release, use:
@@ -1196,7 +1198,8 @@ FORCE_INGEST=true \
 scripts/upload-domain-catalog-batch.sh human-resources.funcionarios operations.missoes
 ```
 
-Para validar, sem nova ingestao, se o catalogo persistido ainda possui contexto de governanca para os recursos criticos:
+Para validar, sem nova ingestao, se a release deterministica atualmente publicada
+esta persistida e possui contexto de governanca para os recursos criticos:
 
 ```bash
 BACKEND_URL=http://localhost:8088 \
@@ -1221,10 +1224,13 @@ publicado em Render; mudancas apenas documentais, de workflow ou scripts de smok
 nao esperam rollout. Depois ele forca a ingestao das releases atuais de
 `/schemas/domain` para os recursos criticos e executa as validacoes read-only.
 Se o Render ainda nao expuser um `build.time` mais recente para um commit de
-runtime, o smoke segue com o runtime publicado atual para nao transformar a
-ausencia de sinal direto de deploy em falso negativo. A landing publica continua
-apenas validando o config-store; a responsabilidade por alinhar catalogo vivo e
-catalogo persistido permanece neste host de referencia.
+runtime, o smoke falha sem ingerir o catalogo anterior. Depois que o deploy
+esperado estiver publicado, execute manualmente `Domain Catalog Runtime Smoke`
+ou `Sync Published Domain Catalog` para reconciliar a release corrente. Execucoes
+agendadas ou manuais sem expectativa de um commit especifico continuam operando
+sobre o runtime efetivamente publicado. A landing publica continua apenas
+validando o config-store; a responsabilidade por alinhar catalogo vivo e catalogo
+persistido permanece neste host de referencia.
 
 Depois de habilitar `praxis.domain-knowledge.projection.enabled=true` e executar uma ingestao controlada, valide a materializacao read-only na camada `domain_knowledge_*`:
 

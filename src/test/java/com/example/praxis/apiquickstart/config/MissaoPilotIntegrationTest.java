@@ -429,6 +429,13 @@ class MissaoPilotIntegrationTest {
         assertTrue(optionSource.path("capabilities").path("byIds").asBoolean());
         assertTrue(optionSource.path("selectionPolicy").path("allowedStatuses").toString().contains("PLANEJADA"));
         assertTrue(optionSource.path("selectionPolicy").path("blockedStatuses").toString().contains("CONCLUIDA"));
+        assertEquals("Em andamento",
+                optionSource.path("display").path("statusLabelMap").path("EM_ANDAMENTO").asText());
+        assertEquals("Concluída",
+                optionSource.path("display").path("statusLabelMap").path("CONCLUIDA").asText());
+        assertEquals(10, missaoUi.path("order").asInt());
+        assertEquals(20,
+                participanteSchema.path("properties").path("funcionarioId").path("x-ui").path("order").asInt());
 
         JsonNode participanteFilterSchema = body(restTemplate.getForEntity(
                 "/schemas/filtered?path=/api/operations/missao-participantes/filter&operation=post&schemaType=request",

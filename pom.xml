@@ -12,16 +12,16 @@
 
     <groupId>com.example.praxis</groupId>
     <artifactId>praxis-api-quickstart</artifactId>
-    <version>2.0.0-rc.21</version>
+    <version>2.0.0-rc.22</version>
     <name>praxis-api-quickstart</name>
     <description>Quickstart API using Praxis Metadata Starter</description>
 
     <properties>
         <java.version>21</java.version>
-        <praxis.core.version>8.0.0-rc.121</praxis.core.version>
+        <praxis.core.version>8.0.0-rc.122</praxis.core.version>
         <lombok.version>1.18.32</lombok.version>
         <org.mapstruct.version>1.5.5.Final</org.mapstruct.version>
-        <praxis.config.version>0.1.0-rc.92</praxis.config.version>
+        <praxis.config.version>0.1.0-rc.93</praxis.config.version>
         <praxis.rules.version>0.1.0-beta.15</praxis.rules.version>
         <openai.version>4.15.0</openai.version>
         <flyway.version>11.17.0</flyway.version>

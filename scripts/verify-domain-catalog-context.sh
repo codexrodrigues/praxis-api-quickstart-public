@@ -27,9 +27,9 @@ Examples:
   BACKEND_URL=http://localhost:8088 scripts/verify-domain-catalog-context.sh human-resources.funcionarios operations.missoes
   RESOURCE_KEYS="human-resources.funcionarios,operations.missoes" scripts/verify-domain-catalog-context.sh
 
-The script reads persisted domain catalog releases and verifies that each
-known resource has governance items for a representative query. It does not
-ingest data or run database migrations.
+The script compares each current /schemas/domain releaseKey/sourceHash with the
+persisted release catalog, then verifies governance items for a representative
+query. It does not ingest data or run database migrations.
 USAGE
 }
 
@@ -84,7 +84,8 @@ fi
 
 releases_file="$(mktemp "${TMPDIR:-/tmp}/praxis-domain-catalog-releases.XXXXXX.json")"
 items_file="$(mktemp "${TMPDIR:-/tmp}/praxis-domain-catalog-items.XXXXXX.json")"
-trap 'rm -f "$releases_file" "$items_file"' EXIT
+catalog_file="$(mktemp "${TMPDIR:-/tmp}/praxis-domain-catalog-current.XXXXXX.json")"
+trap 'rm -f "$releases_file" "$items_file" "$catalog_file"' EXIT
 
 encoded_service_key="$(urlencode "$SERVICE_KEY")"
 curl -fsS \
@@ -107,12 +108,40 @@ for resource_key in "${resource_keys[@]}"; do
   fi
 
   verify_query="${VERIFY_QUERY:-$(default_verify_query_for "$resource_key")}"
-  release_key="$(jq -r --arg needle ":${resource_key}:" '[.[] | select((.releaseKey // "") | contains($needle))][0].releaseKey // empty' "$releases_file")"
+  encoded_resource_key="$(urlencode "$resource_key")"
+  curl -fsS \
+    "${BACKEND_URL%/}/schemas/domain?resourceKey=${encoded_resource_key}" \
+    -H "Origin: ${ORIGIN}" \
+    -H "X-Tenant-ID: ${TENANT_ID}" \
+    -H "X-Env: ${ENVIRONMENT}" \
+    -o "$catalog_file"
+  expected_release_key="$(jq -r '.release.releaseKey // empty' "$catalog_file")"
+  expected_source_hash="$(jq -r '.release.sourceHash // empty' "$catalog_file")"
+  expected_schema_version="$(jq -r '.schemaVersion // empty' "$catalog_file")"
+  release_key="$(jq -r \
+    --arg resourceKey "$resource_key" \
+    --arg releaseKey "$expected_release_key" \
+    --arg sourceHash "$expected_source_hash" '
+      [.[] | select(
+        (.releaseKey // "") == $releaseKey
+        and (.sourceHash // "") == $sourceHash
+        and (
+          (.resourceKey // "") == $resourceKey
+          or ((.releaseKey // "") | contains(":" + $resourceKey + ":"))
+        )
+      )][0].releaseKey // empty
+    ' "$releases_file")"
 
   echo
   echo "==> ${resource_key} (VERIFY_QUERY=${verify_query})"
+  if [[ "$expected_schema_version" != "praxis.domain-catalog/v0.2" || -z "$expected_release_key" || ! "$expected_source_hash" =~ ^[a-fA-F0-9]{64}$ ]]; then
+    echo "Current /schemas/domain release is invalid for resourceKey=${resource_key}" >&2
+    jq '{schemaVersion, release, service}' "$catalog_file" >&2
+    failures=$((failures + 1))
+    continue
+  fi
   if [[ -z "$release_key" ]]; then
-    echo "No persisted release found for resourceKey=${resource_key}" >&2
+    echo "Current release is not persisted for resourceKey=${resource_key} releaseKey=${expected_release_key}" >&2
     failures=$((failures + 1))
     continue
   fi

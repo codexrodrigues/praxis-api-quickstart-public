@@ -11,7 +11,7 @@ import com.example.praxis.apiquickstart.hr.repository.FuncionarioRepository;
 import com.example.praxis.apiquickstart.constants.ApiPaths;
 import com.example.praxis.apiquickstart.core.service.base.AbstractQuickstartCrudService;
 import com.example.praxis.apiquickstart.core.service.ResourceActionTransitionService;
-import com.example.praxis.apiquickstart.hr.dto.actions.FuncionarioDeactivateRequestDTO;
+import com.example.praxis.apiquickstart.hr.dto.actions.FuncionarioLifecycleTransitionRequestDTO;
 import org.praxisplatform.uischema.exporting.CollectionExportCapability;
 import org.praxisplatform.uischema.exporting.CollectionExportExecutor;
 import org.praxisplatform.uischema.exporting.CollectionExportField;
@@ -337,7 +337,7 @@ public class FuncionarioService extends AbstractQuickstartCrudService<Funcionari
     }
 
     @Transactional
-    public java.util.UUID deactivate(Integer id, FuncionarioDeactivateRequestDTO command, String actorSubject, String correlationId) {
+    public java.util.UUID deactivate(Integer id, FuncionarioLifecycleTransitionRequestDTO command, String actorSubject, String correlationId) {
         Funcionario employee = findEntityById(id);
         if (!Boolean.TRUE.equals(employee.getAtivo())) {
             throw new org.springframework.web.server.ResponseStatusException(
@@ -353,7 +353,7 @@ public class FuncionarioService extends AbstractQuickstartCrudService<Funcionari
     }
 
     @Transactional
-    public java.util.UUID reactivate(Integer id, FuncionarioDeactivateRequestDTO command, String actorSubject, String correlationId) {
+    public java.util.UUID reactivate(Integer id, FuncionarioLifecycleTransitionRequestDTO command, String actorSubject, String correlationId) {
         Funcionario employee = findEntityById(id);
         if (Boolean.TRUE.equals(employee.getAtivo())) {
             throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.CONFLICT, "Employee is already active.");

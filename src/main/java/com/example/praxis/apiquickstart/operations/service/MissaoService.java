@@ -24,6 +24,7 @@ import com.example.praxis.apiquickstart.core.service.base.AbstractQuickstartCrud
 import org.praxisplatform.uischema.options.EntityLookupDescriptor;
 import org.praxisplatform.uischema.options.LookupCapabilities;
 import org.praxisplatform.uischema.options.LookupDetailDescriptor;
+import org.praxisplatform.uischema.options.LookupDisplayDescriptor;
 import org.praxisplatform.uischema.options.LookupSelectionPolicy;
 import org.praxisplatform.uischema.options.OptionSourceDescriptor;
 import org.praxisplatform.uischema.options.OptionSourcePolicy;
@@ -82,11 +83,38 @@ public class MissaoService extends AbstractQuickstartCrudService<Missao, MissaoD
                                     List.of("PLANEJADA", "EM_ANDAMENTO", "PAUSADA"),
                                     List.of("CONCLUIDA", "FALHOU"),
                                     true,
-                                    "Missao encerrada preservada apenas para reidratacao de valores existentes.",
-                                    "Selecione uma missao planejada, em andamento ou pausada."
+                                    "Missão encerrada preservada apenas para reidratação de valores existentes.",
+                                    "Selecione uma missão planejada, em andamento ou pausada."
                             ),
                             new LookupCapabilities(true, true, true, false, false, true, false, false, false, true),
-                            new LookupDetailDescriptor(ApiPaths.Operations.MISSOES + "/{id}", "/operations/missoes/{id}", "route")
+                            new LookupDetailDescriptor(ApiPaths.Operations.MISSOES + "/{id}", "/operations/missoes/{id}", "route"),
+                            new LookupDisplayDescriptor(
+                                    "status",
+                                    "form",
+                                    "comfortable",
+                                    "compact",
+                                    "list",
+                                    "titulo",
+                                    List.of(),
+                                    List.of("prioridade", "local"),
+                                    List.of(),
+                                    null,
+                                    false,
+                                    false,
+                                    true,
+                                    true,
+                                    false,
+                                    true,
+                                    Map.of(
+                                            "PLANEJADA", "Planejada",
+                                            "EM_ANDAMENTO", "Em andamento",
+                                            "PAUSADA", "Pausada",
+                                            "CONCLUIDA", "Concluída",
+                                            "FALHOU", "Falhou"
+                                    ),
+                                    0
+                            ),
+                            null
                     )
             ))
             .build();
@@ -390,8 +418,6 @@ public class MissaoService extends AbstractQuickstartCrudService<Missao, MissaoD
         );
     }
 }
-
-
 
 
 

@@ -22,7 +22,8 @@ Examples:
   RESOURCE_KEYS="human-resources.funcionarios,operations.missoes" scripts/upload-domain-catalog-batch.sh
 
 By default the script delegates to scripts/ensure-domain-catalog-context.sh,
-which is idempotent and verifies persisted governance through /items.
+which is idempotent, requires the current deterministic releaseKey/sourceHash,
+and verifies persisted governance through /items.
 
 Set FORCE_INGEST=true to delegate each resource to scripts/upload-domain-catalog.sh
 and always POST a new release.

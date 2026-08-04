@@ -10,38 +10,38 @@ import org.praxisplatform.uischema.extension.annotation.UISchema;
 
 @Schema(
         name = "MissaoParticipanteDTO",
-        description = "Escalacao de colaborador a missao (papel, ordem, lider, resultado alocado). "
-                + "Representa a composicao da equipe de missao, incluindo funcao, lideranca e resultado individual.")
+        description = "Escala de um colaborador em uma missão. Representa a composição da equipe, "
+                + "incluindo papel, ordem de atuação, liderança e resultado individual.")
 public class MissaoParticipanteDTO {
-    @Schema(description = "Identificador interno (PK) deste registo no servico; referencia o recurso em URLs e relacionamentos.")
+    @Schema(description = "Identificador interno do vínculo no serviço; referencia o recurso em URLs e relacionamentos.")
     private Integer id;
 
     @NotNull
-    @UISchema(label = "Missão", controlType = FieldControlType.ENTITY_LOOKUP, required = true,
+    @UISchema(label = "Missão", controlType = FieldControlType.ENTITY_LOOKUP, required = true, order = 10,
             valueField = "id", displayField = "label",
         endpoint = com.example.praxis.apiquickstart.constants.ApiPaths.Operations.MISSOES_MISSION_LOOKUP_OPTIONS,
             tableHidden = true, icon = "flag")
     @Schema(
-            description = "Missao operacional em que o colaborador foi escalado.")
+            description = "Missão operacional em que o colaborador será escalado.")
     private Integer missaoId;
 
     @NotNull
-    @UISchema(label = "Funcionário", controlType = FieldControlType.ENTITY_LOOKUP, required = true,
+    @UISchema(label = "Funcionário", controlType = FieldControlType.ENTITY_LOOKUP, required = true, order = 20,
             valueField = "id", displayField = "label",
             endpoint = com.example.praxis.apiquickstart.constants.ApiPaths.HumanResources.FUNCIONARIOS_EMPLOYEE_LOOKUP_OPTIONS,
             tableHidden = true, icon = "badge")
     @Schema(
-            description = "Colaborador ou heroi escalado para participar da missao.")
+            description = "Colaborador escalado para participar da missão.")
     private Integer funcionarioId;
 
     @UISchema(label = "Missão", readOnly = true, formHidden = true, icon = "flag")
     @Schema(
-            description = "Titulo denormalizado (read model).")
+            description = "Título da missão projetado para leitura sem nova consulta.")
     private String missaoTitulo;
 
     @UISchema(label = "Funcionário", readOnly = true, formHidden = true, icon = "badge")
     @Schema(
-            description = "Nome do colaborador denormalizado (read model).")
+            description = "Nome do colaborador projetado para leitura sem nova consulta.")
     private String funcionarioNome;
 
     @UISchema(label = "Foto", tableHidden = true, formHidden = true)
@@ -49,26 +49,26 @@ public class MissaoParticipanteDTO {
             description = "URL da foto de perfil do funcionário (read model).")
     private String funcionarioFotoUrl;
 
-    @UISchema(label = "Papel", controlType = FieldControlType.SELECT, icon = "flag")
+    @UISchema(label = "Papel", controlType = FieldControlType.SELECT, icon = "flag", order = 30)
     @Schema(
-            description = "Funcao tatica; PapelMissao.")
+            description = "Função tática desempenhada pelo colaborador durante a missão.")
     private PapelMissao papel;
 
     @NotNull
-    @UISchema(label = "Ordem", controlType = FieldControlType.NUMERIC_TEXT_BOX, required = true, icon = "flag")
+    @UISchema(label = "Ordem", controlType = FieldControlType.NUMERIC_TEXT_BOX, required = true, icon = "flag", order = 40)
     @Schema(
-            description = "Sequencia de breafing/ ordem de insercao no teatro (0 = primeiro).")
+            description = "Ordem de atuação no plano da missão; zero representa a primeira posição.")
     private Integer ordem = 0;
 
     @NotNull
-    @UISchema(label = "Principal", controlType = FieldControlType.TOGGLE, required = true, icon = "toggle_on")
+    @UISchema(label = "Principal", controlType = FieldControlType.TOGGLE, required = true, icon = "toggle_on", order = 50)
     @Schema(
-            description = "VERDADEIRO se responsavel tatico/ face da missao para esta linha de escalonamento.")
+            description = "Indica se o colaborador é a principal referência tática desta missão.")
     private Boolean principal = false;
 
-    @UISchema(label = "Resultado", controlType = FieldControlType.SELECT, icon = "flag")
+    @UISchema(label = "Resultado", controlType = FieldControlType.SELECT, icon = "flag", order = 60)
     @Schema(
-            description = "Situacao alocada ao heroi; ResultadoMissao (apos debrief).")
+            description = "Resultado individual registrado após o encerramento ou debriefing da missão.")
     private ResultadoMissao resultado;
 
     public Integer getId() { return id; }
@@ -92,4 +92,3 @@ public class MissaoParticipanteDTO {
     public ResultadoMissao getResultado() { return resultado; }
     public void setResultado(ResultadoMissao resultado) { this.resultado = resultado; }
 }
-

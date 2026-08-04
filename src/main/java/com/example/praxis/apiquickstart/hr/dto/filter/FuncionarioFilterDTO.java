@@ -139,7 +139,8 @@ public class FuncionarioFilterDTO implements GenericFilterDTO {
             description = "Estado civil cadastral usado em processos de beneficios, dependentes e analises administrativas.")
     private EstadoCivil estadoCivil;
 
-    @UISchema(label = "Admissões Recentes", type = FieldDataType.NUMBER, controlType = FieldControlType.INPUT, order = 110, helpText = "Admitidos nos últimos N dias.", icon = "event")
+    @UISchema(label = "Admitidos nos últimos (dias)", type = FieldDataType.NUMBER, controlType = FieldControlType.INPUT, order = 110,
+            helpText = "Informe quantos dias anteriores devem ser considerados.", icon = "history")
     @Filterable(operation = Filterable.FilterOperation.IN_LAST_DAYS, relation = "dataAdmissao")
     @Schema(
             description = "Janela relativa para localizar colaboradores admitidos recentemente a partir da data de admissao.")

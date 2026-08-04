@@ -12,41 +12,41 @@ import java.time.OffsetDateTime;
 
 @Schema(
         name = "EquipamentoAlocacaoDTO",
-        description = "Vinculo temporal de custodia entre um equipamento e um colaborador, registrando inicio, encerramento e status da responsabilidade operacional.")
+        description = "Vínculo temporal de custódia entre um equipamento e um colaborador, registrando início, encerramento e estado da responsabilidade operacional.")
 public class EquipamentoAlocacaoDTO {
-    @Schema(description = "Identificador da alocacao de equipamento; referencia o periodo de custodia em URLs e trilhas de auditoria.")
+    @Schema(description = "Identificador da alocação de equipamento; referencia o período de custódia em URLs e trilhas de auditoria.")
     private Integer id;
 
     @NotNull
-    @UISchema(label = "Equipamento", controlType = FieldControlType.ENTITY_LOOKUP,
+    @UISchema(label = "Equipamento", controlType = FieldControlType.ENTITY_LOOKUP, order = 10,
             valueField = "id", displayField = "label",
         endpoint = com.example.praxis.apiquickstart.constants.ApiPaths.Assets.EQUIPAMENTOS_EQUIPMENT_LOOKUP_OPTIONS, required = true, icon = "construction")
     @Schema(
-            description = "FK; item alocado (equipamentoId).")
+            description = "Equipamento entregue ao colaborador durante o período de custódia.")
     private Integer equipamentoId;
 
     @NotNull
-    @UISchema(label = "Funcionário", controlType = FieldControlType.ENTITY_LOOKUP,
+    @UISchema(label = "Funcionário", controlType = FieldControlType.ENTITY_LOOKUP, order = 20,
             valueField = "id", displayField = "label",
             endpoint = com.example.praxis.apiquickstart.constants.ApiPaths.HumanResources.FUNCIONARIOS_EMPLOYEE_LOOKUP_OPTIONS, required = true, icon = "badge")
     @Schema(
-            description = "FK; colaborador que detem o item (funcionarioId).")
+            description = "Colaborador responsável pela custódia do equipamento.")
     private Integer funcionarioId;
 
     @NotNull
-    @UISchema(label = "Início", type = FieldDataType.DATE, controlType = FieldControlType.DATE_TIME_PICKER, required = true, icon = "event")
+    @UISchema(label = "Início", type = FieldDataType.DATE, controlType = FieldControlType.DATE_TIME_PICKER, required = true, icon = "event", order = 30)
     @Schema(
-            description = "Inicio de vigencia da custodia.")
+            description = "Data e hora de início da responsabilidade de custódia.")
     private OffsetDateTime inicio;
 
-    @UISchema(label = "Fim", type = FieldDataType.DATE, controlType = FieldControlType.DATE_TIME_PICKER, icon = "event")
+    @UISchema(label = "Fim", type = FieldDataType.DATE, controlType = FieldControlType.DATE_TIME_PICKER, icon = "event", order = 40)
     @Schema(
-            description = "Fim da custodia; nulo se alocacao ainda ativa.")
+            description = "Data e hora de encerramento; permanece vazia enquanto a custódia estiver ativa.")
     private OffsetDateTime fim;
 
-    @UISchema(label = "Status", controlType = FieldControlType.SELECT, icon = "toggle_on")
+    @UISchema(label = "Status", controlType = FieldControlType.SELECT, icon = "toggle_on", order = 50)
     @Schema(
-            description = "Ciclo de vida da alocacao; AlocacaoStatus.")
+            description = "Situação atual da responsabilidade de custódia do equipamento.")
     private AlocacaoStatus status;
 
     public Integer getId() { return id; }
@@ -62,5 +62,4 @@ public class EquipamentoAlocacaoDTO {
     public AlocacaoStatus getStatus() { return status; }
     public void setStatus(AlocacaoStatus status) { this.status = status; }
 }
-
 

@@ -9,19 +9,19 @@ import org.praxisplatform.uischema.extension.annotation.UISchema;
 
 import java.time.LocalDate;
 
-/** Command that records the governed decision to deactivate an employee. */
-@Schema(description = "Comando de inativação de funcionário. Registra a vigência e a justificativa da decisão de RH; não é uma edição cadastral do campo ativo.")
-public class FuncionarioDeactivateRequestDTO {
+/** Command that records a governed employee lifecycle transition. */
+@Schema(description = "Comando de transição do vínculo do funcionário. Registra vigência e justificativa para inativação ou reativação; não representa uma edição cadastral do campo ativo.")
+public class FuncionarioLifecycleTransitionRequestDTO {
 
     @NotNull
     @UISchema(label = "Data efetiva", controlType = FieldControlType.DATE_PICKER, required = true, order = 10)
-    @Schema(description = "Data a partir da qual a inativação produz efeitos operacionais para o vínculo do funcionário.")
+    @Schema(description = "Data a partir da qual a transição passa a produzir efeitos operacionais no vínculo do funcionário.")
     private LocalDate effectiveAt;
 
     @NotBlank
     @Size(max = 120)
     @UISchema(label = "Código do motivo", controlType = FieldControlType.INPUT, required = true, maxLength = 120, order = 20)
-    @Schema(description = "Código de negócio que classifica a razão da inativação para auditoria e relatórios de RH.")
+    @Schema(description = "Código de negócio que classifica a razão da transição para auditoria e relatórios de RH.")
     private String reasonCode;
 
     @NotBlank

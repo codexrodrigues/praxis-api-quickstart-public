@@ -51,8 +51,8 @@ get_optional_json() {
 doc_inventory_for_group() {
   local group="$1"
 
-  awk -F'|' -v group="\\\`${group}\\\`" '
-    index($0, group) {
+  awk -F'|' -v group="$group" '
+    index($0, "`" group "`") {
       resources=$4
       surfaces=$5
       actions=$6

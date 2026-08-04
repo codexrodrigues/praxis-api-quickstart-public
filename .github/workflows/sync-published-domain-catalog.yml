@@ -114,7 +114,8 @@ jobs:
           print(json.dumps({
               "status": "runtime-rollout-not-observed",
               "expectedAfter": expected.isoformat(),
-              "lastSeen": last_seen
+              "lastSeen": last_seen,
+              "nextStep": "deploy the expected runtime, then dispatch Sync Published Domain Catalog manually"
           }))
           raise SystemExit(1)
           PY

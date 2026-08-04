@@ -175,8 +175,9 @@ jobs:
               "status": "runtime-rollout-not-observed",
               "expectedAfter": expected.isoformat(),
               "lastSeen": last_seen,
-              "nextStep": "syncing the catalog exposed by the currently published runtime"
+              "nextStep": "deploy the expected runtime, then run Domain Catalog Runtime Smoke manually"
           }))
+          raise SystemExit(1)
           PY
 
       - name: Sync current domain catalog releases

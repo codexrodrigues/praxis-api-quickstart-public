@@ -619,6 +619,31 @@ class QuickstartMetadataMigrationIntegrationTest {
     }
 
     @Test
+    void shouldExposeNeutralLifecycleTransitionSchemaForFuncionarioActions() throws Exception {
+        JsonNode deactivateSchema = body(restTemplate.getForEntity(
+                "/schemas/filtered?path={path}&operation=post&schemaType=request",
+                String.class,
+                "/api/human-resources/funcionarios/{id}/actions/deactivate"
+        ));
+        JsonNode reactivateSchema = body(restTemplate.getForEntity(
+                "/schemas/filtered?path={path}&operation=post&schemaType=request",
+                String.class,
+                "/api/human-resources/funcionarios/{id}/actions/reactivate"
+        ));
+
+        for (JsonNode schema : List.of(deactivateSchema, reactivateSchema)) {
+            assertTrue(schema.path("description").asText().contains("inativação ou reativação"));
+            assertTrue(schema.path("required").isArray());
+            assertTrue(schema.path("required").toString().contains("effectiveAt"));
+            assertTrue(schema.path("required").toString().contains("reasonCode"));
+            assertTrue(schema.path("required").toString().contains("comment"));
+            assertEquals("Data efetiva", schema.path("properties").path("effectiveAt").path("x-ui").path("label").asText());
+            assertEquals("Código do motivo", schema.path("properties").path("reasonCode").path("x-ui").path("label").asText());
+            assertEquals("Comentário", schema.path("properties").path("comment").path("x-ui").path("label").asText());
+        }
+    }
+
+    @Test
     void shouldExposeSeparatedCreateAndUpdateSchemasForMigratedCrudExamples() throws Exception {
         JsonNode cargoCreateSchema = body(restTemplate.getForEntity(
                 "/schemas/filtered?path={path}&operation=post&schemaType=request",

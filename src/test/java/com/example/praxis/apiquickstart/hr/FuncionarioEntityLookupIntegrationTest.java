@@ -325,6 +325,22 @@ class FuncionarioEntityLookupIntegrationTest {
     }
 
     @Test
+    void shouldPublishChronologicalCareerHistoryCommandOrder() throws Exception {
+        JsonNode schema = body(restTemplate.getForEntity(
+                "/schemas/filtered?path={path}&operation=post&schemaType=request",
+                String.class,
+                ApiPaths.HumanResources.HISTORICOS_CARGOS
+        ));
+
+        JsonNode properties = schema.path("properties");
+        assertEquals(10, properties.path("funcionarioId").path("x-ui").path("order").asInt());
+        assertEquals(20, properties.path("cargoId").path("x-ui").path("order").asInt());
+        assertEquals(30, properties.path("dataInicio").path("x-ui").path("order").asInt());
+        assertEquals(40, properties.path("dataFim").path("x-ui").path("order").asInt());
+        assertEquals(50, properties.path("observacoes").path("x-ui").path("order").asInt());
+    }
+
+    @Test
     void shouldExposeEmployeeRelationshipSurfacesForCockpitNavigation() throws Exception {
         JsonNode surfacesCatalog = body(restTemplate.getForEntity(
                 "/schemas/surfaces?resource=human-resources.funcionarios",

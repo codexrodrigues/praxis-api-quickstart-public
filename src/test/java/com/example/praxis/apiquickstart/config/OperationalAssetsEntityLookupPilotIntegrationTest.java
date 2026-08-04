@@ -277,6 +277,13 @@ class OperationalAssetsEntityLookupPilotIntegrationTest {
         assertTrue(optionSource.path("capabilities").path("byIds").asBoolean());
         assertTrue(optionSource.path("selectionPolicy").path("allowedStatuses").toString().contains("ESTOQUE"));
         assertTrue(optionSource.path("selectionPolicy").path("blockedStatuses").toString().contains("QUEBRADO"));
+        assertEquals("Em uso",
+                optionSource.path("display").path("statusLabelMap").path("EM_USO").asText());
+        assertEquals("Em manutenção",
+                optionSource.path("display").path("statusLabelMap").path("MANUTENCAO").asText());
+        assertEquals(10, equipmentUi.path("order").asInt());
+        assertEquals(20,
+                allocationSchema.path("properties").path("funcionarioId").path("x-ui").path("order").asInt());
 
         JsonNode allocationFilterSchema = body(restTemplate.getForEntity(
                 "/schemas/filtered?path=/api/assets/equipamento-alocacoes/filter&operation=post&schemaType=request",

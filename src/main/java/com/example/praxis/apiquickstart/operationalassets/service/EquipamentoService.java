@@ -17,6 +17,7 @@ import com.example.praxis.apiquickstart.core.service.base.AbstractQuickstartCrud
 import org.praxisplatform.uischema.options.EntityLookupDescriptor;
 import org.praxisplatform.uischema.options.LookupCapabilities;
 import org.praxisplatform.uischema.options.LookupDetailDescriptor;
+import org.praxisplatform.uischema.options.LookupDisplayDescriptor;
 import org.praxisplatform.uischema.options.LookupSelectionPolicy;
 import org.praxisplatform.uischema.options.OptionSourceDescriptor;
 import org.praxisplatform.uischema.options.OptionSourcePolicy;
@@ -31,6 +32,7 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import static org.springframework.http.HttpStatus.CONFLICT;
@@ -79,11 +81,38 @@ public class EquipamentoService extends AbstractQuickstartCrudService<Equipament
                                     List.of("ESTOQUE", "EM_USO"),
                                     List.of("MANUTENCAO", "QUEBRADO", "PERDIDO"),
                                     true,
-                                    "Equipamento indisponivel preservado apenas para reidratacao de custodias existentes.",
-                                    "Selecione um equipamento em estoque ou em uso operacional para nova alocacao."
+                                    "Equipamento indisponível preservado apenas para reidratação de custódias existentes.",
+                                    "Selecione um equipamento em estoque ou em uso operacional para nova alocação."
                             ),
                             new LookupCapabilities(true, true, true, false, false, true, false, false, false, true),
-                            new LookupDetailDescriptor(ApiPaths.Assets.EQUIPAMENTOS + "/{id}", "/assets/equipamentos/{id}", "route")
+                            new LookupDetailDescriptor(ApiPaths.Assets.EQUIPAMENTOS + "/{id}", "/assets/equipamentos/{id}", "route"),
+                            new LookupDisplayDescriptor(
+                                    "status",
+                                    "form",
+                                    "comfortable",
+                                    "compact",
+                                    "list",
+                                    "nome",
+                                    List.of(),
+                                    List.of("tipo", "resistencia"),
+                                    List.of(),
+                                    null,
+                                    false,
+                                    false,
+                                    true,
+                                    true,
+                                    false,
+                                    true,
+                                    Map.of(
+                                            "ESTOQUE", "Em estoque",
+                                            "EM_USO", "Em uso",
+                                            "MANUTENCAO", "Em manutenção",
+                                            "QUEBRADO", "Quebrado",
+                                            "PERDIDO", "Perdido"
+                                    ),
+                                    0
+                            ),
+                            null
                     )
             ))
             .build();
@@ -218,7 +247,6 @@ public class EquipamentoService extends AbstractQuickstartCrudService<Equipament
         );
     }
 }
-
 
 
 

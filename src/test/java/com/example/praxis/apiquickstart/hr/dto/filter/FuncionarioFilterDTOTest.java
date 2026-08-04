@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import org.junit.jupiter.api.Test;
+import org.praxisplatform.uischema.extension.annotation.UISchema;
 import org.praxisplatform.uischema.filter.annotation.Filterable;
 
 class FuncionarioFilterDTOTest {
@@ -12,6 +13,17 @@ class FuncionarioFilterDTOTest {
     void exposesAnalyticalLabelsAsFilterableRelationshipFields() throws Exception {
         assertFilterableRelationship("departamentoNome", "departamento.nome");
         assertFilterableRelationship("cargoNome", "cargo.nome");
+    }
+
+    @Test
+    void presentsTheRelativeAdmissionWindowAsANumericFilter() throws Exception {
+        UISchema uiSchema = FuncionarioFilterDTO.class
+                .getDeclaredField("dataAdmissaoLastDays")
+                .getAnnotation(UISchema.class);
+
+        assertNotNull(uiSchema);
+        assertEquals("Admitidos nos últimos (dias)", uiSchema.label());
+        assertEquals("history", uiSchema.icon());
     }
 
     private void assertFilterableRelationship(String fieldName, String relation) throws Exception {

@@ -36,10 +36,11 @@ Examples:
   RESOURCE_KEYS="human-resources.funcionarios,operations.missoes" scripts/ensure-domain-catalog-context.sh
 
 The script is idempotent. For each resource it:
-  1. reads persisted releases from /api/praxis/config/domain-catalog/releases;
-  2. validates governance items through /api/praxis/config/domain-catalog/items;
-  3. ingests /schemas/domain only when the persisted context is missing or incomplete;
-  4. validates again through /items.
+  1. reads the current deterministic release from /schemas/domain;
+  2. finds that exact releaseKey/sourceHash in the persisted release catalog;
+  3. validates governance items through /api/praxis/config/domain-catalog/items;
+  4. ingests the current /schemas/domain payload when that exact release is missing or incomplete;
+  5. validates again through /items.
 
 It does not call /api/praxis/config/domain-catalog/context, because /items is the
 deterministic persistence contract used by E2E gates.
@@ -96,15 +97,64 @@ fetch_releases() {
     -o "$output_file"
 }
 
-find_release_key_for() {
+fetch_current_catalog() {
+  local resource_key="$1"
+  local output_file="$2"
+  local encoded_resource_key
+  encoded_resource_key="$(urlencode "$resource_key")"
+  curl -fsS \
+    --connect-timeout "$CURL_CONNECT_TIMEOUT" \
+    --max-time "$CURL_MAX_TIME" \
+    "${BACKEND_URL%/}/schemas/domain?resourceKey=${encoded_resource_key}" \
+    -H "Origin: ${ORIGIN}" \
+    -H "X-Tenant-ID: ${TENANT_ID}" \
+    -H "X-Env: ${ENVIRONMENT}" \
+    -o "$output_file"
+}
+
+validate_current_catalog() {
+  local resource_key="$1"
+  local catalog_file="$2"
+  local schema_version
+  local release_key
+  local source_hash
+  local governance_count
+  schema_version="$(jq -r '.schemaVersion // empty' "$catalog_file")"
+  release_key="$(jq -r '.release.releaseKey // empty' "$catalog_file")"
+  source_hash="$(jq -r '.release.sourceHash // empty' "$catalog_file")"
+  governance_count="$(jq '.governance | if type == "array" then length else 0 end' "$catalog_file")"
+
+  if [[ "$schema_version" != "praxis.domain-catalog/v0.2" || -z "$release_key" || ! "$source_hash" =~ ^[a-fA-F0-9]{64}$ ]]; then
+    echo "Invalid current domain catalog payload for resourceKey=${resource_key}." >&2
+    jq '{schemaVersion, release, service}' "$catalog_file" >&2
+    return 1
+  fi
+
+  if [[ "$REQUIRE_GOVERNANCE" == "true" && "$governance_count" -eq 0 ]]; then
+    echo "Current domain catalog has no governance items for resourceKey=${resource_key}." >&2
+    jq '{schemaVersion, release, service, counts: {contexts:(.contexts|length), nodes:(.nodes|length), governance:(.governance|length)}}' "$catalog_file" >&2
+    return 1
+  fi
+}
+
+find_current_release_key() {
   local releases_file="$1"
   local resource_key="$2"
-  jq -r --arg resourceKey "$resource_key" '
+  local expected_release_key="$3"
+  local expected_source_hash="$4"
+  jq -r \
+    --arg resourceKey "$resource_key" \
+    --arg releaseKey "$expected_release_key" \
+    --arg sourceHash "$expected_source_hash" '
     [
       .[]
       | select(
-          (.resourceKey // "") == $resourceKey
-          or ((.releaseKey // "") | contains(":" + $resourceKey + ":"))
+          (.releaseKey // "") == $releaseKey
+          and (.sourceHash // "") == $sourceHash
+          and (
+            (.resourceKey // "") == $resourceKey
+            or ((.releaseKey // "") | contains(":" + $resourceKey + ":"))
+          )
         )
     ][0].releaseKey // empty
   ' "$releases_file"
@@ -149,30 +199,8 @@ ingest_resource() {
   local catalog_file="$2"
   local verify_query="$3"
 
-  curl -fsS \
-    --connect-timeout "$CURL_CONNECT_TIMEOUT" \
-    --max-time "$CURL_MAX_TIME" \
-    "${BACKEND_URL%/}/schemas/domain?resourceKey=${resource_key}" \
-    -o "$catalog_file"
-
-  local schema_version
   local release_key
-  local governance_count
-  schema_version="$(jq -r '.schemaVersion // empty' "$catalog_file")"
   release_key="$(jq -r '.release.releaseKey // empty' "$catalog_file")"
-  governance_count="$(jq '.governance | if type == "array" then length else 0 end' "$catalog_file")"
-
-  if [[ "$schema_version" != "praxis.domain-catalog/v0.2" || -z "$release_key" ]]; then
-    echo "Invalid domain catalog payload from /schemas/domain for resourceKey=${resource_key}." >&2
-    jq '{schemaVersion, release, service}' "$catalog_file" >&2
-    return 1
-  fi
-
-  if [[ "$REQUIRE_GOVERNANCE" == "true" && "$governance_count" -eq 0 ]]; then
-    echo "Domain catalog has no governance items for resourceKey=${resource_key}." >&2
-    jq '{schemaVersion, release, service, counts: {contexts:(.contexts|length), nodes:(.nodes|length), governance:(.governance|length)}}' "$catalog_file" >&2
-    return 1
-  fi
 
   jq --arg resourceKey "$resource_key" --arg query "$verify_query" '{
     resourceKey: $resourceKey,
@@ -272,8 +300,16 @@ for resource_key in "${resource_keys[@]}"; do
   echo
   echo "==> ${resource_key} (VERIFY_QUERY=${verify_query})"
 
+  fetch_current_catalog "$resource_key" "$catalog_file"
+  if ! validate_current_catalog "$resource_key" "$catalog_file"; then
+    failures=$((failures + 1))
+    continue
+  fi
+  expected_release_key="$(jq -r '.release.releaseKey' "$catalog_file")"
+  expected_source_hash="$(jq -r '.release.sourceHash' "$catalog_file")"
+
   fetch_releases "$releases_file"
-  release_key="$(find_release_key_for "$releases_file" "$resource_key")"
+  release_key="$(find_current_release_key "$releases_file" "$resource_key" "$expected_release_key" "$expected_source_hash")"
 
   if validate_persisted_context "$resource_key" "$release_key" "$verify_query" "$items_file"; then
     jq --arg releaseKey "$release_key" --arg resourceKey "$resource_key" --arg query "$verify_query" '{
@@ -286,14 +322,14 @@ for resource_key in "${resource_keys[@]}"; do
     continue
   fi
 
-  echo "Persisted governance context missing or incomplete. Ingesting ${resource_key}..."
+  echo "Current release is missing or incomplete in the config-store. Ingesting ${resource_key}..."
   if ! ingest_resource "$resource_key" "$catalog_file" "$verify_query"; then
     failures=$((failures + 1))
     continue
   fi
 
   fetch_releases "$releases_file"
-  release_key="$(find_release_key_for "$releases_file" "$resource_key")"
+  release_key="$(find_current_release_key "$releases_file" "$resource_key" "$expected_release_key" "$expected_source_hash")"
   if validate_persisted_context "$resource_key" "$release_key" "$verify_query" "$items_file"; then
     jq --arg releaseKey "$release_key" --arg resourceKey "$resource_key" --arg query "$verify_query" '{
       status: "ingested",

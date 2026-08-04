@@ -69,7 +69,7 @@ import org.praxisplatform.uischema.action.ActionInteractionMode;
 import org.praxisplatform.uischema.action.ActionRequirement;
 import org.praxisplatform.uischema.action.ActionResourceVersionTransport;
 import org.praxisplatform.uischema.action.ActionRiskLevel;
-import com.example.praxis.apiquickstart.hr.dto.actions.FuncionarioDeactivateRequestDTO;
+import com.example.praxis.apiquickstart.hr.dto.actions.FuncionarioLifecycleTransitionRequestDTO;
 import com.example.praxis.apiquickstart.hr.dto.actions.FuncionarioWorkflowResultDTO;
 import java.util.UUID;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -341,7 +341,7 @@ public class FuncionarioController extends AbstractQuickstartCrudController<Func
             @RequestHeader(value = "If-Match", required = false) String ifMatch,
             @RequestHeader("Idempotency-Key") String idempotencyKey,
             @RequestHeader(value = "X-Correlation-ID", required = false) String correlationId,
-            @jakarta.validation.Valid @RequestBody FuncionarioDeactivateRequestDTO command
+            @jakarta.validation.Valid @RequestBody FuncionarioLifecycleTransitionRequestDTO command
     ) {
         return executeLifecycleAction("deactivate", id, ifMatch, idempotencyKey, correlationId, command, false);
     }
@@ -377,7 +377,7 @@ public class FuncionarioController extends AbstractQuickstartCrudController<Func
             @RequestHeader(value = "If-Match", required = false) String ifMatch,
             @RequestHeader("Idempotency-Key") String idempotencyKey,
             @RequestHeader(value = "X-Correlation-ID", required = false) String correlationId,
-            @jakarta.validation.Valid @RequestBody FuncionarioDeactivateRequestDTO command
+            @jakarta.validation.Valid @RequestBody FuncionarioLifecycleTransitionRequestDTO command
     ) {
         return executeLifecycleAction("reactivate", id, ifMatch, idempotencyKey, correlationId, command, true);
     }
@@ -388,7 +388,7 @@ public class FuncionarioController extends AbstractQuickstartCrudController<Func
             String ifMatch,
             String idempotencyKey,
             String correlationId,
-            FuncionarioDeactivateRequestDTO command,
+            FuncionarioLifecycleTransitionRequestDTO command,
             boolean targetActive
     ) {
         var replay = actionExecutionService.findCompletedReplay(RESOURCE_KEY, id, actionId, idempotencyKey, command);
