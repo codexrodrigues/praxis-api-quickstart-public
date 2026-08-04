@@ -373,6 +373,11 @@ class OperationalAssetsEntityLookupPilotIntegrationTest {
                 "equipment-inventory-board",
                 "Inventario de equipamentos"
         );
+        JsonNode equipmentDetail = findById(equipmentSurfaces.path("surfaces"), "view");
+        assertNotNull(equipmentDetail);
+        assertEquals("VIEW", equipmentDetail.path("kind").asText());
+        assertEquals("ITEM", equipmentDetail.path("scope").asText());
+        assertEquals("Detalhe do equipamento", equipmentDetail.path("title").asText());
         assertRelatedSurface(
                 equipmentSurfaces,
                 "equipment-allocation-history",

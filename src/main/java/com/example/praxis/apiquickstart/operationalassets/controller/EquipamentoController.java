@@ -172,6 +172,16 @@ public class EquipamentoController extends AbstractQuickstartCrudController<Equi
     }
 
     @GetMapping("/{id}")
+    @UiSurface(
+            id = "view",
+            kind = SurfaceKind.VIEW,
+            scope = SurfaceScope.ITEM,
+            title = "Detalhe do equipamento",
+            description = "Apresenta identificação, categoria, resistência, disponibilidade e estado patrimonial do equipamento selecionado.",
+            intent = "assets-equipment-detail",
+            order = 15,
+            tags = {"assets", "equipment", "detail", "lookup"}
+    )
     @Operation(summary = "Obter equipamento operacional", description = "Retorna o detalhe de um equipamento para inspeção patrimonial, auditoria de uso ou composição de surfaces dependentes.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Registro encontrado com sucesso."),
@@ -341,7 +351,6 @@ public class EquipamentoController extends AbstractQuickstartCrudController<Equi
         );
     }
 }
-
 
 
 

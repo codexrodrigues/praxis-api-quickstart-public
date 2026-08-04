@@ -85,7 +85,16 @@ public class EquipamentoService extends AbstractQuickstartCrudService<Equipament
                                     "Selecione um equipamento em estoque ou em uso operacional para nova alocação."
                             ),
                             new LookupCapabilities(true, true, true, false, false, true, false, false, false, true),
-                            new LookupDetailDescriptor(ApiPaths.Assets.EQUIPAMENTOS + "/{id}", "/assets/equipamentos/{id}", "route"),
+                            new LookupDetailDescriptor(
+                                    null,
+                                    null,
+                                    null,
+                                    "surface",
+                                    "view",
+                                    "drawer",
+                                    "praxis-dynamic-form",
+                                    "view"
+                            ),
                             new LookupDisplayDescriptor(
                                     "status",
                                     "form",
@@ -247,6 +256,5 @@ public class EquipamentoService extends AbstractQuickstartCrudService<Equipament
         );
     }
 }
-
 
 

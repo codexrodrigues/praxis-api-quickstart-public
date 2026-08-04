@@ -87,7 +87,16 @@ public class MissaoService extends AbstractQuickstartCrudService<Missao, MissaoD
                                     "Selecione uma missão planejada, em andamento ou pausada."
                             ),
                             new LookupCapabilities(true, true, true, false, false, true, false, false, false, true),
-                            new LookupDetailDescriptor(ApiPaths.Operations.MISSOES + "/{id}", "/operations/missoes/{id}", "route"),
+                            new LookupDetailDescriptor(
+                                    null,
+                                    null,
+                                    null,
+                                    "surface",
+                                    "summary",
+                                    "modal",
+                                    "praxis-dynamic-form",
+                                    "view"
+                            ),
                             new LookupDisplayDescriptor(
                                     "status",
                                     "form",
@@ -418,7 +427,6 @@ public class MissaoService extends AbstractQuickstartCrudService<Missao, MissaoD
         );
     }
 }
-
 
 
 
