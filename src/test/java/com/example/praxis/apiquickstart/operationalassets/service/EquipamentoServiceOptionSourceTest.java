@@ -40,7 +40,7 @@ class EquipamentoServiceOptionSourceTest {
 
         assertEquals("surface", detail.kind());
         assertEquals("view", detail.surfaceId());
-        assertEquals("drawer", detail.presentation());
+        assertEquals("modal", detail.presentation());
         assertEquals("praxis-dynamic-form", detail.preferredWidget());
         assertEquals("view", detail.mode());
         assertNull(detail.hrefTemplate());

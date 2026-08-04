@@ -91,7 +91,7 @@ public class EquipamentoService extends AbstractQuickstartCrudService<Equipament
                                     null,
                                     "surface",
                                     "view",
-                                    "drawer",
+                                    "modal",
                                     "praxis-dynamic-form",
                                     "view"
                             ),
@@ -256,5 +256,4 @@ public class EquipamentoService extends AbstractQuickstartCrudService<Equipament
         );
     }
 }
-
 
