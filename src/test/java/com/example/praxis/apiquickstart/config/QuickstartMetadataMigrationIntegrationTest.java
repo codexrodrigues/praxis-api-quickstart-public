@@ -1000,7 +1000,19 @@ class QuickstartMetadataMigrationIntegrationTest {
         assertTrue(collectionCapabilities.path("operations").path("create").path("supported").asBoolean());
         assertEquals("POST", collectionCapabilities.path("operations").path("create").path("preferredMethod").asText());
         assertTrue(collectionCapabilities.path("operations").path("edit").path("supported").asBoolean());
+        assertFalse(collectionCapabilities.path("operations").path("create").path("availability").path("allowed").asBoolean());
+        assertEquals("authentication-required", collectionCapabilities.path("operations").path("create").path("availability").path("reason").asText());
+        assertFalse(collectionCapabilities.path("operations").path("edit").path("availability").path("allowed").asBoolean());
+        assertTrue(collectionCapabilities.path("operations").path("view").path("availability").path("allowed").asBoolean());
         assertEquals(0, collectionCapabilities.path("actions").size());
+
+        JsonNode authenticatedCapabilities = body(restTemplate.exchange(
+                collectionCapabilitiesHref,
+                HttpMethod.GET,
+                authorizedJson(null),
+                String.class));
+        assertTrue(authenticatedCapabilities.path("operations").path("create").path("availability").path("allowed").asBoolean());
+        assertTrue(authenticatedCapabilities.path("operations").path("edit").path("availability").path("allowed").asBoolean());
 
         JsonNode itemEnvelope = body(restTemplate.getForEntity(
                 "/api/human-resources/funcionarios/1",
@@ -1030,6 +1042,9 @@ class QuickstartMetadataMigrationIntegrationTest {
         JsonNode itemCapabilities = body(getHref(itemCapabilitiesHref));
         assertTrue(itemCapabilities.path("operations").path("view").path("supported").asBoolean());
         assertTrue(itemCapabilities.path("operations").path("edit").path("supported").asBoolean());
+        assertTrue(itemCapabilities.path("operations").path("view").path("availability").path("allowed").asBoolean());
+        assertFalse(itemCapabilities.path("operations").path("edit").path("availability").path("allowed").asBoolean());
+        assertFalse(itemCapabilities.path("operations").path("delete").path("availability").path("allowed").asBoolean());
         assertNotNull(findById(itemCapabilities.path("surfaces"), "profile"));
         assertEquals(2, itemCapabilities.path("actions").size());
     }

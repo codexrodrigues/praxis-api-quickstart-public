@@ -132,7 +132,11 @@ class LegacyBackedResourcePilotIntegrationTest {
         assertNotNull(findLinkHref(detail, "update"));
         assertNotNull(findLinkHref(detail, "delete"));
 
-        JsonNode itemCapabilities = body(restTemplate.getForEntity(BASE_PATH + "/" + createdId + "/capabilities", String.class));
+        JsonNode itemCapabilities = body(restTemplate.exchange(
+                BASE_PATH + "/" + createdId + "/capabilities",
+                HttpMethod.GET,
+                authorizedJson(null),
+                String.class));
         assertTrue(itemCapabilities.path("operations").path("duplicate-draft").path("availability").path("allowed").asBoolean());
 
         JsonNode actionCatalog = body(restTemplate.getForEntity(
