@@ -13,9 +13,11 @@ import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.praxisplatform.config.dto.DomainRuleSnapshotActivationResponse;
+import org.praxisplatform.config.contract.PublishedRuleSnapshotHead;
+import org.praxisplatform.config.contract.PublishedRuleSnapshotHeadActivationType;
+import org.praxisplatform.config.contract.PublishedRuleSnapshotHeadReader;
+import org.praxisplatform.config.contract.PublishedRuleSnapshotHeadScope;
 import org.praxisplatform.config.service.DomainRuleImplementationScope;
-import org.praxisplatform.config.service.DomainRuleSnapshotReader;
 import org.praxisplatform.rules.contract.PublishedRuleSnapshot;
 import org.praxisplatform.rules.contract.RuleDecision;
 import org.praxisplatform.rules.contract.RuleExtensionTrust;
@@ -83,8 +85,9 @@ class ExtraordinaryGrantRuleSnapshotRuntimeTest {
         PublishedRuleSnapshot incompatible = snapshot("snapshot-v2", "quickstart/2.0", 2);
 
         var status = runtime.activate(
-                new DomainRuleSnapshotActivationResponse(
-                        incompatible, "C".repeat(64), "head-2", 2, "PUBLISHED"),
+                new PublishedRuleSnapshotHead(
+                        incompatible, "C".repeat(64), "head-2", 2,
+                        PublishedRuleSnapshotHeadActivationType.PUBLISHED),
                 "desenv", "local", NOW.plusSeconds(30));
 
         assertThat(status.ready()).isTrue();
@@ -208,8 +211,9 @@ class ExtraordinaryGrantRuleSnapshotRuntimeTest {
                 "desenv", "local", NOW.plusSeconds(30));
 
         var rolledBack = runtime.activate(
-                new DomainRuleSnapshotActivationResponse(
-                        v1, original.snapshotContentHash(), "head-3", 3, "ROLLED_BACK"),
+                new PublishedRuleSnapshotHead(
+                        v1, original.snapshotContentHash(), "head-3", 3,
+                        PublishedRuleSnapshotHeadActivationType.ROLLED_BACK),
                 "desenv", "local", NOW.plusSeconds(60));
 
         assertThat(rolledBack.activeSnapshotKey()).isEqualTo("snapshot-v1");
@@ -221,8 +225,9 @@ class ExtraordinaryGrantRuleSnapshotRuntimeTest {
     @Test
     void loaderFailureDoesNotEvictActiveSnapshot() {
         var activation = activation(snapshot("snapshot-v1", "quickstart/1.0", 1), "head-1", 1);
-        DomainRuleSnapshotReader reader = mock(DomainRuleSnapshotReader.class);
-        when(reader.findActive("desenv", "local", ExtraordinaryGrantRuleSnapshotRuntime.RULE_SET_KEY))
+        PublishedRuleSnapshotHeadReader reader = mock(PublishedRuleSnapshotHeadReader.class);
+        when(reader.findActive(new PublishedRuleSnapshotHeadScope(
+                "desenv", "local", ExtraordinaryGrantRuleSnapshotRuntime.RULE_SET_KEY)))
                 .thenReturn(Optional.of(activation))
                 .thenThrow(new IllegalStateException("database unavailable"));
         var loader = new ExtraordinaryGrantRuleSnapshotLoader(
@@ -269,13 +274,14 @@ class ExtraordinaryGrantRuleSnapshotRuntimeTest {
         assertThat(health.getDetails()).doesNotContainKeys("lastFailureMessage", "snapshot", "facts", "ruleSet");
     }
 
-    private DomainRuleSnapshotActivationResponse activation(
+    private PublishedRuleSnapshotHead activation(
             PublishedRuleSnapshot snapshot, String headEtag, long activationRevision) {
         String contentHash = new PraxisRuleSnapshotCompiler(registry)
                 .compile(snapshot, ExtraordinaryGrantRuleSnapshotRuntime.HOST_CONTRACT_VERSION)
                 .snapshotContentHash();
-        return new DomainRuleSnapshotActivationResponse(
-                snapshot, contentHash, headEtag, activationRevision, "ACTIVE");
+        return new PublishedRuleSnapshotHead(
+                snapshot, contentHash, headEtag, activationRevision,
+                PublishedRuleSnapshotHeadActivationType.ACTIVE);
     }
 
     private PublishedRuleSnapshot snapshot(String snapshotKey, String hostContractVersion, int version) {

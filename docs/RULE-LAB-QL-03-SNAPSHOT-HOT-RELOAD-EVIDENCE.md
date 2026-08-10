@@ -7,8 +7,9 @@ ativo no bootstrap. O único caminho runtime agora é:
 
 1. `praxis-config-starter` seleciona o head governado por tenant, environment e
    `ruleSetKey`;
-2. `DomainRuleSnapshotReader` entrega snapshot imutável, hash de conteúdo, ETag
-   opaco do head e `activationRevision`;
+2. `PublishedRuleSnapshotHeadReader`, do artefato framework-neutral
+   `praxis-config-contracts`, entrega snapshot imutável, hash de conteúdo, ETag
+   opaco do head e `activationRevision` sem expor DTOs do Config Starter;
 3. `ExtraordinaryGrantRuleSnapshotRuntime` valida owner, scope, identidade,
    validade e contrato de host;
 4. o engine recompila o candidato com o registry Java executável do host;
@@ -73,11 +74,13 @@ código de falha; fatos, expressões e mensagens internas não são expostos.
 
 ## Coordenadas públicas
 
-- `io.github.codexrodrigues:praxis-rules-engine:0.1.0-beta.13`
-- `io.github.codexrodrigues:praxis-config-starter:0.1.0-rc.78`
+- `io.github.codexrodrigues:praxis-rules-engine:0.1.0-beta.15`
+- `io.github.codexrodrigues:praxis-config-contracts:0.1.0-beta.1`
+- `io.github.codexrodrigues:praxis-config-starter:0.1.0-rc.98`
 
-O Config Starter `rc.78` e o Quickstart exigem Java 21. Não há override de Maven
-local na prova downstream final.
+O Config Starter e o Quickstart exigem Java 21. Tanto o contrato standalone
+quanto o adapter Spring são resolvidos das coordenadas públicas, sem override
+Maven local.
 
 ## Validação focal
 

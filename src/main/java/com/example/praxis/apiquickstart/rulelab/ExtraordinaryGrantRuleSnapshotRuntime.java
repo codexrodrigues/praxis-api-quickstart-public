@@ -5,7 +5,7 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;
-import org.praxisplatform.config.dto.DomainRuleSnapshotActivationResponse;
+import org.praxisplatform.config.contract.PublishedRuleSnapshotHead;
 import org.praxisplatform.rules.contract.PublishedRuleSnapshot;
 import org.praxisplatform.rules.contract.RuleEvaluationResult;
 import org.praxisplatform.rules.runtime.PraxisRuleSetEngine;
@@ -42,7 +42,7 @@ public final class ExtraordinaryGrantRuleSnapshotRuntime {
 
     /** Validates and atomically activates a newer control-plane head. */
     public synchronized ExtraordinaryGrantRuleSnapshotStatus activate(
-            DomainRuleSnapshotActivationResponse candidate,
+            PublishedRuleSnapshotHead candidate,
             String expectedTenantId,
             String expectedEnvironment,
             Instant attemptAtUtc) {

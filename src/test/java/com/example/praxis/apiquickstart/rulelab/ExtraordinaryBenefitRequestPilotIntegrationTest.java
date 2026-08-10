@@ -41,7 +41,9 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
-import org.praxisplatform.config.dto.DomainRuleSnapshotActivationResponse;
+import org.praxisplatform.config.contract.PublishedRuleSnapshotHead;
+import org.praxisplatform.config.contract.PublishedRuleSnapshotHeadActivationType;
+import org.praxisplatform.config.contract.PublishedRuleSnapshotHeadReader;
 import org.praxisplatform.rules.contract.PublishedRuleSnapshot;
 import org.praxisplatform.rules.contract.RuleSnapshotApproval;
 import org.praxisplatform.rules.contract.RuleSnapshotSource;
@@ -132,6 +134,8 @@ class ExtraordinaryBenefitRequestPilotIntegrationTest {
     @Autowired
     private ExtraordinaryGrantRuleSnapshotRuntime runtime;
     @Autowired
+    private PublishedRuleSnapshotHeadReader snapshotHeadReader;
+    @Autowired
     private ExtraordinaryBenefitStatementCommandService statementCommandService;
     @Autowired
     private ExtraordinaryBenefitStatementOutboxDispatcher outboxDispatcher;
@@ -181,6 +185,11 @@ class ExtraordinaryBenefitRequestPilotIntegrationTest {
                 .size());
     }
 
+    @Test
+    void receivesTheFrameworkNeutralPublishedHeadReaderFromTheConfigStarter() {
+        assertNotNull(snapshotHeadReader);
+    }
+
     @BeforeEach
     void activateGovernedSnapshot() throws Exception {
         createOperationalSchema();
@@ -204,7 +213,9 @@ class ExtraordinaryBenefitRequestPilotIntegrationTest {
                 .compile(snapshot, ExtraordinaryGrantRuleSnapshotRuntime.HOST_CONTRACT_VERSION)
                 .snapshotContentHash();
         runtime.activate(
-                new DomainRuleSnapshotActivationResponse(snapshot, contentHash, "ql04-head-1", 1, "ACTIVE"),
+                new PublishedRuleSnapshotHead(
+                        snapshot, contentHash, "ql04-head-1", 1,
+                        PublishedRuleSnapshotHeadActivationType.ACTIVE),
                 "desenv",
                 "local",
                 ACTIVATION_TIME);

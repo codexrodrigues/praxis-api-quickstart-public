@@ -20,7 +20,8 @@ import java.util.Set;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.praxisplatform.config.dto.DomainRuleSnapshotActivationResponse;
+import org.praxisplatform.config.contract.PublishedRuleSnapshotHead;
+import org.praxisplatform.config.contract.PublishedRuleSnapshotHeadActivationType;
 import org.praxisplatform.rules.contract.PublishedRuleSnapshot;
 import org.praxisplatform.rules.contract.RuleBindingResult;
 import org.praxisplatform.rules.contract.RuleDecision;
@@ -47,7 +48,9 @@ class ExtraordinaryGrantRuleLabServiceTest {
                 .compile(snapshot, ExtraordinaryGrantRuleSnapshotRuntime.HOST_CONTRACT_VERSION)
                 .snapshotContentHash();
         runtime.activate(
-                new DomainRuleSnapshotActivationResponse(snapshot, contentHash, "head-1", 1, "ACTIVE"),
+                new PublishedRuleSnapshotHead(
+                        snapshot, contentHash, "head-1", 1,
+                        PublishedRuleSnapshotHeadActivationType.ACTIVE),
                 "desenv",
                 "local",
                 NOW);

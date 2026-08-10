@@ -11,8 +11,8 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import org.praxisplatform.config.contract.PublishedRuleSnapshotHeadReader;
 import org.praxisplatform.config.service.DomainRuleImplementationCatalog;
-import org.praxisplatform.config.service.DomainRuleSnapshotReader;
 import org.praxisplatform.rules.contract.RuleDecision;
 import org.praxisplatform.rules.contract.RuleExecutorResult;
 import org.praxisplatform.rules.contract.RuleExtensionTrust;
@@ -99,7 +99,7 @@ public class ExtraordinaryGrantRuleLabConfiguration {
             name = "enabled",
             havingValue = "true")
     ExtraordinaryGrantRuleSnapshotLoader extraordinaryGrantRuleSnapshotLoader(
-            DomainRuleSnapshotReader reader,
+            PublishedRuleSnapshotHeadReader reader,
             ExtraordinaryGrantRuleSnapshotRuntime runtime,
             @Value("${praxis.rule-lab.snapshot.tenant-id}") String tenantId,
             @Value("${praxis.rule-lab.snapshot.environment}") String environment,

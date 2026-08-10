@@ -3,7 +3,8 @@ package com.example.praxis.apiquickstart.rulelab;
 import java.time.Instant;
 import java.time.Clock;
 import java.util.Objects;
-import org.praxisplatform.config.service.DomainRuleSnapshotReader;
+import org.praxisplatform.config.contract.PublishedRuleSnapshotHeadReader;
+import org.praxisplatform.config.contract.PublishedRuleSnapshotHeadScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -12,14 +13,14 @@ import org.springframework.scheduling.annotation.Scheduled;
 public final class ExtraordinaryGrantRuleSnapshotLoader {
     private static final Logger LOG = LoggerFactory.getLogger(ExtraordinaryGrantRuleSnapshotLoader.class);
 
-    private final DomainRuleSnapshotReader reader;
+    private final PublishedRuleSnapshotHeadReader reader;
     private final ExtraordinaryGrantRuleSnapshotRuntime runtime;
     private final String tenantId;
     private final String environment;
     private final Clock clock;
 
     public ExtraordinaryGrantRuleSnapshotLoader(
-            DomainRuleSnapshotReader reader,
+            PublishedRuleSnapshotHeadReader reader,
             ExtraordinaryGrantRuleSnapshotRuntime runtime,
             String tenantId,
             String environment,
@@ -35,10 +36,10 @@ public final class ExtraordinaryGrantRuleSnapshotLoader {
     public ExtraordinaryGrantRuleSnapshotStatus refreshNow() {
         Instant attemptedAt = clock.instant();
         try {
-            return reader.findActive(
+            return reader.findActive(new PublishedRuleSnapshotHeadScope(
                             tenantId,
                             environment,
-                            ExtraordinaryGrantRuleSnapshotRuntime.RULE_SET_KEY)
+                            ExtraordinaryGrantRuleSnapshotRuntime.RULE_SET_KEY))
                     .map(candidate -> runtime.activate(candidate, tenantId, environment, attemptedAt))
                     .orElseGet(() -> runtime.reject(
                             "HEAD_NOT_FOUND",

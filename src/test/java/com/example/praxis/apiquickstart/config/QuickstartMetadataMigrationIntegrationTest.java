@@ -486,8 +486,10 @@ class QuickstartMetadataMigrationIntegrationTest {
         assertTrue(findById(itemSurfaces.path("surfaces"), "skills").path("availability").path("allowed").asBoolean());
         assertTrue(findById(itemSurfaces.path("surfaces"), "career-history").path("availability").path("allowed").asBoolean());
 
-        JsonNode itemCapabilities = body(restTemplate.getForEntity(
+        JsonNode itemCapabilities = body(restTemplate.exchange(
                 "/api/human-resources/funcionarios/1/capabilities",
+                HttpMethod.GET,
+                authorizedJson(null),
                 String.class
         ));
         assertTrue(itemCapabilities.path("canonicalOperations").path("update").asBoolean());
@@ -815,8 +817,20 @@ class QuickstartMetadataMigrationIntegrationTest {
         assertEquals(false, jdbcTemplate.queryForObject("select ativo from public.funcionarios where id = 1", Boolean.class));
         assertEquals(1, jdbcTemplate.queryForObject("select count(*) from public.praxis_resource_action_transition where action_id = 'deactivate'", Integer.class));
 
-        JsonNode itemActions = body(restTemplate.getForEntity(
+        JsonNode anonymousItemActions = body(restTemplate.getForEntity(
                 "/api/human-resources/funcionarios/1/actions",
+                String.class
+        ));
+        JsonNode anonymousReactivate = findById(anonymousItemActions.path("actions"), "reactivate");
+        assertFalse(anonymousReactivate.path("availability").path("allowed").asBoolean());
+        assertEquals("authentication-required", anonymousReactivate.path("availability").path("reason").asText());
+
+        HttpHeaders actionCatalogHeaders = new HttpHeaders();
+        actionCatalogHeaders.add(HttpHeaders.COOKIE, "SESSION=" + jwtTokenService.generate("admin", "ADMIN"));
+        JsonNode itemActions = body(restTemplate.exchange(
+                "/api/human-resources/funcionarios/1/actions",
+                HttpMethod.GET,
+                new HttpEntity<>(actionCatalogHeaders),
                 String.class
         ));
         assertFalse(findById(itemActions.path("actions"), "deactivate")
@@ -913,8 +927,10 @@ class QuickstartMetadataMigrationIntegrationTest {
         assertTrue(body(response).path("data").path("ativo").asBoolean());
         assertEquals(1, jdbcTemplate.queryForObject("select count(*) from public.praxis_resource_action_transition where action_id = 'reactivate'", Integer.class));
 
-        JsonNode itemActions = body(restTemplate.getForEntity(
+        JsonNode itemActions = body(restTemplate.exchange(
                 "/api/human-resources/funcionarios/1/actions",
+                HttpMethod.GET,
+                authorizedJson(null),
                 String.class
         ));
         assertTrue(findById(itemActions.path("actions"), "deactivate")

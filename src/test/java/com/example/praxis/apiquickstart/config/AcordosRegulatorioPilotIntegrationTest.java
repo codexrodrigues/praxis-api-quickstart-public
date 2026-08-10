@@ -132,8 +132,10 @@ class AcordosRegulatorioPilotIntegrationTest {
         assertNotNull(findById(actionsCatalog.path("actions"), "reinstate"));
         assertNotNull(findById(actionsCatalog.path("actions"), "revoke"));
 
-        JsonNode vigenteActions = body(restTemplate.getForEntity(
+        JsonNode vigenteActions = body(restTemplate.exchange(
                 "/api/operations/acordos-regulatorios/1/actions",
+                HttpMethod.GET,
+                authorizedJson(null),
                 String.class
         ));
         JsonNode suspend = findById(vigenteActions.path("actions"), "suspend");
@@ -144,8 +146,10 @@ class AcordosRegulatorioPilotIntegrationTest {
         assertEquals("resource-state-blocked", reinstate.path("availability").path("reason").asText());
         assertTrue(revoke.path("availability").path("allowed").asBoolean());
 
-        JsonNode suspendedActions = body(restTemplate.getForEntity(
+        JsonNode suspendedActions = body(restTemplate.exchange(
                 "/api/operations/acordos-regulatorios/2/actions",
+                HttpMethod.GET,
+                authorizedJson(null),
                 String.class
         ));
         assertTrue(findById(suspendedActions.path("actions"), "reinstate").path("availability").path("allowed").asBoolean());

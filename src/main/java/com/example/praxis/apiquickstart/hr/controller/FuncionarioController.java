@@ -285,7 +285,7 @@ public class FuncionarioController extends AbstractQuickstartCrudController<Func
     }
 
     @GetMapping("/{id}")
-    @Operation(summary = "Obter funcionário", description = "Retorna o detalhe de um funcionário para inspeção cadastral, auditoria de vínculo e composição de visões dependentes de RH.")
+    @Operation(summary = "Detalhes do funcionário", description = "Consulte os dados cadastrais, contatos, vínculo, cargo e remuneração da pessoa selecionada.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Registro encontrado com sucesso."),
             @ApiResponse(responseCode = "404", description = "Registro não encontrado.")

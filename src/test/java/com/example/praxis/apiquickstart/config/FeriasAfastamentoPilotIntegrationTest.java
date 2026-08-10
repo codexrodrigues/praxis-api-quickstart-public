@@ -153,8 +153,10 @@ class FeriasAfastamentoPilotIntegrationTest {
         assertEquals("Plano de cobertura",
                 requestSchema.path("properties").path("planoCobertura").path("x-ui").path("label").asText());
 
-        JsonNode capabilities = body(restTemplate.getForEntity(
+        JsonNode capabilities = body(restTemplate.exchange(
                 "/api/human-resources/ferias-afastamentos/1/capabilities",
+                HttpMethod.GET,
+                authorizedJson(null),
                 String.class
         ));
         assertTrue(findById(capabilities.path("actions"), "plan-coverage").path("availability").path("allowed").asBoolean());

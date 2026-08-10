@@ -592,8 +592,10 @@ class OperationalAssetsEntityLookupPilotIntegrationTest {
         assertAction(actionsCatalog, "report-lost", "/api/assets/equipamento-alocacoes/{id}/actions/report-lost");
         assertAction(actionsCatalog, "report-damaged", "/api/assets/equipamento-alocacoes/{id}/actions/report-damaged");
 
-        JsonNode activeCustodyActions = body(restTemplate.getForEntity(
+        JsonNode activeCustodyActions = body(restTemplate.exchange(
                 "/api/assets/equipamento-alocacoes/10/actions",
+                HttpMethod.GET,
+                authorizedJson(null),
                 String.class
         ));
         assertTrue(findById(activeCustodyActions.path("actions"), "return-custody")
@@ -619,8 +621,10 @@ class OperationalAssetsEntityLookupPilotIntegrationTest {
         assertFalse(returned.path("_links").path("schema").isMissingNode(), returned.toPrettyString());
         assertEquipmentSelectable(3, true);
 
-        JsonNode returnedCustodyActions = body(restTemplate.getForEntity(
+        JsonNode returnedCustodyActions = body(restTemplate.exchange(
                 "/api/assets/equipamento-alocacoes/10/actions",
+                HttpMethod.GET,
+                authorizedJson(null),
                 String.class
         ));
         assertFalse(findById(returnedCustodyActions.path("actions"), "return-custody")

@@ -210,23 +210,29 @@ class FolhasPagamentoPilotIntegrationTest {
         assertEquals("Justificativa",
                 approveEventsRequestSchema.path("properties").path("justificativa").path("x-ui").path("label").asText());
 
-        JsonNode awaitingCapabilities = body(restTemplate.getForEntity(
+        JsonNode awaitingCapabilities = body(restTemplate.exchange(
                 "/api/human-resources/folhas-pagamento/1/capabilities",
+                HttpMethod.GET,
+                authorizedJson(null),
                 String.class
         ));
         assertTrue(findById(awaitingCapabilities.path("surfaces"), "payment-schedule").path("availability").path("allowed").asBoolean());
         assertTrue(findById(awaitingCapabilities.path("actions"), "approve-events").path("availability").path("allowed").asBoolean());
         assertFalse(findById(awaitingCapabilities.path("actions"), "mark-paid").path("availability").path("allowed").asBoolean());
 
-        JsonNode scheduledActions = body(restTemplate.getForEntity(
+        JsonNode scheduledActions = body(restTemplate.exchange(
                 "/api/human-resources/folhas-pagamento/2/actions",
+                HttpMethod.GET,
+                authorizedJson(null),
                 String.class
         ));
         assertFalse(findById(scheduledActions.path("actions"), "approve-events").path("availability").path("allowed").asBoolean());
         assertTrue(findById(scheduledActions.path("actions"), "mark-paid").path("availability").path("allowed").asBoolean());
 
-        JsonNode paidCapabilities = body(restTemplate.getForEntity(
+        JsonNode paidCapabilities = body(restTemplate.exchange(
                 "/api/human-resources/folhas-pagamento/3/capabilities",
+                HttpMethod.GET,
+                authorizedJson(null),
                 String.class
         ));
         assertFalse(findById(paidCapabilities.path("surfaces"), "payment-schedule").path("availability").path("allowed").asBoolean());

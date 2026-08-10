@@ -17,6 +17,11 @@
 
 O [Praxis Cockpit](https://praxis-api-quickstart.onrender.com/praxis/cockpit) e a forma mais rapida de entender este host sem clonar o projeto. Ele e servido automaticamente pelo `praxis-metadata-starter`, nao por HTML copiado no Quickstart, e mostra como o dominio publicado pelo backend vira inventario navegavel: areas de negocio, recursos, endpoints, filtros, tabelas, formularios, graficos, workflow actions, prontidao semantica e relacionamentos entre recursos.
 
+Como o cockpit consulta o catalogo logo na primeira jornada, este host ativa
+`praxis.openapi.prewarm.enabled=true`. A propriedade e fornecida pelo starter e aquece os grupos
+OpenAPI em segundo plano depois que a aplicacao fica pronta; ela nao muda endpoints, contrato de
+catalogo nem a governanca do dominio.
+
 Compartilhe sempre a URL canonica `/praxis/cockpit`. Parametros como `release`, `published` e `qa` sao cache-busters temporarios para validacao; o topo do cockpit mostra o release solicitado e o `build.time` real de `/actuator/info` para confirmar se o Render ja serviu o build esperado.
 
 Leia tambem [`docs/COCKPIT-QUICKSTART-REFERENCE.md`](docs/COCKPIT-QUICKSTART-REFERENCE.md) para entender como o cockpit deve ser usado como evidencia do host exemplar: cobertura por dominio, surfaces, workflow actions, charts, relacionamentos navegaveis e prioridades de evolucao do Quickstart.
@@ -320,6 +325,7 @@ Opcionalmente, se o provedor expoe `DATABASE_URL` (DSN), mantenha tambem `SPRING
   - `GET/HEAD` da whitelist (`APP_SECURITY_READ_OPEN_WHITELIST`) podem ficar publicos quando configurados;
   - demais rotas exigem sessao autenticada.
   - valor padrao de `APP_SECURITY_READ_OPEN_WHITELIST`: vazio.
+- Os catálogos contextuais de `actions` e `capabilities` continuam legíveis no modo público, mas comandos mutáveis são publicados com `availability.allowed=false` e `reason=authentication-required` até que a sessão autenticada do host esteja presente. Assim, o runtime não anuncia um formulário de comando que o endpoint ainda recusaria.
 - Rate limit padrao do host:
   - `APP_RATE_LIMIT_PUBLIC_READ_LIMIT=600`
   - `APP_RATE_LIMIT_PUBLIC_QUERY_LIMIT=240`
@@ -1038,7 +1044,7 @@ curl -s -X POST 'http://localhost:8088/api/human-resources/funcionarios/options/
 - `ddl-auto`: `none` (dev) e `validate` (prod), conforme `application-dev.properties`/`application-prod.properties`.
 - Se um provedor fornecer apenas `DATABASE_URL` no formato DSN, converta para JDBC antes de setar `SPRING_DATASOURCE_URL`.
 - Dependencia no Maven Central: `io.github.codexrodrigues:praxis-metadata-starter` (nenhuma etapa previa de build local e necessaria).
-- `io.github.codexrodrigues:praxis-config-starter` esta alinhado ao corte publicado `0.1.0-rc.76`; este quickstart acompanha o release candidate usado para validar os contratos atuais no host operacional de referencia e no rollout Render.
+- `io.github.codexrodrigues:praxis-config-starter` esta alinhado ao corte publicado `0.1.0-rc.98`; este quickstart acompanha o release candidate usado para validar os contratos atuais no host operacional de referencia e no rollout Render.
 - Este quickstart deve consumir a versao mais recente do starter disponivel para o ciclo corrente para refletir no host operacional os contratos atuais de `ETag`, `If-None-Match`, `If-Match`, `412 Precondition Failed` e authoring AI em `/api/praxis/config/**`.
 - Com `praxis-config-starter:0.1.0-rc.71`, o quickstart tambem prova `GET /api/praxis/runtime/context`, `PUT /api/praxis/runtime/context`, `GET /api/praxis/runtime/tenants`, `GET /api/praxis/runtime/navigation` e `GET /api/praxis/runtime/security-events` com um provider demonstrativo nao-Ergon (`QuickstartEnterpriseRuntimeContextProvider`). Esse provider apenas projeta contexto publico seguro, uma lista de tenants demonstrativa, uma troca de contexto demo com headers de propagacao, uma arvore de navegacao com refs canonicas Praxis e eventos runtime sanitizados para shell/AI grounding; autenticacao, autorizacao privada, roles reais, tenant entitlement, menus corporativos e auditoria privada continuam sendo responsabilidade do host corporativo.
 - Este quickstart ativa explicitamente `praxis.ai.authoring.reference-ui-composition-provider-enabled=true` porque e o host de referencia que demonstra composicoes ricas de RH/folha. O `praxis-config-starter` generico nao registra esse provider por padrao; hosts reais devem alimentar authoring por catalogo, contexto semantico e providers proprios quando precisarem de planos especializados.

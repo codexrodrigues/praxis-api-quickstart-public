@@ -587,8 +587,10 @@ class MissaoPilotIntegrationTest {
         assertNotNull(findById(actionsCatalog.path("actions"), "complete"));
         assertNotNull(findById(actionsCatalog.path("actions"), "fail"));
 
-        JsonNode plannedCapabilities = body(restTemplate.getForEntity(
+        JsonNode plannedCapabilities = body(restTemplate.exchange(
                 "/api/operations/missoes/1/capabilities",
+                HttpMethod.GET,
+                authorizedJson(null),
                 String.class
         ));
         assertTrue(findById(plannedCapabilities.path("surfaces"), "reschedule").path("availability").path("allowed").asBoolean());
@@ -658,8 +660,10 @@ class MissaoPilotIntegrationTest {
         assertEquals("status", statusStats.path("data").path("field").asText());
         assertTrue(statusStats.path("data").path("buckets").size() > 0);
 
-        JsonNode pausedActions = body(restTemplate.getForEntity(
+        JsonNode pausedActions = body(restTemplate.exchange(
                 "/api/operations/missoes/3/actions",
+                HttpMethod.GET,
+                authorizedJson(null),
                 String.class
         ));
         assertTrue(findById(pausedActions.path("actions"), "resume").path("availability").path("allowed").asBoolean());

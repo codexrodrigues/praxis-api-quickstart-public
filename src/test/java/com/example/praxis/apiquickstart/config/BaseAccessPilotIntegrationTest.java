@@ -252,15 +252,19 @@ class BaseAccessPilotIntegrationTest {
         assertNotNull(findById(accessActions.path("actions"), "activate"));
         assertNotNull(findById(accessActions.path("actions"), "deactivate"));
 
-        JsonNode activeAccess = body(restTemplate.getForEntity(
+        JsonNode activeAccess = body(restTemplate.exchange(
                 "/api/operations/base-acessos/1/actions",
+                HttpMethod.GET,
+                authorizedJson(null),
                 String.class
         ));
         assertTrue(findById(activeAccess.path("actions"), "deactivate").path("availability").path("allowed").asBoolean());
         assertFalse(findById(activeAccess.path("actions"), "activate").path("availability").path("allowed").asBoolean());
 
-        JsonNode inactiveAccess = body(restTemplate.getForEntity(
+        JsonNode inactiveAccess = body(restTemplate.exchange(
                 "/api/operations/base-acessos/2/capabilities",
+                HttpMethod.GET,
+                authorizedJson(null),
                 String.class
         ));
         assertTrue(findById(inactiveAccess.path("actions"), "activate").path("availability").path("allowed").asBoolean());

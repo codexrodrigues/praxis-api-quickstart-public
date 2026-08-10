@@ -20,7 +20,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
-import org.praxisplatform.config.dto.DomainRuleSnapshotActivationResponse;
+import org.praxisplatform.config.contract.PublishedRuleSnapshotHead;
+import org.praxisplatform.config.contract.PublishedRuleSnapshotHeadActivationType;
 import org.praxisplatform.rules.contract.PublishedRuleSnapshot;
 import org.praxisplatform.rules.contract.RuleSnapshotApproval;
 import org.praxisplatform.rules.contract.RuleSnapshotSource;
@@ -262,8 +263,9 @@ public final class RuleLabDistributedOutboxDrill {
         String contentHash = new PraxisRuleSnapshotCompiler(registry)
                 .compile(snapshot, ExtraordinaryGrantRuleSnapshotRuntime.HOST_CONTRACT_VERSION)
                 .snapshotContentHash();
-        runtime.activate(new DomainRuleSnapshotActivationResponse(
-                        snapshot, contentHash, "ql08-distributed-head", 1, "ACTIVE"),
+        runtime.activate(new PublishedRuleSnapshotHead(
+                        snapshot, contentHash, "ql08-distributed-head", 1,
+                        PublishedRuleSnapshotHeadActivationType.ACTIVE),
                 "desenv", "local", ACTIVATION_TIME);
     }
 
