@@ -94,6 +94,67 @@ public class ExtraordinaryBenefitPersistenceItemService {
     }
 
     /**
+     * Replaces the evaluated state of the same aggregate after a fresh authoritative ALLOW.
+     * Lifecycle identity is preserved and no effect is executed by this command.
+     */
+    @Transactional
+    public com.example.praxis.apiquickstart.rulelab.dto.ExtraordinaryBenefitRequestResponse updateAllowed(
+            ExtraordinaryBenefitRequestEntity entity,
+            ExtraordinaryBenefitEvaluationRequest request,
+            ExtraordinaryBenefitEvaluatedDecision decision,
+            String factReference,
+            RuleFactProvenance factProvenance,
+            String actorSubject,
+            String correlationId) {
+        ExtraordinaryBenefitEvaluationResponse evaluation = Objects.requireNonNull(
+                decision, "decision is required").response();
+        ExtraordinaryBenefitTransformationAuditEvidence evidence = Objects.requireNonNull(
+                decision.transformationEvidence(), "ALLOW transformation evidence is required");
+        if (entity.getLifecycleStatus() != ExtraordinaryBenefitLifecycleStatus.EVALUATED) {
+            throw new IllegalStateException("Only an EVALUATED request can be re-evaluated");
+        }
+        entity.setReasonCode(request.reasonCode());
+        entity.setEventDate(request.eventDate());
+        entity.setRequestedAmount(request.requestedAmount());
+        entity.setWorkerStatus(request.workerStatus());
+        entity.setDuplicateGrant(request.duplicateGrant());
+        entity.setProgramActive(request.programActive());
+        entity.setProgramMaximumAmount(request.programMaximumAmount());
+        entity.setCustomerAdditionalEligible(request.customerAdditionalEligible());
+        entity.setRequestedPaymentDate(request.requestedPaymentDate());
+        entity.setAllowedPaymentDates(request.allowedPaymentDates().stream()
+                .map(Object::toString).collect(Collectors.joining(",")));
+        entity.setAvailableBudgetAmount(request.availableBudgetAmount());
+        entity.setUserTimeZone(request.userTimeZone());
+        entity.setRecommendedAmount(evaluation.recommendedAmount());
+        entity.setCurrency(evaluation.currency());
+        entity.setSnapshotKey(evaluation.snapshotKey());
+        entity.setSnapshotContentHash(evaluation.snapshotContentHash());
+        entity.setSnapshotActivationRevision(evaluation.snapshotActivationRevision());
+        entity.setRuleSetKey(evaluation.ruleSetKey());
+        entity.setRuleSetVersion(evaluation.ruleSetVersion());
+        entity.setFactsDigest(evaluation.factsDigest());
+        entity.setFactReference(requireText(factReference, "factReference"));
+        entity.setFactProviderKey(factProvenance.providerKey());
+        entity.setFactSourceRecordDigest(factProvenance.sourceRecordDigest());
+        entity.setFactSourceVersion(factProvenance.sourceVersion());
+        entity.setFactSourceRecordedAt(factProvenance.sourceRecordedAt());
+        entity.setFactScopeDigest(factProvenance.scopeDigest());
+        entity.setFactAsOf(factProvenance.asOf());
+        entity.setPlanDigest(evaluation.planDigest());
+        entity.setPlannedEffectIntent(evaluation.plannedEffectIntent());
+        entity.setEvaluationBusinessMessage(evaluation.businessMessage());
+        entity.setEvaluationReasonCodes(String.join(",", evaluation.reasonCodes()));
+        entity.setEvaluatedAt(evaluation.evaluatedAtUtc());
+        entity.setLastTransitionBy(actorSubject);
+        ExtraordinaryBenefitRequestEntity persisted = repository.saveAndFlush(entity);
+        transformationAuditStore.append(new ExtraordinaryBenefitTransformationAudit(
+                UUID.randomUUID(), persisted.getId(), null, RuleLabOperationCardinality.SINGLE_ITEM,
+                evidence, evaluation, requireText(correlationId, "correlationId")));
+        return mapper.toResponse(persisted);
+    }
+
+    /**
      * Compatibility boundary for the host-only QL-08 statement atomicity proof.
      * Rows created here deliberately have no authoritative provenance and therefore fail closed
      * in the public apply action. Remove this boundary when QL-08 acquires facts through the host

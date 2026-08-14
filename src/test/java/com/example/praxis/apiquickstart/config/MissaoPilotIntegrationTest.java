@@ -436,6 +436,10 @@ class MissaoPilotIntegrationTest {
         assertEquals(10, missaoUi.path("order").asInt());
         assertEquals(20,
                 participanteSchema.path("properties").path("funcionarioId").path("x-ui").path("order").asInt());
+        assertEquals("md", participanteSchema.path("properties").path("papel").path("x-ui").path("width").asText());
+        assertEquals("md", participanteSchema.path("properties").path("ordem").path("x-ui").path("width").asText());
+        assertEquals("md", participanteSchema.path("properties").path("principal").path("x-ui").path("width").asText());
+        assertEquals("md", participanteSchema.path("properties").path("resultado").path("x-ui").path("width").asText());
 
         JsonNode participanteFilterSchema = body(restTemplate.getForEntity(
                 "/schemas/filtered?path=/api/operations/missao-participantes/filter&operation=post&schemaType=request",

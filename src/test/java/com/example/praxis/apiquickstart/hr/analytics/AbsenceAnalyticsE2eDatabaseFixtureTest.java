@@ -28,8 +28,8 @@ class AbsenceAnalyticsE2eDatabaseFixtureTest {
     void removesOnlyTheTwoProductionRuntimeRoleGrants() {
         String migration = """
                 create view public.vw_analytics_afastamentos as select 1;
-                grant execute on function public.hr_absence_criticality_level(bigint) to praxis_service_user;
-                grant select on public.vw_analytics_afastamentos to praxis_service_user;
+                grant execute on function public.hr_absence_criticality_level(bigint) to ${OPERATIONAL_RUNTIME_ROLE};
+                grant select on public.vw_analytics_afastamentos to ${OPERATIONAL_RUNTIME_ROLE};
                 grant select on public.some_other_view to another_role;
                 """;
 
@@ -39,8 +39,8 @@ class AbsenceAnalyticsE2eDatabaseFixtureTest {
         assertThat(fixtureMigration)
                 .contains("create view public.vw_analytics_afastamentos")
                 .contains("grant select on public.some_other_view to another_role")
-                .doesNotContain("hr_absence_criticality_level(bigint) to praxis_service_user")
-                .doesNotContain("vw_analytics_afastamentos to praxis_service_user");
+                .doesNotContain("hr_absence_criticality_level(bigint) to ${OPERATIONAL_RUNTIME_ROLE}")
+                .doesNotContain("vw_analytics_afastamentos to ${OPERATIONAL_RUNTIME_ROLE}");
     }
 
     @Test

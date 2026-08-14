@@ -55,6 +55,14 @@ class IntegrationTestIsolationPolicyTest {
         boolean usesH2ConfigDatasource = source.contains("config.datasource.url=jdbc:h2:mem:");
         boolean disablesFlyway = source.contains("spring.flyway.enabled=false");
 
+        boolean usesEmbeddedPostgres = source.contains("EmbeddedPostgres")
+                && source.contains("@DynamicPropertySource")
+                && source.contains("properties.add(\"spring.datasource.url\"")
+                && source.contains("properties.add(\"config.datasource.url\"");
+        if (usesEmbeddedPostgres && disablesFlyway) {
+            return;
+        }
+
         if (!usesH2ApiDatasource || !usesH2ConfigDatasource || !disablesFlyway) {
             violations.add(path + " must configure H2 api/config datasources and disable Flyway");
         }

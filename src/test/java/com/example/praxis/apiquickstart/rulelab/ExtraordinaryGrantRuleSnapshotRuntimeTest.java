@@ -5,6 +5,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
@@ -34,11 +35,15 @@ class ExtraordinaryGrantRuleSnapshotRuntimeTest {
 
     private RuleBindingExecutorRegistry registry;
     private ExtraordinaryGrantRuleSnapshotRuntime runtime;
+    private SimpleMeterRegistry meterRegistry;
 
     @BeforeEach
     void setUp() {
         registry = new ExtraordinaryGrantRuleLabConfiguration().extraordinaryGrantRuleExecutorRegistry();
-        runtime = new ExtraordinaryGrantRuleSnapshotRuntime(registry);
+        meterRegistry = new SimpleMeterRegistry();
+        runtime = new ExtraordinaryGrantRuleSnapshotRuntime(
+                registry,
+                new ExtraordinaryGrantRuleRuntimeTelemetry(meterRegistry));
     }
 
     @Test
@@ -75,6 +80,10 @@ class ExtraordinaryGrantRuleSnapshotRuntimeTest {
         assertThat(second.lastAttemptAtUtc()).isEqualTo(NOW.plusSeconds(30));
         assertThat(second.lastActivatedAtUtc()).isEqualTo(NOW);
         assertThat(second.lastFailureCode()).isNull();
+        assertThat(meterRegistry.get("praxis.rule.runtime.snapshot.refreshes")
+                .tag("result", "activated").counter().count()).isEqualTo(1);
+        assertThat(meterRegistry.get("praxis.rule.runtime.snapshot.refreshes")
+                .tag("result", "unchanged").counter().count()).isEqualTo(1);
     }
 
     @Test
@@ -170,6 +179,8 @@ class ExtraordinaryGrantRuleSnapshotRuntimeTest {
         assertThat(evaluation.snapshotKey()).isEqualTo("snapshot-v1");
         assertThat(evaluation.activationRevision()).isEqualTo(1);
         assertThat(evaluation.result().ruleSetRef().version()).isEqualTo(1);
+        assertThat(meterRegistry.get("praxis.rule.runtime.evaluations")
+                .tag("outcome", "allow").tag("status", "completed").counter().count()).isEqualTo(1);
     }
 
     @Test
@@ -239,6 +250,8 @@ class ExtraordinaryGrantRuleSnapshotRuntimeTest {
         assertThat(failedRefresh.ready()).isTrue();
         assertThat(failedRefresh.activeSnapshotKey()).isEqualTo("snapshot-v1");
         assertThat(failedRefresh.lastFailureCode()).isEqualTo("CONTROL_PLANE_UNAVAILABLE");
+        assertThat(meterRegistry.get("praxis.rule.runtime.snapshot.refreshes")
+                .tag("result", "rejected").counter().count()).isEqualTo(1);
     }
 
     @Test

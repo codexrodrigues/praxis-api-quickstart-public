@@ -3,8 +3,9 @@
   Provisions the governed QL-07 snapshot through the Config Starter HTTP lifecycle.
 
 .DESCRIPTION
-  Creates two scoped draft source definitions when absent, approves them with distinct
-  allowlisted reviewers, and publishes the canonical host RuleSet with If-None-Match.
+  Resolves the seven real Policy Studio definitions, creates a reviewable version when
+  their seed governance does not admit the lab checker, approves them with distinct
+  allowlisted reviewers, and publishes the host-composed RuleSet with If-None-Match.
   It never writes directly to Config Starter tables and is idempotent after publication.
 #>
 [CmdletBinding()]
@@ -58,6 +59,15 @@ $approverASession = New-AuthenticatedSession $env:APP_AUTH_GOVERNANCE_APPROVER_A
 $approverBSession = New-AuthenticatedSession $env:APP_AUTH_GOVERNANCE_APPROVER_B_USERNAME $env:APP_AUTH_GOVERNANCE_APPROVER_B_PASSWORD
 $publisherSession = New-AuthenticatedSession $env:APP_AUTH_GOVERNANCE_PUBLISHER_USERNAME $env:APP_AUTH_GOVERNANCE_PUBLISHER_PASSWORD
 $headers = @{ Accept = 'application/json'; Origin = $AllowedOrigin; 'X-Tenant-ID' = 'desenv'; 'X-Env' = 'local' }
+$policyRuleKeys = @(
+    'request.authorization-integrity',
+    'worker.legal-eligibility',
+    'grant.duplicate-conflict',
+    'program.applicability',
+    'payment.calendar-policy',
+    'grant.amount-parameters',
+    'budget.availability'
+)
 
 function Invoke-ConfigJson {
     param(
@@ -104,47 +114,70 @@ function Assert-ConfigForbidden {
     }
 }
 
-function Ensure-ApprovedDefinition {
-    param([string] $RuleKey, [string] $RuleType, [string] $Reviewer, $ReviewerSession, [string] $Summary)
+function Ensure-ApprovedPolicyDefinition {
+    param([string] $RuleKey, [string] $Reviewer, $ReviewerSession)
     $encoded = [Uri]::EscapeDataString($RuleKey)
     $definitions = @((Invoke-ConfigJson GET "/api/praxis/config/domain-rules/definitions?ruleKey=$encoded" $publisherSession).Json)
-    $existing = $definitions | Sort-Object version -Descending | Select-Object -First 1
-    if (-not $existing -or $existing.createdByType -ne 'authenticated') {
-        $nextVersion = if ($existing) { [int] $existing.version + 1 } else { 1 }
+    $latest = $definitions | Sort-Object version -Descending | Select-Object -First 1
+    if (-not $latest -or -not $latest.condition) {
+        throw "Policy Studio seed definition is missing or has no governed condition: $RuleKey"
+    }
+    if ($latest.status -in @('approved', 'active')) { return $latest }
+
+    $authorized = @($latest.governance.authorizedApprovers) -contains $Reviewer
+    if ($latest.createdByType -ne 'authenticated' -or -not $authorized -or $latest.createdBy -eq $Reviewer) {
+        $nextVersion = [int] $latest.version + 1
         $create = [ordered]@{
             ruleKey = $RuleKey
             version = $nextVersion
-            ruleType = $RuleType
+            ruleType = $latest.ruleType
             status = 'draft'
-            contextKey = 'workforce-benefits'
-            resourceKey = 'human-resources.extraordinary-benefit-requests'
-            serviceKey = 'praxis-api-quickstart'
-            semanticOwner = 'workforce-benefits-owner'
-            steward = 'rule-platform-steward'
-            definition = @{ summary = $Summary; runtimeSurfacesAreDerived = $true; ql07FoundationFixture = $true }
-            parameters = @{}
-            governance = @{ requiredApprovals = @($Reviewer); authorizedApprovers = @($Reviewer); auditReason = 'QL-07 public artifact downstream proof.' }
+            contextKey = $latest.contextKey
+            resourceKey = $latest.resourceKey
+            serviceKey = $latest.serviceKey
+            semanticOwner = $latest.semanticOwner
+            steward = $latest.steward
+            definition = $latest.definition
+            parameters = $latest.parameters
+            condition = $latest.condition
+            governance = @{
+                lifecycleBoundary = 'REFERENCE_DRAFT_ONLY'
+                sourceKind = 'QUICKSTART_RULE_LAB'
+                sourceRuleSetVersion = $nextRuleSetVersion
+                authorityChangeAllowed = $false
+                requiredApprovals = @($Reviewer)
+                authorizedApprovers = @($Reviewer)
+                auditReason = 'QL-07 Policy Studio source review.'
+            }
         }
-        $existing = (Invoke-ConfigJson POST '/api/praxis/config/domain-rules/definitions' $publisherSession $create).Json
+        $candidate = (Invoke-ConfigJson POST '/api/praxis/config/domain-rules/definitions' $publisherSession $create).Json
+    } else {
+        $candidate = $latest
     }
-    if ($existing.status -notin @('approved', 'active')) {
+    if ($candidate.status -notin @('approved', 'active')) {
         $approval = @{
             status = 'approved'
             validationResult = @{ valid = $true; approvalReason = 'Reviewed for the isolated QL-07 foundation snapshot.' }
         }
-        Assert-ConfigForbidden "/api/praxis/config/domain-rules/definitions/$($existing.id)/status" $publisherSession $approval 'PATCH'
-        $existing = (Invoke-ConfigJson PATCH "/api/praxis/config/domain-rules/definitions/$($existing.id)/status" $ReviewerSession $approval).Json
+        Assert-ConfigForbidden "/api/praxis/config/domain-rules/definitions/$($candidate.id)/status" $publisherSession $approval 'PATCH'
+        $candidate = (Invoke-ConfigJson PATCH "/api/praxis/config/domain-rules/definitions/$($candidate.id)/status" $ReviewerSession $approval).Json
     }
-    if ($existing.status -notin @('approved', 'active') -or -not $existing.approvedAt) {
+    if ($candidate.status -notin @('approved', 'active') -or -not $candidate.approvedAt) {
         throw "Source definition is not approved: $RuleKey"
     }
-    return $existing
+    return $candidate
 }
 
 try {
     $current = Invoke-ConfigJson GET '/api/praxis/config/domain-rules/snapshots/head/status?ruleSetKey=extraordinary-grant-eligibility' $publisherSession
     if (-not $current.Json.executionReady) {
         throw [InvalidOperationException]::new('Current RuleSet head requires governed supersession.')
+    }
+    $active = Invoke-ConfigJson GET '/api/praxis/config/domain-rules/snapshots/head?ruleSetKey=extraordinary-grant-eligibility' $publisherSession
+    $activeSourceKeys = @($active.Json.snapshot.sources | ForEach-Object { [string] $_.ruleKey })
+    $sourceDrift = @(Compare-Object ($policyRuleKeys | Sort-Object) ($activeSourceKeys | Sort-Object))
+    if ($activeSourceKeys.Count -ne $policyRuleKeys.Count -or $sourceDrift.Count -ne 0) {
+        throw [InvalidOperationException]::new('Current RuleSet head does not derive from the Policy Studio source set.')
     }
     if ($ForceSupersession) {
         throw [InvalidOperationException]::new('Governed supersession was explicitly requested.')
@@ -164,8 +197,16 @@ try {
 $nextRuleSetVersion = if ($requiresSupersession) { [int] $current.Json.ruleSetVersion + 1 } else { 1 }
 $headEtag = if ($requiresSupersession) { [string] $current.Json.headEtag } else { $null }
 
-$eligibility = Ensure-ApprovedDefinition 'grant:eligibility' 'validation' $env:APP_AUTH_GOVERNANCE_APPROVER_A_USERNAME $approverASession 'Approved eligibility provenance for the extraordinary benefit RuleSet.'
-$amount = Ensure-ApprovedDefinition 'grant:amount' 'calculation' $env:APP_AUTH_GOVERNANCE_APPROVER_B_USERNAME $approverBSession 'Approved amount-calculation provenance for the extraordinary benefit RuleSet.'
+$sourceDefinitions = @()
+for ($index = 0; $index -lt $policyRuleKeys.Count; $index++) {
+    $useApproverA = ($index % 2) -eq 0
+    $reviewer = if ($useApproverA) { $env:APP_AUTH_GOVERNANCE_APPROVER_A_USERNAME } else { $env:APP_AUTH_GOVERNANCE_APPROVER_B_USERNAME }
+    $reviewerSession = if ($useApproverA) { $approverASession } else { $approverBSession }
+    $sourceDefinitions += Ensure-ApprovedPolicyDefinition $policyRuleKeys[$index] $reviewer $reviewerSession
+}
+
+$sourceDefinitionsFile = Join-Path $ProjectRoot 'target\ql07-policy-source-definitions.json'
+$sourceDefinitions | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $sourceDefinitionsFile -Encoding UTF8
 
 $classPathFile = Join-Path $ProjectRoot 'target\ql07-runtime-classpath.txt'
 Push-Location $ProjectRoot
@@ -195,8 +236,7 @@ $javaArguments = Join-Path $ProjectRoot 'target\ql07-snapshot-java.args'
     '-cp'
     ('"{0}"' -f "$argFileClasses;$argFileCompileClassPath")
     'com.example.praxis.apiquickstart.rulelab.RuleLabQl07SnapshotPayload'
-    [string] $eligibility.id
-    [string] $amount.id
+    ('"{0}"' -f $sourceDefinitionsFile.Replace('\', '/'))
     [string] $nextRuleSetVersion
 ) | Set-Content -LiteralPath $javaArguments -Encoding ASCII
 $payloadJson = & java "@$javaArguments"
@@ -221,7 +261,7 @@ $published = Invoke-ConfigJson POST '/api/praxis/config/domain-rules/snapshots' 
 
 [ordered]@{
     status = 'PROVISIONED'
-    sourceDefinitions = 2
+    sourceDefinitions = $sourceDefinitions.Count
     distinctApprovers = 2
     ruleSetVersion = $nextRuleSetVersion
     compositionDigest = $manifest.Json.compositionDigest

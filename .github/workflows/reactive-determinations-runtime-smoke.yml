@@ -1,0 +1,54 @@
+name: Reactive Determinations Runtime Smoke
+
+on:
+  workflow_dispatch:
+    inputs:
+      backend_url:
+        description: Published runtime base URL
+        required: true
+        default: https://praxis-api-quickstart.onrender.com
+      smoke_run_id:
+        description: Optional suffix for the governed definitions created by the smoke
+        required: false
+        default: ''
+
+concurrency:
+  group: reactive-determinations-runtime-smoke-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  authenticated-runtime-smoke:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      BACKEND_URL: ${{ inputs.backend_url }}
+      ORIGIN: https://praxisui.dev
+      PRACTICE_TEMP_PASSWORD: ${{ secrets.PRACTICE_TEMP_PASSWORD }}
+      PUBLISHER_USERNAME: ${{ secrets.APP_AUTH_GOVERNANCE_PUBLISHER_USERNAME }}
+      PUBLISHER_PASSWORD: ${{ secrets.APP_AUTH_GOVERNANCE_PUBLISHER_PASSWORD }}
+      SMOKE_RUN_ID: ${{ inputs.smoke_run_id }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Validate smoke script syntax
+        shell: bash
+        run: bash -n scripts/verify-reactive-determinations-published-runtime.sh
+
+      - name: Verify governed identity prerequisites
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -z "${PRACTICE_TEMP_PASSWORD}" ]]; then
+            echo "PRACTICE_TEMP_PASSWORD is not provisioned." >&2
+            exit 1
+          fi
+          if [[ -z "${PUBLISHER_USERNAME}" || -z "${PUBLISHER_PASSWORD}" ]]; then
+            echo "APP_AUTH_GOVERNANCE_PUBLISHER_USERNAME and APP_AUTH_GOVERNANCE_PUBLISHER_PASSWORD must be provisioned as repository or environment secrets." >&2
+            exit 1
+          fi
+
+      - name: Run authenticated reactive-determination smoke
+        shell: bash
+        run: scripts/verify-reactive-determinations-published-runtime.sh

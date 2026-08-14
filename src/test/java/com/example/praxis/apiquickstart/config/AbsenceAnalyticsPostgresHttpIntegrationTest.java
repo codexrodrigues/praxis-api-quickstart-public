@@ -105,7 +105,16 @@ class AbsenceAnalyticsPostgresHttpIntegrationTest {
         jdbcTemplate.execute(Files.readString(Path.of("src/test/resources/absence-analytics-lab/postgres-operational-schema.sql")));
         jdbcTemplate.execute(Files.readString(Path.of("db/operational-migrations/V20260714_001__historical_department_assignments.sql")));
         jdbcTemplate.execute(Files.readString(Path.of("src/test/resources/absence-analytics-lab/postgres-operational-data.sql")));
-        jdbcTemplate.execute(Files.readString(Path.of("db/operational-migrations/V20260715_005__absence_analytics_unique_days_policy.sql")));
+        jdbcTemplate.execute(withRuntimeRole(Files.readString(
+                Path.of("db/operational-migrations/V20260715_005__absence_analytics_unique_days_policy.sql"))));
+    }
+
+    private static String withRuntimeRole(String migration) {
+        return migration.replace("${OPERATIONAL_RUNTIME_ROLE}", quoteIdentifier(POSTGRES.getUsername()));
+    }
+
+    private static String quoteIdentifier(String identifier) {
+        return '"' + identifier.replace("\"", "\"\"") + '"';
     }
 
     @Test

@@ -35,8 +35,17 @@ class AbsenceAnalyticsPostgresOperationalProofTest {
             statement.execute(Files.readString(Path.of("src/test/resources/absence-analytics-lab/postgres-operational-schema.sql")));
             statement.execute(Files.readString(Path.of("db/operational-migrations/V20260714_001__historical_department_assignments.sql")));
             statement.execute(Files.readString(Path.of("src/test/resources/absence-analytics-lab/postgres-operational-data.sql")));
-            statement.execute(Files.readString(Path.of("db/operational-migrations/V20260715_005__absence_analytics_unique_days_policy.sql")));
+            statement.execute(withRuntimeRole(Files.readString(
+                    Path.of("db/operational-migrations/V20260715_005__absence_analytics_unique_days_policy.sql"))));
         }
+    }
+
+    private static String withRuntimeRole(String migration) {
+        return migration.replace("${OPERATIONAL_RUNTIME_ROLE}", quoteIdentifier(POSTGRES.getUsername()));
+    }
+
+    private static String quoteIdentifier(String identifier) {
+        return '"' + identifier.replace("\"", "\"\"") + '"';
     }
 
     @Test
@@ -74,22 +83,26 @@ class AbsenceAnalyticsPostgresOperationalProofTest {
 
     @Test
     void shouldPublishPolicyFunctionAndRuntimeGrants() throws Exception {
-        try (Connection connection = DriverManager.getConnection(POSTGRES.getJdbcUrl(), POSTGRES.getUsername(), POSTGRES.getPassword());
-             Statement statement = connection.createStatement();
-             ResultSet result = statement.executeQuery("""
+        try (Connection connection = DriverManager.getConnection(
+                POSTGRES.getJdbcUrl(), POSTGRES.getUsername(), POSTGRES.getPassword());
+                var statement = connection.prepareStatement("""
                      select
                         public.hr_absence_criticality_level(6) as standard_level,
                         public.hr_absence_criticality_level(7) as attention_level,
                         public.hr_absence_criticality_level(15) as critical_level,
-                        has_function_privilege('praxis_service_user', 'public.hr_absence_criticality_level(bigint)', 'EXECUTE') as function_grant,
-                        has_table_privilege('praxis_service_user', 'public.vw_analytics_afastamentos', 'SELECT') as view_grant
+                        has_function_privilege(?, 'public.hr_absence_criticality_level(bigint)', 'EXECUTE') as function_grant,
+                        has_table_privilege(?, 'public.vw_analytics_afastamentos', 'SELECT') as view_grant
                      """)) {
-            assertTrue(result.next());
-            assertEquals("STANDARD", result.getString("standard_level"));
-            assertEquals("ATTENTION", result.getString("attention_level"));
-            assertEquals("CRITICAL", result.getString("critical_level"));
-            assertTrue(result.getBoolean("function_grant"));
-            assertTrue(result.getBoolean("view_grant"));
+            statement.setString(1, POSTGRES.getUsername());
+            statement.setString(2, POSTGRES.getUsername());
+            try (ResultSet result = statement.executeQuery()) {
+                assertTrue(result.next());
+                assertEquals("STANDARD", result.getString("standard_level"));
+                assertEquals("ATTENTION", result.getString("attention_level"));
+                assertEquals("CRITICAL", result.getString("critical_level"));
+                assertTrue(result.getBoolean("function_grant"));
+                assertTrue(result.getBoolean("view_grant"));
+            }
         }
     }
 }

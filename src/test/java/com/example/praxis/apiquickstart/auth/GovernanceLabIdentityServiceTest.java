@@ -6,7 +6,10 @@ import org.junit.jupiter.api.Test;
 import static com.example.praxis.apiquickstart.security.RuleGovernanceAuthorities.COMPOSITION_APPROVER;
 import static com.example.praxis.apiquickstart.security.RuleGovernanceAuthorities.DEFINITION_APPROVER;
 import static com.example.praxis.apiquickstart.security.RuleGovernanceAuthorities.DEFINITION_AUTHOR;
+import static com.example.praxis.apiquickstart.security.RuleGovernanceAuthorities.DEFINITION_READER;
 import static com.example.praxis.apiquickstart.security.RuleGovernanceAuthorities.SNAPSHOT_PUBLISHER;
+import static com.example.praxis.apiquickstart.security.RuleGovernanceAuthorities.SNAPSHOT_OPERATOR;
+import static com.example.praxis.apiquickstart.security.RuleGovernanceAuthorities.SNAPSHOT_READER;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -25,9 +28,15 @@ class GovernanceLabIdentityServiceTest {
         var approver = service.authenticate("approver-a", "password-a").orElseThrow();
         var publisher = service.authenticate("publisher", "password-p").orElseThrow();
 
-        assertEquals(java.util.Set.of(DEFINITION_APPROVER, COMPOSITION_APPROVER), approver.authorities());
-        assertEquals(java.util.Set.of(DEFINITION_AUTHOR, SNAPSHOT_PUBLISHER), publisher.authorities());
+        assertEquals(java.util.Set.of(DEFINITION_READER, DEFINITION_APPROVER, COMPOSITION_APPROVER), approver.authorities());
+        assertEquals(
+                java.util.Set.of(DEFINITION_READER, DEFINITION_AUTHOR, SNAPSHOT_PUBLISHER, SNAPSHOT_OPERATOR, SNAPSHOT_READER),
+                publisher.authorities());
         assertTrue(service.authenticate("approver-a", "wrong").isEmpty());
+        assertEquals("approver-b", service.switchIdentity("approver-b", "publisher").orElseThrow().subject());
+        assertEquals("publisher", service.switchIdentity("publisher", "approver-a").orElseThrow().subject());
+        assertTrue(service.switchIdentity("publisher", "admin").isEmpty());
+        assertTrue(service.switchIdentity("unknown", "publisher").isEmpty());
     }
 
     @Test
@@ -49,5 +58,6 @@ class GovernanceLabIdentityServiceTest {
         Optional<GovernanceLabIdentityService.AuthenticatedIdentity> result =
                 service.authenticate("approver-a", "password-a");
         assertTrue(result.isEmpty());
+        assertTrue(service.switchIdentity("publisher", "approver-a").isEmpty());
     }
 }

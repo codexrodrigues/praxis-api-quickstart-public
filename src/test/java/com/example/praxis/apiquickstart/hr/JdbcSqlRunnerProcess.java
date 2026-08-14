@@ -40,6 +40,7 @@ final class JdbcSqlRunnerProcess {
             processBuilder.environment().put("SPRING_DATASOURCE_URL", jdbcUrl);
             processBuilder.environment().put("SPRING_DATASOURCE_USERNAME", username);
             processBuilder.environment().put("SPRING_DATASOURCE_PASSWORD", password);
+            processBuilder.environment().put("OPERATIONAL_RUNTIME_ROLE", username);
             processBuilder.environment().put("CONFIG_DATASOURCE_URL", configJdbcUrl);
             processBuilder.environment().put("CONFIG_DATASOURCE_USERNAME", configUsername);
             processBuilder.environment().put("CONFIG_DATASOURCE_PASSWORD", configPassword);

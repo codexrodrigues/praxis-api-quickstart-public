@@ -10,6 +10,8 @@ import java.sql.Statement;
 import java.util.Properties;
 
 public final class JdbcSqlRunner {
+    private static final String OPERATIONAL_RUNTIME_ROLE_PLACEHOLDER = "${OPERATIONAL_RUNTIME_ROLE}";
+
     private JdbcSqlRunner() {
     }
 
@@ -49,6 +51,7 @@ public final class JdbcSqlRunner {
 
     private static void runFile(Connection connection, Path path) throws IOException, SQLException {
         String sql = Files.readString(path, StandardCharsets.UTF_8);
+        sql = materializeRuntimeRole(sql, System.getenv("OPERATIONAL_RUNTIME_ROLE"));
         try (Statement statement = connection.createStatement()) {
             consumeResults(statement, statement.execute(sql));
         } catch (SQLException exception) {
@@ -56,6 +59,21 @@ public final class JdbcSqlRunner {
                     exception.getSQLState(), exception.getErrorCode(), exception);
         }
         System.out.println("Executed SQL file " + path);
+    }
+
+    private static String materializeRuntimeRole(String sql, String runtimeRole) {
+        if (!sql.contains(OPERATIONAL_RUNTIME_ROLE_PLACEHOLDER)) {
+            return sql;
+        }
+        if (runtimeRole == null || runtimeRole.isBlank()) {
+            throw new IllegalStateException(
+                    "OPERATIONAL_RUNTIME_ROLE is required by the selected operational migration");
+        }
+        if (runtimeRole.indexOf('\0') >= 0) {
+            throw new IllegalArgumentException("OPERATIONAL_RUNTIME_ROLE contains an invalid identifier character");
+        }
+        String quotedRole = '"' + runtimeRole.trim().replace("\"", "\"\"") + '"';
+        return sql.replace(OPERATIONAL_RUNTIME_ROLE_PLACEHOLDER, quotedRole);
     }
 
     private static void consumeResults(Statement statement, boolean resultSetAvailable) throws SQLException {

@@ -14,7 +14,10 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 import com.example.praxis.apiquickstart.ApiQuickstartApplication;
+import com.example.praxis.apiquickstart.rulelab.dto.ExtraordinaryBenefitAuthoritativeEvaluationRequest;
 import com.example.praxis.apiquickstart.rulelab.dto.ExtraordinaryBenefitEvaluationRequest;
+import com.example.praxis.apiquickstart.rulelab.dto.ExtraordinaryBenefitReason;
+import com.example.praxis.apiquickstart.rulelab.dto.ExtraordinaryBenefitReevaluationRequest;
 import com.example.praxis.apiquickstart.security.JwtTokenService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -23,11 +26,13 @@ import com.sun.net.httpserver.HttpServer;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Clock;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -154,6 +159,8 @@ class ExtraordinaryBenefitRequestPilotIntegrationTest {
     private Clock ruleClock;
     @Autowired
     private RuleLabOperationScopeRegistry operationScopeRegistry;
+    @Autowired
+    private ExtraordinaryBenefitOperationalProofService operationalProofService;
     @SpyBean
     private ExtraordinaryBenefitStatementBarrier statementBarrier;
     @MockBean
@@ -188,6 +195,31 @@ class ExtraordinaryBenefitRequestPilotIntegrationTest {
     @Test
     void receivesTheFrameworkNeutralPublishedHeadReaderFromTheConfigStarter() {
         assertNotNull(snapshotHeadReader);
+    }
+
+    @Test
+    void producesCreateAndUpdateOperationalEvidenceThroughTheRealWorkflow() {
+        Set<String> permissions = Set.of("ROLE_ADMIN", "benefit:request");
+        var create = operationalProofService.proveCreate(
+                operationalSeed("policy-studio-proof-create-1"), true, 1,
+                permissions, "policy-proof-agent", "policy-proof-create-1");
+        assertEquals("CREATE", create.operationMode());
+        assertTrue(create.mutationObserved());
+        assertTrue(create.cleanupVerified());
+
+        var update = operationalProofService.proveUpdate(
+                operationalSeed("policy-studio-proof-update-1"),
+                new ExtraordinaryBenefitReevaluationRequest(
+                        ExtraordinaryBenefitReason.FAMILY_HARDSHIP, LocalDate.of(2026, 7, 13),
+                        new BigDecimal("2000.00"), "QL10-FICTIONAL-001",
+                        LocalDate.of(2026, 7, 20), "America/Sao_Paulo"),
+                true, 1, permissions, "policy-proof-agent", "policy-proof-update-1");
+        assertEquals("UPDATE", update.operationMode());
+        assertTrue(update.mutationObserved());
+        assertTrue(update.cleanupVerified());
+        assertEquals(0, tableCount("extraordinary_benefit_request"));
+        assertEquals(0, tableCount("extraordinary_benefit_transformation_audit"));
+        assertEquals(0, tableCount("extraordinary_benefit_grant_effect"));
     }
 
     @BeforeEach
@@ -289,6 +321,68 @@ class ExtraordinaryBenefitRequestPilotIntegrationTest {
     }
 
     @Test
+    void reEvaluatesWithOptimisticLockAndPersistsOnlyAllow() throws Exception {
+        JsonNode created = body(restTemplate.postForEntity(
+                "/api/human-resources/extraordinary-benefit-requests/actions/evaluate",
+                authorizedJson(eligiblePayload(), "reevaluate-create", null), String.class)).path("data");
+        long id = created.path("resource").path("id").asLong();
+        ResponseEntity<String> detail = restTemplate.exchange(
+                "/api/human-resources/extraordinary-benefit-requests/" + id,
+                HttpMethod.GET, HttpEntity.EMPTY, String.class);
+        String initialEtag = detail.getHeaders().getETag();
+        long initialVersion = body(detail).path("data").path("version").asLong();
+
+        String allowedUpdate = reevaluationPayload("2000.00");
+        ResponseEntity<String> missingEtag = restTemplate.postForEntity(
+                "/api/human-resources/extraordinary-benefit-requests/" + id + "/actions/re-evaluate",
+                authorizedJson(allowedUpdate, "reevaluate-missing-etag", null), String.class);
+        assertEquals(HttpStatus.PRECONDITION_REQUIRED, missingEtag.getStatusCode(), missingEtag.getBody());
+
+        ResponseEntity<String> updatedResponse = restTemplate.postForEntity(
+                "/api/human-resources/extraordinary-benefit-requests/" + id + "/actions/re-evaluate",
+                authorizedJson(allowedUpdate, "reevaluate-allow", initialEtag), String.class);
+        JsonNode updated = body(updatedResponse).path("data");
+        assertTrue(updated.path("mutationObserved").asBoolean());
+        assertEquals(initialVersion, updated.path("previousVersion").asLong());
+        assertEquals(initialVersion + 1, updated.path("currentVersion").asLong());
+        assertEquals("2000", updated.path("resource").path("facts").path("requestedAmount")
+                .decimalValue().stripTrailingZeros().toPlainString());
+        assertEquals(2, tableCount("extraordinary_benefit_transformation_audit"));
+        String updatedEtag = updatedResponse.getHeaders().getETag();
+
+        ResponseEntity<String> replay = restTemplate.postForEntity(
+                "/api/human-resources/extraordinary-benefit-requests/" + id + "/actions/re-evaluate",
+                authorizedJson(allowedUpdate, "reevaluate-allow", initialEtag), String.class);
+        assertEquals(HttpStatus.OK, replay.getStatusCode(), replay.getBody());
+        assertEquals(updatedEtag, replay.getHeaders().getETag());
+        assertEquals(2, tableCount("extraordinary_benefit_transformation_audit"));
+
+        ResponseEntity<String> conflictingReplay = restTemplate.postForEntity(
+                "/api/human-resources/extraordinary-benefit-requests/" + id + "/actions/re-evaluate",
+                authorizedJson(reevaluationPayload("1800.00"), "reevaluate-allow", updatedEtag), String.class);
+        assertEquals(HttpStatus.CONFLICT, conflictingReplay.getStatusCode(), conflictingReplay.getBody());
+
+        ResponseEntity<String> stale = restTemplate.postForEntity(
+                "/api/human-resources/extraordinary-benefit-requests/" + id + "/actions/re-evaluate",
+                authorizedJson(reevaluationPayload("1900.00"), "reevaluate-stale", initialEtag), String.class);
+        assertEquals(HttpStatus.PRECONDITION_FAILED, stale.getStatusCode(), stale.getBody());
+
+        ResponseEntity<String> deniedResponse = restTemplate.postForEntity(
+                "/api/human-resources/extraordinary-benefit-requests/" + id + "/actions/re-evaluate",
+                authorizedJson(reevaluationPayload("6000.00"), "reevaluate-deny", updatedEtag), String.class);
+        JsonNode denied = body(deniedResponse).path("data");
+        assertEquals("DENY", denied.path("evaluation").path("outcome").asText());
+        assertFalse(denied.path("mutationObserved").asBoolean());
+        assertEquals(initialVersion + 1, denied.path("previousVersion").asLong());
+        assertEquals(initialVersion + 1, denied.path("currentVersion").asLong());
+        assertEquals("2000", jdbcTemplate.queryForObject(
+                "select requested_amount from public.extraordinary_benefit_request where id = ?",
+                java.math.BigDecimal.class, id).stripTrailingZeros().toPlainString());
+        assertEquals(2, tableCount("extraordinary_benefit_transformation_audit"));
+        assertEquals(0, tableCount("extraordinary_benefit_grant_effect"));
+    }
+
+    @Test
     void publishesActionCapabilitiesAndRequestSchemaFromCanonicalDiscovery() throws Exception {
         JsonNode actions = body(restTemplate.getForEntity(
                 "/api/human-resources/extraordinary-benefit-requests/actions", String.class));
@@ -322,12 +416,25 @@ class ExtraordinaryBenefitRequestPilotIntegrationTest {
         assertFalse(shadowResponseSchema.path("properties").has("requestReference"));
         assertFalse(shadowResponseSchema.path("properties").has("recommendedAmount"));
 
+        JsonNode reevaluateSchema = body(restTemplate.getForEntity(
+                "/schemas/filtered?path=/api/human-resources/extraordinary-benefit-requests/%7Bid%7D/actions/re-evaluate&operation=post&schemaType=request",
+                String.class));
+        assertTrue(reevaluateSchema.path("properties").has("requestedAmount"));
+        assertTrue(reevaluateSchema.path("properties").has("factReference"));
+        assertFalse(reevaluateSchema.path("properties").has("requestReference"));
+        JsonNode reevaluateResponseSchema = body(restTemplate.getForEntity(
+                "/schemas/filtered?path=/api/human-resources/extraordinary-benefit-requests/%7Bid%7D/actions/re-evaluate&operation=post&schemaType=response",
+                String.class));
+        assertTrue(reevaluateResponseSchema.path("properties").has("mutationObserved"));
+        assertTrue(reevaluateResponseSchema.path("properties").has("currentVersion"));
+
         JsonNode globalActions = body(restTemplate.getForEntity(
                 "/schemas/actions?resource=human-resources.extraordinary-benefit-requests",
                 String.class));
         assertNotNull(findById(globalActions.path("actions"), "evaluate"));
         assertNotNull(findById(globalActions.path("actions"), "shadow-compare"));
         assertEquals("ITEM", findById(globalActions.path("actions"), "submit").path("scope").asText());
+        assertEquals("ITEM", findById(globalActions.path("actions"), "re-evaluate").path("scope").asText());
         assertEquals("ITEM", findById(globalActions.path("actions"), "approve").path("scope").asText());
         assertEquals("ITEM", findById(globalActions.path("actions"), "apply").path("scope").asText());
 
@@ -1380,7 +1487,7 @@ class ExtraordinaryBenefitRequestPilotIntegrationTest {
                     rule_set_version integer not null, facts_digest varchar(64) not null,
                     plan_digest varchar(64) not null, correlation_id varchar(255) not null,
                     recorded_at timestamp with time zone not null,
-                    unique(benefit_request_id, proposal_identity_digest),
+                    unique(benefit_request_id, proposal_identity_digest, facts_digest),
                     foreign key (benefit_request_id) references public.extraordinary_benefit_request(id))
                 """);
         jdbcTemplate.execute("""
@@ -1425,6 +1532,17 @@ class ExtraordinaryBenefitRequestPilotIntegrationTest {
                     actor_subject varchar(255) not null, actor_authorities varchar(1000), correlation_id varchar(255) not null,
                     request_id varchar(255), idempotency_key varchar(255), version_before bigint, version_after bigint)
                 """);
+        jdbcTemplate.execute("""
+                create table if not exists public.rule_execution_observation_outbox (
+                    observation_id uuid primary key, tenant_id varchar(128) not null,
+                    environment varchar(128) not null, snapshot_key varchar(128) not null,
+                    snapshot_content_hash char(64) not null, activation_revision bigint not null,
+                    outcome varchar(32) not null, duration_micros bigint not null,
+                    observed_at timestamp with time zone not null, delivery_status varchar(32) not null,
+                    delivery_attempts integer not null, next_attempt_at timestamp with time zone not null,
+                    lease_token uuid, lease_until timestamp with time zone, created_at timestamp with time zone not null,
+                    delivered_at timestamp with time zone, last_failure_code varchar(120))
+                """);
     }
 
     private JsonNode findById(JsonNode items, String id) {
@@ -1455,6 +1573,30 @@ class ExtraordinaryBenefitRequestPilotIntegrationTest {
                   "userTimeZone": "America/Sao_Paulo"
                 }
                 """;
+    }
+
+    private ExtraordinaryBenefitAuthoritativeEvaluationRequest operationalSeed(String requestReference) {
+        return new ExtraordinaryBenefitAuthoritativeEvaluationRequest(
+                requestReference,
+                ExtraordinaryBenefitReason.FAMILY_HARDSHIP,
+                LocalDate.of(2026, 7, 13),
+                new BigDecimal("2500.00"),
+                "QL10-FICTIONAL-001",
+                LocalDate.of(2026, 7, 20),
+                "America/Sao_Paulo");
+    }
+
+    private String reevaluationPayload(String requestedAmount) {
+        return """
+                {
+                  "reasonCode": "FAMILY_HARDSHIP",
+                  "eventDate": "2026-07-13",
+                  "requestedAmount": %s,
+                  "factReference": "QL10-FICTIONAL-001",
+                  "requestedPaymentDate": "2026-07-20",
+                  "userTimeZone": "America/Sao_Paulo"
+                }
+                """.formatted(requestedAmount);
     }
 
     private UUID insertOutboxMessage(String status, Instant createdAt, Instant deliveredAt) {

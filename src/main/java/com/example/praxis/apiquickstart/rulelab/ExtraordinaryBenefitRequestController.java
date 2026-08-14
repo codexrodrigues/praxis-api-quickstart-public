@@ -12,6 +12,8 @@ import com.example.praxis.apiquickstart.rulelab.dto.ExtraordinaryBenefitEvaluati
 import com.example.praxis.apiquickstart.rulelab.dto.ExtraordinaryBenefitAuthoritativeEvaluationRequest;
 import com.example.praxis.apiquickstart.rulelab.dto.ExtraordinaryBenefitRequestFilter;
 import com.example.praxis.apiquickstart.rulelab.dto.ExtraordinaryBenefitRequestResponse;
+import com.example.praxis.apiquickstart.rulelab.dto.ExtraordinaryBenefitReevaluationRequest;
+import com.example.praxis.apiquickstart.rulelab.dto.ExtraordinaryBenefitReevaluationResponse;
 import com.example.praxis.apiquickstart.rulelab.dto.ExtraordinaryBenefitShadowObservation;
 import com.example.praxis.apiquickstart.rulelab.dto.ExtraordinaryBenefitTransitionRequest;
 import com.example.praxis.apiquickstart.rulelab.dto.ExtraordinaryBenefitTransitionResponse;
@@ -265,6 +267,57 @@ public class ExtraordinaryBenefitRequestController extends AbstractReadOnlyResou
             @Valid @RequestBody ExtraordinaryBenefitTransitionRequest request) {
         return executeTransition("submit", id, ifMatch, idempotencyKey, correlationId, request,
                 () -> workflowService.submit(id, request, actorSubject(), correlation(correlationId)));
+    }
+
+    @PostMapping("/{id}/actions/re-evaluate")
+    @WorkflowAction(
+            id = "re-evaluate",
+            title = "Reavaliar solicitação",
+            description = "Readquire fatos autoritativos e reavalia uma solicitação ainda editável; persiste somente ALLOW e nunca executa efeitos.",
+            scope = ActionScope.ITEM,
+            requiredAuthorities = {"ROLE_ADMIN"},
+            allowedStates = {"EVALUATED"},
+            order = 90,
+            successMessage = "Reavaliação concluída",
+            tags = {"human-resources", "benefits", "policy", "idempotent", "optimistic-lock"})
+    @Operation(summary = "Reavaliar e atualizar solicitação elegível")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Reavaliação concluída; mutationObserved informa se houve atualização."),
+            @ApiResponse(responseCode = "403", description = "Ator sem autoridade para reavaliar."),
+            @ApiResponse(responseCode = "404", description = "Solicitação inexistente."),
+            @ApiResponse(responseCode = "409", description = "Estado ou chave idempotente conflitante."),
+            @ApiResponse(responseCode = "412", description = "ETag obsoleto."),
+            @ApiResponse(responseCode = "428", description = "If-Match ausente.")
+    })
+    public ResponseEntity<RestApiResponse<ExtraordinaryBenefitReevaluationResponse>> reEvaluate(
+            @PathVariable Long id,
+            @RequestHeader(value = "If-Match", required = false) String ifMatch,
+            @RequestHeader("Idempotency-Key") String idempotencyKey,
+            @RequestHeader(value = "X-Correlation-ID", required = false) String correlationId,
+            @Valid @RequestBody ExtraordinaryBenefitReevaluationRequest request) {
+        requireAdmin();
+        simulationPolicy.requireAvailable();
+        validateIdempotencyKey(idempotencyKey);
+        var replay = actionExecutionService.findCompletedReplay(
+                RESOURCE_KEY, id, "re-evaluate", idempotencyKey, request);
+        if (replay.isPresent()) {
+            var restored = restore(replay.get(), ExtraordinaryBenefitReevaluationResponse.class);
+            return withResourceVersion(ResponseEntity.ok(), id, RestApiResponse.success(restored, null));
+        }
+        requireMatchingResourceVersion(id, ifMatch);
+        String actor = actorSubject();
+        String effectiveCorrelation = correlation(correlationId);
+        @SuppressWarnings("unchecked")
+        ResponseEntity<RestApiResponse<ExtraordinaryBenefitReevaluationResponse>> response =
+                (ResponseEntity<RestApiResponse<ExtraordinaryBenefitReevaluationResponse>>) (ResponseEntity<?>)
+                        executeItemCommand(
+                                "re-evaluate", id, request, ResourceCommandResponsePolicy.RETURN_COMMAND_RESULT,
+                                command -> executeReserved(
+                                        command, id, "re-evaluate", idempotencyKey, request,
+                                        effectiveCorrelation, actor,
+                                        () -> workflowService.reEvaluate(
+                                                id, request, resolveActorPermissions(), actor, effectiveCorrelation)));
+        return withResourceVersion(ResponseEntity.status(response.getStatusCode()), id, response.getBody());
     }
 
     @PostMapping("/{id}/actions/approve")

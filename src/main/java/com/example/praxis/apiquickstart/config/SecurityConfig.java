@@ -182,12 +182,53 @@ public class SecurityConfig {
                         ApiPaths.Framework.COCKPIT + "/",
                         ApiPaths.Framework.COCKPIT_PATTERN
                 ).permitAll()
+                // Reactive determinations are side-effect-free business evaluations, not generic
+                // API writes. They remain available when persistence writes are disabled, but a
+                // governance publisher is deliberately not a business data-plane principal.
                 .requestMatchers(HttpMethod.POST,
-                        "/api/praxis/config/domain-rules/definitions")
+                        com.example.praxis.apiquickstart.constants.ApiPaths.HumanResources.FOLHAS_PAGAMENTO_NET_SALARY_DETERMINATION,
+                        com.example.praxis.apiquickstart.constants.ApiPaths.HumanResources.FOLHAS_PAGAMENTO_PAYMENT_DATE_DETERMINATION)
+                    .hasRole("ADMIN")
+                .requestMatchers(HttpMethod.POST,
+                        "/api/praxis/policy-studio/sandbox/runs")
+                    .hasAuthority(com.example.praxis.apiquickstart.security.RuleGovernanceAuthorities.DEFINITION_AUTHOR)
+                .requestMatchers(HttpMethod.POST,
+                        "/api/praxis/policy-studio/rule-sets/*/candidate")
+                    .hasAnyAuthority(
+                            com.example.praxis.apiquickstart.security.RuleGovernanceAuthorities.SNAPSHOT_PUBLISHER,
+                            com.example.praxis.apiquickstart.security.RuleGovernanceAuthorities.COMPOSITION_APPROVER)
+                .requestMatchers(HttpMethod.POST,
+                        "/api/praxis/policy-studio/rule-sets/*/candidate/approvals")
+                    .hasAuthority(com.example.praxis.apiquickstart.security.RuleGovernanceAuthorities.COMPOSITION_APPROVER)
+                .requestMatchers(HttpMethod.POST,
+                        "/api/praxis/policy-studio/rule-sets/*/candidate/publish")
+                    .hasAuthority(com.example.praxis.apiquickstart.security.RuleGovernanceAuthorities.SNAPSHOT_PUBLISHER)
+                .requestMatchers(HttpMethod.GET,
+                        "/api/praxis/config/domain-rules/definitions",
+                        "/api/praxis/config/domain-rules/definitions/*/timeline",
+                        "/api/praxis/config/domain-rules/materializations",
+                        "/api/praxis/config/domain-rules/workspaces/**")
+                    .hasAuthority(com.example.praxis.apiquickstart.security.RuleGovernanceAuthorities.DEFINITION_READER)
+                .requestMatchers(HttpMethod.POST,
+                        "/api/praxis/config/domain-rules/workspaces/*/reviews")
+                    .hasAuthority(com.example.praxis.apiquickstart.security.RuleGovernanceAuthorities.DEFINITION_APPROVER)
+                .requestMatchers(HttpMethod.POST,
+                        "/api/praxis/config/domain-rules/intake",
+                        "/api/praxis/config/domain-rules/definitions",
+                        "/api/praxis/config/domain-rules/simulations",
+                        "/api/praxis/config/domain-rules/materializations",
+                        "/api/praxis/config/domain-rules/workspaces/**")
+                    .hasAuthority(com.example.praxis.apiquickstart.security.RuleGovernanceAuthorities.DEFINITION_AUTHOR)
+                .requestMatchers(HttpMethod.PUT,
+                        "/api/praxis/config/domain-rules/workspaces/**")
                     .hasAuthority(com.example.praxis.apiquickstart.security.RuleGovernanceAuthorities.DEFINITION_AUTHOR)
                 .requestMatchers(HttpMethod.PATCH,
-                        "/api/praxis/config/domain-rules/definitions/*/status")
-                    .hasAuthority(com.example.praxis.apiquickstart.security.RuleGovernanceAuthorities.DEFINITION_APPROVER)
+                        "/api/praxis/config/domain-rules/definitions/*/status",
+                        "/api/praxis/config/domain-rules/materializations/*/status")
+                    .authenticated()
+                .requestMatchers(HttpMethod.POST,
+                        "/api/praxis/config/domain-rules/publications")
+                    .hasAuthority(com.example.praxis.apiquickstart.security.RuleGovernanceAuthorities.SNAPSHOT_PUBLISHER)
                 .requestMatchers(HttpMethod.POST,
                         "/api/praxis/config/domain-rules/snapshots/composition-manifest")
                     .hasAuthority(com.example.praxis.apiquickstart.security.RuleGovernanceAuthorities.SNAPSHOT_PUBLISHER)
@@ -195,8 +236,40 @@ public class SecurityConfig {
                         "/api/praxis/config/domain-rules/snapshots/composition-approvals")
                     .hasAuthority(com.example.praxis.apiquickstart.security.RuleGovernanceAuthorities.COMPOSITION_APPROVER)
                 .requestMatchers(HttpMethod.POST,
+                        "/api/praxis/config/domain-rules/snapshots/host-status")
+                    .hasAuthority(com.example.praxis.apiquickstart.security.RuleGovernanceAuthorities.EXECUTION_OBSERVER)
+                .requestMatchers(HttpMethod.POST,
+                        "/api/praxis/config/domain-rules/snapshots/rollouts/*/probes")
+                    .hasAuthority(com.example.praxis.apiquickstart.security.RuleGovernanceAuthorities.EXECUTION_OBSERVER)
+                .requestMatchers(HttpMethod.POST,
+                        "/api/praxis/config/domain-rules/snapshots/rollouts",
+                        "/api/praxis/config/domain-rules/snapshots/rollouts/*/cancel")
+                    .hasAuthority(com.example.praxis.apiquickstart.security.RuleGovernanceAuthorities.SNAPSHOT_OPERATOR)
+                .requestMatchers(HttpMethod.POST,
+                        "/api/praxis/config/domain-rules/snapshots/rollout-policies")
+                    .hasAuthority(com.example.praxis.apiquickstart.security.RuleGovernanceAuthorities.DEFINITION_AUTHOR)
+                .requestMatchers(HttpMethod.POST,
+                        "/api/praxis/config/domain-rules/snapshots/rollout-policies/*/approve")
+                    .hasAuthority(com.example.praxis.apiquickstart.security.RuleGovernanceAuthorities.DEFINITION_APPROVER)
+                .requestMatchers(HttpMethod.POST,
+                        "/api/praxis/config/domain-rules/snapshots/rollout-policies/*/activate")
+                    .hasAuthority(com.example.praxis.apiquickstart.security.RuleGovernanceAuthorities.SNAPSHOT_OPERATOR)
+                .requestMatchers(HttpMethod.GET,
+                        "/api/praxis/config/domain-rules/snapshots/rollouts/pending")
+                    .hasAuthority(com.example.praxis.apiquickstart.security.RuleGovernanceAuthorities.EXECUTION_OBSERVER)
+                .requestMatchers(HttpMethod.POST,
                         "/api/praxis/config/domain-rules/snapshots")
                     .hasAuthority(com.example.praxis.apiquickstart.security.RuleGovernanceAuthorities.SNAPSHOT_PUBLISHER)
+                .requestMatchers(HttpMethod.POST,
+                        "/api/praxis/config/domain-rules/snapshots/*/activate",
+                        "/api/praxis/config/domain-rules/snapshots/*/rollback")
+                    .hasAuthority(com.example.praxis.apiquickstart.security.RuleGovernanceAuthorities.SNAPSHOT_OPERATOR)
+                .requestMatchers(HttpMethod.GET,
+                        "/api/praxis/config/domain-rules/**")
+                    .hasAuthority(com.example.praxis.apiquickstart.security.RuleGovernanceAuthorities.SNAPSHOT_READER)
+                .requestMatchers(HttpMethod.HEAD,
+                        "/api/praxis/config/domain-rules/**")
+                    .hasAuthority(com.example.praxis.apiquickstart.security.RuleGovernanceAuthorities.SNAPSHOT_READER)
                 // Endpoints do config-store/RAG (ingestão de registry/catalog)
                 .requestMatchers("/api/praxis/config/**").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/praxis/config/**").permitAll()

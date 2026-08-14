@@ -19,6 +19,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
@@ -72,6 +73,12 @@ class SecurityConfigSpaCsrfPolicyTest {
 
     @MockBean
     private RateLimiterService rateLimiterService;
+
+    @Test
+    void shouldRejectAnonymousSessionEvenWhenSpringPublishesAnAnonymousAuthenticationToken() throws Exception {
+        mockMvc.perform(get("/auth/session"))
+                .andExpect(status().isUnauthorized());
+    }
 
     @Test
     void shouldAllowAuthenticatedApiPostWhenXsrfCookieAndHeaderMatch() throws Exception {
@@ -134,6 +141,36 @@ class SecurityConfigSpaCsrfPolicyTest {
                         .cookie(loginResult.getResponse().getCookie("SESSION")))
                 .andExpect(status().isOk())
                 .andExpect(content().string("true"));
+    }
+
+    @Test
+    void shouldSwitchOnlyAnAuthenticatedLabSessionWithoutSendingCredentialsToTheBrowser() throws Exception {
+        given(jwtTokenService.validate("publisher-token"))
+                .willReturn(JwtTokenService.JwtValidationResult.valid(
+                        "publisher", "GOVERNANCE_PUBLISHER", java.util.List.of()));
+        given(governanceLabIdentityService.switchIdentity("approver-a", "publisher"))
+                .willReturn(java.util.Optional.of(new GovernanceLabIdentityService.AuthenticatedIdentity(
+                        "approver-a", "GOVERNANCE_APPROVER", java.util.Set.of(
+                                com.example.praxis.apiquickstart.security.RuleGovernanceAuthorities.COMPOSITION_APPROVER))));
+        given(jwtTokenService.generate(eq("approver-a"), eq("GOVERNANCE_APPROVER"), anyCollection()))
+                .willReturn("approver-token");
+        given(jwtTokenService.getExpirationSeconds()).willReturn(3600L);
+
+        MvcResult sessionResult = mockMvc.perform(get("/auth/session")
+                        .cookie(new Cookie("SESSION", "publisher-token")))
+                .andExpect(status().isNoContent())
+                .andReturn();
+        Cookie csrfCookie = sessionResult.getResponse().getCookie("XSRF-TOKEN");
+        assertNotNull(csrfCookie);
+
+        MvcResult switchResult = mockMvc.perform(post("/auth/governance-lab/session/approver-a")
+                        .cookie(new Cookie("SESSION", "publisher-token"), csrfCookie)
+                        .header("X-XSRF-TOKEN", csrfCookie.getValue()))
+                .andExpect(status().isNoContent())
+                .andReturn();
+        org.junit.jupiter.api.Assertions.assertTrue(
+                switchResult.getResponse().getHeaders(HttpHeaders.SET_COOKIE).stream()
+                        .anyMatch(header -> header.contains("SESSION=approver-token")));
     }
 
     @RestController

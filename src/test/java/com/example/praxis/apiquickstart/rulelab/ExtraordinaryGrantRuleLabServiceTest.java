@@ -42,7 +42,10 @@ class ExtraordinaryGrantRuleLabServiceTest {
     void startServiceBoundary() {
         var configuration = new ExtraordinaryGrantRuleLabConfiguration();
         var registry = configuration.extraordinaryGrantRuleExecutorRegistry();
-        var runtime = new ExtraordinaryGrantRuleSnapshotRuntime(registry);
+        var runtime = new ExtraordinaryGrantRuleSnapshotRuntime(
+                registry,
+                new ExtraordinaryGrantRuleRuntimeTelemetry(
+                        new io.micrometer.core.instrument.simple.SimpleMeterRegistry()));
         PublishedRuleSnapshot snapshot = snapshot();
         String contentHash = new PraxisRuleSnapshotCompiler(registry)
                 .compile(snapshot, ExtraordinaryGrantRuleSnapshotRuntime.HOST_CONTRACT_VERSION)

@@ -49,9 +49,17 @@ class PayrollAnalyticsPostgresOperationalProofTest {
                 assertEquals(2, legacy.getInt(1), "The fixture must reproduce current-department attribution");
             }
 
-            statement.execute(Files.readString(Path.of(
-                    "db/operational-migrations/V20260716_003__payroll_analytics_effective_department.sql")));
+            statement.execute(withRuntimeRole(Files.readString(Path.of(
+                    "db/operational-migrations/V20260716_003__payroll_analytics_effective_department.sql"))));
         }
+    }
+
+    private static String withRuntimeRole(String migration) {
+        return migration.replace("${OPERATIONAL_RUNTIME_ROLE}", quoteIdentifier(POSTGRES.getUsername()));
+    }
+
+    private static String quoteIdentifier(String identifier) {
+        return '"' + identifier.replace("\"", "\"\"") + '"';
     }
 
     @Test

@@ -49,24 +49,24 @@ public class MissaoParticipanteDTO {
             description = "URL da foto de perfil do funcionário (read model).")
     private String funcionarioFotoUrl;
 
-    @UISchema(label = "Papel", controlType = FieldControlType.SELECT, icon = "flag", order = 30)
+    @UISchema(label = "Papel", controlType = FieldControlType.SELECT, icon = "flag", order = 30, width = "md")
     @Schema(
             description = "Função tática desempenhada pelo colaborador durante a missão.")
     private PapelMissao papel;
 
     @NotNull
-    @UISchema(label = "Ordem", controlType = FieldControlType.NUMERIC_TEXT_BOX, required = true, icon = "flag", order = 40)
+    @UISchema(label = "Ordem", controlType = FieldControlType.NUMERIC_TEXT_BOX, required = true, icon = "flag", order = 40, width = "md")
     @Schema(
             description = "Ordem de atuação no plano da missão; zero representa a primeira posição.")
     private Integer ordem = 0;
 
     @NotNull
-    @UISchema(label = "Principal", controlType = FieldControlType.TOGGLE, required = true, icon = "toggle_on", order = 50)
+    @UISchema(label = "Principal", controlType = FieldControlType.TOGGLE, required = true, icon = "toggle_on", order = 50, width = "md")
     @Schema(
             description = "Indica se o colaborador é a principal referência tática desta missão.")
     private Boolean principal = false;
 
-    @UISchema(label = "Resultado", controlType = FieldControlType.SELECT, icon = "flag", order = 60)
+    @UISchema(label = "Resultado", controlType = FieldControlType.SELECT, icon = "flag", order = 60, width = "md")
     @Schema(
             description = "Resultado individual registrado após o encerramento ou debriefing da missão.")
     private ResultadoMissao resultado;

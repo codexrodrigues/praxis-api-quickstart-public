@@ -56,6 +56,15 @@ public final class ExtraordinaryGrantRuleLabService {
         return runtime.evaluateWithSnapshot(session, facts, nowUtc, userTimeZone);
     }
 
+    /** Dedicated test lane: preserves deterministic telemetry but emits no production observation. */
+    ExtraordinaryGrantRuleEvaluation evaluateSandboxWithSnapshot(
+            ExtraordinaryGrantRuleSnapshotSession session,
+            JsonNode facts,
+            Instant nowUtc,
+            ZoneId userTimeZone) {
+        return runtime.evaluateSandboxWithSnapshot(session, facts, nowUtc, userTimeZone);
+    }
+
     /** Returns safe loader/cache diagnostics for operational readiness checks. */
     public ExtraordinaryGrantRuleSnapshotStatus snapshotStatus() {
         return runtime.status();

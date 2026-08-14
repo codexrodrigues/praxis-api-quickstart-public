@@ -113,6 +113,9 @@ jobs:
       - name: Maven Verify (com testes)
         run: ./mvnw -B -fae -Dstyle.color=always verify
 
+      - name: Verify packaged runtime dependencies
+        run: bash scripts/verify-packaged-runtime.sh
+
       # Opcional: publicar relatório de testes no summary
       - name: Test Summary
         if: always()

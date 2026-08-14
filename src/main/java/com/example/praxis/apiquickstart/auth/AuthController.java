@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
@@ -77,14 +78,27 @@ public class AuthController {
             token = jwtTokenService.generate(
                     identity.get().subject(), identity.get().role(), identity.get().authorities());
         }
-        ResponseCookie cookie = ResponseCookie.from(sessionCookieName, token)
-                .httpOnly(true)
-                .secure(sessionSecure)
-                .path("/")
-                .sameSite(sameSite)
-                .maxAge(Duration.ofSeconds(tokenService.getExpirationSeconds()))
-                .build();
-        return ResponseEntity.noContent().header(HttpHeaders.SET_COOKIE, cookie.toString()).build();
+        return sessionResponse(token);
+    }
+
+    /**
+     * Changes the current opt-in governance-lab session to another configured technical actor.
+     * No credential or signing secret is returned to the browser.
+     */
+    @PostMapping("/governance-lab/session/{identityKey}")
+    public ResponseEntity<Void> switchGovernanceLabIdentity(
+            @PathVariable String identityKey,
+            org.springframework.security.core.Authentication auth) {
+        if (!isAuthenticatedSession(auth)) {
+            return ResponseEntity.status(401).build();
+        }
+        var target = governanceLabIdentityService.switchIdentity(identityKey, auth.getName());
+        if (target.isEmpty()) {
+            return ResponseEntity.status(403).build();
+        }
+        var identity = target.get();
+        return sessionResponse(jwtTokenService.generate(
+                identity.subject(), identity.role(), identity.authorities()));
     }
 
     /** Encerra a sessao limpando o cookie publicado pelo quickstart. */
@@ -104,9 +118,24 @@ public class AuthController {
     // retorna 204 quando autenticado e 401 quando não autenticado.
     @GetMapping("/session")
     public ResponseEntity<Void> session(org.springframework.security.core.Authentication auth) {
-        if (auth == null || !auth.isAuthenticated()) {
+        if (!isAuthenticatedSession(auth)) {
             return ResponseEntity.status(401).build();
         }
         return ResponseEntity.noContent().build();
+    }
+
+    private boolean isAuthenticatedSession(org.springframework.security.core.Authentication auth) {
+        return auth != null && auth.isAuthenticated() && !(auth instanceof AnonymousAuthenticationToken);
+    }
+
+    private ResponseEntity<Void> sessionResponse(String token) {
+        ResponseCookie cookie = ResponseCookie.from(sessionCookieName, token)
+                .httpOnly(true)
+                .secure(sessionSecure)
+                .path("/")
+                .sameSite(sameSite)
+                .maxAge(Duration.ofSeconds(tokenService.getExpirationSeconds()))
+                .build();
+        return ResponseEntity.noContent().header(HttpHeaders.SET_COOKIE, cookie.toString()).build();
     }
 }

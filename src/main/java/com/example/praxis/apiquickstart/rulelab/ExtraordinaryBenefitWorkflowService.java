@@ -8,6 +8,8 @@ import com.example.praxis.apiquickstart.rulelab.dto.ExtraordinaryBenefitAuthorit
 import com.example.praxis.apiquickstart.rulelab.dto.ExtraordinaryBenefitEvaluationCommandResponse;
 import com.example.praxis.apiquickstart.rulelab.dto.ExtraordinaryBenefitEvaluationOutcome;
 import com.example.praxis.apiquickstart.rulelab.dto.ExtraordinaryBenefitEvaluationResponse;
+import com.example.praxis.apiquickstart.rulelab.dto.ExtraordinaryBenefitReevaluationRequest;
+import com.example.praxis.apiquickstart.rulelab.dto.ExtraordinaryBenefitReevaluationResponse;
 import com.example.praxis.apiquickstart.rulelab.dto.ExtraordinaryBenefitTransitionRequest;
 import com.example.praxis.apiquickstart.rulelab.dto.ExtraordinaryBenefitTransitionResponse;
 import java.time.Clock;
@@ -118,6 +120,39 @@ public class ExtraordinaryBenefitWorkflowService {
         }
         return new ExtraordinaryBenefitBatchEvaluationResponse(
                 false, items.size(), persisted, items.size() - persisted, items);
+    }
+
+    @Transactional
+    public ExtraordinaryBenefitReevaluationResponse reEvaluate(
+            Long id,
+            ExtraordinaryBenefitReevaluationRequest request,
+            Set<String> permissions,
+            String actorSubject,
+            String correlationId) {
+        ExtraordinaryBenefitRequestEntity entity = requestRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Benefit request not found."));
+        if (entity.getLifecycleStatus() != ExtraordinaryBenefitLifecycleStatus.EVALUATED) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Re-evaluation requires state EVALUATED but found " + entity.getLifecycleStatus() + ".");
+        }
+        long previousVersion = entity.getVersion();
+        ExtraordinaryBenefitAuthoritativeEvaluationResult authoritative = evaluateAuthoritatively(
+                new ExtraordinaryBenefitAuthoritativeEvaluationCommand(
+                        entity.getRequestReference(), request.reasonCode(), request.eventDate(),
+                        request.requestedAmount(), request.factReference(), request.requestedPaymentDate(),
+                        request.userTimeZone()),
+                request.factReference(), clock.instant(), permissions);
+        ExtraordinaryBenefitEvaluatedDecision decision = authoritative.decision();
+        ExtraordinaryBenefitEvaluationResponse evaluation = decision.response();
+        if (evaluation.outcome() != ExtraordinaryBenefitEvaluationOutcome.ALLOW) {
+            return new ExtraordinaryBenefitReevaluationResponse(
+                    id, evaluation, mapper.toResponse(entity), false, previousVersion, previousVersion);
+        }
+        var resource = persistenceItemService.updateAllowed(
+                entity, authoritative.resolvedRequest(), decision, request.factReference(),
+                authoritative.factProvenance(), actorSubject, correlationId);
+        return new ExtraordinaryBenefitReevaluationResponse(
+                id, mapper.markPersisted(evaluation), resource, true, previousVersion, resource.version());
     }
 
     @Transactional

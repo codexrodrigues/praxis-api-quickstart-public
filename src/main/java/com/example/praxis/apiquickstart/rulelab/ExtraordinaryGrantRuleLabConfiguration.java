@@ -13,6 +13,12 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import org.praxisplatform.config.contract.PublishedRuleSnapshotHeadReader;
 import org.praxisplatform.config.service.DomainRuleImplementationCatalog;
+import org.praxisplatform.config.service.DomainRuleChangeWorkspaceService;
+import org.praxisplatform.config.service.DomainRuleTestRunService;
+import org.praxisplatform.config.service.DomainRuleExecutionObservationService;
+import org.praxisplatform.config.service.DomainRuleHostStatusService;
+import org.praxisplatform.config.service.DomainRuleRolloutService;
+import org.praxisplatform.config.service.DomainRuleSnapshotService;
 import org.praxisplatform.rules.contract.RuleDecision;
 import org.praxisplatform.rules.contract.RuleExecutorResult;
 import org.praxisplatform.rules.contract.RuleExtensionTrust;
@@ -83,8 +89,92 @@ public class ExtraordinaryGrantRuleLabConfiguration {
     /** Owns the host's atomic last-known-good compiled snapshot reference. */
     @Bean
     ExtraordinaryGrantRuleSnapshotRuntime extraordinaryGrantRuleSnapshotRuntime(
-            @Qualifier("extraordinaryGrantRuleExecutorRegistry") RuleBindingExecutorRegistry registry) {
-        return new ExtraordinaryGrantRuleSnapshotRuntime(registry);
+            @Qualifier("extraordinaryGrantRuleExecutorRegistry") RuleBindingExecutorRegistry registry,
+            ExtraordinaryGrantRuleRuntimeTelemetry telemetry,
+            RuleExecutionObservationPublisher observationPublisher) {
+        return new ExtraordinaryGrantRuleSnapshotRuntime(registry, telemetry, observationPublisher);
+    }
+
+    /** Publishes only bounded operational dimensions; facts and business identifiers never become tags. */
+    @Bean
+    ExtraordinaryGrantRuleRuntimeTelemetry extraordinaryGrantRuleRuntimeTelemetry(MeterRegistry meterRegistry) {
+        return new ExtraordinaryGrantRuleRuntimeTelemetry(meterRegistry);
+    }
+
+    @Bean
+    RuleExecutionObservationOutbox ruleExecutionObservationOutbox(
+            RuleExecutionObservationOutboxRepository repository) {
+        return new RuleExecutionObservationOutbox(repository);
+    }
+
+    @Bean
+    RuleExecutionObservationPublisher ruleExecutionObservationPublisher(
+            RuleExecutionObservationOutbox outbox,
+            ExtraordinaryGrantRuleRuntimeTelemetry telemetry) {
+        return new RuleExecutionObservationPublisher(outbox, telemetry);
+    }
+
+    @Bean
+    RuleExecutionObservationDispatcher ruleExecutionObservationDispatcher(
+            RuleExecutionObservationOutbox outbox,
+            DomainRuleExecutionObservationService service,
+            @Qualifier("extraordinaryGrantRuleClock") Clock clock,
+            @Value("${praxis.rule-lab.execution-observations.host-actor-ref:service:praxis-api-quickstart}") String actor,
+            @Value("${praxis.rule-lab.execution-observations.maximum-attempts:8}") int attempts,
+            @Value("${praxis.rule-lab.execution-observations.lease-ms:30000}") long leaseMs,
+            @Value("${praxis.rule-lab.execution-observations.retry-ms:5000}") long retryMs) {
+        return new RuleExecutionObservationDispatcher(
+                outbox, service, clock, actor, attempts,
+                Duration.ofMillis(leaseMs), Duration.ofMillis(retryMs));
+    }
+
+    /** Reports fleet alignment to Config without entering the business evaluation path. */
+    @Bean
+    @ConditionalOnProperty(
+            prefix = "praxis.rule-lab.snapshot",
+            name = "enabled",
+            havingValue = "true")
+    RuleHostStatusReporter ruleHostStatusReporter(
+            ExtraordinaryGrantRuleSnapshotRuntime runtime,
+            DomainRuleHostStatusService service,
+            DomainRuleImplementationCatalog implementationCatalog,
+            @Qualifier("extraordinaryGrantRuleClock") Clock clock,
+            @Value("${praxis.rule-lab.snapshot.tenant-id}") String tenantId,
+            @Value("${praxis.rule-lab.snapshot.environment}") String environment,
+            @Value("${praxis.rule-lab.host-status.host-actor-ref:service:praxis-api-quickstart}") String actor) {
+        return new RuleHostStatusReporter(
+                runtime::status, service, implementationCatalog, JSON, clock,
+                tenantId, environment, actor);
+    }
+
+    /** Compiles rollout candidates without touching the active last-known-good runtime. */
+    @Bean
+    @ConditionalOnProperty(prefix = "praxis.rule-lab.snapshot", name = "enabled", havingValue = "true")
+    RuleCandidatePreloader ruleCandidatePreloader(
+            DomainRuleSnapshotService snapshotService,
+            DomainRuleRolloutService rolloutService,
+            @Qualifier("extraordinaryGrantRuleExecutorRegistry") RuleBindingExecutorRegistry registry,
+            DomainRuleImplementationCatalog implementationCatalog,
+            ObjectMapper objectMapper,
+            @Qualifier("extraordinaryGrantRuleClock") Clock clock,
+            @Value("${praxis.rule-lab.snapshot.tenant-id}") String tenantId,
+            @Value("${praxis.rule-lab.snapshot.environment}") String environment,
+            @Value("${praxis.rule-lab.host-status.host-actor-ref:service:praxis-api-quickstart}") String actor) {
+        return new RuleCandidatePreloader(snapshotService, rolloutService, registry,
+                implementationCatalog, objectMapper, clock, tenantId, environment, actor);
+    }
+
+    /** Exposes one supervised polling step; deployment infrastructure owns cadence and retries. */
+    @Bean
+    @ConditionalOnProperty(prefix = "praxis.rule-lab.snapshot", name = "enabled", havingValue = "true")
+    RuleCandidatePreloadSupervisor ruleCandidatePreloadSupervisor(
+            DomainRuleRolloutService rolloutService,
+            RuleCandidatePreloader preloader,
+            @Value("${praxis.rule-lab.snapshot.tenant-id}") String tenantId,
+            @Value("${praxis.rule-lab.snapshot.environment}") String environment,
+            @Value("${praxis.rule-lab.host-status.host-actor-ref:service:praxis-api-quickstart}") String actor) {
+        return new RuleCandidatePreloadSupervisor(
+                rolloutService, preloader, tenantId, environment, actor);
     }
 
     @Bean("extraordinaryGrantRuleClock")
@@ -122,6 +212,27 @@ public class ExtraordinaryGrantRuleLabConfiguration {
     ExtraordinaryGrantRuleLabService extraordinaryGrantRuleLabService(
             ExtraordinaryGrantRuleSnapshotRuntime runtime) {
         return new ExtraordinaryGrantRuleLabService(runtime);
+    }
+
+    /** Compiles workspace candidates in-memory and compares them to one captured active snapshot. */
+    @Bean
+    PolicyStudioSandboxService policyStudioSandboxService(
+            DomainRuleChangeWorkspaceService workspaceService,
+            ExtraordinaryGrantRuleLabService activeService,
+            ExtraordinaryGrantRuleSnapshotRuntime activeRuntime,
+            DomainRuleTestRunService testRunService,
+            @Qualifier("extraordinaryGrantRuleExecutorRegistry") RuleBindingExecutorRegistry registry,
+            @Qualifier("extraordinaryGrantRuleClock") Clock clock) {
+        return new PolicyStudioSandboxService(
+                workspaceService, activeService, activeRuntime, testRunService, registry, clock);
+    }
+
+    /** Keeps host composition separate from Config persistence and browser orchestration. */
+    @Bean
+    PolicyStudioRuleSetCompositionService policyStudioRuleSetCompositionService(
+            org.praxisplatform.config.service.DomainRuleService domainRuleService,
+            org.praxisplatform.config.service.DomainRuleSnapshotService snapshotService) {
+        return new PolicyStudioRuleSetCompositionService(domainRuleService, snapshotService);
     }
 
     /** Projects the neutral engine boundary into the QL-04 business evaluation contract. */

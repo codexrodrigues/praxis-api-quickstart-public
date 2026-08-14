@@ -29,9 +29,15 @@ public final class ApiOperationalSchemaDriftCheck {
                 assertNoFailures(failures, "Authoritative-facts operational datasource");
                 return;
             }
+            if (args.length == 1 && "--scope=policy-studio".equals(args[0])) {
+                checkPolicyStudio(connection, failures);
+                assertNoFailures(failures, "Policy Studio operational datasource");
+                return;
+            }
             if (args.length > 0) {
                 throw new IllegalArgumentException(
-                        "Usage: ApiOperationalSchemaDriftCheck [--scope=authoritative-facts]");
+                        "Usage: ApiOperationalSchemaDriftCheck "
+                                + "[--scope=authoritative-facts|--scope=policy-studio]");
             }
             checkTable(connection, "public", "legacy_pay_codes", failures);
             checkColumn(connection, "public", "legacy_pay_codes", "code", failures);
@@ -115,6 +121,24 @@ public final class ApiOperationalSchemaDriftCheck {
             checkColumn(connection, "public", "extraordinary_benefit_statement_outbox", "lease_token", failures);
             checkColumn(connection, "public", "extraordinary_benefit_statement_outbox", "lease_until", failures);
             checkColumn(connection, "public", "extraordinary_benefit_statement_outbox", "last_failure_at", failures);
+            checkTable(connection, "public", "rule_execution_observation_outbox", failures);
+            checkColumn(connection, "public", "rule_execution_observation_outbox", "observation_id", failures);
+            checkColumn(connection, "public", "rule_execution_observation_outbox", "tenant_id", failures);
+            checkColumn(connection, "public", "rule_execution_observation_outbox", "environment", failures);
+            checkColumn(connection, "public", "rule_execution_observation_outbox", "snapshot_key", failures);
+            checkColumn(connection, "public", "rule_execution_observation_outbox", "snapshot_content_hash", failures);
+            checkColumn(connection, "public", "rule_execution_observation_outbox", "activation_revision", failures);
+            checkColumn(connection, "public", "rule_execution_observation_outbox", "outcome", failures);
+            checkColumn(connection, "public", "rule_execution_observation_outbox", "duration_micros", failures);
+            checkColumn(connection, "public", "rule_execution_observation_outbox", "observed_at", failures);
+            checkColumn(connection, "public", "rule_execution_observation_outbox", "delivery_status", failures);
+            checkColumn(connection, "public", "rule_execution_observation_outbox", "delivery_attempts", failures);
+            checkColumn(connection, "public", "rule_execution_observation_outbox", "next_attempt_at", failures);
+            checkColumn(connection, "public", "rule_execution_observation_outbox", "lease_token", failures);
+            checkColumn(connection, "public", "rule_execution_observation_outbox", "lease_until", failures);
+            checkColumn(connection, "public", "rule_execution_observation_outbox", "created_at", failures);
+            checkColumn(connection, "public", "rule_execution_observation_outbox", "delivered_at", failures);
+            checkColumn(connection, "public", "rule_execution_observation_outbox", "last_failure_code", failures);
             checkTable(connection, "public", "extraordinary_benefit_statement_replay_audit", failures);
             checkColumn(connection, "public", "extraordinary_benefit_statement_replay_audit", "audit_id", failures);
             checkColumn(connection, "public", "extraordinary_benefit_statement_replay_audit", "message_id", failures);
@@ -247,6 +271,30 @@ public final class ApiOperationalSchemaDriftCheck {
         checkColumn(connection, "public", "extraordinary_benefit_grant_history", "reason_code", failures);
         checkColumn(connection, "public", "extraordinary_benefit_grant_history", "event_date", failures);
         checkColumn(connection, "public", "extraordinary_benefit_grant_history", "status", failures);
+    }
+
+    private static void checkPolicyStudio(Connection connection, List<String> failures) throws SQLException {
+        checkTable(connection, "public", "rule_execution_observation_outbox", failures);
+        for (String column : List.of(
+                "observation_id",
+                "tenant_id",
+                "environment",
+                "snapshot_key",
+                "snapshot_content_hash",
+                "activation_revision",
+                "outcome",
+                "duration_micros",
+                "observed_at",
+                "delivery_status",
+                "delivery_attempts",
+                "next_attempt_at",
+                "lease_token",
+                "lease_until",
+                "created_at",
+                "delivered_at",
+                "last_failure_code")) {
+            checkColumn(connection, "public", "rule_execution_observation_outbox", column, failures);
+        }
     }
 
     private static void checkTablePrivilege(

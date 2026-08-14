@@ -22,6 +22,11 @@ evaluate(DENY | INCONCLUSIVE | NOT_APPLICABLE | ERROR) -> nenhum recurso, nenhum
 
 ## Concorrência e idempotência
 
+`re-evaluate` é uma action item-level dedicada para atualizar a intenção enquanto o agregado ainda
+está em `EVALUATED`. Ela preserva identidade, readquire facts autoritativos e persiste somente um
+novo `ALLOW`; qualquer outcome não autorizador mantém linha, versão e ledger de transformação
+inalterados. A action nunca executa o effect intent.
+
 Actions item-level exigem `If-Match`; ausência retorna `428`, versão obsoleta retorna `412`. O ETag
 é derivado da versão JPA persistida e nunca de timestamp ou payload.
 

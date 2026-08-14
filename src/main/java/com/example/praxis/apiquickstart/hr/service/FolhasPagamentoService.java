@@ -109,19 +109,22 @@ public class FolhasPagamentoService extends AbstractQuickstartCrudService<Folhas
     private final FolhasPagamentoMapper mapper;
     private final JdbcTemplate apiJdbcTemplate;
     private final DomainRuleWorkflowActionPolicyResolver workflowActionPolicyResolver;
+    private final PayrollDeterminationChainService payrollDeterminationChainService;
     private volatile Boolean eventStatusColumnAvailable;
 
     public FolhasPagamentoService(
             FolhasPagamentoRepository repository,
             FolhasPagamentoMapper mapper,
             @Qualifier("apiJdbcTemplate") JdbcTemplate apiJdbcTemplate,
-            DomainRuleWorkflowActionPolicyResolver workflowActionPolicyResolver
+            DomainRuleWorkflowActionPolicyResolver workflowActionPolicyResolver,
+            PayrollDeterminationChainService payrollDeterminationChainService
     ) {
         super(repository, FolhasPagamento.class, mapper::toDto, mapper::toEntity, mapper::toEntity, FolhasPagamento::getId);
         this.repository = repository;
         this.mapper = mapper;
         this.apiJdbcTemplate = apiJdbcTemplate;
         this.workflowActionPolicyResolver = workflowActionPolicyResolver;
+        this.payrollDeterminationChainService = payrollDeterminationChainService;
     }
 
     public static OptionSourceRegistry optionSources() {
@@ -137,6 +140,16 @@ public class FolhasPagamentoService extends AbstractQuickstartCrudService<Folhas
     public FolhasPagamento mergeUpdate(FolhasPagamento existing, FolhasPagamento fromPayload) {
         mapper.updateEntity(fromPayload, existing);
         return existing;
+    }
+
+    @Override
+    protected void beforeCreate(CreateFolhasPagamentoDTO dto, FolhasPagamento entity) {
+        payrollDeterminationChainService.validateFinalCommand(dto);
+    }
+
+    @Override
+    protected void beforeUpdate(Integer id, FolhasPagamento entity, UpdateFolhasPagamentoDTO dto) {
+        payrollDeterminationChainService.validateFinalCommand(dto);
     }
 
     @Override

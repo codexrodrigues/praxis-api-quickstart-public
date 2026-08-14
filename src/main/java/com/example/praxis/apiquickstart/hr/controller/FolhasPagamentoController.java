@@ -9,9 +9,15 @@ import com.example.praxis.apiquickstart.hr.dto.UpdateFolhasPagamentoDTO;
 import com.example.praxis.apiquickstart.hr.dto.actions.FolhaPagamentoWorkflowRequestDTO;
 import com.example.praxis.apiquickstart.hr.dto.actions.FolhaPagamentoWorkflowResultDTO;
 import com.example.praxis.apiquickstart.hr.dto.filter.FolhasPagamentoFilterDTO;
+import com.example.praxis.apiquickstart.hr.dto.determination.PayrollNetSalaryDeterminationRequest;
+import com.example.praxis.apiquickstart.hr.dto.determination.PayrollNetSalaryDeterminationResponse;
+import com.example.praxis.apiquickstart.hr.dto.determination.PayrollPaymentDateDeterminationRequest;
+import com.example.praxis.apiquickstart.hr.dto.determination.PayrollPaymentDateDeterminationResponse;
 import com.example.praxis.apiquickstart.hr.entity.FolhasPagamento;
 import com.example.praxis.apiquickstart.hr.mapper.FolhasPagamentoMapper;
 import com.example.praxis.apiquickstart.hr.service.FolhasPagamentoService;
+import com.example.praxis.apiquickstart.hr.service.PayrollNetSalaryDeterminationService;
+import com.example.praxis.apiquickstart.hr.service.PayrollPaymentDateDeterminationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -57,11 +63,20 @@ public class FolhasPagamentoController extends AbstractQuickstartCrudController<
 
     private final FolhasPagamentoService service;
     private final FolhasPagamentoMapper mapper;
+    private final PayrollNetSalaryDeterminationService payrollNetSalaryDeterminationService;
+    private final PayrollPaymentDateDeterminationService payrollPaymentDateDeterminationService;
 
     @Autowired
-    public FolhasPagamentoController(FolhasPagamentoService service, FolhasPagamentoMapper mapper) {
+    public FolhasPagamentoController(
+            FolhasPagamentoService service,
+            FolhasPagamentoMapper mapper,
+            PayrollNetSalaryDeterminationService payrollNetSalaryDeterminationService,
+            PayrollPaymentDateDeterminationService payrollPaymentDateDeterminationService
+    ) {
         this.service = service;
         this.mapper = mapper;
+        this.payrollNetSalaryDeterminationService = payrollNetSalaryDeterminationService;
+        this.payrollPaymentDateDeterminationService = payrollPaymentDateDeterminationService;
     }
 
     @Override
@@ -78,6 +93,43 @@ public class FolhasPagamentoController extends AbstractQuickstartCrudController<
 
     @Override
     protected Integer getDtoId(FolhasPagamentoDTO dto) { return dto.getId(); }
+
+    @PostMapping(ApiPaths.HumanResources.FOLHAS_PAGAMENTO_NET_SALARY_DETERMINATION_SEGMENT)
+    @Operation(
+            operationId = "determinePayrollNetSalary",
+            summary = "Determinar salario liquido da folha",
+            description = "Calcula salario liquido de modo idempotente e nao persistente. Create e update revalidam a mesma formula antes da gravacao.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Salario liquido determinado."),
+            @ApiResponse(responseCode = "400", description = "Valores obrigatorios ausentes."),
+            @ApiResponse(responseCode = "422", description = "Descontos excedem o salario bruto.")
+    })
+    public ResponseEntity<PayrollNetSalaryDeterminationResponse> determinePayrollNetSalary(
+            @jakarta.validation.Valid @RequestBody PayrollNetSalaryDeterminationRequest request
+    ) {
+        return ResponseEntity.ok(payrollNetSalaryDeterminationService.determine(
+                request.salarioBruto(),
+                request.totalDescontos()));
+    }
+
+    @PostMapping(ApiPaths.HumanResources.FOLHAS_PAGAMENTO_PAYMENT_DATE_DETERMINATION_SEGMENT)
+    @Operation(
+            operationId = "determinePayrollPaymentDate",
+            summary = "Determinar data corporativa de pagamento",
+            description = "Consome o salario liquido ja determinado e aplica o calendario idempotente da competencia. Create e update revalidam a cadeia completa antes da gravacao.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Data de pagamento determinada."),
+            @ApiResponse(responseCode = "400", description = "Fatos obrigatorios ausentes."),
+            @ApiResponse(responseCode = "422", description = "Competencia ou salario liquido invalido.")
+    })
+    public ResponseEntity<PayrollPaymentDateDeterminationResponse> determinePayrollPaymentDate(
+            @jakarta.validation.Valid @RequestBody PayrollPaymentDateDeterminationRequest request
+    ) {
+        return ResponseEntity.ok(payrollPaymentDateDeterminationService.determine(
+                request.ano(),
+                request.mes(),
+                request.salarioLiquido()));
+    }
 
     @PostMapping("/filter")
     @Operation(summary = "Filtrar folhas por competência, colaborador e valores financeiros", description = "Lista folhas de pagamento por funcionário, ano, mês, data de pagamento, salário bruto, descontos e salário líquido para conferência mensal, fechamento financeiro e acompanhamento operacional da folha.")
@@ -159,7 +211,7 @@ public class FolhasPagamentoController extends AbstractQuickstartCrudController<
     }
 
     @PostMapping
-    @Operation(summary = "Cadastrar folha mensal de pagamento", description = "Cria uma folha de pagamento vinculada a um funcionário com ano, mês, valores financeiros consolidados e data de pagamento para processamento operacional de RH.")
+    @Operation(operationId = "createPayroll", summary = "Cadastrar folha mensal de pagamento", description = "Cria uma folha de pagamento vinculada a um funcionário com ano, mês, valores financeiros consolidados e data de pagamento para processamento operacional de RH.")
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "Registro criado com sucesso."),
             @ApiResponse(responseCode = "400", description = "Requisição inválida ou dados inconsistentes."),
@@ -170,7 +222,7 @@ public class FolhasPagamentoController extends AbstractQuickstartCrudController<
     }
 
     @PutMapping("/{id}")
-    @Operation(summary = "Atualizar folha mensal de pagamento", description = "Mantém competência, valores consolidados, descontos, salário líquido, data de pagamento e vínculo com funcionário para processamento, conciliação e análise da folha.")
+    @Operation(operationId = "updatePayroll", summary = "Atualizar folha mensal de pagamento", description = "Mantém competência, valores consolidados, descontos, salário líquido, data de pagamento e vínculo com funcionário para processamento, conciliação e análise da folha.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Registro atualizado com sucesso."),
             @ApiResponse(responseCode = "400", description = "Requisição inválida ou dados inconsistentes."),

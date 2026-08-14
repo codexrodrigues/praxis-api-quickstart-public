@@ -55,6 +55,14 @@ O banco de demonstracao tem duas fronteiras: o datasource operacional da API (`s
 
 Consulte [`OPERATIONAL-DATASOURCE-MIGRATIONS.md`](OPERATIONAL-DATASOURCE-MIGRATIONS.md) para aplicar a trilha e rodar o drift check antes de usar o cockpit publicado como evidencia final.
 
+Correções estritamente editoriais da massa fictícia ficam fora da trilha estrutural. Os patches
+protegidos e idempotentes estão documentados em:
+
+- [`db/demo-seeds/public-demo/employee-dependent-coherence`](../db/demo-seeds/public-demo/employee-dependent-coherence/README.md),
+  que remove a duplicidade histórica de dependente do funcionário `1`;
+- [`db/demo-seeds/public-demo/employee-address-coherence`](../db/demo-seeds/public-demo/employee-address-coherence/README.md),
+  que corrige o endereço usado no dossiê público.
+
 ## Tecnologias principais
 
 - Spring Boot 3.x (Java 21), Spring Data JPA / Hibernate

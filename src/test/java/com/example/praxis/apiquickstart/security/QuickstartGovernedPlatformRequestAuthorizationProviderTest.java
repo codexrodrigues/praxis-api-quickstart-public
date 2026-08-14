@@ -32,7 +32,10 @@ class QuickstartGovernedPlatformRequestAuthorizationProviderTest {
         assertThat(result.authorities()).containsExactlyInAnyOrder(
                 HrAnalyticsAuthorities.AGGREGATE_READ,
                 HrAnalyticsAuthorities.NOMINAL_READ,
-                HrAnalyticsAuthorities.EMPLOYEE_360_READ);
+                HrAnalyticsAuthorities.EMPLOYEE_360_READ,
+                RuleGovernanceAuthorities.DEFINITION_READER,
+                RuleGovernanceAuthorities.DEFINITION_AUTHOR,
+                RuleGovernanceAuthorities.SNAPSHOT_READER);
     }
 
     @Test
@@ -63,7 +66,10 @@ class QuickstartGovernedPlatformRequestAuthorizationProviderTest {
         assertThat(result.authorities()).containsExactlyInAnyOrder(
                 HrAnalyticsAuthorities.AGGREGATE_READ,
                 HrAnalyticsAuthorities.NOMINAL_READ,
-                HrAnalyticsAuthorities.EMPLOYEE_360_READ);
+                HrAnalyticsAuthorities.EMPLOYEE_360_READ,
+                RuleGovernanceAuthorities.DEFINITION_READER,
+                RuleGovernanceAuthorities.DEFINITION_AUTHOR,
+                RuleGovernanceAuthorities.SNAPSHOT_READER);
     }
 
     @Test

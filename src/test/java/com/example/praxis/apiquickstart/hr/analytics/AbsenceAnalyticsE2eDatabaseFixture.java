@@ -35,7 +35,8 @@ public final class AbsenceAnalyticsE2eDatabaseFixture {
             Pattern.compile("praxis_e2e_absence_[a-z0-9_]{1,42}");
     private static final Pattern RUNTIME_ROLE_GRANT = Pattern.compile(
             "(?i)^\\s*grant\\s+(?:execute\\s+on\\s+function\\s+public\\.hr_absence_criticality_level\\(bigint\\)"
-                    + "|select\\s+on\\s+public\\.vw_analytics_afastamentos)\\s+to\\s+praxis_service_user;\\s*$");
+                    + "|select\\s+on\\s+public\\.vw_analytics_afastamentos)"
+                    + "\\s+to\\s+\\$\\{OPERATIONAL_RUNTIME_ROLE};\\s*$");
     private static final Path GOLDEN_PATH = Path.of(
             "src/test/resources/absence-analytics-lab/absence-analytics-semantic-golden-suite.json");
     private static final Path ASSIGNMENT_MIGRATION = Path.of(

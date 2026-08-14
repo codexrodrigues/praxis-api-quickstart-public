@@ -41,11 +41,46 @@ Maker-checker do Rule Lab
 - O Config Starter exige `RULE_DEFINITION_AUTHOR` para intake/criação,
   `RULE_DEFINITION_APPROVER` para aprovar conteúdo exato,
   `RULE_COMPOSITION_APPROVER` para aprovar o digest da composição e
-  `RULE_SNAPSHOT_PUBLISHER` para publicar o mesmo candidato;
+  `RULE_SNAPSHOT_PUBLISHER` para publicar o mesmo candidato. Leituras de
+  `/api/praxis/config/domain-rules/snapshots/**` exigem
+  `RULE_SNAPSHOT_READER`, inclusive com `read-open=true`;
   `HttpServletRequest.isUserInRole` é a fronteira consumida pelo starter.
-- O admin demo não recebe esses roles. Para a prova local, `APP_AUTH_GOVERNANCE_LAB_ENABLED=true` habilita dois aprovadores e um publisher configurados por variáveis de ambiente, todos com usernames distintos entre si e do admin.
+- Heartbeats em `POST .../snapshots/host-status` exigem a autoridade exclusiva
+  `RULE_EXECUTION_OBSERVER`. Ela não é concedida ao admin demo nem ao leitor do
+  catálogo: em produção deve pertencer à identidade autenticada do deployment
+  consumidor. O corpo não transporta tenant, ambiente ou ator; o servidor os
+  resolve a partir do principal.
+- Rollouts de candidate preload mantêm segregação adicional: criação/cancelamento exigem
+  `RULE_SNAPSHOT_OPERATOR`, probes exigem `RULE_EXECUTION_OBSERVER` e readiness agregada exige
+  `RULE_SNAPSHOT_READER`. O `permitAll` genérico do Config não sobrepõe esses matchers.
+  Discovery em `GET .../rollouts/pending` também exige `RULE_EXECUTION_OBSERVER`; leitores humanos
+  do catálogo não recebem a fila de trabalho dos deployments.
+- Políticas de rollout reutilizam a segregação canônica: criação exige `RULE_DEFINITION_AUTHOR`,
+  aprovação exige outro ator com `RULE_DEFINITION_APPROVER`, ativação condicional exige
+  `RULE_SNAPSHOT_OPERATOR` e catálogo/timeline exigem `RULE_SNAPSHOT_READER`.
+- Reads de definitions, timelines e materializations exigem
+  `RULE_DEFINITION_READER`; simulation exige `RULE_DEFINITION_AUTHOR`.
+  O Config usa tenant/environment resolvidos do principal, nunca headers
+  opcionais como wildcard de escopo.
+- O admin demo recebe `RULE_DEFINITION_READER` e `RULE_SNAPSHOT_READER` entre os roles de
+  governança. Para a prova local, `APP_AUTH_GOVERNANCE_LAB_ENABLED=true`
+  habilita dois aprovadores e um publisher configurados por variáveis de
+  ambiente; no laboratório, o publisher acumula `RULE_SNAPSHOT_OPERATOR` e a
+  leitura necessária para verificar o head que publicou. Hosts corporativos
+  podem separar publisher e operator em principals distintos.
+- As duas capabilities reativas de folha (`net-salary` e `payment-date`) sao POSTs idempotentes do
+  data plane e exigem `ROLE_ADMIN`, inclusive quando `write-disabled=true`.
+  Esse matcher deliberadamente antecede o deny generico de persistencia: admin business pode
+  avaliar sem habilitar CRUD, enquanto o publisher tecnico recebe `403` e nao consulta o snapshot.
 - O gate deve rodar com `PRAXIS_AI_SECURITY_CORPORATE_MODE=true` e prova negativas cruzadas (`publisher -> definition/composition approve = 403` e `approver -> publish = 403`). A identidade não é transportada no payload.
 - Esse catálogo local permanece desabilitado em produção. Um host corporativo deve substituir `/auth/login` pelo IdP/BFF e mapear os roles no principal autenticado, sem transportar ator ou autorização em payload/headers do caller.
+- A troca de ator em `POST /auth/governance-lab/session/{identityKey}` existe apenas quando o catálogo
+  local opt-in está habilitado. Ela não recebe senha, só parte de uma sessão já pertencente ao
+  laboratório e serve para uma demonstração visual registrar as ações técnicas de principals
+  distintos; não representa aprovação humana ou IAM corporativo.
+- Em modo corporativo, tenant e ambiente devem vir de claims/atributos do
+  principal ou de binding server-side do deployable. `X-Tenant-ID` e `X-Env`
+  são apenas hints locais e nunca ampliam o escopo autenticado.
 
 Leitura arquitetural correta:
 - `workflow action` significa comando de negócio explícito, não CRUD disfarçado.

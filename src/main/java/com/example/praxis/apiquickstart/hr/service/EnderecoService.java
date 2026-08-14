@@ -15,11 +15,27 @@ public class EnderecoService extends AbstractQuickstartCrudService<Endereco, End
 
     private final EnderecoMapper mapper;
     private final EnderecoRepository repository;
+    private final PostalAddressDeterminationService postalAddressDeterminationService;
 
-    public EnderecoService(EnderecoRepository repository, EnderecoMapper mapper) {
+    public EnderecoService(
+            EnderecoRepository repository,
+            EnderecoMapper mapper,
+            PostalAddressDeterminationService postalAddressDeterminationService
+    ) {
         super(repository, Endereco.class, mapper::toDto, mapper::toEntity, mapper::toEntity, Endereco::getId);
         this.repository = repository;
         this.mapper = mapper;
+        this.postalAddressDeterminationService = postalAddressDeterminationService;
+    }
+
+    @Override
+    protected void beforeCreate(CreateEnderecoDTO dto, Endereco entity) {
+        postalAddressDeterminationService.validateFinalAddress(dto);
+    }
+
+    @Override
+    protected void beforeUpdate(Integer id, Endereco entity, UpdateEnderecoDTO dto) {
+        postalAddressDeterminationService.validateFinalAddress(dto);
     }
 
     @Override
@@ -41,5 +57,3 @@ public class EnderecoService extends AbstractQuickstartCrudService<Endereco, End
         return java.util.Optional.of(getEntityClass().getSimpleName() + ":" + count);
     }
 }
-
-

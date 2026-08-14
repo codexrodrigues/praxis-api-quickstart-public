@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.example.praxis.apiquickstart.ApiQuickstartApplication;
+import com.example.praxis.apiquickstart.security.JwtTokenService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -19,6 +20,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
@@ -67,6 +70,9 @@ class OpenApiGroupResolutionIsolatedIntegrationTest {
     private ObjectMapper objectMapper;
 
     @Autowired
+    private JwtTokenService jwtTokenService;
+
+    @Autowired
     private DomainCatalogSchemaValidationService domainCatalogSchemaValidationService;
 
     @MockBean(name = "ragVectorStore")
@@ -83,6 +89,9 @@ class OpenApiGroupResolutionIsolatedIntegrationTest {
 
     @MockBean
     private DomainRuleWorkflowActionPolicyResolver workflowActionPolicyResolver;
+
+    @MockBean
+    private AppliedReactiveDeterminationResolver appliedReactiveDeterminationResolver;
 
     @BeforeEach
     void configureStableSchemaClientTimeouts() {
@@ -153,6 +162,201 @@ class OpenApiGroupResolutionIsolatedIntegrationTest {
         assertHasNoProperty(filterSchemaResponse.getBody(), "dataNascimentoOn");
         assertHasNoProperty(filterSchemaResponse.getBody(), "dataAdmissaoOn");
         assertHasXUi(filterSchemaResponse.getBody());
+    }
+
+    @Test
+    void shouldPublishAndExecutePostalAddressReactiveDetermination() {
+        String resourcePath = "/api/human-resources/enderecos";
+
+        ResponseEntity<JsonNode> createSchemaResponse = restTemplate.getForEntity(
+                "/schemas/filtered?path={path}&operation=post&schemaType=request",
+                JsonNode.class,
+                resourcePath
+        );
+        assertEquals(HttpStatus.OK, createSchemaResponse.getStatusCode());
+        JsonNode createDetermination = firstReactiveDetermination(createSchemaResponse.getBody());
+        assertEquals("human-resources.address.by-postal-code", createDetermination.path("id").asText());
+        assertEquals("createAddress", createDetermination.path("scope").path("schemaOperationId").asText());
+        assertEquals("create", createDetermination.path("scope").path("formMode").asText());
+        assertEquals("on-change", createDetermination.path("trigger").path("mode").asText());
+        assertEquals("/cep", createDetermination.path("trigger").path("sourcePaths").get(0).asText());
+        assertEquals("determinePostalAddress", createDetermination.path("capability").path("operationId").asText());
+        assertEquals("POST", createDetermination.path("capability").path("method").asText());
+        assertEquals(
+                "/api/human-resources/enderecos/determinations/postal-address",
+                createDetermination.path("capability").path("href").asText());
+        assertFalse(createDetermination.toString().contains("tenant"));
+        assertFalse(createDetermination.toString().contains("headers"));
+
+        ResponseEntity<JsonNode> updateSchemaResponse = restTemplate.getForEntity(
+                "/schemas/filtered?path={path}&operation=put&schemaType=request",
+                JsonNode.class,
+                resourcePath + "/{id}"
+        );
+        assertEquals(HttpStatus.OK, updateSchemaResponse.getStatusCode());
+        JsonNode updateDetermination = firstReactiveDetermination(updateSchemaResponse.getBody());
+        assertEquals("updateAddress", updateDetermination.path("scope").path("schemaOperationId").asText());
+        assertEquals("edit", updateDetermination.path("scope").path("formMode").asText());
+
+        ResponseEntity<JsonNode> responseSchemaResponse = restTemplate.getForEntity(
+                "/schemas/filtered?path={path}&operation=post&schemaType=response",
+                JsonNode.class,
+                resourcePath
+        );
+        assertEquals(HttpStatus.OK, responseSchemaResponse.getStatusCode());
+        assertTrue(responseSchemaResponse.getBody()
+                .path("x-ui")
+                .path("reactiveDeterminations")
+                .isMissingNode());
+
+        HttpHeaders authorizedHeaders = new HttpHeaders();
+        authorizedHeaders.add(
+                HttpHeaders.COOKIE,
+                "SESSION=" + jwtTokenService.generate("admin", "ADMIN"));
+        ResponseEntity<JsonNode> determinationResponse = restTemplate.postForEntity(
+                resourcePath + "/determinations/postal-address",
+                new HttpEntity<>(Map.of("cep", "01310-100"), authorizedHeaders),
+                JsonNode.class
+        );
+        assertEquals(HttpStatus.OK, determinationResponse.getStatusCode());
+        assertNotNull(determinationResponse.getBody());
+        assertEquals("Avenida Paulista", determinationResponse.getBody().path("logradouro").asText());
+        assertEquals("Sao Paulo", determinationResponse.getBody().path("cidade").asText());
+        assertEquals("SP", determinationResponse.getBody().path("estado").asText());
+
+        ResponseEntity<JsonNode> unknownPostalCodeResponse = restTemplate.postForEntity(
+                resourcePath + "/determinations/postal-address",
+                new HttpEntity<>(Map.of("cep", "99999-999"), authorizedHeaders),
+                JsonNode.class
+        );
+        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, unknownPostalCodeResponse.getStatusCode());
+
+        ResponseEntity<JsonNode> unknownPostalCodeCreateResponse = restTemplate.postForEntity(
+                resourcePath,
+                new HttpEntity<>(Map.of(
+                        "logradouro", "Rua inventada",
+                        "numero", "100",
+                        "bairro", "Centro",
+                        "cidade", "Sao Paulo",
+                        "estado", "SP",
+                        "cep", "99999-999",
+                        "funcionarioId", 1
+                ), authorizedHeaders),
+                JsonNode.class
+        );
+        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, unknownPostalCodeCreateResponse.getStatusCode());
+    }
+
+    @Test
+    void shouldPublishAndExecuteMultiInputPayrollDetermination() {
+        String resourcePath = "/api/human-resources/folhas-pagamento";
+        ResponseEntity<JsonNode> schemaResponse = restTemplate.getForEntity(
+                "/schemas/filtered?path={path}&operation=post&schemaType=request",
+                JsonNode.class,
+                resourcePath
+        );
+        assertEquals(HttpStatus.OK, schemaResponse.getStatusCode());
+        JsonNode determinations = schemaResponse.getBody().path("x-ui").path("reactiveDeterminations");
+        assertTrue(determinations.isArray());
+        assertEquals(2, determinations.size());
+        JsonNode determination = findReactiveDetermination(
+                determinations,
+                "human-resources.payroll.net-salary");
+        assertEquals("human-resources.payroll.net-salary", determination.path("id").asText());
+        assertEquals("createPayroll", determination.path("scope").path("schemaOperationId").asText());
+        assertEquals(2, determination.path("trigger").path("sourcePaths").size());
+        assertEquals(2, determination.path("inputs").size());
+        assertEquals("/salarioLiquido", determination.path("outputs").get(0).path("fieldPath").asText());
+        assertEquals(
+                "determinePayrollNetSalary",
+                determination.path("capability").path("operationId").asText());
+        JsonNode paymentDateDetermination = findReactiveDetermination(
+                determinations,
+                "human-resources.payroll.payment-date");
+        assertEquals(3, paymentDateDetermination.path("trigger").path("sourcePaths").size());
+        assertEquals("/salarioLiquido",
+                paymentDateDetermination.path("trigger").path("sourcePaths").get(2).asText());
+        assertEquals("/dataPagamento",
+                paymentDateDetermination.path("outputs").get(0).path("fieldPath").asText());
+        assertEquals("determinePayrollPaymentDate",
+                paymentDateDetermination.path("capability").path("operationId").asText());
+
+        ResponseEntity<JsonNode> updateSchemaResponse = restTemplate.getForEntity(
+                "/schemas/filtered?path={path}&operation=put&schemaType=request",
+                JsonNode.class,
+                resourcePath + "/{id}"
+        );
+        assertEquals(HttpStatus.OK, updateSchemaResponse.getStatusCode());
+        JsonNode updateDeterminations = updateSchemaResponse.getBody()
+                .path("x-ui").path("reactiveDeterminations");
+        assertEquals(2, updateDeterminations.size());
+        assertEquals("updatePayroll", findReactiveDetermination(
+                updateDeterminations,
+                "human-resources.payroll.payment-date")
+                .path("scope").path("schemaOperationId").asText());
+
+        ResponseEntity<JsonNode> responseSchemaResponse = restTemplate.getForEntity(
+                "/schemas/filtered?path={path}&operation=post&schemaType=response",
+                JsonNode.class,
+                resourcePath
+        );
+        assertEquals(HttpStatus.OK, responseSchemaResponse.getStatusCode());
+        assertTrue(responseSchemaResponse.getBody()
+                .path("x-ui").path("reactiveDeterminations").isMissingNode());
+
+        HttpHeaders authorizedHeaders = new HttpHeaders();
+        authorizedHeaders.add(
+                HttpHeaders.COOKIE,
+                "SESSION=" + jwtTokenService.generate("admin", "ADMIN"));
+        ResponseEntity<JsonNode> determinationResponse = restTemplate.postForEntity(
+                resourcePath + "/determinations/net-salary",
+                new HttpEntity<>(Map.of(
+                        "salarioBruto", 10000.00,
+                        "totalDescontos", 2450.35), authorizedHeaders),
+                JsonNode.class
+        );
+        assertEquals(HttpStatus.OK, determinationResponse.getStatusCode());
+        assertNotNull(determinationResponse.getBody());
+        assertEquals("7549.65", determinationResponse.getBody().path("salarioLiquido").asText());
+        assertEquals("payroll-net-v1", determinationResponse.getBody().path("decisionVersion").asText());
+
+        String determinedNetSalary = determinationResponse.getBody().path("salarioLiquido").asText();
+        ResponseEntity<JsonNode> paymentDateResponse = restTemplate.postForEntity(
+                resourcePath + "/determinations/payment-date",
+                new HttpEntity<>(Map.of(
+                        "ano", 2026,
+                        "mes", 4,
+                        "salarioLiquido", determinedNetSalary), authorizedHeaders),
+                JsonNode.class
+        );
+        assertEquals(HttpStatus.OK, paymentDateResponse.getStatusCode());
+        assertNotNull(paymentDateResponse.getBody());
+        assertEquals("2026-05-07", paymentDateResponse.getBody().path("dataPagamento").asText());
+        assertEquals("payroll-calendar-v1", paymentDateResponse.getBody().path("decisionVersion").asText());
+
+        ResponseEntity<JsonNode> invalidDiscountResponse = restTemplate.postForEntity(
+                resourcePath + "/determinations/net-salary",
+                new HttpEntity<>(Map.of(
+                        "salarioBruto", 1000.00,
+                        "totalDescontos", 1000.01), authorizedHeaders),
+                JsonNode.class
+        );
+        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, invalidDiscountResponse.getStatusCode());
+    }
+
+    private JsonNode firstReactiveDetermination(JsonNode schema) {
+        assertNotNull(schema);
+        JsonNode determinations = schema.path("x-ui").path("reactiveDeterminations");
+        assertTrue(determinations.isArray());
+        assertEquals(1, determinations.size());
+        return determinations.get(0);
+    }
+
+    private JsonNode findReactiveDetermination(JsonNode determinations, String id) {
+        for (JsonNode determination : determinations) {
+            if (id.equals(determination.path("id").asText())) return determination;
+        }
+        throw new AssertionError("Reactive determination not found: " + id);
     }
 
     @Test

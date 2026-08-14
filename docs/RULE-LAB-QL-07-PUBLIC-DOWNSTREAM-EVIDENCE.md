@@ -132,6 +132,16 @@ O gate inclui duas negativas obrigatórias: o publisher recebe `403` ao tentar a
 e um approver recebe `403` ao tentar publicar. Assim, `corporate-mode=false` não pode produzir uma
 evidência maker-checker válida por acidente.
 
+### Hardening do compositor para a próxima revalidação
+
+Em 2026-08-13, o gerador do candidato deixou de citar duas definições genéricas.
+O provisionador agora resolve e aprova as sete decisões reais do Policy Studio;
+`ExtraordinaryGrantRuleSetComposer` substitui somente os sete bindings JSON Logic
+autônomos e preserva o restante do grafo host-owned. Testes focais provam cobertura
+exata, propagação de uma condição alterada e rejeição de fonte ausente, draft ou
+fora do RuleSet. Esta seção registra implementação local validada; novos hashes,
+snapshot keys e digest só devem ser acrescentados após repetir o gate HTTP público.
+
 ## Prova HTTP
 
 O gate `scripts/workspace/Invoke-RuleLabQl07HttpProof.ps1` parte de uma sessão autenticada e prova:

@@ -4,10 +4,13 @@ import com.example.praxis.apiquickstart.constants.ApiPaths;
 import com.example.praxis.apiquickstart.hr.dto.EnderecoDTO;
 import com.example.praxis.apiquickstart.hr.dto.CreateEnderecoDTO;
 import com.example.praxis.apiquickstart.hr.dto.UpdateEnderecoDTO;
+import com.example.praxis.apiquickstart.hr.dto.determination.PostalAddressDeterminationRequest;
+import com.example.praxis.apiquickstart.hr.dto.determination.PostalAddressDeterminationResponse;
 import com.example.praxis.apiquickstart.hr.dto.filter.EnderecoFilterDTO;
 import com.example.praxis.apiquickstart.hr.entity.Endereco;
 import com.example.praxis.apiquickstart.hr.mapper.EnderecoMapper;
 import com.example.praxis.apiquickstart.hr.service.EnderecoService;
+import com.example.praxis.apiquickstart.hr.service.PostalAddressDeterminationService;
 import org.praxisplatform.uischema.annotation.ApiGroup;
 import org.praxisplatform.uischema.annotation.ApiResource;
 import com.example.praxis.apiquickstart.core.controller.base.AbstractQuickstartCrudController;
@@ -37,11 +40,17 @@ public class EnderecoController extends AbstractQuickstartCrudController<Enderec
 
     private final EnderecoService service;
     private final EnderecoMapper mapper;
+    private final PostalAddressDeterminationService postalAddressDeterminationService;
 
     @Autowired
-    public EnderecoController(EnderecoService service, EnderecoMapper mapper) {
+    public EnderecoController(
+            EnderecoService service,
+            EnderecoMapper mapper,
+            PostalAddressDeterminationService postalAddressDeterminationService
+    ) {
         this.service = service;
         this.mapper = mapper;
+        this.postalAddressDeterminationService = postalAddressDeterminationService;
     }
 
     @Override
@@ -58,6 +67,22 @@ public class EnderecoController extends AbstractQuickstartCrudController<Enderec
 
     @Override
     protected Integer getDtoId(EnderecoDTO dto) { return dto.getId(); }
+
+    @PostMapping(ApiPaths.HumanResources.ENDERECOS_POSTAL_ADDRESS_DETERMINATION_SEGMENT)
+    @Operation(
+            operationId = "determinePostalAddress",
+            summary = "Determinar campos de endereco a partir do CEP",
+            description = "Executa uma derivacao idempotente e nao persistente durante a edicao. O comando final revalida os mesmos fatos antes de gravar o endereco.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Campos de endereco determinados com sucesso."),
+            @ApiResponse(responseCode = "400", description = "CEP ausente ou estruturalmente invalido."),
+            @ApiResponse(responseCode = "422", description = "CEP fora do diretorio demonstrativo do host.")
+    })
+    public ResponseEntity<PostalAddressDeterminationResponse> determinePostalAddress(
+            @jakarta.validation.Valid @RequestBody PostalAddressDeterminationRequest request
+    ) {
+        return ResponseEntity.ok(postalAddressDeterminationService.determine(request.cep()));
+    }
 
     @PostMapping("/filter")
     @Operation(summary = "Filtrar endereços cadastrais por colaborador e localidade", description = "Lista endereços vinculados a funcionários por titular, logradouro, número, bairro, cidade, UF e CEP para conferência cadastral, contato administrativo e rotinas internas de RH.")
@@ -139,23 +164,25 @@ public class EnderecoController extends AbstractQuickstartCrudController<Enderec
     }
 
     @PostMapping
-    @Operation(summary = "Cadastrar endereço de funcionário", description = "Cria um endereço cadastral vinculado ao funcionário titular para uso em contato administrativo, conferência de localização e registros internos de RH.")
+    @Operation(operationId = "createAddress", summary = "Cadastrar endereço de funcionário", description = "Cria um endereço cadastral vinculado ao funcionário titular para uso em contato administrativo, conferência de localização e registros internos de RH.")
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "Registro criado com sucesso."),
             @ApiResponse(responseCode = "400", description = "Requisição inválida ou dados inconsistentes."),
-            @ApiResponse(responseCode = "409", description = "Conflito de dados ou violação de regra de negócio.")
+            @ApiResponse(responseCode = "409", description = "Conflito de dados ou violação de regra de negócio."),
+            @ApiResponse(responseCode = "422", description = "CEP fora do diretorio governado do host.")
     })
     public ResponseEntity<RestApiResponse<EnderecoDTO>> create(@jakarta.validation.Valid @RequestBody CreateEnderecoDTO dto) {
         return super.create(dto);
     }
 
     @PutMapping("/{id}")
-    @Operation(summary = "Atualizar endereço cadastral de funcionário", description = "Mantém dados de localização do funcionário, incluindo logradouro, número, complemento, bairro, cidade, UF e CEP para cadastros e fluxos administrativos de RH.")
+    @Operation(operationId = "updateAddress", summary = "Atualizar endereço cadastral de funcionário", description = "Mantém dados de localização do funcionário, incluindo logradouro, número, complemento, bairro, cidade, UF e CEP para cadastros e fluxos administrativos de RH.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Registro atualizado com sucesso."),
             @ApiResponse(responseCode = "400", description = "Requisição inválida ou dados inconsistentes."),
             @ApiResponse(responseCode = "404", description = "Registro não encontrado."),
-            @ApiResponse(responseCode = "409", description = "Conflito de dados ou violação de regra de negócio.")
+            @ApiResponse(responseCode = "409", description = "Conflito de dados ou violação de regra de negócio."),
+            @ApiResponse(responseCode = "422", description = "CEP fora do diretorio governado do host.")
     })
     public ResponseEntity<RestApiResponse<EnderecoDTO>> update(@PathVariable Integer id, @jakarta.validation.Valid @RequestBody UpdateEnderecoDTO dto) {
         return super.update(id, dto);
@@ -181,12 +208,3 @@ public class EnderecoController extends AbstractQuickstartCrudController<Enderec
         return super.deleteBatch(ids);
     }
 }
-
-
-
-
-
-
-
-
-

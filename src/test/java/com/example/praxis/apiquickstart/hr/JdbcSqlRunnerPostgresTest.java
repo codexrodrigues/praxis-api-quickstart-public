@@ -65,6 +65,8 @@ class JdbcSqlRunnerPostgresTest {
 
                 insert into public.jdbc_runner_events
                 values (2, public.jdbc_runner_detail('ordered'));
+
+                grant select on public.jdbc_runner_events to ${OPERATIONAL_RUNTIME_ROLE};
                 """);
         Path second = script("""
                 do $guard$

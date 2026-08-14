@@ -33,7 +33,10 @@ public class QuickstartPrincipalAuthorityCatalog {
                     List.of(
                             HrAnalyticsAuthorities.AGGREGATE_READ,
                             HrAnalyticsAuthorities.NOMINAL_READ,
-                            HrAnalyticsAuthorities.EMPLOYEE_360_READ)));
+                            HrAnalyticsAuthorities.EMPLOYEE_360_READ,
+                            RuleGovernanceAuthorities.DEFINITION_READER,
+                            RuleGovernanceAuthorities.DEFINITION_AUTHOR,
+                            RuleGovernanceAuthorities.SNAPSHOT_READER)));
         }
         if (AGGREGATE_ONLY_SUBJECT.equals(subject)) {
             return Optional.of(new PrincipalGrant(

@@ -2187,7 +2187,6 @@ COPY public.dependentes (id, nome_completo, parentesco, data_nascimento, funcion
 65	Rebecca Barnes	IRMA	1921-04-04	49
 66	Danny Dyson	FILHO	1989-06-05	20
 67	Hippolyta	MAE	1940-01-01	32
-68	Morgan Stark	FILHA	2018-05-04	1
 69	Sherry Birkin	TUTELADA	1986-03-12	15
 70	Atlanna	MAE	1956-03-03	34
 71	Ramonda	MAE	1958-07-07	28
@@ -2208,7 +2207,7 @@ COPY public.dependentes (id, nome_completo, parentesco, data_nascimento, funcion
 
 COPY public.enderecos (id, logradouro, numero, complemento, bairro, cidade, estado, cep, funcionario_id) FROM stdin;
 1	Av. das Indústrias Stark	100	Torre A	Tecnológico	Nova York	NY	10001-000	1
-2	Alameda das Mansões	1	Mansão Wayne	Nobre	Gotham	GT	54321-000	2
+2	Avenida Park	10880	Apartamento 42	Midtown	Nova York	NY	10017-000	2
 4	Av. Pesquisa Wayne	200	Bloco B	Industrial	Gotham	GT	54321-200	4
 6	Av. Biotecnologia Oscorp	450	Cobertura	Tecnológico	Nova York	NY	10002-450	6
 7	Av. do Planeta Diário	55	Redação	Centro	Metrópolis	MT	11000-055	7

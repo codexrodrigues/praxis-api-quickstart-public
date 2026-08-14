@@ -53,8 +53,22 @@ public final class ApiPaths {
         public static final String DEPARTAMENTOS_DEPARTMENT_LOOKUP_OPTIONS =
                 DEPARTAMENTOS + "/option-sources/" + DEPARTAMENTOS_DEPARTMENT_LOOKUP_SOURCE + "/options/filter";
         public static final String ENDERECOS = BASE_PATH + "/enderecos";
+        /**
+         * Operacao idempotente e nao persistente usada pelo piloto de determinacao reativa de endereco.
+         */
+        public static final String ENDERECOS_POSTAL_ADDRESS_DETERMINATION_SEGMENT = "/determinations/postal-address";
+        public static final String ENDERECOS_POSTAL_ADDRESS_DETERMINATION =
+                ENDERECOS + ENDERECOS_POSTAL_ADDRESS_DETERMINATION_SEGMENT;
         public static final String DEPENDENTES = BASE_PATH + "/dependentes";
         public static final String FOLHAS_PAGAMENTO = BASE_PATH + "/folhas-pagamento";
+        public static final String FOLHAS_PAGAMENTO_NET_SALARY_DETERMINATION_SEGMENT =
+                "/determinations/net-salary";
+        public static final String FOLHAS_PAGAMENTO_NET_SALARY_DETERMINATION =
+                FOLHAS_PAGAMENTO + FOLHAS_PAGAMENTO_NET_SALARY_DETERMINATION_SEGMENT;
+        public static final String FOLHAS_PAGAMENTO_PAYMENT_DATE_DETERMINATION_SEGMENT =
+                "/determinations/payment-date";
+        public static final String FOLHAS_PAGAMENTO_PAYMENT_DATE_DETERMINATION =
+                FOLHAS_PAGAMENTO + FOLHAS_PAGAMENTO_PAYMENT_DATE_DETERMINATION_SEGMENT;
         public static final String FOLHAS_PAGAMENTO_PAYROLL_LOOKUP_SOURCE = "payroll";
         public static final String FOLHAS_PAGAMENTO_PAYROLL_LOOKUP_OPTIONS =
                 FOLHAS_PAGAMENTO + "/option-sources/" + FOLHAS_PAGAMENTO_PAYROLL_LOOKUP_SOURCE + "/options/filter";

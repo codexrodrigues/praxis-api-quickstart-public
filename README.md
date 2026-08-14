@@ -25,6 +25,7 @@ catalogo nem a governanca do dominio.
 Compartilhe sempre a URL canonica `/praxis/cockpit`. Parametros como `release`, `published` e `qa` sao cache-busters temporarios para validacao; o topo do cockpit mostra o release solicitado e o `build.time` real de `/actuator/info` para confirmar se o Render ja serviu o build esperado.
 
 Leia tambem [`docs/COCKPIT-QUICKSTART-REFERENCE.md`](docs/COCKPIT-QUICKSTART-REFERENCE.md) para entender como o cockpit deve ser usado como evidencia do host exemplar: cobertura por dominio, surfaces, workflow actions, charts, relacionamentos navegaveis e prioridades de evolucao do Quickstart.
+O piloto de determinacao reativa backend-owned, incluindo contrato, fronteiras e provas HTTP, esta em [`docs/REACTIVE-DETERMINATION-PILOT.md`](docs/REACTIVE-DETERMINATION-PILOT.md).
 O inventario desse guia e conferido contra o runtime publicado por `scripts/verify-cockpit-inventory-doc.sh`, evitando que numeros de recursos, surfaces e workflow actions fiquem obsoletos.
 Os contratos de actions tambem sao conferidos por `scripts/verify-cockpit-action-contracts.sh`, garantindo que cada workflow publicado tenha path OpenAPI e schemas filtrados de request/response para o cockpit materializar formulario e retorno.
 As surfaces semanticas explicitas sao conferidas por `scripts/verify-cockpit-surface-contracts.sh`, garantindo que cada experiencia composta publicada para o cockpit tenha titulo, descricao, path OpenAPI e schema filtrado materializavel.
@@ -55,6 +56,12 @@ Beneficios
 Como a UI consome o contrato
 - Endpoints publicos: `/v3/api-docs` (por grupo) e `/schemas/filtered` (schema filtrado por operacao: request/response).
 - O `schemas/filtered` mescla metadados das anotacoes, Bean Validation e hints do OpenAPI.
+
+### Pilotos de determinações reativas governadas
+
+O `/schemas/filtered` publica bindings estruturais em `x-ui.reactiveDeterminations`. O Quickstart registra as definições do host e expõe operações tipadas, idempotentes e não persistentes para os pilotos de endereço e folha de pagamento; regras e materializações tenant-scoped permanecem no Praxis Config e são resolvidas pelo principal autenticado.
+
+O piloto postal usa um diretório determinístico de CEPs de referência (`01310-100`, `01001-000` e `20040-002`). Os pilotos de folha demonstram uma cadeia governada de salário líquido e data de pagamento. Os comandos finais reexecutam as determinações antes de persistir, inclusive para clientes que não utilizam a UI oficial. Consulte [`docs/REACTIVE-DETERMINATION-PILOT.md`](docs/REACTIVE-DETERMINATION-PILOT.md) para contratos, governança e provas HTTP.
 
 Como a IA consome o contexto
 - O host emite `GET /schemas/domain?resourceKey=<resourceKey>` a partir de metadata, OpenAPI, DTOs, governanca e capacidades.
@@ -92,6 +99,11 @@ Migrations operacionais da API:
 - O datasource de dominio do Quickstart (`spring.datasource.*`) e separado do datasource config/RAG (`config.datasource.*`).
 - A trilha versionada de schema/seed operacional fica em [`db/operational-migrations`](db/operational-migrations).
 - O processo de aplicacao e o drift check estao em [`docs/OPERATIONAL-DATASOURCE-MIGRATIONS.md`](docs/OPERATIONAL-DATASOURCE-MIGRATIONS.md).
+- O plano da prova Policy Studio CREATE/UPDATE, com a fronteira entre sandbox,
+  host, Config V57 e Neon, está em
+  [`docs/POLICY-STUDIO-OPERATIONAL-EVIDENCE-PLAN.md`](docs/POLICY-STUDIO-OPERATIONAL-EVIDENCE-PLAN.md).
+- O estado executado e o contrato de handoff para Studio/Ergon estão em
+  [`docs/POLICY-STUDIO-V57-OPERATIONAL-HANDOFF.md`](docs/POLICY-STUDIO-V57-OPERATIONAL-HANDOFF.md).
 
 ## Ecossistema (pecas e papeis)
 
@@ -382,8 +394,8 @@ curl -i -b cookies.txt -c cookies.txt \
 Este quickstart usa os starters alinhados ao ciclo corrente:
 
 - Metadata: `io.github.codexrodrigues:praxis-metadata-starter:8.0.0-rc.104`
-- Config: `io.github.codexrodrigues:praxis-config-starter:0.1.0-rc.72`
-- UI Angular: `@praxisui/*:8.0.0-beta.19`
+- Config: `io.github.codexrodrigues:praxis-config-starter:0.1.0-rc.100`
+- UI Angular: `@praxisui/*:9.0.5-rc.4`
 
 1) Build (repo standalone)
 ```
@@ -897,13 +909,14 @@ lifecycle `EVALUATED -> SUBMITTED -> APPROVED -> APPLIED`. As mutações existem
 actions governadas. `evaluate` persiste apenas decisões `ALLOW`; `DENY`, `INCONCLUSIVE`, falhas e
 efeitos planejados nunca criam recurso ou ledger financeiro.
 
-`submit`, `approve` e `apply` exigem `If-Match` e `Idempotency-Key`. A mutação, a transição de
+`re-evaluate`, `submit`, `approve` e `apply` exigem `If-Match` e `Idempotency-Key`. A mutação, a transição de
 auditoria, o ledger de efeito e a resposta idempotente são confirmados na mesma transação do banco
 operacional. `evaluate-batch` é explicitamente não atômico: processa até 50 itens em ordem, usa uma
 transação por item e devolve resultados parciais estáveis.
 
 - Coleção: `GET /api/human-resources/extraordinary-benefit-requests`
 - Avaliação: `POST /api/human-resources/extraordinary-benefit-requests/actions/evaluate`
+- Reavaliação concorrente: `POST /api/human-resources/extraordinary-benefit-requests/{id}/actions/re-evaluate`
 - Lote: `POST /api/human-resources/extraordinary-benefit-requests/actions/evaluate-batch`
 - Lifecycle: `POST /api/human-resources/extraordinary-benefit-requests/{id}/actions/{submit|approve|apply}`
 - Discovery: `GET /api/human-resources/extraordinary-benefit-requests/actions`
@@ -931,6 +944,14 @@ avança lifecycle e não executa efeito. Métricas de baixa cardinalidade são r
 `praxis.rule.shadow.comparisons` e `praxis.rule.shadow.side.duration` para exportação pelo backend
 Micrometer configurado no ambiente.
 
+Toda avaliação do RuleSet candidato, inclusive as chamadas autoritativas e de sandbox, também
+registra `praxis.rule.runtime.evaluations` e `praxis.rule.runtime.evaluation.duration`. O refresh do
+head registra `praxis.rule.runtime.snapshot.refreshes` com resultado limitado a `activated`,
+`unchanged` ou `rejected`. As dimensões são deliberadamente limitadas a RuleSet, outcome e status;
+facts, referência da solicitação, ator, snapshot e hash nunca viram tags. O Quickstart mantém
+`health,info` como exposição Actuator padrão; exportar `metrics` ou `prometheus` continua sendo uma
+decisão explícita do ambiente operacional, não uma abertura automática do host de referência.
+
 - Evidência QL-06: [docs/RULE-LAB-QL-06-SHADOW-OPERATION-EVIDENCE.md](docs/RULE-LAB-QL-06-SHADOW-OPERATION-EVIDENCE.md)
 - Privacidade e retenção P2F-ADR-12: [docs/RULE-LAB-P2F-ADR-12-PRIVACY-RETENTION.md](docs/RULE-LAB-P2F-ADR-12-PRIVACY-RETENTION.md)
 
@@ -948,6 +969,17 @@ O launcher oficial exige `PRAXIS_RESOURCE_VERSION_ETAG_SECRET` independente do J
 anunciar actions versionadas em uma configuração incapaz de produzir ETags. O shadow usa timeout
 padrão de 1 s, configurável entre 1 ms e 5 s por `PRAXIS_RULE_LAB_SHADOW_TIMEOUT_MS`.
 
+O catálogo de snapshots exige `RULE_SNAPSHOT_READER`. Alterações do head são duas operações
+explícitas e protegidas por `RULE_SNAPSHOT_OPERATOR`: `POST .../{snapshotKey}/activate` somente
+avança para uma publicação mais nova e `POST .../{snapshotKey}/rollback` somente restaura uma
+publicação anterior. Ambas exigem o `If-Match` forte do head atual; o `permitAll` genérico do
+Config não pode sobrepor essas regras do host.
+
+A publicação de readiness dos hosts em `POST .../snapshots/host-status` é uma operação separada,
+protegida por `RULE_EXECUTION_OBSERVER`. O papel pertence à identidade de serviço do consumidor e
+não é incluído no admin demo. Leitores e operadores de snapshot não podem publicar heartbeat por
+herança; tenant, ambiente e `hostActorRef` continuam sendo resolvidos pelo servidor.
+
 - Preflight Maven: `scripts/workspace/Test-RuleLabQl07PublicMaven.ps1`
   Quando o registry Angular não estiver no checkout irmão padrão, informe
   `-AngularRegistryPath <arquivo-gerado>`. O parâmetro altera somente o fixture
@@ -956,18 +988,36 @@ padrão de 1 s, configurável entre 1 ms e 5 s por `PRAXIS_RULE_LAB_SHADOW_TIMEO
 - Provisionamento maker-checker: `scripts/workspace/Initialize-RuleLabQl07Snapshot.ps1`.
   O comportamento padrão é idempotente; use `-ForceSupersession` somente em uma
   prova de release para publicar uma nova revisão governada sobre o head saudável.
+  O provisionador usa as sete definições aprovadas do caso Policy Studio e o
+  compositor Java do host; ele não publica mais um factory estático com duas
+  referências genéricas. Um head antigo com esse provenance incompleto é
+  supersedido automaticamente por uma nova versão imutável.
 - Prova HTTP: `scripts/workspace/Invoke-RuleLabQl07HttpProof.ps1`
 - Evidência QL-07: [docs/RULE-LAB-QL-07-PUBLIC-DOWNSTREAM-EVIDENCE.md](docs/RULE-LAB-QL-07-PUBLIC-DOWNSTREAM-EVIDENCE.md)
 
+O Policy Studio também pode iniciar esse mesmo ciclo pelo
+[contrato host-owned de composição de RuleSet](docs/POLICY-STUDIO-RULESET-COMPOSITION-CONTRACT.md).
+O adapter recompõe o grafo no Quickstart, devolve somente digest e proveniência
+segura e delega approvals/publicação ao Config. Ele não expõe condições ou
+executores ao browser e não cria tabela nova: usa o mesmo PostgreSQL/Neon e o
+mesmo schema versionado do control plane.
+
 O provisionamento atual exige dois aprovadores e um publicador autenticados distintos. No
 laboratório local, `APP_AUTH_GOVERNANCE_LAB_ENABLED=true` habilita somente as três identidades
-configuradas por ambiente. O publicador acumula `RULE_DEFINITION_AUTHOR` e
-`RULE_SNAPSHOT_PUBLISHER`; cada checker acumula `RULE_DEFINITION_APPROVER` e
+configuradas por ambiente. O publicador acumula `RULE_DEFINITION_AUTHOR`,
+`RULE_SNAPSHOT_PUBLISHER`, `RULE_SNAPSHOT_OPERATOR` e `RULE_SNAPSHOT_READER`; cada checker acumula
+`RULE_DEFINITION_APPROVER` e
 `RULE_COMPOSITION_APPROVER`. Essa ponte é desabilitada por padrão e não é uma solução IAM de
 produção: hosts corporativos devem obter os mesmos roles do IdP e manter maker, checker e publisher
-segregados. O script prova também que o publicador não pode aprovar e que um aprovador não pode
+segregados; o acúmulo publisher/operator existe somente para manter o laboratório local compacto. O script prova também que o publicador não pode aprovar e que um aprovador não pode
 publicar; o autor também não pode aprovar a própria definição. Se
 `praxis.ai.security.corporate-mode` estiver desabilitado, o gate falha.
+
+Quando o laboratório está habilitado, `POST /auth/governance-lab/session/{identityKey}` permite que
+uma UI local conduza o mesmo ciclo com `approver-a`, `approver-b` e `publisher` sem receber as
+senhas configuradas. A chamada só é aceita quando a sessão atual já pertence a uma das três
+identidades do laboratório, continua sujeita a CSRF e emite outro cookie HttpOnly. Trata-se de
+orquestração técnica da POC, não de homologação humana nem de endpoint a ser habilitado em produção.
 
 ### Piloto Rule Lab QL-08 — stress report Ergon-like
 
@@ -1042,9 +1092,14 @@ curl -s -X POST 'http://localhost:8088/api/human-resources/funcionarios/options/
 
 ## Notas
 - `ddl-auto`: `none` (dev) e `validate` (prod), conforme `application-dev.properties`/`application-prod.properties`.
+- a prova Render descartavel usa o modo explicito
+  `PRAXIS_OPERATIONAL_BOOTSTRAP_MODE=hosted-public-demo-fixture`: restaura o dump versionado somente
+  em schema vazio, valida fingerprint, aplica Flyway e continua com `ddl-auto=validate`. Esse modo e
+  exclusivo da fixture hospedada e nao substitui o provisioning operacional de uma empresa.
 - Se um provedor fornecer apenas `DATABASE_URL` no formato DSN, converta para JDBC antes de setar `SPRING_DATASOURCE_URL`.
 - Dependencia no Maven Central: `io.github.codexrodrigues:praxis-metadata-starter` (nenhuma etapa previa de build local e necessaria).
-- `io.github.codexrodrigues:praxis-config-starter` esta alinhado ao corte publicado `0.1.0-rc.98`; este quickstart acompanha o release candidate usado para validar os contratos atuais no host operacional de referencia e no rollout Render.
+- `io.github.codexrodrigues:praxis-config-starter` esta alinhado ao corte publicado `0.1.0-rc.109`. Alem da resolucao exata de referencias de templates governados e do lifecycle de snapshots, esse corte persiste baseline provenance e evidencia operacional V57 usada pelo Policy Studio, sem transferir ao host a semantica do Config Starter.
+- `GovernedUiCompositionTemplateReferenceQuickstartIntegrationTest` sobe o host HTTP em porta aleatoria, publica e le um template pelos endpoints canonicos e prova `page-preview` para referencia valida, stale, ausente e inativa. O teste mantem seguranca de `Origin` habilitada e usa repositorio deterministico em memoria; portanto ele comprova a integracao HTTP/servico/resolver/compilador, mas nao substitui um smoke de persistencia PostgreSQL ou do host publicado.
 - Este quickstart deve consumir a versao mais recente do starter disponivel para o ciclo corrente para refletir no host operacional os contratos atuais de `ETag`, `If-None-Match`, `If-Match`, `412 Precondition Failed` e authoring AI em `/api/praxis/config/**`.
 - Com `praxis-config-starter:0.1.0-rc.71`, o quickstart tambem prova `GET /api/praxis/runtime/context`, `PUT /api/praxis/runtime/context`, `GET /api/praxis/runtime/tenants`, `GET /api/praxis/runtime/navigation` e `GET /api/praxis/runtime/security-events` com um provider demonstrativo nao-Ergon (`QuickstartEnterpriseRuntimeContextProvider`). Esse provider apenas projeta contexto publico seguro, uma lista de tenants demonstrativa, uma troca de contexto demo com headers de propagacao, uma arvore de navegacao com refs canonicas Praxis e eventos runtime sanitizados para shell/AI grounding; autenticacao, autorizacao privada, roles reais, tenant entitlement, menus corporativos e auditoria privada continuam sendo responsabilidade do host corporativo.
 - Este quickstart ativa explicitamente `praxis.ai.authoring.reference-ui-composition-provider-enabled=true` porque e o host de referencia que demonstra composicoes ricas de RH/folha. O `praxis-config-starter` generico nao registra esse provider por padrao; hosts reais devem alimentar authoring por catalogo, contexto semantico e providers proprios quando precisarem de planos especializados.
@@ -1393,3 +1448,35 @@ Observacao
 - Erro: `ERROR: cannot alter type of a column used by a view or rule` ao subir a app
   - Causa: `ddl-auto=update` tenta alterar tipos que o dump fixou e que possuem dependencias (views).
   - Correcao: em `dev`, usamos `spring.jpa.hibernate.ddl-auto=none` (ja aplicado). Se estiver usando env, defina `SPRING_JPA_HIBERNATE_DDL_AUTO=none`.
+### Policy Studio: observações de execução sem acoplar a decisão ao control plane
+
+O Rule Lab do caso de referência registra evidência mínima e redigida em
+`rule_execution_observation_outbox` e a entrega ao contrato canônico de execution observations do
+Config por `RuleExecutionObservationDispatcher`. A avaliação determinística permanece disponível
+quando o Config ou o outbox estão indisponíveis; a falha é contabilizada em telemetria de baixa
+cardinalidade. O dispatcher é deliberadamente acionado por um job governado da implantação, não por
+um scheduler oculto no exemplo. Veja [docs/POLICY-STUDIO-REFERENCE-CASE.md](docs/POLICY-STUDIO-REFERENCE-CASE.md).
+
+Com o snapshot loader habilitado, `RuleHostStatusReporter` também envia heartbeat redigido ao
+Config em intervalo configurável. Essa superfície permite ao Policy Studio mostrar alinhamento,
+drift, indisponibilidade e heartbeat vencido por RuleSet sem enumerar hosts e sem consultar
+Actuator diretamente. A entrega é best-effort e não participa da transação de avaliação.
+
+`RuleHostStatusPostgresHttpIntegrationTest` é o gate de persistência/HTTP dessa projeção. Com
+Docker, ele executa PostgreSQL real e prova isolamento entre tenants, identidades de deployment
+distintas, rejeição monotônica de heartbeat atrasado e recuperação de runtime incompatível para
+alinhado. Sem Docker, Testcontainers declara o teste como skipped, nunca como evidência executada.
+## Bounded last-known-good payroll aggregate
+
+The reactive payroll host always prefers the current governed Config snapshot head. After a head
+has passed tenant/environment ownership, canonical graph, validity, provenance and compiled-hash
+verification, the host may reuse that exact aggregate during a transient Config read failure for a
+maximum of five minutes (`PRAXIS_REACTIVE_DETERMINATIONS_LKG_MAX_STALENESS`, ISO-8601 duration).
+The governed `validUntilUtc` is an additional hard ceiling. Missing, invalid, corrupt, cross-scope or
+stale/reordered heads never activate or refresh the cache. Once the bounded window expires the host
+fails closed with HTTP 503.
+
+Actuator exposes only low-cardinality readiness (`mode`, cached scope count, last failure code and
+timestamp). Tenant IDs, snapshot keys, hashes and ETags are deliberately absent. Micrometer records
+`praxis.reactive.determination.snapshot.resolutions` with the bounded `fresh`, `lkg` and `rejected`
+results. LKG is in-process and intentionally does not survive a host restart.

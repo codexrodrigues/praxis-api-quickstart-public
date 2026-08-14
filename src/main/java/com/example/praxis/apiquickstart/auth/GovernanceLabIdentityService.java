@@ -13,7 +13,10 @@ import org.springframework.util.StringUtils;
 import static com.example.praxis.apiquickstart.security.RuleGovernanceAuthorities.COMPOSITION_APPROVER;
 import static com.example.praxis.apiquickstart.security.RuleGovernanceAuthorities.DEFINITION_APPROVER;
 import static com.example.praxis.apiquickstart.security.RuleGovernanceAuthorities.DEFINITION_AUTHOR;
+import static com.example.praxis.apiquickstart.security.RuleGovernanceAuthorities.DEFINITION_READER;
 import static com.example.praxis.apiquickstart.security.RuleGovernanceAuthorities.SNAPSHOT_PUBLISHER;
+import static com.example.praxis.apiquickstart.security.RuleGovernanceAuthorities.SNAPSHOT_OPERATOR;
+import static com.example.praxis.apiquickstart.security.RuleGovernanceAuthorities.SNAPSHOT_READER;
 
 /**
  * Opt-in local identities used only to prove maker-checker HTTP behavior in the public lab.
@@ -37,12 +40,12 @@ public class GovernanceLabIdentityService {
         this.enabled = enabled;
         this.adminUsername = adminUsername;
         this.identities = List.of(
-                new ConfiguredIdentity(approverAUsername, approverAPassword, "GOVERNANCE_APPROVER",
-                        List.of(DEFINITION_APPROVER, COMPOSITION_APPROVER)),
-                new ConfiguredIdentity(approverBUsername, approverBPassword, "GOVERNANCE_APPROVER",
-                        List.of(DEFINITION_APPROVER, COMPOSITION_APPROVER)),
-                new ConfiguredIdentity(publisherUsername, publisherPassword, "GOVERNANCE_PUBLISHER",
-                        List.of(DEFINITION_AUTHOR, SNAPSHOT_PUBLISHER)));
+                new ConfiguredIdentity("approver-a", approverAUsername, approverAPassword, "GOVERNANCE_APPROVER",
+                        List.of(DEFINITION_READER, DEFINITION_APPROVER, COMPOSITION_APPROVER)),
+                new ConfiguredIdentity("approver-b", approverBUsername, approverBPassword, "GOVERNANCE_APPROVER",
+                        List.of(DEFINITION_READER, DEFINITION_APPROVER, COMPOSITION_APPROVER)),
+                new ConfiguredIdentity("publisher", publisherUsername, publisherPassword, "GOVERNANCE_PUBLISHER",
+                        List.of(DEFINITION_READER, DEFINITION_AUTHOR, SNAPSHOT_PUBLISHER, SNAPSHOT_OPERATOR, SNAPSHOT_READER)));
     }
 
     @PostConstruct
@@ -77,7 +80,27 @@ public class GovernanceLabIdentityService {
                 .findFirst();
     }
 
-    private record ConfiguredIdentity(String username, String password, String role, List<String> authorities) {
+    /**
+     * Switches among the three configured technical actors only inside the opt-in governance lab.
+     *
+     * <p>The current session must already belong to this exact lab. This is a development-host
+     * convenience for demonstrating the real maker-checker HTTP lifecycle without exposing any
+     * configured password to the browser. It is disabled by default and is not an IAM substitute.</p>
+     */
+    public Optional<AuthenticatedIdentity> switchIdentity(String identityKey, String currentSubject) {
+        if (!enabled || !StringUtils.hasText(identityKey) || !StringUtils.hasText(currentSubject)
+                || identities.stream().noneMatch(identity -> identity.username().equals(currentSubject))) {
+            return Optional.empty();
+        }
+        return identities.stream()
+                .filter(identity -> identity.key().equals(identityKey))
+                .map(identity -> new AuthenticatedIdentity(
+                        identity.username(), identity.role(), Set.copyOf(identity.authorities())))
+                .findFirst();
+    }
+
+    private record ConfiguredIdentity(
+            String key, String username, String password, String role, List<String> authorities) {
     }
 
     public record AuthenticatedIdentity(String subject, String role, Set<String> authorities) {

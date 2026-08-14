@@ -28,16 +28,29 @@ public final class ExtraordinaryGrantRuleSnapshotRuntime {
 
     private final PraxisRuleSnapshotCompiler compiler;
     private final PraxisRuleSetEngine engine;
+    private final ExtraordinaryGrantRuleRuntimeTelemetry telemetry;
+    private final RuleExecutionObservationPublisher observationPublisher;
     private final AtomicReference<ActiveSnapshot> active = new AtomicReference<>();
     private final AtomicReference<ExtraordinaryGrantRuleSnapshotStatus> status = new AtomicReference<>(
             new ExtraordinaryGrantRuleSnapshotStatus(
                     false, null, null, null, 0, null, null, "HEAD_NOT_LOADED",
                     "No governed RuleSet snapshot has been loaded"));
 
-    public ExtraordinaryGrantRuleSnapshotRuntime(RuleBindingExecutorRegistry registry) {
+    public ExtraordinaryGrantRuleSnapshotRuntime(
+            RuleBindingExecutorRegistry registry,
+            ExtraordinaryGrantRuleRuntimeTelemetry telemetry) {
+        this(registry, telemetry, null);
+    }
+
+    ExtraordinaryGrantRuleSnapshotRuntime(
+            RuleBindingExecutorRegistry registry,
+            ExtraordinaryGrantRuleRuntimeTelemetry telemetry,
+            RuleExecutionObservationPublisher observationPublisher) {
         RuleBindingExecutorRegistry trustedRegistry = Objects.requireNonNull(registry, "registry is required");
         this.compiler = new PraxisRuleSnapshotCompiler(trustedRegistry);
         this.engine = new PraxisRuleSetEngine(trustedRegistry);
+        this.telemetry = Objects.requireNonNull(telemetry, "telemetry is required");
+        this.observationPublisher = observationPublisher;
     }
 
     /** Validates and atomically activates a newer control-plane head. */
@@ -56,7 +69,10 @@ public final class ExtraordinaryGrantRuleSnapshotRuntime {
                         "The active RuleSet snapshot is outside its governed validity interval",
                         attemptedAt);
             }
-            return updateHealthyStatus(current, attemptedAt, current.activatedAtUtc());
+            ExtraordinaryGrantRuleSnapshotStatus unchanged =
+                    updateHealthyStatus(current, attemptedAt, current.activatedAtUtc());
+            telemetry.snapshotRefresh("unchanged");
+            return unchanged;
         }
         if (current != null && candidate.activationRevision() <= current.activationRevision()) {
             return reject("STALE_HEAD", "Control plane returned an older or reordered head", attemptedAt);
@@ -79,7 +95,9 @@ public final class ExtraordinaryGrantRuleSnapshotRuntime {
                     candidate.activationRevision(),
                     attemptedAt);
             active.set(activated);
-            return updateHealthyStatus(activated, attemptedAt, attemptedAt);
+            ExtraordinaryGrantRuleSnapshotStatus healthy = updateHealthyStatus(activated, attemptedAt, attemptedAt);
+            telemetry.snapshotRefresh("activated");
+            return healthy;
         } catch (RuleSnapshotException exception) {
             return reject(exception.getCode().name(), exception.getMessage(), attemptedAt);
         } catch (RuntimeException exception) {
@@ -104,6 +122,7 @@ public final class ExtraordinaryGrantRuleSnapshotRuntime {
                 requireText(code, "failure code"),
                 requireText(message, "failure message"));
         status.set(rejected);
+        telemetry.snapshotRefresh("rejected");
         return rejected;
     }
 
@@ -116,7 +135,15 @@ public final class ExtraordinaryGrantRuleSnapshotRuntime {
     public ExtraordinaryGrantRuleEvaluation evaluateWithSnapshot(
             JsonNode facts, Instant nowUtc, ZoneId userTimeZone) {
         Instant evaluationInstant = Objects.requireNonNull(nowUtc, "nowUtc is required");
-        return evaluateWithSnapshot(captureSnapshot(evaluationInstant), facts, evaluationInstant, userTimeZone);
+        ExtraordinaryGrantRuleSnapshotSession session;
+        try {
+            session = captureSnapshot(evaluationInstant);
+        } catch (RuntimeException failure) {
+            long startedAtNanos = telemetry.evaluationStarted();
+            telemetry.evaluationFailed(startedAtNanos);
+            throw failure;
+        }
+        return evaluateWithSnapshot(session, facts, evaluationInstant, userTimeZone);
     }
 
     /** Captures one immutable compiled snapshot reference for a complete host operation. */
@@ -137,19 +164,51 @@ public final class ExtraordinaryGrantRuleSnapshotRuntime {
             JsonNode facts,
             Instant nowUtc,
             ZoneId userTimeZone) {
+        return evaluateWithSnapshot(session, facts, nowUtc, userTimeZone, true);
+    }
+
+    /** Evaluates a governed test comparison without contaminating operational execution evidence. */
+    ExtraordinaryGrantRuleEvaluation evaluateSandboxWithSnapshot(
+            ExtraordinaryGrantRuleSnapshotSession session,
+            JsonNode facts,
+            Instant nowUtc,
+            ZoneId userTimeZone) {
+        return evaluateWithSnapshot(session, facts, nowUtc, userTimeZone, false);
+    }
+
+    private ExtraordinaryGrantRuleEvaluation evaluateWithSnapshot(
+            ExtraordinaryGrantRuleSnapshotSession session,
+            JsonNode facts,
+            Instant nowUtc,
+            ZoneId userTimeZone,
+            boolean publishOperationalObservation) {
         ExtraordinaryGrantRuleSnapshotSession selected = Objects.requireNonNull(session, "session is required");
         Instant evaluationInstant = Objects.requireNonNull(nowUtc, "nowUtc is required");
         verifyValidity(selected.compiled().snapshot(), evaluationInstant);
-        RuleEvaluationResult result = engine.evaluate(
-                selected.compiled().plan(),
-                Objects.requireNonNull(facts, "facts are required"),
-                evaluationInstant.toString(),
-                Objects.requireNonNull(userTimeZone, "userTimeZone is required").getId());
-        return new ExtraordinaryGrantRuleEvaluation(
-                result,
-                selected.snapshotKey(),
-                selected.snapshotContentHash(),
-                selected.activationRevision());
+        long startedAtNanos = telemetry.evaluationStarted();
+        try {
+            RuleEvaluationResult result = engine.evaluate(
+                    selected.compiled().plan(),
+                    Objects.requireNonNull(facts, "facts are required"),
+                    evaluationInstant.toString(),
+                    Objects.requireNonNull(userTimeZone, "userTimeZone is required").getId());
+            long durationMicros = telemetry.evaluationCompleted(startedAtNanos, result.decision());
+            if (publishOperationalObservation && observationPublisher != null) {
+                var snapshot = selected.compiled().snapshot();
+                observationPublisher.publish(
+                        snapshot.tenantId(), snapshot.environment(), snapshot.snapshotKey(), selected.snapshotContentHash(),
+                        selected.activationRevision(), result.decision(),
+                        durationMicros, evaluationInstant);
+            }
+            return new ExtraordinaryGrantRuleEvaluation(
+                    result,
+                    selected.snapshotKey(),
+                    selected.snapshotContentHash(),
+                    selected.activationRevision());
+        } catch (RuntimeException failure) {
+            telemetry.evaluationFailed(startedAtNanos);
+            throw failure;
+        }
     }
 
     public ExtraordinaryGrantRuleSnapshotStatus status() {

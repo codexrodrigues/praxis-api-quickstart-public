@@ -1,0 +1,192 @@
+{
+  "schemaVersion": "1.0",
+  "corpusKey": "extraordinary-grant-ergon-portable-parity",
+  "referenceAuthority": "SYNTHETIC_BASELINE",
+  "ruleSetKey": "extraordinary-grant-eligibility",
+  "frozenNowUtc": "2026-07-13T15:00:00Z",
+  "userTimeZone": "America/Sao_Paulo",
+  "baseFacts": {
+    "request": {"requestedAmount": 2500.00},
+    "actor": {"permissions": ["benefit:request"]},
+    "worker": {"status": "ACTIVE"},
+    "grant": {"hasDuplicate": false},
+    "program": {"active": true, "maxAmount": 5000.00},
+    "customer": {"additionalEligible": true},
+    "payment": {
+      "requestedDate": "2026-07-20",
+      "allowedDates": ["2026-07-20", "2026-08-05"]
+    },
+    "budget": {"availableAmount": 100000.00}
+  },
+  "cases": [
+    {
+      "id": "EPC-001",
+      "operationMode": "CREATE",
+      "characteristic": "HAPPY_PATH",
+      "factsPatch": {},
+      "removePaths": [],
+      "expectedDecision": "ALLOW",
+      "expectedReasonCodes": [],
+      "expectedFirstTerminalBinding": null,
+      "mutationExpected": false
+    },
+    {
+      "id": "EPC-002",
+      "operationMode": "UPDATE",
+      "characteristic": "UPPER_BOUNDARY_EQUAL",
+      "factsPatch": {"request": {"requestedAmount": 5000.00}},
+      "removePaths": [],
+      "expectedDecision": "ALLOW",
+      "expectedReasonCodes": [],
+      "expectedFirstTerminalBinding": null,
+      "mutationExpected": false
+    },
+    {
+      "id": "EPC-003",
+      "operationMode": "UPDATE",
+      "characteristic": "UPPER_BOUNDARY_EXCEEDED",
+      "factsPatch": {"request": {"requestedAmount": 5000.01}},
+      "removePaths": [],
+      "expectedDecision": "DENY",
+      "expectedReasonCodes": ["REQUESTED_AMOUNT_EXCEEDS_PROGRAM_LIMIT"],
+      "expectedFirstTerminalBinding": "grant.amount-parameters",
+      "mutationExpected": false
+    },
+    {
+      "id": "EPC-004",
+      "operationMode": "CREATE",
+      "characteristic": "POST_DECISION_BOUNDARY_EQUAL",
+      "factsPatch": {"budget": {"availableAmount": 2500.00}},
+      "removePaths": [],
+      "expectedDecision": "ALLOW",
+      "expectedReasonCodes": [],
+      "expectedFirstTerminalBinding": null,
+      "mutationExpected": false
+    },
+    {
+      "id": "EPC-005",
+      "operationMode": "CREATE",
+      "characteristic": "POST_DECISION_BOUNDARY_BELOW",
+      "factsPatch": {"budget": {"availableAmount": 2499.99}},
+      "removePaths": [],
+      "expectedDecision": "DENY",
+      "expectedReasonCodes": ["BUDGET_INSUFFICIENT"],
+      "expectedFirstTerminalBinding": "budget.availability",
+      "mutationExpected": false
+    },
+    {
+      "id": "EPC-006",
+      "operationMode": "CREATE",
+      "characteristic": "ALLOWED_NULL_REMAINS_EXPLICIT",
+      "factsPatch": {"customer": {"additionalEligible": null}},
+      "removePaths": [],
+      "expectedDecision": "DENY",
+      "expectedReasonCodes": ["CUSTOMER_POLICY_RESTRICTED"],
+      "expectedFirstTerminalBinding": "customer.additional-eligibility",
+      "mutationExpected": false
+    },
+    {
+      "id": "EPC-007",
+      "operationMode": "UPDATE",
+      "characteristic": "GAP_REQUIRED_FACT_MISSING",
+      "factsPatch": {},
+      "removePaths": ["customer.additionalEligible"],
+      "expectedDecision": "INCONCLUSIVE",
+      "expectedReasonCodes": ["FACT_REQUIRED_MISSING", "PRIOR_DECISION_INCONCLUSIVE"],
+      "expectedFirstTerminalBinding": "customer.additional-eligibility",
+      "mutationExpected": false
+    },
+    {
+      "id": "EPC-008",
+      "operationMode": "UPDATE",
+      "characteristic": "NOT_APPLICABLE_TERMINAL",
+      "factsPatch": {"program": {"active": false}},
+      "removePaths": [],
+      "expectedDecision": "NOT_APPLICABLE",
+      "expectedReasonCodes": ["DEPENDENCY_NOT_APPLICABLE"],
+      "expectedFirstTerminalBinding": "program.applicability",
+      "mutationExpected": false
+    },
+    {
+      "id": "EPC-009",
+      "operationMode": "CREATE",
+      "characteristic": "OVERLAP_PROTECTED_GUARD_PRECEDENCE",
+      "factsPatch": {
+        "actor": {"permissions": ["benefit:read"]},
+        "request": {"requestedAmount": 5000.01}
+      },
+      "removePaths": [],
+      "expectedDecision": "DENY",
+      "expectedReasonCodes": ["REQUEST_NOT_AUTHORIZED"],
+      "expectedFirstTerminalBinding": "request.authorization-integrity",
+      "mutationExpected": false
+    },
+    {
+      "id": "EPC-010",
+      "operationMode": "CREATE",
+      "characteristic": "OVERLAP_PRODUCT_PRECEDENCE",
+      "factsPatch": {
+        "worker": {"status": "INACTIVE"},
+        "grant": {"hasDuplicate": true}
+      },
+      "removePaths": [],
+      "expectedDecision": "DENY",
+      "expectedReasonCodes": ["WORKER_NOT_ELIGIBLE"],
+      "expectedFirstTerminalBinding": "worker.legal-eligibility",
+      "mutationExpected": false
+    },
+    {
+      "id": "EPC-011",
+      "operationMode": "CREATE",
+      "characteristic": "OVERLAP_DUPLICATE_BEFORE_APPLICABILITY",
+      "factsPatch": {
+        "grant": {"hasDuplicate": true},
+        "program": {"active": false}
+      },
+      "removePaths": [],
+      "expectedDecision": "DENY",
+      "expectedReasonCodes": ["DUPLICATE_GRANT"],
+      "expectedFirstTerminalBinding": "grant.duplicate-conflict",
+      "mutationExpected": false
+    },
+    {
+      "id": "EPC-012",
+      "operationMode": "UPDATE",
+      "characteristic": "OVERLAP_CALENDAR_BEFORE_AMOUNT",
+      "factsPatch": {
+        "payment": {"requestedDate": "2026-07-21"},
+        "request": {"requestedAmount": 5000.01}
+      },
+      "removePaths": [],
+      "expectedDecision": "DENY",
+      "expectedReasonCodes": ["PAYMENT_DATE_NOT_ALLOWED"],
+      "expectedFirstTerminalBinding": "payment.calendar-policy",
+      "mutationExpected": false
+    },
+    {
+      "id": "EPC-013",
+      "operationMode": "CREATE",
+      "characteristic": "CUSTOMER_RESTRICTION_PRECEDENCE",
+      "factsPatch": {
+        "customer": {"additionalEligible": false},
+        "payment": {"requestedDate": "2026-07-21"}
+      },
+      "removePaths": [],
+      "expectedDecision": "DENY",
+      "expectedReasonCodes": ["CUSTOMER_POLICY_RESTRICTED"],
+      "expectedFirstTerminalBinding": "customer.additional-eligibility",
+      "mutationExpected": false
+    },
+    {
+      "id": "EPC-014",
+      "operationMode": "UPDATE",
+      "characteristic": "GAP_AMOUNT_MISSING_FAIL_CLOSED",
+      "factsPatch": {},
+      "removePaths": ["request.requestedAmount"],
+      "expectedDecision": "INCONCLUSIVE",
+      "expectedReasonCodes": ["FACT_REQUIRED_MISSING", "PRIOR_DECISION_INCONCLUSIVE"],
+      "expectedFirstTerminalBinding": "grant.amount-parameters",
+      "mutationExpected": false
+    }
+  ]
+}

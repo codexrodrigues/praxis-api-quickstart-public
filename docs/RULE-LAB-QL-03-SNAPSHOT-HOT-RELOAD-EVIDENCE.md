@@ -76,7 +76,7 @@ código de falha; fatos, expressões e mensagens internas não são expostos.
 
 - `io.github.codexrodrigues:praxis-rules-engine:0.1.0-beta.15`
 - `io.github.codexrodrigues:praxis-config-contracts:0.1.0-beta.1`
-- `io.github.codexrodrigues:praxis-config-starter:0.1.0-rc.98`
+- `io.github.codexrodrigues:praxis-config-starter:0.1.0-rc.99`
 
 O Config Starter e o Quickstart exigem Java 21. Tanto o contrato standalone
 quanto o adapter Spring são resolvidos das coordenadas públicas, sem override
@@ -101,3 +101,10 @@ e o catálogo host-governed; duas decisões `RULE_COMPOSITION_APPROVER` aprovam 
 digest retornado; somente então o candidato inalterado pode avançar o head. O
 Quickstart registra explicitamente as duas coordenadas Java admitidas e um teste
 impede drift entre esse catálogo de planejamento e o registry executável.
+
+No caso Policy Studio, o host compõe o grafo completo substituindo exatamente os
+sete bindings JSON Logic autônomos pelas condições das sete definições aprovadas.
+O compositor preserva slots, dependências, precedência, fail policy e bindings
+Java do factory; rejeita fonte ausente, duplicada, não aprovada ou fora do
+RuleSet/contrato do host. O manifesto do Config passa então a ligar o grafo
+materializado aos hashes das definições que realmente forneceram as condições.
