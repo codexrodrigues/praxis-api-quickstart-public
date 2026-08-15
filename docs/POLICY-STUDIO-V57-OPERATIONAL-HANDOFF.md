@@ -12,7 +12,7 @@ transferir autoridade ao browser:
 1. o sandbox prepara candidate versus active uma única vez e sem persistência;
 2. bindings host-owned associam explicitamente cada `scenarioId` a `CREATE` ou `UPDATE`;
 3. o workflow autoritativo executa o comando com facts readquiridos;
-4. o probe produz somente digests de before/after/ledger e comprova cleanup;
+4. o probe produz somente digests de before/after/ledger e o host comprova cleanup após rollback;
 5. o recorder delega a gravação ao `DomainRuleTestRunService` do Config;
 6. o Policy Studio consome a projeção persistida, sem SQL, credenciais ou payload operacional.
 
@@ -24,8 +24,8 @@ O corte está integrado na `main` pelos PRs `#180`, `#181` e `#182`.
 - identidade preservada no `UPDATE`, reaquisição de facts e mutação somente para `ALLOW`;
 - ETag e idempotência na action HTTP pública de reavaliação;
 - falha fechada quando mutação observada diverge da expectativa do cenário;
-- cleanup restrito a referências `policy-studio-proof-*`;
-- probe e cleanup em PostgreSQL real-processo descartável;
+- referência descartável restrita a `policy-studio-proof-*`;
+- probe e rollback-only em PostgreSQL real-processo descartável;
 - round-trip `record/list` do V57 em PostgreSQL real com repositórios JPA do Config;
 - uma única avaliação candidate/active e uma persistência de Test Run no teste focal atual.
 
@@ -97,7 +97,7 @@ autenticado. São obrigatórios:
 3. migrations versionadas do Quickstart/Config;
 4. fixtures exclusivamente sintéticas;
 5. `record/list` V57 e verificação de digests;
-6. cleanup em bloco `finally` limitado ao recurso possuído;
+6. rollback transacional que preserve ledgers append-only e comprove ausência de estado ativo;
 7. remoção da branch/schema ao final;
 8. evidência sanitizada sem URL, usuário, senha ou payload de banco.
 

@@ -9,10 +9,9 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 
-/** Real-process PostgreSQL proof for the allowlisted operational evidence projection and cleanup. */
+/** Real-process PostgreSQL proof that the evidence projection never mutates append-only ledgers. */
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class ExtraordinaryBenefitOperationalEvidenceProbePostgresTest {
     private EmbeddedPostgres postgres;
@@ -29,8 +28,7 @@ class ExtraordinaryBenefitOperationalEvidenceProbePostgresTest {
                 postgres.getJdbcUrl("postgres", "postgres"), "postgres", "");
         jdbc = new JdbcTemplate(dataSource);
         createSchema();
-        probe = new ExtraordinaryBenefitOperationalEvidenceProbe(
-                jdbc, new DataSourceTransactionManager(dataSource));
+        probe = new ExtraordinaryBenefitOperationalEvidenceProbe(jdbc);
     }
 
     @AfterAll
@@ -39,7 +37,7 @@ class ExtraordinaryBenefitOperationalEvidenceProbePostgresTest {
     }
 
     @Test
-    void observesAndCleansOnlyTheCorrelatedFixtureInPostgres() {
+    void observesOnlyTheCorrelatedFixtureWithoutDeletingImmutableAudit() {
         String owned = "policy-studio-proof-pg-" + UUID.randomUUID();
         String unrelated = "business-reference-1";
         insertRequest(unrelated);
@@ -56,10 +54,12 @@ class ExtraordinaryBenefitOperationalEvidenceProbePostgresTest {
                 """, UUID.randomUUID(), ownedId, "D".repeat(64), "E".repeat(64), "F".repeat(64),
                 "A".repeat(64), "B".repeat(64), "C".repeat(64));
 
-        assertThat(probe.capture(owned).stateDigest()).isNotEqualTo(empty.stateDigest());
-        probe.cleanup(owned);
-
-        assertThat(probe.capture(owned)).isEqualTo(empty);
+        var populated = probe.capture(owned);
+        assertThat(populated.stateDigest()).isNotEqualTo(empty.stateDigest());
+        assertThat(probe.capture(owned)).isEqualTo(populated);
+        assertThat(jdbc.queryForObject(
+                "select count(*) from public.extraordinary_benefit_transformation_audit where benefit_request_id=?",
+                Integer.class, ownedId)).isOne();
         assertThat(jdbc.queryForObject(
                 "select count(*) from public.extraordinary_benefit_request where request_reference=?",
                 Integer.class, unrelated)).isOne();

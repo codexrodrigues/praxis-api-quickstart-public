@@ -4,12 +4,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.UUID;
-import javax.sql.DataSource;
 import org.h2.jdbcx.JdbcDataSource;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 
 class ExtraordinaryBenefitOperationalEvidenceProbeTest {
     private JdbcTemplate jdbc;
@@ -22,12 +20,11 @@ class ExtraordinaryBenefitOperationalEvidenceProbeTest {
                 + ";MODE=PostgreSQL;DB_CLOSE_DELAY=-1");
         jdbc = new JdbcTemplate(dataSource);
         createSchema(jdbc);
-        probe = new ExtraordinaryBenefitOperationalEvidenceProbe(
-                jdbc, new DataSourceTransactionManager((DataSource) dataSource));
+        probe = new ExtraordinaryBenefitOperationalEvidenceProbe(jdbc);
     }
 
     @Test
-    void observesOnlyDigestsAndCleansTheOwnedFixture() {
+    void observesOnlySanitizedDigestsWithoutMutatingTheOwnedFixture() {
         String reference = "policy-studio-proof-" + UUID.randomUUID();
         var empty = probe.capture(reference);
         jdbc.update("""
@@ -53,20 +50,16 @@ class ExtraordinaryBenefitOperationalEvidenceProbeTest {
         assertThat(populated.stateDigest()).matches("[A-F0-9]{64}").isNotEqualTo(empty.stateDigest());
         assertThat(populated.effectLedgerDigest()).isEqualTo(empty.effectLedgerDigest());
 
-        probe.cleanup(reference);
-
-        assertThat(probe.capture(reference)).isEqualTo(empty);
+        assertThat(probe.capture(reference)).isEqualTo(populated);
         assertThat(jdbc.queryForObject(
-                "select count(*) from public.extraordinary_benefit_request", Integer.class)).isZero();
+                "select count(*) from public.extraordinary_benefit_request", Integer.class)).isOne();
         assertThat(jdbc.queryForObject(
-                "select count(*) from public.extraordinary_benefit_transformation_audit", Integer.class)).isZero();
+                "select count(*) from public.extraordinary_benefit_transformation_audit", Integer.class)).isOne();
     }
 
     @Test
-    void refusesToObserveOrDeleteAnUnownedBusinessReference() {
+    void refusesToObserveAnUnownedBusinessReference() {
         assertThatThrownBy(() -> probe.capture("customer-reference"))
-                .isInstanceOf(IllegalArgumentException.class);
-        assertThatThrownBy(() -> probe.cleanup("customer-reference"))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 

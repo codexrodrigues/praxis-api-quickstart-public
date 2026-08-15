@@ -43,6 +43,20 @@ final class PolicyStudioOperationalEvidenceAdapter {
             cleanupVerified = cleanupExpectedState.equals(cleaned);
         }
 
+        int measuredBaselineCalls = baselineCallCount.getAsInt();
+        return evidence(operationMode, mutationExpected, measuredBaselineCalls, before, after, cleanupVerified);
+    }
+
+    DomainRuleOperationalTestEvidence evidence(
+            OperationMode operationMode,
+            boolean mutationExpected,
+            int measuredBaselineCalls,
+            OperationalState before,
+            OperationalState after,
+            boolean cleanupVerified) {
+        Objects.requireNonNull(operationMode, "operationMode is required");
+        before = requireState(before, "before");
+        after = requireState(after, "after");
         boolean mutationObserved = !before.stateDigest().equals(after.stateDigest());
         if (!cleanupVerified) {
             throw new IllegalStateException("Operational cleanup did not restore the governed fixture state");
@@ -51,7 +65,6 @@ final class PolicyStudioOperationalEvidenceAdapter {
             throw new IllegalStateException(
                     "Operational mutation did not match the governed scenario expectation");
         }
-        int measuredBaselineCalls = baselineCallCount.getAsInt();
         if (measuredBaselineCalls < 0) {
             throw new IllegalStateException("Measured baseline call count cannot be negative");
         }

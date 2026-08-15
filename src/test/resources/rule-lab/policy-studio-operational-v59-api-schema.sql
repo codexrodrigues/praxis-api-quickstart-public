@@ -93,6 +93,17 @@ CREATE TABLE extraordinary_benefit_transformation_audit (
         UNIQUE (benefit_request_id, proposal_identity_digest, facts_digest)
 );
 
+CREATE OR REPLACE FUNCTION reject_policy_v59_audit_mutation()
+RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+    RAISE EXCEPTION 'extraordinary_benefit_transformation_audit is immutable';
+END;
+$$;
+
+CREATE TRIGGER trg_policy_v59_transformation_audit_append_only
+BEFORE UPDATE OR DELETE ON extraordinary_benefit_transformation_audit
+FOR EACH ROW EXECUTE FUNCTION reject_policy_v59_audit_mutation();
+
 CREATE TABLE extraordinary_benefit_grant_effect (
     id BIGSERIAL PRIMARY KEY,
     effect_execution_id UUID NOT NULL UNIQUE,

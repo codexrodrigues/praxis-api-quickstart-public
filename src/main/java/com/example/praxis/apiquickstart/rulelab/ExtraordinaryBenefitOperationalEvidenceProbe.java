@@ -8,23 +8,17 @@ import java.util.List;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.PlatformTransactionManager;
-import org.springframework.transaction.support.TransactionTemplate;
 
-/** Observa e remove somente fixtures descartaveis pertencentes a uma prova Policy Studio. */
+/** Observa somente fixtures descartaveis pertencentes a uma prova Policy Studio. */
 @Component
 class ExtraordinaryBenefitOperationalEvidenceProbe {
     static final String OWNED_REFERENCE_PREFIX = "policy-studio-proof-";
     private static final String EMPTY_DIGEST = digest(List.of());
 
     private final JdbcTemplate jdbc;
-    private final TransactionTemplate transaction;
 
-    ExtraordinaryBenefitOperationalEvidenceProbe(
-            @Qualifier("apiJdbcTemplate") JdbcTemplate jdbc,
-            @Qualifier("apiTransactionManager") PlatformTransactionManager transactionManager) {
+    ExtraordinaryBenefitOperationalEvidenceProbe(@Qualifier("apiJdbcTemplate") JdbcTemplate jdbc) {
         this.jdbc = jdbc;
-        this.transaction = new TransactionTemplate(transactionManager);
     }
 
     PolicyStudioOperationalEvidenceAdapter.OperationalState capture(String requestReference) {
@@ -57,24 +51,6 @@ class ExtraordinaryBenefitOperationalEvidenceProbe {
         return new PolicyStudioOperationalEvidenceAdapter.OperationalState(
                 digest(List.of(digest(resource), digest(audit))),
                 effects.isEmpty() ? EMPTY_DIGEST : digest(effects));
-    }
-
-    void cleanup(String requestReference) {
-        requireOwnedReference(requestReference);
-        transaction.executeWithoutResult(status -> {
-            jdbc.update("""
-                    delete from public.extraordinary_benefit_grant_effect
-                     where benefit_request_id in (
-                           select id from public.extraordinary_benefit_request where request_reference = ?)
-                    """, requestReference);
-            jdbc.update("""
-                    delete from public.extraordinary_benefit_transformation_audit
-                     where benefit_request_id in (
-                           select id from public.extraordinary_benefit_request where request_reference = ?)
-                    """, requestReference);
-            jdbc.update("delete from public.extraordinary_benefit_request where request_reference = ?",
-                    requestReference);
-        });
     }
 
     private void requireOwnedReference(String requestReference) {

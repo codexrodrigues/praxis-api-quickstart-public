@@ -3,7 +3,6 @@ package com.example.praxis.apiquickstart.rulelab;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -16,6 +15,8 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionStatus;
 
 class ExtraordinaryBenefitOperationalProofServiceTest {
     private static final String REFERENCE = "policy-studio-proof-run-1";
@@ -27,10 +28,16 @@ class ExtraordinaryBenefitOperationalProofServiceTest {
     private final ExtraordinaryBenefitWorkflowService workflow = mock(ExtraordinaryBenefitWorkflowService.class);
     private final ExtraordinaryBenefitOperationalEvidenceProbe probe =
             mock(ExtraordinaryBenefitOperationalEvidenceProbe.class);
-    private final ExtraordinaryBenefitOperationalProofService service =
-            new ExtraordinaryBenefitOperationalProofService(
-                    workflow, probe, new PolicyStudioOperationalEvidenceAdapter(),
-                    new PolicyStudioBaselineCallCounter());
+    private final PlatformTransactionManager transactions = mock(PlatformTransactionManager.class);
+    private final TransactionStatus transactionStatus = mock(TransactionStatus.class);
+    private final ExtraordinaryBenefitOperationalProofService service;
+
+    ExtraordinaryBenefitOperationalProofServiceTest() {
+        when(transactions.getTransaction(org.mockito.ArgumentMatchers.any())).thenReturn(transactionStatus);
+        service = new ExtraordinaryBenefitOperationalProofService(
+                workflow, probe, new PolicyStudioOperationalEvidenceAdapter(),
+                new PolicyStudioBaselineCallCounter(), transactions);
+    }
 
     @Test
     void orchestratesUpdateThroughTheAuthoritativeWorkflowAndCleansTheSeed() {
@@ -53,7 +60,7 @@ class ExtraordinaryBenefitOperationalProofServiceTest {
         assertThat(evidence.cleanupVerified()).isTrue();
         assertThat(evidence.baselineCallCount()).isZero();
         verify(workflow).reEvaluate(42L, update, Set.of("evaluate"), "proof-agent", "run-1");
-        verify(probe, times(2)).cleanup(REFERENCE);
+        verify(transactionStatus).setRollbackOnly();
     }
 
     @Test
@@ -69,7 +76,7 @@ class ExtraordinaryBenefitOperationalProofServiceTest {
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("ALLOW seed");
 
-        verify(probe).cleanup(REFERENCE);
+        verify(transactionStatus).setRollbackOnly();
     }
 
     private PolicyStudioOperationalEvidenceAdapter.OperationalState state(String state, String ledger) {

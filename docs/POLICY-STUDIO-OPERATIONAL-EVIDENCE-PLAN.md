@@ -137,10 +137,10 @@ chamada Oracle real e contar inclusive tentativas com falha.
 | elegível novo | CREATE | `ALLOW` | recurso criado durante a prova |
 | inelegível novo | CREATE | `DENY` | nenhuma mutação |
 | elegível alterado | UPDATE | `ALLOW` | mesma identidade, digest alterado |
-| alteração inelegível | UPDATE | `DENY` | seed preservado até o cleanup |
+| alteração inelegível | UPDATE | `DENY` | seed visível durante a prova e revertido com a transação |
 
 O teste do workflow real executa os quatro quadrantes com facts autoritativos, snapshot ativo e
-cleanup final. A prova V59 complementar sobe o host em porta aleatória e usa HTTP real, cadeia de
+rollback final. A prova V60 sobe o host em porta aleatória e usa HTTP real, cadeia de
 segurança real e dois PostgreSQL descartáveis — datasource operacional e datasource Config — para
 persistir **um** Test Run com quatro resultados. Ela relê as quatro lanes, repete o comando sem criar
 outra linha, rejeita replay com modos diferentes, `If-Match` ausente/obsoleto e caller sem authority,
@@ -186,14 +186,17 @@ governança pode permitir abrir revisão com evidência ainda pendente; isso nã
 - PostgreSQL local é descartável e não altera Neon;
 - no Neon, o mesmo projeto pode hospedar os schemas, mas cada owner usa sua identidade e seu
   histórico de migration;
-- cleanup sempre usa identidade reservada da execução; nunca `TRUNCATE` nem filtros amplos.
+- a prova Quickstart usa transação operacional rollback-only; não executa DELETE no ledger
+  append-only, `TRUNCATE`, retention administrativa nem filtros amplos;
+- `cleanupVerified` significa que o estado observado depois do rollback coincide com o estado
+  anterior à prova, enquanto o receipt sanitizado permanece no Config.
 
 ## O que está comprovado e o que falta
 
 Comprovado localmente:
 
 - contrato host-neutral V58;
-- action HTTP/capability V59 com authority dedicada, ETag forte e reserva idempotente pré-DML;
+- action HTTP/capability V59/V60 com authority dedicada, ETag forte e reserva idempotente pré-DML;
 - um run/quatro resultados e replay idempotente em PostgreSQL;
 - CREATE/UPDATE × ALLOW/DENY pelo workflow real;
 - contagem de baseline medida;
@@ -203,12 +206,13 @@ Comprovado localmente:
 
 Ainda necessário para handoff corporativo:
 
-1. publicar o corte Quickstart que contém a action V59 e fixar sua coordenada/commit no handoff;
-2. executar smoke no Neon já configurado, com `403`, `409`, `412`, `422`, `428` e retry;
+1. publicar o corte Quickstart V60 que substitui o cleanup por rollback-only e fixar sua
+   coordenada/commit no handoff;
+2. concluir o smoke no Neon já configurado, com execução aceita, retry e ausência de fixture ativa;
 3. corrigir a representação metadata-driven de precondition cross-resource antes de o Studio
    materializar o comando como jornada final;
 4. no Ergon, implementar somente o adapter Oracle/HADES, observer de chamadas, sanitização e
-   cleanup específicos do host;
+   cleanup/rollback específicos do host, sem enfraquecer auditoria imutável;
 5. executar quatro canários autorizados e depois expandir para a matriz RN-013, mantendo
    `LEGACY_AUTHORITATIVE` até homologação.
 
