@@ -109,6 +109,11 @@ Uma aprovação não publica nem ativa o RuleSet. A promoção cria uma nova ver
 governada da definição; publicação, composição, duas aprovações de snapshot e
 ativação permanecem etapas distintas do control plane.
 
+Quando a Definition declarar `governance.testEvidencePolicy.stages.PUBLISH`, o Config rc.116
+revalida o Test Run submetido e revisado que originou a versão promovida. Baseline inelegível,
+matriz CREATE/UPDATE × ALLOW/DENY incompleta, cleanup ou paridade insuficientes bloqueiam a
+publicação antes de qualquer materialização. Sem esse estágio, não existe exigência Oracle global.
+
 ## Observabilidade host-owned
 
 O runtime registra avaliações e refreshes de snapshot pelo Micrometer. As métricas

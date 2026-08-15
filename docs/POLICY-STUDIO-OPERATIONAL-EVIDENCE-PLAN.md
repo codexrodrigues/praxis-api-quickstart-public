@@ -168,10 +168,11 @@ O V58 não torna Oracle obrigatório para todos os clientes. A definição pode 
 
 Sem política, não há gate extra universal. Política desconhecida ou malformada falha fechado. Neste
 corte, `SUBMIT` vincula o Test Run aceito ao workspace e `PROMOTE` revalida exatamente essa evidência,
-impedindo substituição posterior. Gates de `PUBLISH`, `SNAPSHOT` e `ACTIVATE` só devem ser ligados
-quando esses estágios também carregarem uma referência imutável à evidência revisada.
-Por isso, V58 aceita somente os nomes de estágio `SUBMIT` e `PROMOTE`; declarar antecipadamente ou
-errar o nome de outro estágio invalida a política, em vez de criar uma falsa impressão de proteção.
+impedindo substituição posterior. O Config rc.116 também aceita `PUBLISH`: ele resolve a Definition
+promovida de volta ao único workspace de origem e ao `submittedTestRunId` revisado, reaplicando a
+mesma matriz antes de criar materializações. `SNAPSHOT` e `ACTIVATE` só devem ser ligados quando
+esses estágios carregarem uma referência imutável equivalente. Declarar antecipadamente ou errar o
+nome de outro estágio invalida a política, em vez de criar uma falsa impressão de proteção.
 
 Para RN-013, a política recomendada exige `LEGACY_ORACLE`, baseline `ELIGIBLE`, CREATE/UPDATE,
 ALLOW/DENY, cleanup e paridade antes da promoção ou publicação que anteceda autoridade Java. A
@@ -205,13 +206,9 @@ Comprovado localmente:
 
 Ainda necessário para handoff corporativo:
 
-1. publicar o corte Quickstart V61 com a precondição cross-resource e fixar sua coordenada/commit
-   no handoff;
-2. consumir a action e sua precondição pelo discovery canônico no Studio, sem endpoint ou headers
-   inferidos localmente;
-3. no Ergon, implementar somente o adapter Oracle/HADES, observer de chamadas, sanitização e
+1. no Ergon, implementar somente o adapter Oracle/HADES, observer de chamadas, sanitização e
    cleanup/rollback específicos do host, sem enfraquecer auditoria imutável;
-4. executar quatro canários autorizados e depois expandir para a matriz RN-013, mantendo
+2. executar quatro canários autorizados e depois expandir para a matriz RN-013, mantendo
    `LEGACY_AUTHORITATIVE` até homologação.
 
 O Quickstart é laboratório estrutural compatível; não é evidência de paridade Ergon. Oracle, HADES,
