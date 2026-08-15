@@ -5,7 +5,7 @@ import com.example.praxis.apiquickstart.rulelab.dto.ExtraordinaryBenefitEvaluati
 import com.example.praxis.apiquickstart.rulelab.dto.ExtraordinaryBenefitReevaluationRequest;
 import java.util.Objects;
 import java.util.Set;
-import org.praxisplatform.config.dto.DomainRuleOperationalTestEvidence;
+import org.praxisplatform.config.contract.DomainRuleOperationalTestEvidence;
 import org.springframework.stereotype.Service;
 
 /** Orquestra provas descartaveis usando o mesmo workflow autoritativo do recurso piloto. */
@@ -14,42 +14,48 @@ class ExtraordinaryBenefitOperationalProofService {
     private final ExtraordinaryBenefitWorkflowService workflow;
     private final ExtraordinaryBenefitOperationalEvidenceProbe probe;
     private final PolicyStudioOperationalEvidenceAdapter evidenceAdapter;
+    private final PolicyStudioBaselineCallCounter baselineCalls;
 
     ExtraordinaryBenefitOperationalProofService(
             ExtraordinaryBenefitWorkflowService workflow,
             ExtraordinaryBenefitOperationalEvidenceProbe probe,
-            PolicyStudioOperationalEvidenceAdapter evidenceAdapter) {
+            PolicyStudioOperationalEvidenceAdapter evidenceAdapter,
+            PolicyStudioBaselineCallCounter baselineCalls) {
         this.workflow = workflow;
         this.probe = probe;
         this.evidenceAdapter = evidenceAdapter;
+        this.baselineCalls = baselineCalls;
     }
 
     DomainRuleOperationalTestEvidence proveCreate(
             ExtraordinaryBenefitAuthoritativeEvaluationRequest request,
             boolean mutationExpected,
-            int baselineCallCount,
             Set<String> permissions,
             String actorSubject,
             String correlationId) {
         Objects.requireNonNull(request, "request is required");
         String reference = request.requestReference();
         var cleanState = probe.capture(reference);
-        return evidenceAdapter.observe(
-                PolicyStudioOperationalEvidenceAdapter.OperationMode.CREATE,
-                mutationExpected,
-                baselineCallCount,
-                cleanState,
-                () -> probe.capture(reference),
-                () -> workflow.evaluateAndPersist(
-                        request, permissions, actorSubject, correlationId),
-                () -> probe.cleanup(reference));
+        int baselineBefore = baselineCalls.current();
+        try {
+            return evidenceAdapter.observe(
+                    PolicyStudioOperationalEvidenceAdapter.OperationMode.CREATE,
+                    mutationExpected,
+                    () -> baselineCalls.deltaSince(baselineBefore),
+                    cleanState,
+                    () -> probe.capture(reference),
+                    () -> workflow.evaluateAndPersist(
+                            request, permissions, actorSubject, correlationId),
+                    () -> probe.cleanup(reference));
+        } finally {
+            baselineCalls.clear();
+        }
     }
 
     DomainRuleOperationalTestEvidence proveUpdate(
             ExtraordinaryBenefitAuthoritativeEvaluationRequest seed,
             ExtraordinaryBenefitReevaluationRequest update,
             boolean mutationExpected,
-            int baselineCallCount,
             Set<String> permissions,
             String actorSubject,
             String correlationId) {
@@ -57,6 +63,7 @@ class ExtraordinaryBenefitOperationalProofService {
         Objects.requireNonNull(update, "update is required");
         String reference = seed.requestReference();
         var cleanState = probe.capture(reference);
+        int baselineBefore = baselineCalls.current();
         try {
             ExtraordinaryBenefitEvaluationCommandResponse seeded = workflow.evaluateAndPersist(
                     seed, permissions, actorSubject, correlationId + ":seed");
@@ -67,7 +74,7 @@ class ExtraordinaryBenefitOperationalProofService {
             return evidenceAdapter.observe(
                     PolicyStudioOperationalEvidenceAdapter.OperationMode.UPDATE,
                     mutationExpected,
-                    baselineCallCount,
+                    () -> baselineCalls.deltaSince(baselineBefore),
                     cleanState,
                     () -> probe.capture(reference),
                     () -> workflow.reEvaluate(
@@ -76,6 +83,7 @@ class ExtraordinaryBenefitOperationalProofService {
         } finally {
             // Covers seed failures before the evidence adapter owns the cleanup; deletion is idempotent.
             probe.cleanup(reference);
+            baselineCalls.clear();
         }
     }
 }

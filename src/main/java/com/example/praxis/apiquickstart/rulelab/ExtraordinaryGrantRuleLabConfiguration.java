@@ -221,10 +221,9 @@ public class ExtraordinaryGrantRuleLabConfiguration {
             ExtraordinaryGrantRuleLabService activeService,
             ExtraordinaryGrantRuleSnapshotRuntime activeRuntime,
             DomainRuleTestRunService testRunService,
-            @Qualifier("extraordinaryGrantRuleExecutorRegistry") RuleBindingExecutorRegistry registry,
-            @Qualifier("extraordinaryGrantRuleClock") Clock clock) {
+            @Qualifier("extraordinaryGrantRuleExecutorRegistry") RuleBindingExecutorRegistry registry) {
         return new PolicyStudioSandboxService(
-                workspaceService, activeService, activeRuntime, testRunService, registry, clock);
+                workspaceService, activeService, activeRuntime, testRunService, registry);
     }
 
     /** Keeps host composition separate from Config persistence and browser orchestration. */

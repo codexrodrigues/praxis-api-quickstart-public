@@ -198,25 +198,52 @@ class ExtraordinaryBenefitRequestPilotIntegrationTest {
     }
 
     @Test
-    void producesCreateAndUpdateOperationalEvidenceThroughTheRealWorkflow() {
+    void producesCreateAndUpdateAllowAndDenyEvidenceThroughTheRealWorkflow() {
         Set<String> permissions = Set.of("ROLE_ADMIN", "benefit:request");
-        var create = operationalProofService.proveCreate(
-                operationalSeed("policy-studio-proof-create-1"), true, 1,
-                permissions, "policy-proof-agent", "policy-proof-create-1");
-        assertEquals("CREATE", create.operationMode());
-        assertTrue(create.mutationObserved());
-        assertTrue(create.cleanupVerified());
+        var createAllow = operationalProofService.proveCreate(
+                operationalSeed("policy-studio-proof-create-allow"), true,
+                permissions, "policy-proof-agent", "policy-proof-create-allow");
+        assertEquals("CREATE", createAllow.operationMode());
+        assertTrue(createAllow.mutationObserved());
+        assertFalse(createAllow.noMutationVerified());
+        assertTrue(createAllow.cleanupVerified());
+        assertEquals(0, createAllow.baselineCallCount());
 
-        var update = operationalProofService.proveUpdate(
-                operationalSeed("policy-studio-proof-update-1"),
+        var createDeny = operationalProofService.proveCreate(
+                operationalSeed("policy-studio-proof-create-deny", "QL10-FICTIONAL-DENIED"), false,
+                permissions, "policy-proof-agent", "policy-proof-create-deny");
+        assertEquals("CREATE", createDeny.operationMode());
+        assertFalse(createDeny.mutationObserved());
+        assertTrue(createDeny.noMutationVerified());
+        assertTrue(createDeny.cleanupVerified());
+        assertEquals(0, createDeny.baselineCallCount());
+
+        var updateAllow = operationalProofService.proveUpdate(
+                operationalSeed("policy-studio-proof-update-allow"),
                 new ExtraordinaryBenefitReevaluationRequest(
                         ExtraordinaryBenefitReason.FAMILY_HARDSHIP, LocalDate.of(2026, 7, 13),
                         new BigDecimal("2000.00"), "QL10-FICTIONAL-001",
                         LocalDate.of(2026, 7, 20), "America/Sao_Paulo"),
-                true, 1, permissions, "policy-proof-agent", "policy-proof-update-1");
-        assertEquals("UPDATE", update.operationMode());
-        assertTrue(update.mutationObserved());
-        assertTrue(update.cleanupVerified());
+                true, permissions, "policy-proof-agent", "policy-proof-update-allow");
+        assertEquals("UPDATE", updateAllow.operationMode());
+        assertTrue(updateAllow.mutationObserved());
+        assertFalse(updateAllow.noMutationVerified());
+        assertTrue(updateAllow.cleanupVerified());
+        assertEquals(0, updateAllow.baselineCallCount());
+
+        var updateDeny = operationalProofService.proveUpdate(
+                operationalSeed("policy-studio-proof-update-deny"),
+                new ExtraordinaryBenefitReevaluationRequest(
+                        ExtraordinaryBenefitReason.FAMILY_HARDSHIP, LocalDate.of(2026, 7, 13),
+                        new BigDecimal("6000.00"), "QL10-FICTIONAL-001",
+                        LocalDate.of(2026, 7, 20), "America/Sao_Paulo"),
+                false, permissions, "policy-proof-agent", "policy-proof-update-deny");
+        assertEquals("UPDATE", updateDeny.operationMode());
+        assertFalse(updateDeny.mutationObserved());
+        assertTrue(updateDeny.noMutationVerified());
+        assertTrue(updateDeny.cleanupVerified());
+        assertEquals(0, updateDeny.baselineCallCount());
+
         assertEquals(0, tableCount("extraordinary_benefit_request"));
         assertEquals(0, tableCount("extraordinary_benefit_transformation_audit"));
         assertEquals(0, tableCount("extraordinary_benefit_grant_effect"));
@@ -1576,12 +1603,18 @@ class ExtraordinaryBenefitRequestPilotIntegrationTest {
     }
 
     private ExtraordinaryBenefitAuthoritativeEvaluationRequest operationalSeed(String requestReference) {
+        return operationalSeed(requestReference, "QL10-FICTIONAL-001");
+    }
+
+    private ExtraordinaryBenefitAuthoritativeEvaluationRequest operationalSeed(
+            String requestReference,
+            String factReference) {
         return new ExtraordinaryBenefitAuthoritativeEvaluationRequest(
                 requestReference,
                 ExtraordinaryBenefitReason.FAMILY_HARDSHIP,
                 LocalDate.of(2026, 7, 13),
                 new BigDecimal("2500.00"),
-                "QL10-FICTIONAL-001",
+                factReference,
                 LocalDate.of(2026, 7, 20),
                 "America/Sao_Paulo");
     }

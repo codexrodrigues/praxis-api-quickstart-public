@@ -1,195 +1,166 @@
-# Policy Studio — prova operacional CREATE/UPDATE
+# Policy Studio — prova operacional CREATE/UPDATE V58
 
-- Estado: aprovado para implementação incremental
+- Estado: implementado e validado localmente; Neon e Oracle/HADES permanecem gates de ambiente
 - Data: 2026-08-14
-- Classe: arquitetural e transversal
+- Classe: arquitetural, transversal e de contrato público
 
 ## Decisão
 
-O sandbox do Policy Studio continua estritamente sem efeitos. A prova de
-persistência pertence ao host e será executada por um adapter operacional do
-Quickstart sobre o datasource PostgreSQL de domínio. O resultado sanitizado será
-registrado no `DomainRuleTestRun` V57, cujo owner canônico é o Praxis Config.
+O sandbox do Policy Studio continua sem efeitos. A prova de persistência pertence ao host e é
+executada pelo Quickstart sobre seu datasource operacional. O Praxis Config é o owner canônico do
+Test Run, de sua idempotência e das políticas de evidência por estágio. O Studio apenas inicia a
+operação autorizada e projeta o resultado governado.
 
-Não será criado banco, schema, DTO de Test Run ou endpoint paralelo no Studio.
-O Config e o datasource operacional podem residir no mesmo projeto Neon, mas
-devem manter credenciais, ownership e migrations separados.
+Não existe banco, schema ou DTO paralelo no Studio. Config e domínio podem residir no mesmo projeto
+Neon, mas mantêm schemas, migrations, credenciais e ownership independentes.
 
-## Inventário de aderência
+## Inventário de aderência fechado pelo V58
 
-| Necessidade | Classificação | Situação |
+| Necessidade | Classificação inicial | Materialização V58 |
 | --- | --- | --- |
-| Candidate versus active sem efeitos | `ja-suportado-so-ux` | sandbox host-owned e Test Run já implementados |
-| Proveniência do baseline | `ja-suportado-so-ux` | Config V57 suporta sintético, snapshot ativo e oracle legado |
-| Evidência sanitizada CREATE/UPDATE | `suportado-parcialmente` | DTO V57 existe; falta o produtor host-owned |
-| Persistência CREATE governada | `ja-suportado-mal-nomeado-ou-mal-materializado` | `evaluate` avalia e persiste somente `ALLOW`, mas ainda não alimenta o Test Run operacional |
-| Persistência UPDATE governada | `lacuna-real-de-contrato` | o domínio não possui comando de reavaliação concorrente; transições de lifecycle não equivalem a UPDATE |
-| Cleanup de dados de teste | `suportado-parcialmente` | testes limpam tabelas, mas ainda não há identidade/protocolo de execução governado |
+| Baseline por cenário independente de candidate/active | `lacuna-real-de-contrato` | `DomainRuleTestBaselineResult` no contrato canônico |
+| Retry sem duplicar Test Run | `lacuna-real-de-contrato` | `idempotencyKey` escopada e hash canônico do comando |
+| Transporte host-neutral para Ergon/Quickstart | `lacuna-real-de-contrato` | records leves em `praxis-config-contracts`, sem importar o starter |
+| Evidência CREATE/UPDATE sanitizada | `suportado-parcialmente` | producer host-owned, before/after/effects/cleanup e contador medido |
+| Gate de evidência por lifecycle | `ja-suportado-mal-nomeado-ou-mal-materializado` | política server-owned por estágio; nenhuma exigência Oracle global |
 
-## Semântica obrigatória de UPDATE
-
-O Quickstart deve ganhar uma action de item `re-evaluate`, disponível somente no
-estado `EVALUATED`. Ela recebe o mesmo comando autoritativo usado no CREATE e:
-
-1. exige `If-Match` e chave idempotente;
-2. preserva `id` e `requestReference`;
-3. readquire facts pelo provider host-owned e reavalia o snapshot vigente;
-4. atualiza a linha somente quando o resultado for `ALLOW`;
-5. mantém a linha inalterada para `DENY`, `NOT_APPLICABLE`, `INCONCLUSIVE` ou erro;
-6. incrementa a versão JPA e registra a transformação append-only;
-7. nunca executa o effect intent durante a prova;
-8. rejeita registros `SUBMITTED`, `APPROVED` ou `APPLIED`.
-
-`submit`, `approve` e `apply` não podem ser classificados como UPDATE de policy:
-eles alteram lifecycle e, no último caso, materializam efeito local.
-
-## Adapter operacional host-owned
-
-O adapter recebe identidade canônica de workspace, scenario, modo de operação e
-o principal governado. Ele não recebe SQL, nome de tabela, URL ou credencial do
-browser. Para cada cenário, o host executa:
+## Fronteiras canônicas
 
 ```text
-capturar before digest
-  -> executar CREATE ou re-evaluate UPDATE
-  -> readback na mesma identidade de negócio
-  -> capturar after digest e ledger digest
-  -> verificar mutação ou não mutação esperada
-  -> limpar apenas os registros criados pela execução
-  -> verificar cleanup
-  -> registrar Test Run V57 no Config
+Policy Studio
+  -> solicita sandbox/Test Run com chave idempotente
+Quickstart ou outro host
+  -> avalia candidate e active sem efeitos
+  -> executa prova operacional descartável quando explicitamente solicitado
+Praxis Config
+  -> persiste Test Run imutável, baseline independente e evidência sanitizada
+  -> calcula blockers/actions segundo a política governada do estágio
+Rules Engine
+  -> compila e avalia; não persiste Test Run e não acessa banco de negócio
 ```
 
-Os digests são SHA-256 de projeções canônicas e redigidas. Facts, valores
-monetários, referências pessoais, payload HTTP, SQL e conteúdo de linha não
-atravessam a fronteira para o Config.
+O baseline sintético do Quickstart é um oracle de expectativa local, não paridade legada. O adapter
+do Ergon deve publicar `LEGACY_ORACLE` somente após executar a autoridade Oracle/HADES real. A lane
+`active` nunca é reutilizada ou renomeada como legado.
 
-## Mapeamento V57
+## Contrato e idempotência
 
-| Campo | Fonte |
-| --- | --- |
-| `operationMode` | comando governado `CREATE` ou `UPDATE` |
-| `beforeStateDigest` | readback redigido anterior; sentinel hash para ausência |
-| `afterStateDigest` | readback redigido posterior |
-| `mutationObserved` | comparação de digests e versão |
-| `noMutationVerified` | readback idêntico após outcome não autorizador |
-| `cleanupVerified` | ausência da linha e dos ledgers pertencentes à execução |
-| `effectLedgerDigest` | projeção redigida de transformação/outbox/effect ledger |
-| `baselineCallCount` | contador do adapter de baseline; zero não pode ser inferido |
+`POST /api/praxis/policy-studio/sandbox/runs` exige `idempotencyKey` com 1 a 180 caracteres. O
+Config normaliza o comando, calcula seu hash sem incluir a própria chave e aplica estas regras no
+escopo tenant/environment/workspace:
 
-O baseline sintético continua útil ao desenvolvimento local, mas não é prova de
-paridade. Um adapter Ergon usará `LEGACY_ORACLE`, referência/digest do artefato
-aprovado da Parte 1 e contagem real de chamadas ao legado.
+- mesma chave e mesmo hash: devolve o Test Run original;
+- mesma chave e payload diferente: `409 Conflict`;
+- chave nova: cria um novo Test Run;
+- gravação concorrente e submissão do workspace usam o mesmo lock pessimista.
 
-## Matriz mínima executável
+O cliente conserva a chave quando a resposta falha de forma incerta e a troca somente depois de
+um sucesso ou de uma mudança no workspace/cenários. Assim, retry de transporte não vira evidência
+duplicada.
 
-| Caso | Operação | Resultado | Mutação |
+## Prova operacional host-owned
+
+Para cada cenário, o host executa:
+
+```text
+capturar estado limpo esperado
+  -> preparar o agregado descartável, quando UPDATE
+  -> capturar before digest
+  -> executar CREATE ou re-evaluate UPDATE
+  -> capturar after digest e effect-ledger digest
+  -> verificar mutação ou não mutação esperada
+  -> limpar somente a identidade reservada da prova
+  -> comparar o estado limpo final
+  -> registrar a evidência V58 no Test Run
+```
+
+O adapter aceita somente digests SHA-256, modo, flags de verificação e contagem de baseline. Facts,
+valores monetários, SQL, linhas, credenciais, referências pessoais e traces não atravessam a
+fronteira. Cleanup divergente, mutação divergente ou contador inválido falham fechado e impedem o
+registro.
+
+`baselineCallCount` é obtido por um observer no host. O caller não informa mais esse número. No
+Quickstart ele é zero porque o baseline local não chama legado; no Ergon o observer deve envolver a
+chamada Oracle real e contar inclusive tentativas com falha.
+
+## Matriz executável
+
+| Caso | Operação | Resultado | Invariante operacional |
 | --- | --- | --- | --- |
-| elegível novo | CREATE | `ALLOW` | uma linha criada, efeito não executado |
-| inelegível novo | CREATE | `DENY` | nenhuma linha criada |
-| referência duplicada | CREATE | conflito idempotente | nenhuma segunda linha |
-| elegível alterado | UPDATE | `ALLOW` | mesma identidade, versão e digest alterados |
-| alteração inelegível | UPDATE | `DENY` | linha e versão inalteradas |
-| `If-Match` obsoleto | UPDATE | `412` | linha inalterada |
-| registro inexistente | UPDATE | `404` | nenhuma mutação |
-| registro fora de `EVALUATED` | UPDATE | `409` | nenhuma mutação |
-| replay da chave idempotente | CREATE/UPDATE | resposta anterior | nenhuma mutação adicional |
-| cleanup | CREATE/UPDATE | verificado | linha, auditoria e execuções da prova removidas |
+| elegível novo | CREATE | `ALLOW` | recurso criado durante a prova |
+| inelegível novo | CREATE | `DENY` | nenhuma mutação |
+| elegível alterado | UPDATE | `ALLOW` | mesma identidade, digest alterado |
+| alteração inelegível | UPDATE | `DENY` | seed preservado até o cleanup |
 
-Todos os casos devem verificar tenant/environment, principal sem capability,
-redaction, optimistic locking e que o sandbox continua com zero mutações.
+O teste do workflow real executa os quatro quadrantes com facts autoritativos, snapshot ativo e
+cleanup final. Um teste complementar usa PostgreSQL real descartável para persistir **um** Test Run
+com quatro resultados, relê as quatro lanes e repete o mesmo comando sem criar outra linha. Eles são
+provas complementares: o workflow integrado usa os datasources H2 do teste do host; o round-trip do
+Config usa PostgreSQL nativo. Nenhum deles é apresentado como Neon ou Oracle.
+
+Retries conservam juntos `idempotencyKey` e `evaluatedAtUtc`. O host consulta primeiro o receipt
+escopado já persistido e não reexecuta sandbox nem provas operacionais quando o comando coincide;
+reuso da chave com outra revisão/fingerprint do workspace, instante, timezone ou conjunto de
+cenários falha com `409`. Criar ou alterar um cenário rotaciona a revisão no Config e invalida o run
+anterior. O adapter Ergon deve aplicar a mesma guarda antes de qualquer DML ou chamada Oracle.
+
+Os testes HTTP existentes continuam cobrindo conflito idempotente, `If-Match` obsoleto, autorização,
+negação sem persistência e lifecycle. A prova compartilhada no Neon permanece necessária antes de
+um corte de ambiente corporativo.
+
+## Governança por estágio
+
+O V58 não torna Oracle obrigatório para todos os clientes. A definição pode declarar em
+`governance.testEvidencePolicy.stages.<STAGE>`:
+
+- autoridade e elegibilidade de baseline requeridas;
+- operações e decisões obrigatórias, cuja combinação forma a matriz cartesiana;
+- cleanup obrigatório;
+- paridade candidate × baseline obrigatória.
+
+Sem política, não há gate extra universal. Política desconhecida ou malformada falha fechado. Neste
+corte, `SUBMIT` vincula o Test Run aceito ao workspace e `PROMOTE` revalida exatamente essa evidência,
+impedindo substituição posterior. Gates de `PUBLISH`, `SNAPSHOT` e `ACTIVATE` só devem ser ligados
+quando esses estágios também carregarem uma referência imutável à evidência revisada.
+Por isso, V58 aceita somente os nomes de estágio `SUBMIT` e `PROMOTE`; declarar antecipadamente ou
+errar o nome de outro estágio invalida a política, em vez de criar uma falsa impressão de proteção.
+
+Para RN-013, a política recomendada exige `LEGACY_ORACLE`, baseline `ELIGIBLE`, CREATE/UPDATE,
+ALLOW/DENY, cleanup e paridade antes da promoção ou publicação que anteceda autoridade Java. A
+governança pode permitir abrir revisão com evidência ainda pendente; isso não autoriza promoção.
 
 ## Banco e migrations
 
 - migrations de domínio permanecem em `db/operational-migrations`;
-- migrations do Config continuam no starter e são aplicadas pela identidade
-  proprietária do schema;
-- o runtime não recebe DDL nem ownership;
-- a prova local usa PostgreSQL real descartável; a prova compartilhada usa os
-  datasources Neon já configurados, sem criar banco por execução;
-- cleanup usa uma `runId`/correlation id conhecida e nunca `TRUNCATE` ou filtros
-  amplos em ambiente compartilhado.
+- a V58 do Config persiste idempotência, hash, baseline independente e vínculo do run submetido;
+- runtime não recebe DDL nem ownership;
+- PostgreSQL local é descartável e não altera Neon;
+- no Neon, o mesmo projeto pode hospedar os schemas, mas cada owner usa sua identidade e seu
+  histórico de migration;
+- cleanup sempre usa identidade reservada da execução; nunca `TRUNCATE` nem filtros amplos.
 
-## Segurança e capabilities
+## O que está comprovado e o que falta
 
-A futura action pública só poderá aparecer quando o backend publicar capability
-específica, blockers e ETag. `ROLE_ADMIN`, origem permitida ou sessão válida não
-substituem autorização por operação. O adapter do Ergon deve seguir a mesma
-fronteira e nunca receber credenciais Oracle do Studio.
+Comprovado localmente:
 
-## Sequência de implementação
+- contrato host-neutral V58;
+- um run/quatro resultados e replay idempotente em PostgreSQL;
+- CREATE/UPDATE × ALLOW/DENY pelo workflow real;
+- contagem de baseline medida;
+- cleanup e mutação fail-closed;
+- baseline independente de candidate/active;
+- gate server-owned por estágio no Config.
 
-1. `re-evaluate` no aggregate Quickstart com ETag, idempotência e prova HTTP;
-2. implementar o adapter operacional interno e o mapeamento V57;
-3. provar a matriz CREATE/UPDATE em PostgreSQL descartável;
-4. executar a mesma prova no Neon com registros identificados pela execução;
-5. somente então publicar capability/action para o Studio;
-6. entregar ao agente Ergon o SPI, corpus e formato de evidência, mantendo o
-   adapter Oracle no host Ergon.
+Ainda necessário para handoff corporativo:
 
-## Gate de pronto
+1. publicar versões finais coordenadas de `praxis-config-contracts`, Config e Quickstart;
+2. executar migration/smoke no Neon configurado, com `403`, `409`, `412` e retry;
+3. disponibilizar a operação composta por uma capability/endpoint canônico quando o agente remoto
+   precisar acioná-la fora do processo do host;
+4. no Ergon, implementar somente o adapter Oracle/HADES, observer de chamadas, sanitização e
+   cleanup específicos do host;
+5. executar quatro canários autorizados e depois expandir para a matriz RN-013, mantendo
+   `LEGACY_AUTHORITATIVE` até homologação.
 
-O corte só está pronto quando um `ALLOW` e um `DENY` forem provados em CREATE e
-UPDATE, o Test Run persistido carregar evidência V57 verdadeira, o cleanup for
-confirmado, um principal sem capability receber `403`, um ETag obsoleto receber
-`412` e nenhuma informação sensível aparecer no Config ou nos logs.
-
-### Estado do primeiro incremento
-
-O comando `re-evaluate` está implementado como action item-level: replay precede
-a validação do ETag, a identidade é preservada, facts são readquiridos e somente
-`ALLOW` altera a linha. A migration V20260814_001 permite múltiplas evidências
-append-only para fatos distintos sem enfraquecer o ledger idempotente do comando.
-O adapter que transforma essa execução em `DomainRuleOperationalTestEvidence`
-V57 e a prova compartilhada no Neon permanecem no incremento seguinte.
-
-## Adapter host-owned V57
-
-O Quickstart possui agora uma fronteira interna para converter uma execucao operacional em
-`DomainRuleOperationalTestEvidence`. Ela aceita somente digests SHA-256 sanitizados, modo
-`CREATE` ou `UPDATE`, contagem de chamadas ao baseline e callbacks de comando/probe/cleanup.
-Payloads de negocio, SQL, credenciais e identificadores pessoais nao atravessam essa fronteira.
-Se a mutacao observada divergir da expectativa governada do cenario, o adapter falha fechado e
-nao produz uma evidencia registravel.
-
-O cleanup roda inclusive quando o comando falha e somente e considerado comprovado quando o
-estado final coincide com o estado limpo esperado, capturado antes da preparacao descartavel. Isso
-permite que uma prova de `UPDATE` prepare um recurso e ainda exija sua remocao ao final, em vez de
-confundir o estado preparado com o estado que deve sobreviver. Esta primeira etapa ainda nao afirma
-prova PostgreSQL ou Neon: o proximo corte conectara o probe ao recurso de beneficio extraordinario
-com uma correlacao exclusiva da execucao e registrara a evidencia no Test Run governado.
-
-O probe do beneficio extraordinario ja materializa a parte de observacao e cleanup: ele aceita
-somente referencias reservadas com prefixo `policy-studio-proof-`, projeta recurso, auditoria de
-transformacao e ledger de efeitos em digests e remove apenas linhas relacionadas a essa referencia.
-O teste local H2 em modo PostgreSQL comprova isolamento, mudanca do digest e retorno ao estado
-limpo; ele nao substitui a proxima prova em PostgreSQL real/Neon nem o registro no Config.
-
-O orquestrador interno reutiliza `ExtraordinaryBenefitWorkflowService` para executar tanto a
-criacao quanto a reavaliacao do mesmo agregado. Para `UPDATE`, um seed obrigatoriamente `ALLOW` e
-persistido pelo proprio workflow antes da reavaliacao; se o seed nao produzir recurso, a prova
-falha fechada e limpa qualquer vestigio correlacionado. O teste de integracao do piloto comprova
-CREATE/UPDATE, facts autoritativos, snapshot ativo, mutacao observada e tabelas vazias ao final.
-
-Um gate adicional executa o probe contra um processo PostgreSQL real e descartavel. Ele comprova
-a sintaxe nativa das consultas, a transacao de cleanup e que uma referencia de negocio nao
-correlacionada permanece intacta. Essa prova local real-processo nao usa nem altera o Neon
-compartilhado; a lane Neon continua sendo o gate posterior de ambiente gerenciado.
-
-O recorder interno recebe o resultado tecnico ja avaliado, exige cobertura operacional exata para
-todos os cenarios e delega a gravacao ao `DomainRuleTestRunService`. Ele nao persiste uma segunda
-entidade no host, nao aceita cobertura parcial e nao reimplementa as validacoes V57 do Config.
-
-O executor composto mantem o sandbox comum read-only e recebe bindings operacionais host-owned
-explicitos. Nenhum modo e inferido de labels, chaves ou facts. A avaliacao candidate/active ocorre
-primeiro; somente uma cobertura de bindings exatamente igual ao conjunto avaliado autoriza os
-comandos descartaveis e o registro V57.
-
-`PolicyStudioSandboxService.prepare` e a unica preparacao candidate/active. O `run` read-only a
-persiste diretamente como antes; o executor operacional reutiliza o mesmo request ainda nao
-persistido, anexa as evidencias e grava uma unica vez. Nao existe Test Run tecnico intermediario.
-
-O round-trip V57 tambem e coberto em PostgreSQL real-processo com os repositorios JPA do Config:
-workspace e cenario escopados ancoram o teste, `DomainRuleTestRunService.record` persiste o run e o
-resultado enriquecido, e `list` rele a mesma evidencia operacional. O gate confirma exatamente um
-run/resultado e encerra o PostgreSQL descartavel ao final.
+O Quickstart é laboratório estrutural compatível; não é evidência de paridade Ergon. Oracle, HADES,
+DML, readback e homologação da precedência real permanecem responsabilidade do host Ergon.

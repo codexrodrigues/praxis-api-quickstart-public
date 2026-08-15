@@ -1,5 +1,6 @@
 package com.example.praxis.apiquickstart.rulelab;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.eq;
@@ -16,12 +17,14 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
-import org.praxisplatform.config.dto.DomainRuleOperationalTestEvidence;
-import org.praxisplatform.config.dto.DomainRuleTestRunRecordRequest;
-import org.praxisplatform.config.dto.DomainRuleTestRunResultRequest;
+import org.praxisplatform.config.contract.DomainRuleOperationalTestEvidence;
+import org.praxisplatform.config.contract.DomainRuleTestRunRecordRequest;
+import org.praxisplatform.config.contract.DomainRuleTestRunResponse;
+import org.praxisplatform.config.contract.DomainRuleTestRunResultRequest;
 import org.praxisplatform.config.service.DomainRuleGovernancePrincipal;
 
 class PolicyStudioOperationalTestRunExecutorTest {
@@ -44,10 +47,10 @@ class PolicyStudioOperationalTestRunExecutorTest {
         var createEvidence = evidence("CREATE", true);
         var updateEvidence = evidence("UPDATE", false);
         when(proof.proveCreate(
-                seed("policy-studio-proof-create"), true, 1, Set.of("benefit:request"),
+                seed("policy-studio-proof-create"), true, Set.of("benefit:request"),
                 "proof-agent", "run:scenario:" + createId)).thenReturn(createEvidence);
         when(proof.proveUpdate(
-                seed("policy-studio-proof-update"), update(), false, 1, Set.of("benefit:request"),
+                seed("policy-studio-proof-update"), update(), false, Set.of("benefit:request"),
                 "proof-agent", "run:scenario:" + updateId)).thenReturn(updateEvidence);
 
         executor.execute(
@@ -56,10 +59,10 @@ class PolicyStudioOperationalTestRunExecutorTest {
                 List.of(
                         new ExtraordinaryBenefitOperationalScenarioBinding(
                                 createId, PolicyStudioOperationalEvidenceAdapter.OperationMode.CREATE,
-                                seed("policy-studio-proof-create"), null, true, 1),
+                                seed("policy-studio-proof-create"), null, true),
                         new ExtraordinaryBenefitOperationalScenarioBinding(
                                 updateId, PolicyStudioOperationalEvidenceAdapter.OperationMode.UPDATE,
-                                seed("policy-studio-proof-update"), update(), false, 1)),
+                                seed("policy-studio-proof-update"), update(), false)),
                 Set.of("benefit:request"), "proof-agent", "run", principal);
 
         verify(recorder).record(eq(workspaceId), eq(evaluated),
@@ -78,7 +81,7 @@ class PolicyStudioOperationalTestRunExecutorTest {
 
         verify(proof, never()).proveCreate(
                 org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.anyBoolean(),
-                org.mockito.ArgumentMatchers.anyInt(), org.mockito.ArgumentMatchers.anySet(),
+                org.mockito.ArgumentMatchers.anySet(),
                 org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.anyString());
         verify(recorder, never()).record(
                 org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(), anyMap(),
@@ -91,25 +94,52 @@ class PolicyStudioOperationalTestRunExecutorTest {
         UUID scenarioId = UUID.randomUUID();
         DomainRuleTestRunRecordRequest evaluated = run(scenarioId);
         PolicyStudioSandboxRunRequest request =
-                new PolicyStudioSandboxRunRequest(workspaceId, List.of(scenarioId), "UTC");
+                new PolicyStudioSandboxRunRequest(
+                        workspaceId, List.of(scenarioId), "UTC", "run",
+                        Instant.parse("2026-08-14T12:00:00Z"));
         when(sandbox.prepare(request, principal())).thenReturn(
                 new PolicyStudioSandboxService.PolicyStudioSandboxPreparedRun(
                         workspaceId, evaluated, List.of()));
         DomainRuleOperationalTestEvidence evidence = evidence("CREATE", true);
         when(proof.proveCreate(
-                seed("policy-studio-proof-sandbox"), true, 1, Set.of("benefit:request"),
+                seed("policy-studio-proof-sandbox"), true, Set.of("benefit:request"),
                 "proof-agent", "run:scenario:" + scenarioId)).thenReturn(evidence);
 
         executor.executeSandbox(
                 request,
                 List.of(new ExtraordinaryBenefitOperationalScenarioBinding(
                         scenarioId, PolicyStudioOperationalEvidenceAdapter.OperationMode.CREATE,
-                        seed("policy-studio-proof-sandbox"), null, true, 1)),
+                        seed("policy-studio-proof-sandbox"), null, true)),
                 Set.of("benefit:request"), "proof-agent", "run", principal());
 
         verify(sandbox).prepare(request, principal());
         verify(recorder).record(eq(workspaceId), eq(evaluated),
                 eq(java.util.Map.of(scenarioId, evidence)), eq(principal()));
+    }
+
+    @Test
+    void returnsAnExistingReceiptBeforeAnyOperationalProbeIsExecuted() {
+        UUID workspaceId = UUID.randomUUID();
+        UUID scenarioId = UUID.randomUUID();
+        var request = new PolicyStudioSandboxRunRequest(
+                workspaceId, List.of(scenarioId), "UTC", "run",
+                Instant.parse("2026-08-14T12:00:00Z"));
+        DomainRuleTestRunResponse receipt = new DomainRuleTestRunResponse(
+                UUID.randomUUID(), workspaceId, "run", DIGEST, 1L, DIGEST,
+                Instant.parse("2026-08-14T12:00:00Z"), "UTC", "snapshot", DIGEST, 2L,
+                null, List.of(), "proof-agent", Instant.parse("2026-08-14T12:00:01Z"));
+        when(sandbox.existingRecord(request, principal())).thenReturn(Optional.of(receipt));
+
+        var replay = executor.executeSandbox(
+                request, List.of(), Set.of(), "proof-agent", "run", principal());
+
+        assertThat(replay).isSameAs(receipt);
+        verify(sandbox, never()).prepare(
+                org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any());
+        verify(proof, never()).proveCreate(
+                org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.anyBoolean(),
+                org.mockito.ArgumentMatchers.anySet(), org.mockito.ArgumentMatchers.anyString(),
+                org.mockito.ArgumentMatchers.anyString());
     }
 
     private DomainRuleOperationalTestEvidence evidence(String mode, boolean mutation) {
@@ -119,7 +149,7 @@ class PolicyStudioOperationalTestRunExecutorTest {
 
     private DomainRuleTestRunRecordRequest run(UUID... scenarioIds) {
         return new DomainRuleTestRunRecordRequest(
-                1L, DIGEST, Instant.parse("2026-08-14T12:00:00Z"), "UTC",
+                "run", 1L, DIGEST, Instant.parse("2026-08-14T12:00:00Z"), "UTC",
                 "snapshot", DIGEST, 2L, null,
                 java.util.Arrays.stream(scenarioIds).map(this::result).toList());
     }
@@ -127,7 +157,7 @@ class PolicyStudioOperationalTestRunExecutorTest {
     private DomainRuleTestRunResultRequest result(UUID scenarioId) {
         return new DomainRuleTestRunResultRequest(
                 scenarioId, "scenario-" + scenarioId, "ALLOW", "ALLOW", null, null,
-                List.of(), List.of(), List.of(), List.of(), DIGEST, DIGEST, DIGEST);
+                List.of(), List.of(), List.of(), List.of(), DIGEST, DIGEST, DIGEST, null, null);
     }
 
     private ExtraordinaryBenefitAuthoritativeEvaluationRequest seed(String reference) {

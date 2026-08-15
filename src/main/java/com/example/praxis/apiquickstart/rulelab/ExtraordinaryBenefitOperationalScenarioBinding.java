@@ -11,8 +11,7 @@ record ExtraordinaryBenefitOperationalScenarioBinding(
         PolicyStudioOperationalEvidenceAdapter.OperationMode operationMode,
         ExtraordinaryBenefitAuthoritativeEvaluationRequest seed,
         ExtraordinaryBenefitReevaluationRequest update,
-        boolean mutationExpected,
-        int baselineCallCount) {
+        boolean mutationExpected) {
 
     ExtraordinaryBenefitOperationalScenarioBinding {
         Objects.requireNonNull(scenarioId, "scenarioId is required");
@@ -23,9 +22,6 @@ record ExtraordinaryBenefitOperationalScenarioBinding(
         }
         if (operationMode == PolicyStudioOperationalEvidenceAdapter.OperationMode.CREATE && update != null) {
             throw new IllegalArgumentException("CREATE binding cannot carry an update command");
-        }
-        if (baselineCallCount < 0) {
-            throw new IllegalArgumentException("baselineCallCount cannot be negative");
         }
     }
 }

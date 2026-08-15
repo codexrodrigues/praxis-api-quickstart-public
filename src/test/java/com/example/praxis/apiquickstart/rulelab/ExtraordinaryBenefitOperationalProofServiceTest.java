@@ -29,7 +29,8 @@ class ExtraordinaryBenefitOperationalProofServiceTest {
             mock(ExtraordinaryBenefitOperationalEvidenceProbe.class);
     private final ExtraordinaryBenefitOperationalProofService service =
             new ExtraordinaryBenefitOperationalProofService(
-                    workflow, probe, new PolicyStudioOperationalEvidenceAdapter());
+                    workflow, probe, new PolicyStudioOperationalEvidenceAdapter(),
+                    new PolicyStudioBaselineCallCounter());
 
     @Test
     void orchestratesUpdateThroughTheAuthoritativeWorkflowAndCleansTheSeed() {
@@ -45,11 +46,12 @@ class ExtraordinaryBenefitOperationalProofServiceTest {
                 state(EMPTY, EMPTY), state(SEEDED, EMPTY), state(UPDATED, LEDGER), state(EMPTY, EMPTY));
 
         var evidence = service.proveUpdate(
-                seed, update, true, 1, Set.of("evaluate"), "proof-agent", "run-1");
+                seed, update, true, Set.of("evaluate"), "proof-agent", "run-1");
 
         assertThat(evidence.operationMode()).isEqualTo("UPDATE");
         assertThat(evidence.mutationObserved()).isTrue();
         assertThat(evidence.cleanupVerified()).isTrue();
+        assertThat(evidence.baselineCallCount()).isZero();
         verify(workflow).reEvaluate(42L, update, Set.of("evaluate"), "proof-agent", "run-1");
         verify(probe, times(2)).cleanup(REFERENCE);
     }
@@ -63,7 +65,7 @@ class ExtraordinaryBenefitOperationalProofServiceTest {
                 .thenReturn(new ExtraordinaryBenefitEvaluationCommandResponse(null, null));
 
         assertThatThrownBy(() -> service.proveUpdate(
-                        seed, update, true, 0, Set.of(), "proof-agent", "run-2"))
+                        seed, update, true, Set.of(), "proof-agent", "run-2"))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("ALLOW seed");
 

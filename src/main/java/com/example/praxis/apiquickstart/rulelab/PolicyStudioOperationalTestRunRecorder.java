@@ -6,10 +6,10 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
-import org.praxisplatform.config.dto.DomainRuleOperationalTestEvidence;
-import org.praxisplatform.config.dto.DomainRuleTestRunRecordRequest;
-import org.praxisplatform.config.dto.DomainRuleTestRunResponse;
-import org.praxisplatform.config.dto.DomainRuleTestRunResultRequest;
+import org.praxisplatform.config.contract.DomainRuleOperationalTestEvidence;
+import org.praxisplatform.config.contract.DomainRuleTestRunRecordRequest;
+import org.praxisplatform.config.contract.DomainRuleTestRunResponse;
+import org.praxisplatform.config.contract.DomainRuleTestRunResultRequest;
 import org.praxisplatform.config.service.DomainRuleGovernancePrincipal;
 import org.praxisplatform.config.service.DomainRuleTestRunService;
 import org.springframework.stereotype.Service;
@@ -52,7 +52,7 @@ class PolicyStudioOperationalTestRunRecorder {
                 .map(result -> enrich(result, evidenceByScenario.get(result.scenarioId())))
                 .toList();
         var record = new DomainRuleTestRunRecordRequest(
-                evaluatedRun.workspaceRevision(), evaluatedRun.baseDefinitionHash(),
+                evaluatedRun.idempotencyKey(), evaluatedRun.workspaceRevision(), evaluatedRun.baseDefinitionHash(),
                 evaluatedRun.evaluatedAtUtc(), evaluatedRun.userTimeZone(),
                 evaluatedRun.activeSnapshotKey(), evaluatedRun.activeSnapshotContentHash(),
                 evaluatedRun.activeActivationRevision(), evaluatedRun.baselineEvidence(), enriched);
@@ -66,6 +66,7 @@ class PolicyStudioOperationalTestRunRecorder {
                 result.scenarioId(), result.scenarioKey(), result.candidateDecision(), result.activeDecision(),
                 result.candidateOutput(), result.activeOutput(), result.candidateReasonCodes(),
                 result.activeReasonCodes(), result.candidateEffectIntents(), result.activeEffectIntents(),
-                result.candidatePlanDigest(), result.activePlanDigest(), result.factsDigest(), evidence);
+                result.candidatePlanDigest(), result.activePlanDigest(), result.factsDigest(),
+                result.baselineResult(), evidence);
     }
 }

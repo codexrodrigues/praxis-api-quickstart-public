@@ -1,11 +1,12 @@
 package com.example.praxis.apiquickstart.rulelab;
 
 import java.util.Objects;
-import org.praxisplatform.config.dto.DomainRuleOperationalTestEvidence;
+import java.util.function.IntSupplier;
+import org.praxisplatform.config.contract.DomainRuleOperationalTestEvidence;
 import org.springframework.stereotype.Component;
 
 /**
- * Converte uma operacao real do host em evidencia operacional sanitizada do Test Run V57.
+ * Converte uma operacao real do host em evidencia operacional sanitizada do Test Run V58.
  *
  * <p>O adapter nunca recebe payloads de negocio, SQL ou credenciais. O probe deve projetar
  * somente digests deterministas do recurso e do ledger de efeitos. A limpeza e obrigatoria e
@@ -18,7 +19,7 @@ final class PolicyStudioOperationalEvidenceAdapter {
     DomainRuleOperationalTestEvidence observe(
             OperationMode operationMode,
             boolean mutationExpected,
-            int baselineCallCount,
+            IntSupplier baselineCallCount,
             OperationalState cleanupExpectedState,
             OperationalStateProbe probe,
             Runnable command,
@@ -28,9 +29,7 @@ final class PolicyStudioOperationalEvidenceAdapter {
         Objects.requireNonNull(probe, "probe is required");
         Objects.requireNonNull(command, "command is required");
         Objects.requireNonNull(cleanup, "cleanup is required");
-        if (baselineCallCount < 0) {
-            throw new IllegalArgumentException("baselineCallCount cannot be negative");
-        }
+        Objects.requireNonNull(baselineCallCount, "baselineCallCount is required");
 
         OperationalState before = requireState(probe.capture(), "before");
         OperationalState after = null;
@@ -45,9 +44,16 @@ final class PolicyStudioOperationalEvidenceAdapter {
         }
 
         boolean mutationObserved = !before.stateDigest().equals(after.stateDigest());
+        if (!cleanupVerified) {
+            throw new IllegalStateException("Operational cleanup did not restore the governed fixture state");
+        }
         if (mutationObserved != mutationExpected) {
             throw new IllegalStateException(
                     "Operational mutation did not match the governed scenario expectation");
+        }
+        int measuredBaselineCalls = baselineCallCount.getAsInt();
+        if (measuredBaselineCalls < 0) {
+            throw new IllegalStateException("Measured baseline call count cannot be negative");
         }
         boolean noMutationVerified = !mutationObserved;
         return new DomainRuleOperationalTestEvidence(
@@ -58,7 +64,7 @@ final class PolicyStudioOperationalEvidenceAdapter {
                 noMutationVerified,
                 cleanupVerified,
                 after.effectLedgerDigest(),
-                baselineCallCount);
+                measuredBaselineCalls);
     }
 
     private OperationalState requireState(OperationalState state, String phase) {

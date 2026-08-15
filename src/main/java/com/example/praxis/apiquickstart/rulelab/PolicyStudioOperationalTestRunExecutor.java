@@ -9,9 +9,9 @@ import java.util.UUID;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import com.example.praxis.apiquickstart.rulelab.dto.PolicyStudioSandboxRunRequest;
-import org.praxisplatform.config.dto.DomainRuleOperationalTestEvidence;
-import org.praxisplatform.config.dto.DomainRuleTestRunRecordRequest;
-import org.praxisplatform.config.dto.DomainRuleTestRunResponse;
+import org.praxisplatform.config.contract.DomainRuleOperationalTestEvidence;
+import org.praxisplatform.config.contract.DomainRuleTestRunRecordRequest;
+import org.praxisplatform.config.contract.DomainRuleTestRunResponse;
 import org.praxisplatform.config.service.DomainRuleGovernancePrincipal;
 import org.springframework.stereotype.Service;
 
@@ -38,6 +38,10 @@ final class PolicyStudioOperationalTestRunExecutor {
             String actorSubject,
             String correlationId,
             DomainRuleGovernancePrincipal principal) {
+        var replay = sandbox.existingRecord(request, principal);
+        if (replay.isPresent()) {
+            return replay.get();
+        }
         PolicyStudioSandboxService.PolicyStudioSandboxPreparedRun prepared = sandbox.prepare(request, principal);
         return execute(
                 prepared.workspaceId(), prepared::recordRequest, bindings,
@@ -99,11 +103,11 @@ final class PolicyStudioOperationalTestRunExecutor {
             String correlationId) {
         if (binding.operationMode() == PolicyStudioOperationalEvidenceAdapter.OperationMode.CREATE) {
             return proofService.proveCreate(
-                    binding.seed(), binding.mutationExpected(), binding.baselineCallCount(),
+                    binding.seed(), binding.mutationExpected(),
                     permissions, actorSubject, correlationId);
         }
         return proofService.proveUpdate(
-                binding.seed(), binding.update(), binding.mutationExpected(), binding.baselineCallCount(),
+                binding.seed(), binding.update(), binding.mutationExpected(),
                 permissions, actorSubject, correlationId);
     }
 }

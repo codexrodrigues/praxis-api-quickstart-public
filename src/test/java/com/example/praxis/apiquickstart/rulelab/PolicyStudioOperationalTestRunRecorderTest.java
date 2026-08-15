@@ -12,9 +12,9 @@ import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
-import org.praxisplatform.config.dto.DomainRuleOperationalTestEvidence;
-import org.praxisplatform.config.dto.DomainRuleTestRunRecordRequest;
-import org.praxisplatform.config.dto.DomainRuleTestRunResultRequest;
+import org.praxisplatform.config.contract.DomainRuleOperationalTestEvidence;
+import org.praxisplatform.config.contract.DomainRuleTestRunRecordRequest;
+import org.praxisplatform.config.contract.DomainRuleTestRunResultRequest;
 import org.praxisplatform.config.service.DomainRuleGovernancePrincipal;
 import org.praxisplatform.config.service.DomainRuleTestRunService;
 
@@ -43,6 +43,7 @@ class PolicyStudioOperationalTestRunRecorderTest {
                 .extracting(DomainRuleTestRunResultRequest::operationalEvidence)
                 .isEqualTo(evidence);
         assertThat(captured.getValue().baselineEvidence()).isSameAs(run.baselineEvidence());
+        assertThat(captured.getValue().idempotencyKey()).isEqualTo(run.idempotencyKey());
     }
 
     @Test
@@ -65,14 +66,14 @@ class PolicyStudioOperationalTestRunRecorderTest {
 
     private DomainRuleTestRunRecordRequest run(DomainRuleTestRunResultRequest result) {
         return new DomainRuleTestRunRecordRequest(
-                3L, DIGEST, Instant.parse("2026-08-14T12:00:00Z"), "UTC",
+                "recorder:test", 3L, DIGEST, Instant.parse("2026-08-14T12:00:00Z"), "UTC",
                 "snapshot-1", DIGEST, 4L, null, List.of(result));
     }
 
     private DomainRuleTestRunResultRequest evaluated(UUID scenarioId) {
         return new DomainRuleTestRunResultRequest(
                 scenarioId, "scenario-1", "ALLOW", "ALLOW", null, null,
-                List.of(), List.of(), List.of(), List.of(), DIGEST, DIGEST, DIGEST);
+                List.of(), List.of(), List.of(), List.of(), DIGEST, DIGEST, DIGEST, null, null);
     }
 
     private DomainRuleGovernancePrincipal principal() {

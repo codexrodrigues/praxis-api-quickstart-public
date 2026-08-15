@@ -6,7 +6,6 @@ import com.example.praxis.apiquickstart.rulelab.dto.PolicyStudioSandboxScenarioR
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.nio.charset.StandardCharsets;
@@ -14,7 +13,9 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -23,9 +24,12 @@ import org.praxisplatform.config.dto.DomainRuleTestScenarioResponse;
 import org.praxisplatform.config.service.DomainRuleChangeWorkspaceService;
 import org.praxisplatform.config.service.DomainRuleGovernancePrincipal;
 import org.praxisplatform.config.service.DomainRuleTestRunService;
-import org.praxisplatform.config.dto.DomainRuleTestRunRecordRequest;
-import org.praxisplatform.config.dto.DomainRuleTestRunResultRequest;
-import org.praxisplatform.config.dto.DomainRuleTestBaselineEvidence;
+import org.praxisplatform.config.contract.DomainRuleTestRunRecordRequest;
+import org.praxisplatform.config.contract.DomainRuleTestRunResponse;
+import org.praxisplatform.config.contract.DomainRuleTestRunResultRequest;
+import org.praxisplatform.config.contract.DomainRuleTestRunResultResponse;
+import org.praxisplatform.config.contract.DomainRuleTestBaselineEvidence;
+import org.praxisplatform.config.contract.DomainRuleTestBaselineResult;
 import org.praxisplatform.rules.contract.RuleDecision;
 import org.praxisplatform.rules.contract.RuleEvaluationResult;
 import org.praxisplatform.rules.contract.RuleSetDefinition;
@@ -45,15 +49,13 @@ public class PolicyStudioSandboxService {
     private final DomainRuleTestRunService testRunService;
     private final PraxisRulePlanCompiler candidateCompiler;
     private final PraxisRuleSetEngine candidateEngine;
-    private final Clock clock;
 
     public PolicyStudioSandboxService(
             DomainRuleChangeWorkspaceService workspaceService,
             ExtraordinaryGrantRuleLabService activeService,
             ExtraordinaryGrantRuleSnapshotRuntime activeRuntime,
             DomainRuleTestRunService testRunService,
-            RuleBindingExecutorRegistry registry,
-            Clock clock) {
+            RuleBindingExecutorRegistry registry) {
         this.workspaceService = Objects.requireNonNull(workspaceService, "workspaceService is required");
         this.activeService = Objects.requireNonNull(activeService, "activeService is required");
         this.activeRuntime = Objects.requireNonNull(activeRuntime, "activeRuntime is required");
@@ -61,26 +63,38 @@ public class PolicyStudioSandboxService {
         RuleBindingExecutorRegistry trustedRegistry = Objects.requireNonNull(registry, "registry is required");
         this.candidateCompiler = new PraxisRulePlanCompiler(trustedRegistry);
         this.candidateEngine = new PraxisRuleSetEngine(trustedRegistry);
-        this.clock = Objects.requireNonNull(clock, "clock is required");
     }
 
     public PolicyStudioSandboxRunResponse run(
             PolicyStudioSandboxRunRequest request,
             DomainRuleGovernancePrincipal principal) {
+        Optional<DomainRuleTestRunResponse> replay = existingRecord(request, principal);
+        if (replay.isPresent()) {
+            return response(replay.get());
+        }
         PolicyStudioSandboxPreparedRun prepared = prepare(request, principal);
         var recorded = testRunService.record(
                 prepared.workspaceId(), prepared.recordRequest(), principal);
         return prepared.response(recorded.runId());
     }
 
+    /** Prevents an uncertain HTTP retry from re-running an already persisted sandbox command. */
+    Optional<DomainRuleTestRunResponse> existingRecord(
+            PolicyStudioSandboxRunRequest request,
+            DomainRuleGovernancePrincipal principal) {
+        ValidatedCommand command = validateCommand(request);
+        Optional<DomainRuleTestRunResponse> existing = testRunService.findByIdempotencyKey(
+                request.workspaceId(), command.idempotencyKey(), principal);
+        existing.ifPresent(run -> requireSameCommand(run, request, command, principal));
+        return existing;
+    }
+
     /** Prepara a mesma avaliacao do sandbox sem persistir, para enriquecimento operacional explicito. */
     PolicyStudioSandboxPreparedRun prepare(
             PolicyStudioSandboxRunRequest request,
             DomainRuleGovernancePrincipal principal) {
-        if (request == null || request.workspaceId() == null) {
-            throw badRequest("workspaceId is required");
-        }
-        ZoneId timeZone = parseTimeZone(request.userTimeZone());
+        ValidatedCommand command = validateCommand(request);
+        ZoneId timeZone = command.timeZone();
         DomainRuleChangeWorkspaceResponse workspace = workspaceService.get(request.workspaceId(), principal);
         if (!"OPEN".equals(workspace.status())) {
             throw conflict("Only an OPEN workspace can be evaluated");
@@ -91,7 +105,7 @@ public class PolicyStudioSandboxService {
             throw badRequest("At least one ACTIVE scenario is required");
         }
         RuleDecisionPlan candidatePlan = compileCandidate(workspace);
-        Instant frozenNow = clock.instant();
+        Instant frozenNow = command.evaluatedAtUtc();
         ExtraordinaryGrantRuleSnapshotSession activeSession = captureActive(frozenNow);
         List<PolicyStudioSandboxScenarioResult> results = selected.stream()
                 .map(scenario -> evaluate(scenario, candidatePlan, activeSession, frozenNow, timeZone))
@@ -100,19 +114,89 @@ public class PolicyStudioSandboxService {
                 ? new ActiveEvidence(null, null, 0)
                 : new ActiveEvidence(activeSession.snapshotKey(), activeSession.snapshotContentHash(),
                         activeSession.activationRevision());
+        String expectationDigest = scenarioExpectationDigest(selected);
+        Map<UUID, DomainRuleTestScenarioResponse> scenariosById = selected.stream()
+                .collect(Collectors.toMap(DomainRuleTestScenarioResponse::id, item -> item));
         var recordRequest = new DomainRuleTestRunRecordRequest(
-                workspace.revision(), workspace.baseDefinitionHash(), frozenNow, timeZone.getId(),
+                command.idempotencyKey(), workspace.revision(), workspace.baseDefinitionHash(),
+                frozenNow, timeZone.getId(),
                 activeEvidence.snapshotKey(), activeEvidence.snapshotContentHash(), activeEvidence.activationRevision(),
                 new DomainRuleTestBaselineEvidence(
                         "SYNTHETIC_EXPECTED",
                         "config:workspace:" + workspace.id() + ":scenarios@revision:" + workspace.revision(),
-                        scenarioExpectationDigest(selected), frozenNow, "ELIGIBLE"),
-                results.stream().map(item -> new DomainRuleTestRunResultRequest(
-                        item.scenarioId(), item.scenarioKey(), item.candidateDecision(), item.activeDecision(),
-                        item.candidateOutput(), item.activeOutput(), item.candidateReasonCodes(), item.activeReasonCodes(),
-                        item.candidateEffectIntents(), item.activeEffectIntents(),
-                        item.candidatePlanDigest(), item.activePlanDigest(), item.factsDigest())).toList());
+                        expectationDigest, frozenNow, "ELIGIBLE"),
+                results.stream().map(item -> {
+                    DomainRuleTestScenarioResponse scenario = scenariosById.get(item.scenarioId());
+                    var baseline = new DomainRuleTestBaselineResult(
+                            scenario.expectedDecision(), scenario.expectedOutput(), scenario.expectedReasonCodes(),
+                            scenario.expectedEffectIntents(), expectationDigest, null,
+                            "TECHNICAL_ERROR".equals(scenario.expectedDecision())
+                                    ? "SYNTHETIC_EXPECTED_TECHNICAL_ERROR" : null);
+                    return new DomainRuleTestRunResultRequest(
+                            item.scenarioId(), item.scenarioKey(), item.candidateDecision(), item.activeDecision(),
+                            item.candidateOutput(), item.activeOutput(), item.candidateReasonCodes(),
+                            item.activeReasonCodes(), item.candidateEffectIntents(), item.activeEffectIntents(),
+                            item.candidatePlanDigest(), item.activePlanDigest(), item.factsDigest(), baseline, null);
+                }).toList());
         return new PolicyStudioSandboxPreparedRun(workspace.id(), recordRequest, results);
+    }
+
+    private ValidatedCommand validateCommand(PolicyStudioSandboxRunRequest request) {
+        if (request == null || request.workspaceId() == null) {
+            throw badRequest("workspaceId is required");
+        }
+        if (request.idempotencyKey() == null || request.idempotencyKey().isBlank()
+                || request.idempotencyKey().trim().length() > 180) {
+            throw badRequest("idempotencyKey must contain 1 to 180 characters");
+        }
+        if (request.evaluatedAtUtc() == null) {
+            throw badRequest("evaluatedAtUtc is required");
+        }
+        return new ValidatedCommand(
+                request.idempotencyKey().trim(), parseTimeZone(request.userTimeZone()),
+                request.evaluatedAtUtc());
+    }
+
+    private void requireSameCommand(
+            DomainRuleTestRunResponse run,
+            PolicyStudioSandboxRunRequest request,
+            ValidatedCommand command,
+            DomainRuleGovernancePrincipal principal) {
+        DomainRuleChangeWorkspaceResponse workspace = workspaceService.get(request.workspaceId(), principal);
+        List<DomainRuleTestScenarioResponse> selected = selectScenarios(
+                workspaceService.scenarios(request.workspaceId(), principal), request.scenarioIds());
+        Set<UUID> selectedIds = selected.stream().map(DomainRuleTestScenarioResponse::id)
+                .collect(Collectors.toUnmodifiableSet());
+        Set<UUID> recordedIds = run.results().stream().map(DomainRuleTestRunResultResponse::scenarioId)
+                .collect(Collectors.toUnmodifiableSet());
+        if (run.workspaceRevision() != workspace.revision()
+                || !run.baseDefinitionHash().equals(workspace.baseDefinitionHash())
+                || !run.evaluatedAtUtc().equals(command.evaluatedAtUtc())
+                || !run.userTimeZone().equals(command.timeZone().getId())
+                || !recordedIds.equals(selectedIds)) {
+            throw conflict("idempotencyKey was already used for a different sandbox command");
+        }
+    }
+
+    private PolicyStudioSandboxRunResponse response(DomainRuleTestRunResponse run) {
+        return new PolicyStudioSandboxRunResponse(
+                run.runId(), run.workspaceId(), run.workspaceRevision(), run.baseDefinitionHash(),
+                run.evaluatedAtUtc(), run.userTimeZone(), run.activeSnapshotKey(),
+                run.activeSnapshotContentHash(), run.activeActivationRevision(),
+                run.results().stream().map(this::scenarioResult).toList());
+    }
+
+    private PolicyStudioSandboxScenarioResult scenarioResult(DomainRuleTestRunResultResponse item) {
+        return new PolicyStudioSandboxScenarioResult(
+                item.scenarioId(), item.scenarioKey(), item.expectedDecision(), item.candidateDecision(),
+                item.activeDecision(), item.comparison(), item.candidateMatchesExpected(),
+                item.activeMatchesExpected(), item.expectedOutput(), item.candidateOutput(), item.activeOutput(),
+                item.candidateOutputMatchesExpected(), item.activeOutputMatchesExpected(),
+                item.expectedReasonCodes(), item.candidateReasonCodes(), item.activeReasonCodes(),
+                item.candidateReasonCodesMatchExpected(), item.activeReasonCodesMatchExpected(),
+                item.expectedEffectIntents(), item.candidateEffectIntents(), item.activeEffectIntents(),
+                item.candidateEffectsMatchExpected(), item.activeEffectsMatchExpected(),
+                item.candidatePlanDigest(), item.activePlanDigest(), item.factsDigest());
     }
 
     private String scenarioExpectationDigest(List<DomainRuleTestScenarioResponse> scenarios) {
@@ -257,11 +341,17 @@ public class PolicyStudioSandboxService {
 
     private List<DomainRuleTestScenarioResponse> selectScenarios(
             List<DomainRuleTestScenarioResponse> scenarios, List<UUID> requestedIds) {
-        Set<UUID> requested = requestedIds == null ? Set.of() : requestedIds.stream().collect(Collectors.toUnmodifiableSet());
-        return scenarios.stream()
+        Set<UUID> requested = requestedIds == null ? Set.of()
+                : requestedIds.stream().collect(Collectors.toUnmodifiableSet());
+        List<DomainRuleTestScenarioResponse> selected = scenarios.stream()
                 .filter(item -> "ACTIVE".equals(item.status()))
                 .filter(item -> requested.isEmpty() || requested.contains(item.id()))
                 .toList();
+        if (!requested.isEmpty() && !selected.stream().map(DomainRuleTestScenarioResponse::id)
+                .collect(Collectors.toUnmodifiableSet()).equals(requested)) {
+            throw badRequest("Every requested scenario must exist and be ACTIVE in the workspace");
+        }
+        return selected;
     }
 
     private ZoneId parseTimeZone(String value) {
@@ -281,6 +371,8 @@ public class PolicyStudioSandboxService {
     private ResponseStatusException unprocessable(String message) { return new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, message); }
 
     private record ActiveEvidence(String snapshotKey, String snapshotContentHash, long activationRevision) {}
+
+    private record ValidatedCommand(String idempotencyKey, ZoneId timeZone, Instant evaluatedAtUtc) {}
 
     record PolicyStudioSandboxPreparedRun(
             UUID workspaceId,

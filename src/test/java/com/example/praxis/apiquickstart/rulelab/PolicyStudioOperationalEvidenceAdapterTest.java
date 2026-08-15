@@ -25,7 +25,7 @@ class PolicyStudioOperationalEvidenceAdapterTest {
         var evidence = adapter.observe(
                 PolicyStudioOperationalEvidenceAdapter.OperationMode.CREATE,
                 true,
-                1,
+                () -> 1,
                 state(EMPTY, EMPTY),
                 states::remove,
                 () -> {},
@@ -51,7 +51,7 @@ class PolicyStudioOperationalEvidenceAdapterTest {
         var evidence = adapter.observe(
                 PolicyStudioOperationalEvidenceAdapter.OperationMode.UPDATE,
                 false,
-                0,
+                () -> 0,
                 state(EMPTY, EMPTY),
                 states::remove,
                 () -> {},
@@ -69,7 +69,7 @@ class PolicyStudioOperationalEvidenceAdapterTest {
         assertThatThrownBy(() -> adapter.observe(
                         PolicyStudioOperationalEvidenceAdapter.OperationMode.UPDATE,
                         true,
-                        0,
+                        () -> 0,
                         state(EMPTY, EMPTY),
                         () -> state(EMPTY, EMPTY),
                         () -> { throw new IllegalStateException("command failed"); },
@@ -90,7 +90,7 @@ class PolicyStudioOperationalEvidenceAdapterTest {
         assertThatThrownBy(() -> adapter.observe(
                         PolicyStudioOperationalEvidenceAdapter.OperationMode.CREATE,
                         false,
-                        0,
+                        () -> 0,
                         state(EMPTY, EMPTY),
                         states::remove,
                         () -> {},
@@ -106,14 +106,33 @@ class PolicyStudioOperationalEvidenceAdapterTest {
                 .hasMessageContaining("stateDigest");
         assertThatThrownBy(() -> adapter.observe(
                         PolicyStudioOperationalEvidenceAdapter.OperationMode.CREATE,
-                        true,
-                        -1,
+                        false,
+                        () -> -1,
                         state(EMPTY, EMPTY),
                         () -> state(EMPTY, EMPTY),
                         () -> {},
                         () -> {}))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("baselineCallCount");
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("baseline call count");
+    }
+
+    @Test
+    void failsClosedWhenCleanupDoesNotRestoreTheGovernedState() {
+        var states = new ArrayDeque<PolicyStudioOperationalEvidenceAdapter.OperationalState>();
+        states.add(state(EMPTY, EMPTY));
+        states.add(state(CREATED, LEDGER));
+        states.add(state(CREATED, LEDGER));
+
+        assertThatThrownBy(() -> adapter.observe(
+                        PolicyStudioOperationalEvidenceAdapter.OperationMode.CREATE,
+                        true,
+                        () -> 0,
+                        state(EMPTY, EMPTY),
+                        states::remove,
+                        () -> {},
+                        () -> {}))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("cleanup did not restore");
     }
 
     private PolicyStudioOperationalEvidenceAdapter.OperationalState state(String state, String ledger) {

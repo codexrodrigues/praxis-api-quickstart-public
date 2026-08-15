@@ -58,8 +58,15 @@ workspace. O Config recompõe os matches contra o cenário persistido e a submis
 obsoleta ou qualquer divergência de decisão, output, reasons ou efeitos esperados do candidato.
 O Quickstart identifica esse baseline como `SYNTHETIC_EXPECTED` e calcula um digest estável das
 expectativas selecionadas. Ele nunca publica `LEGACY_ORACLE`. Evidência operacional de
-`CREATE`/`UPDATE` pertence aos fluxos persistentes do host e pode ser anexada ao Test Run `V57`
+`CREATE`/`UPDATE` pertence aos fluxos persistentes do host e pode ser anexada ao Test Run `V58`
 somente depois de verificar before/after, mutação ou não mutação, cleanup e ledger de efeito.
+
+O request exige uma `idempotencyKey` opaca e um `evaluatedAtUtc` congelado e estável para o mesmo
+comando. Antes de reavaliar, o host procura um receipt já persistido sob a chave e o escopo; se
+instante, timezone e conjunto de cenários coincidirem, devolve o run original. Em uma corrida sem
+receipt ainda visível, o Config também devolve o original quando chave e hash coincidem e rejeita
+com `409` quando a chave é reutilizada com outro payload. O Studio conserva chave e instante em
+falhas de transporte e os rotaciona juntos após sucesso ou mudança de workspace/cenários.
 
 ## Pré-requisitos da prova local
 
