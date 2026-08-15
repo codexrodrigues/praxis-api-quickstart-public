@@ -223,6 +223,9 @@ bloqueia head e rollout, confirma candidato/head/ETag/política/expiração, rec
 então rotaciona o head. Probe concorrente precisa do mesmo lock e não pode alterar o quorum entre a
 decisão e o commit. Evento de ativação e fechamento do rollout participam da mesma transação.
 Rollback continua independente desse gate para preservar recuperação emergencial.
+Quando a definição opta por `SNAPSHOT` ou `ACTIVATE`, o Config rc.117 também vincula o Test Run
+revisado ao manifesto imutável da composição. O host não reenvia facts nem recalcula suficiência:
+ele consome somente o snapshot cuja composição e evidence receipt foram aprovados por digest.
 
 A política deixou de depender de alteração direta no banco. O Config expõe um lifecycle versionado
 `DRAFT -> APPROVED -> ACTIVE -> SUPERSEDED`: autoria usa `RULE_DEFINITION_AUTHOR`, aprovação exige

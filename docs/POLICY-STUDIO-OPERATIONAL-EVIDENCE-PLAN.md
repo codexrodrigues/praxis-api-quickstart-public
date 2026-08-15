@@ -170,9 +170,11 @@ Sem política, não há gate extra universal. Política desconhecida ou malforma
 corte, `SUBMIT` vincula o Test Run aceito ao workspace e `PROMOTE` revalida exatamente essa evidência,
 impedindo substituição posterior. O Config rc.116 também aceita `PUBLISH`: ele resolve a Definition
 promovida de volta ao único workspace de origem e ao `submittedTestRunId` revisado, reaplicando a
-mesma matriz antes de criar materializações. `SNAPSHOT` e `ACTIVATE` só devem ser ligados quando
-esses estágios carregarem uma referência imutável equivalente. Declarar antecipadamente ou errar o
-nome de outro estágio invalida a política, em vez de criar uma falsa impressão de proteção.
+mesma matriz antes de criar materializações. O Config rc.117 fecha `SNAPSHOT` e `ACTIVATE` no
+manifesto `praxis-rule-composition/2`: IDs seguros, request hash, revisão e digest do Test Run são
+aprovados como parte da composição, sem copiar facts. Ativação e rollback verificam esse receipt
+imutável sem reinterpretar workspace mutável. Errar o nome de um estágio invalida a política, em
+vez de criar uma falsa impressão de proteção.
 
 Para RN-013, a política recomendada exige `LEGACY_ORACLE`, baseline `ELIGIBLE`, CREATE/UPDATE,
 ALLOW/DENY, cleanup e paridade antes da promoção ou publicação que anteceda autoridade Java. A
@@ -203,6 +205,7 @@ Comprovado localmente:
 - cleanup e mutação fail-closed;
 - baseline independente de candidate/active;
 - gate server-owned por estágio no Config.
+- binding imutável da evidência revisada no snapshot e verificação em ativação/rollback.
 
 Ainda necessário para handoff corporativo:
 
