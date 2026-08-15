@@ -138,7 +138,7 @@ public class PolicyStudioSandboxService {
                             item.activeReasonCodes(), item.candidateEffectIntents(), item.activeEffectIntents(),
                             item.candidatePlanDigest(), item.activePlanDigest(), item.factsDigest(), baseline, null);
                 }).toList());
-        return new PolicyStudioSandboxPreparedRun(workspace.id(), recordRequest, results);
+        return new PolicyStudioSandboxPreparedRun(workspace.id(), recordRequest, selected, results);
     }
 
     private ValidatedCommand validateCommand(PolicyStudioSandboxRunRequest request) {
@@ -377,6 +377,7 @@ public class PolicyStudioSandboxService {
     record PolicyStudioSandboxPreparedRun(
             UUID workspaceId,
             DomainRuleTestRunRecordRequest recordRequest,
+            List<DomainRuleTestScenarioResponse> scenarios,
             List<PolicyStudioSandboxScenarioResult> results) {
         PolicyStudioSandboxRunResponse response(UUID runId) {
             return new PolicyStudioSandboxRunResponse(

@@ -10,6 +10,7 @@ public final class RuleGovernanceAuthorities {
     public static final String SNAPSHOT_OPERATOR = "ROLE_RULE_SNAPSHOT_OPERATOR";
     public static final String SNAPSHOT_READER = "ROLE_RULE_SNAPSHOT_READER";
     public static final String EXECUTION_OBSERVER = "ROLE_RULE_EXECUTION_OBSERVER";
+    public static final String OPERATIONAL_TEST_OPERATOR = "ROLE_RULE_OPERATIONAL_TEST_OPERATOR";
 
     private RuleGovernanceAuthorities() {
     }

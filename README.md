@@ -99,8 +99,8 @@ Migrations operacionais da API:
 - O datasource de dominio do Quickstart (`spring.datasource.*`) e separado do datasource config/RAG (`config.datasource.*`).
 - A trilha versionada de schema/seed operacional fica em [`db/operational-migrations`](db/operational-migrations).
 - O processo de aplicacao e o drift check estao em [`docs/OPERATIONAL-DATASOURCE-MIGRATIONS.md`](docs/OPERATIONAL-DATASOURCE-MIGRATIONS.md).
-- O plano da prova Policy Studio CREATE/UPDATE, com a fronteira entre sandbox,
-  host, Config V58 e Neon, está em
+- O plano da prova Policy Studio CREATE/UPDATE, com o contrato Config V58, a
+  action host-owned V59 e a fronteira com Neon, está em
   [`docs/POLICY-STUDIO-OPERATIONAL-EVIDENCE-PLAN.md`](docs/POLICY-STUDIO-OPERATIONAL-EVIDENCE-PLAN.md).
 - O handoff V57 anterior permanece preservado apenas como histórico em
   [`docs/POLICY-STUDIO-V57-OPERATIONAL-HANDOFF.md`](docs/POLICY-STUDIO-V57-OPERATIONAL-HANDOFF.md).
@@ -1005,7 +1005,8 @@ mesmo schema versionado do control plane.
 O provisionamento atual exige dois aprovadores e um publicador autenticados distintos. No
 laboratório local, `APP_AUTH_GOVERNANCE_LAB_ENABLED=true` habilita somente as três identidades
 configuradas por ambiente. O publicador acumula `RULE_DEFINITION_AUTHOR`,
-`RULE_SNAPSHOT_PUBLISHER`, `RULE_SNAPSHOT_OPERATOR` e `RULE_SNAPSHOT_READER`; cada checker acumula
+`RULE_SNAPSHOT_PUBLISHER`, `RULE_SNAPSHOT_OPERATOR`, `RULE_SNAPSHOT_READER` e
+`RULE_OPERATIONAL_TEST_OPERATOR` para a prova host-owned V59; cada checker acumula
 `RULE_DEFINITION_APPROVER` e
 `RULE_COMPOSITION_APPROVER`. Essa ponte é desabilitada por padrão e não é uma solução IAM de
 produção: hosts corporativos devem obter os mesmos roles do IdP e manter maker, checker e publisher
@@ -1098,7 +1099,7 @@ curl -s -X POST 'http://localhost:8088/api/human-resources/funcionarios/options/
   exclusivo da fixture hospedada e nao substitui o provisioning operacional de uma empresa.
 - Se um provedor fornecer apenas `DATABASE_URL` no formato DSN, converta para JDBC antes de setar `SPRING_DATASOURCE_URL`.
 - Dependencia no Maven Central: `io.github.codexrodrigues:praxis-metadata-starter` (nenhuma etapa previa de build local e necessaria).
-- O alvo coordenado deste corte é `io.github.codexrodrigues:praxis-config-starter:0.1.0-rc.113`. Além da resolução exata de referências de templates governados, do lifecycle de snapshots e da explicação consultiva introduzida no rc.112, o rc.113 adiciona a evidência operacional V58: transporte leve, baseline independente por cenário, retry idempotente, vínculo do Test Run submetido e gates opt-in de `SUBMIT`/`PROMOTE`. O Policy Studio envia somente `selectedDomainDecisionRef` ao assistente; o Config relê a versão exata, aplica `governance.aiUsage`, projeta evidência sanitizada e encerra a explicação com `canApply=false`. O roteamento permanece semântico e authorado pela LLM. O Quickstart continua sendo apenas o host de referência e não redefine essa semântica.
+- O alvo coordenado deste corte é `io.github.codexrodrigues:praxis-config-starter:0.1.0-rc.113`. Além da resolução exata de referências de templates governados, do lifecycle de snapshots e da explicação consultiva introduzida no rc.112, o rc.113 adiciona a evidência operacional V58: transporte leve, baseline independente por cenário, retry idempotente, vínculo do Test Run submetido e gates opt-in de `SUBMIT`/`PROMOTE`. O Quickstart V59 publica a action host-owned que executa quatro cenários descartáveis `CREATE`/`UPDATE` × `ALLOW`/`DENY`, exige authority dedicada, ETag forte e idempotência, e persiste somente a evidência sanitizada no Config. O Policy Studio envia somente `selectedDomainDecisionRef` ao assistente; o Config relê a versão exata, aplica `governance.aiUsage`, projeta evidência sanitizada e encerra a explicação com `canApply=false`. O roteamento permanece semântico e authorado pela LLM. O Quickstart continua sendo apenas o host de referência e não redefine essa semântica.
 - `GovernedUiCompositionTemplateReferenceQuickstartIntegrationTest` sobe o host HTTP em porta aleatoria, publica e le um template pelos endpoints canonicos e prova `page-preview` para referencia valida, stale, ausente e inativa. O teste mantem seguranca de `Origin` habilitada e usa repositorio deterministico em memoria; portanto ele comprova a integracao HTTP/servico/resolver/compilador, mas nao substitui um smoke de persistencia PostgreSQL ou do host publicado.
 - Este quickstart deve consumir a versao mais recente do starter disponivel para o ciclo corrente para refletir no host operacional os contratos atuais de `ETag`, `If-None-Match`, `If-Match`, `412 Precondition Failed` e authoring AI em `/api/praxis/config/**`.
 - Com `praxis-config-starter:0.1.0-rc.71`, o quickstart tambem prova `GET /api/praxis/runtime/context`, `PUT /api/praxis/runtime/context`, `GET /api/praxis/runtime/tenants`, `GET /api/praxis/runtime/navigation` e `GET /api/praxis/runtime/security-events` com um provider demonstrativo nao-Ergon (`QuickstartEnterpriseRuntimeContextProvider`). Esse provider apenas projeta contexto publico seguro, uma lista de tenants demonstrativa, uma troca de contexto demo com headers de propagacao, uma arvore de navegacao com refs canonicas Praxis e eventos runtime sanitizados para shell/AI grounding; autenticacao, autorizacao privada, roles reais, tenant entitlement, menus corporativos e auditoria privada continuam sendo responsabilidade do host corporativo.

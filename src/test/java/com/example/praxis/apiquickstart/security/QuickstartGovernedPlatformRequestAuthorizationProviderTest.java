@@ -35,6 +35,7 @@ class QuickstartGovernedPlatformRequestAuthorizationProviderTest {
                 HrAnalyticsAuthorities.EMPLOYEE_360_READ,
                 RuleGovernanceAuthorities.DEFINITION_READER,
                 RuleGovernanceAuthorities.DEFINITION_AUTHOR,
+                RuleGovernanceAuthorities.OPERATIONAL_TEST_OPERATOR,
                 RuleGovernanceAuthorities.SNAPSHOT_READER);
     }
 
@@ -69,6 +70,7 @@ class QuickstartGovernedPlatformRequestAuthorizationProviderTest {
                 HrAnalyticsAuthorities.EMPLOYEE_360_READ,
                 RuleGovernanceAuthorities.DEFINITION_READER,
                 RuleGovernanceAuthorities.DEFINITION_AUTHOR,
+                RuleGovernanceAuthorities.OPERATIONAL_TEST_OPERATOR,
                 RuleGovernanceAuthorities.SNAPSHOT_READER);
     }
 

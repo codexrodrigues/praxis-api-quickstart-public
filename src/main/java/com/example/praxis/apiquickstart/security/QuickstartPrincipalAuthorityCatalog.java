@@ -36,6 +36,7 @@ public class QuickstartPrincipalAuthorityCatalog {
                             HrAnalyticsAuthorities.EMPLOYEE_360_READ,
                             RuleGovernanceAuthorities.DEFINITION_READER,
                             RuleGovernanceAuthorities.DEFINITION_AUTHOR,
+                            RuleGovernanceAuthorities.OPERATIONAL_TEST_OPERATOR,
                             RuleGovernanceAuthorities.SNAPSHOT_READER)));
         }
         if (AGGREGATE_ONLY_SUBJECT.equals(subject)) {

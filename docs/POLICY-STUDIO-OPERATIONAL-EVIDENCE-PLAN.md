@@ -1,7 +1,7 @@
-# Policy Studio — prova operacional CREATE/UPDATE V58
+# Policy Studio — prova operacional CREATE/UPDATE V59
 
-- Estado: implementado e validado localmente; Neon e Oracle/HADES permanecem gates de ambiente
-- Data: 2026-08-14
+- Estado: ação HTTP/capability implementada e validada localmente; Neon e Oracle/HADES permanecem gates de ambiente
+- Data: 2026-08-15
 - Classe: arquitetural, transversal e de contrato público
 
 ## Decisão
@@ -11,18 +11,23 @@ executada pelo Quickstart sobre seu datasource operacional. O Praxis Config é o
 Test Run, de sua idempotência e das políticas de evidência por estágio. O Studio apenas inicia a
 operação autorizada e projeta o resultado governado.
 
+O V59 não cria uma segunda versão do Test Run. Ele publica, no host Quickstart, a ação operacional
+que consome o contrato canônico V58 e mantém facts, comandos, DML e cleanup fora do browser.
+
 Não existe banco, schema ou DTO paralelo no Studio. Config e domínio podem residir no mesmo projeto
 Neon, mas mantêm schemas, migrations, credenciais e ownership independentes.
 
-## Inventário de aderência fechado pelo V58
+## Inventário de aderência fechado pelos cortes V58/V59
 
-| Necessidade | Classificação inicial | Materialização V58 |
+| Necessidade | Classificação inicial | Materialização V58/V59 |
 | --- | --- | --- |
 | Baseline por cenário independente de candidate/active | `lacuna-real-de-contrato` | `DomainRuleTestBaselineResult` no contrato canônico |
 | Retry sem duplicar Test Run | `lacuna-real-de-contrato` | `idempotencyKey` escopada e hash canônico do comando |
 | Transporte host-neutral para Ergon/Quickstart | `lacuna-real-de-contrato` | records leves em `praxis-config-contracts`, sem importar o starter |
 | Evidência CREATE/UPDATE sanitizada | `suportado-parcialmente` | producer host-owned, before/after/effects/cleanup e contador medido |
 | Gate de evidência por lifecycle | `ja-suportado-mal-nomeado-ou-mal-materializado` | política server-owned por estágio; nenhuma exigência Oracle global |
+| Disparo remoto da prova operacional | `lacuna-real-de-contrato` | action collection host-owned V59, protegida por authority dedicada e descoberta semântica |
+| `If-Match` de workspace na metadata da action collection | `lacuna-real-de-contrato` | ainda não representável: o contrato atual proíbe precondition `IF_MATCH` em collection actions |
 
 ## Fronteiras canônicas
 
@@ -57,6 +62,48 @@ escopo tenant/environment/workspace:
 O cliente conserva a chave quando a resposta falha de forma incerta e a troca somente depois de
 um sucesso ou de uma mudança no workspace/cenários. Assim, retry de transporte não vira evidência
 duplicada.
+
+No V59, os modos `CREATE`/`UPDATE` também participam da identidade operacional do comando. O
+receipt persistido é revalidado antes de ser devolvido: reutilizar a mesma chave com uma seleção de
+modos diferente retorna `409` sem repetir DML nem gravar outro Test Run.
+
+Antes de qualquer DML, o host reserva a action no ledger operacional
+`praxis_resource_action_execution`, usando o comando completo no fingerprint. Isso serializa
+concorrência da mesma chave, alvo e ator entre instâncias do Quickstart. Em retry, a cadeia consulta
+primeiro o receipt imutável do Config; assim, uma falha ocorrida depois da gravação canônica pode ser
+reconciliada sem repetir a prova.
+
+## Ação HTTP host-owned V59
+
+O Quickstart publica:
+
+```http
+POST /api/human-resources/extraordinary-benefit-requests/actions/run-policy-studio-operational-test
+If-Match: "<workspace-etag>"
+Idempotency-Key: <stable-retry-key>
+X-Correlation-ID: <correlation-id>
+```
+
+O payload contém apenas `workspaceId`, ids de cenários governados, modo explícito `CREATE` ou
+`UPDATE`, instante congelado e timezone. O caller não envia facts, comandos de domínio, referências
+de linha, SQL, expectativa de mutação ou instrução de cleanup. Esses elementos pertencem ao host e,
+no laboratório, são resolvidos pela fixture factual versionada `QL10-FICTIONAL-001`.
+
+A action é `HIGH` risk, exige confirmação e `Idempotency-Key`, publica correlação e requer
+`ROLE_RULE_OPERATIONAL_TEST_OPERATOR`. O matcher de segurança é exato e precede as permissões
+genéricas de POST read-open. Sem autenticação a discovery informa `authentication-required`; um
+autor de regra sem a authority operacional recebe `403`.
+
+O `If-Match` forte do workspace é obrigatório no endpoint (`428` ausente, `412` obsoleto ou
+wildcard). Entretanto, ele ainda não aparece em `ActionExecutionContract`: hoje a metadata canônica
+aceita `IF_MATCH` somente para item actions, enquanto esta é uma collection action que referencia um
+workspace externo. Isso é uma lacuna real do modelo de precondition cross-resource no owner
+Metadata Starter. Até esse contrato ser corrigido, OpenAPI e o endpoint são a fonte operacional do
+header; o Studio não deve hardcodar uma falsa capability nem omitir a revalidação.
+
+Incompatibilidade dos facts com a fixture versionada ou divergência de decision, output, reason
+codes ou effect intents entre candidate/active e o cenário retorna `422`. O `412` fica reservado à
+precondition de versão, evitando apresentar erro semântico como simples ETag stale.
 
 ## Prova operacional host-owned
 
@@ -93,10 +140,12 @@ chamada Oracle real e contar inclusive tentativas com falha.
 | alteração inelegível | UPDATE | `DENY` | seed preservado até o cleanup |
 
 O teste do workflow real executa os quatro quadrantes com facts autoritativos, snapshot ativo e
-cleanup final. Um teste complementar usa PostgreSQL real descartável para persistir **um** Test Run
-com quatro resultados, relê as quatro lanes e repete o mesmo comando sem criar outra linha. Eles são
-provas complementares: o workflow integrado usa os datasources H2 do teste do host; o round-trip do
-Config usa PostgreSQL nativo. Nenhum deles é apresentado como Neon ou Oracle.
+cleanup final. A prova V59 complementar sobe o host em porta aleatória e usa HTTP real, cadeia de
+segurança real e dois PostgreSQL descartáveis — datasource operacional e datasource Config — para
+persistir **um** Test Run com quatro resultados. Ela relê as quatro lanes, repete o comando sem criar
+outra linha, rejeita replay com modos diferentes, `If-Match` ausente/obsoleto e caller sem authority,
+e confirma que as tabelas operacionais retornam ao estado limpo. Nenhuma dessas provas é apresentada
+como Neon ou Oracle.
 
 Retries conservam juntos `idempotencyKey` e `evaluatedAtUtc`. O host consulta primeiro o receipt
 escopado já persistido e não reexecuta sandbox nem provas operacionais quando o comando coincide;
@@ -144,6 +193,7 @@ governança pode permitir abrir revisão com evidência ainda pendente; isso nã
 Comprovado localmente:
 
 - contrato host-neutral V58;
+- action HTTP/capability V59 com authority dedicada, ETag forte e reserva idempotente pré-DML;
 - um run/quatro resultados e replay idempotente em PostgreSQL;
 - CREATE/UPDATE × ALLOW/DENY pelo workflow real;
 - contagem de baseline medida;
@@ -153,10 +203,10 @@ Comprovado localmente:
 
 Ainda necessário para handoff corporativo:
 
-1. publicar versões finais coordenadas de `praxis-config-contracts`, Config e Quickstart;
-2. executar migration/smoke no Neon configurado, com `403`, `409`, `412` e retry;
-3. disponibilizar a operação composta por uma capability/endpoint canônico quando o agente remoto
-   precisar acioná-la fora do processo do host;
+1. publicar o corte Quickstart que contém a action V59 e fixar sua coordenada/commit no handoff;
+2. executar smoke no Neon já configurado, com `403`, `409`, `412`, `422`, `428` e retry;
+3. corrigir a representação metadata-driven de precondition cross-resource antes de o Studio
+   materializar o comando como jornada final;
 4. no Ergon, implementar somente o adapter Oracle/HADES, observer de chamadas, sanitização e
    cleanup específicos do host;
 5. executar quatro canários autorizados e depois expandir para a matriz RN-013, mantendo

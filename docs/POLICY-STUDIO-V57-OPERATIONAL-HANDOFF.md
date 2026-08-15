@@ -1,5 +1,9 @@
 # Policy Studio V57 — handoff operacional para Studio e Ergon
 
+> Documento histórico. As lacunas de transporte, baseline e idempotência descritas aqui foram
+> evoluídas pelos cortes V58/V59. Para o estado executável atual, consulte
+> [`POLICY-STUDIO-OPERATIONAL-EVIDENCE-PLAN.md`](POLICY-STUDIO-OPERATIONAL-EVIDENCE-PLAN.md).
+
 ## Estado do corte
 
 O Quickstart possui agora a cadeia interna necessária para produzir evidência operacional V57 sem

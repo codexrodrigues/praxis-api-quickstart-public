@@ -53,6 +53,8 @@ class SecurityConfigDomainRuleReadPolicyTest {
     private static final String WORKSPACE_DRAFT = WORKSPACES + "/workspace-a/draft";
     private static final String WORKSPACE_REVIEW = WORKSPACES + "/workspace-a/reviews";
     private static final String SANDBOX_RUNS = "/api/praxis/policy-studio/sandbox/runs";
+    private static final String OPERATIONAL_TEST_RUNS =
+            "/api/human-resources/extraordinary-benefit-requests/actions/run-policy-studio-operational-test";
     private static final String RULESET_CANDIDATE =
             "/api/praxis/policy-studio/rule-sets/benefit-rules/candidate";
     private static final String RULESET_CANDIDATE_APPROVAL = RULESET_CANDIDATE + "/approvals";
@@ -91,6 +93,8 @@ class SecurityConfigDomainRuleReadPolicyTest {
                 .andExpect(status().isForbidden());
         mockMvc.perform(post(SANDBOX_RUNS).header("Authorization", "Bearer reader"))
                 .andExpect(status().isForbidden());
+        mockMvc.perform(post(OPERATIONAL_TEST_RUNS).header("Authorization", "Bearer reader"))
+                .andExpect(status().isForbidden());
         mockMvc.perform(post(SIMULATIONS).header("Authorization", "Bearer reader"))
                 .andExpect(status().isForbidden());
     }
@@ -110,6 +114,23 @@ class SecurityConfigDomainRuleReadPolicyTest {
                 .andExpect(status().isOk());
         mockMvc.perform(post(SANDBOX_RUNS).header("Authorization", "Bearer author"))
                 .andExpect(status().isOk());
+        mockMvc.perform(post(OPERATIONAL_TEST_RUNS).header("Authorization", "Bearer author"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void operationalTestOperatorCanRunOnlyTheDedicatedHostProofAction() throws Exception {
+        when(jwtTokenService.validate("operational-test-operator")).thenReturn(
+                JwtTokenService.JwtValidationResult.valid(
+                        "policy-proof-operator", "HUMAN",
+                        List.of(RuleGovernanceAuthorities.OPERATIONAL_TEST_OPERATOR)));
+
+        mockMvc.perform(post(OPERATIONAL_TEST_RUNS)
+                        .header("Authorization", "Bearer operational-test-operator"))
+                .andExpect(status().isOk());
+        mockMvc.perform(post(SANDBOX_RUNS)
+                        .header("Authorization", "Bearer operational-test-operator"))
+                .andExpect(status().isForbidden());
     }
 
     @Test
@@ -171,6 +192,7 @@ class SecurityConfigDomainRuleReadPolicyTest {
                 SIMULATIONS,
                 WORKSPACES,
                 SANDBOX_RUNS,
+                OPERATIONAL_TEST_RUNS,
                 WORKSPACE_REVIEW,
                 RULESET_CANDIDATE,
                 RULESET_CANDIDATE_APPROVAL,

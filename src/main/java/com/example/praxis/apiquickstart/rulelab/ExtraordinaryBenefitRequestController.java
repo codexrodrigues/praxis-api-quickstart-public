@@ -17,11 +17,14 @@ import com.example.praxis.apiquickstart.rulelab.dto.ExtraordinaryBenefitReevalua
 import com.example.praxis.apiquickstart.rulelab.dto.ExtraordinaryBenefitShadowObservation;
 import com.example.praxis.apiquickstart.rulelab.dto.ExtraordinaryBenefitTransitionRequest;
 import com.example.praxis.apiquickstart.rulelab.dto.ExtraordinaryBenefitTransitionResponse;
+import com.example.praxis.apiquickstart.rulelab.dto.PolicyStudioOperationalRunRequest;
+import com.example.praxis.apiquickstart.security.RuleGovernanceAuthorities;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import jakarta.validation.Valid;
+import jakarta.servlet.http.HttpServletRequest;
 import java.time.DateTimeException;
 import java.time.Clock;
 import java.util.List;
@@ -31,6 +34,8 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.function.Supplier;
 import org.praxisplatform.uischema.action.ActionScope;
+import org.praxisplatform.uischema.action.ActionRequirement;
+import org.praxisplatform.uischema.action.ActionRiskLevel;
 import org.praxisplatform.uischema.annotation.ApiGroup;
 import org.praxisplatform.uischema.annotation.ApiResource;
 import org.praxisplatform.uischema.annotation.WorkflowAction;
@@ -40,6 +45,9 @@ import org.praxisplatform.uischema.command.ResourceCommandOutcome;
 import org.praxisplatform.uischema.command.ResourceCommandResponsePolicy;
 import org.praxisplatform.uischema.controller.base.AbstractReadOnlyResourceController;
 import org.praxisplatform.uischema.rest.response.RestApiResponse;
+import org.praxisplatform.config.contract.DomainRuleTestRunResponse;
+import org.praxisplatform.config.service.DomainRuleGovernancePrincipal;
+import org.praxisplatform.config.service.DomainRuleGovernancePrincipalResolver;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
@@ -80,6 +88,8 @@ public class ExtraordinaryBenefitRequestController extends AbstractReadOnlyResou
     private final ObjectProvider<ExtraordinaryBenefitAuthoritativeEvaluationService> authoritativeEvaluationProvider;
     private final ObjectProvider<ExtraordinaryBenefitFactLookupFactory> factLookupFactoryProvider;
     private final Clock ruleClock;
+    private final PolicyStudioOperationalTestRunCommandService operationalTestRunCommandService;
+    private final DomainRuleGovernancePrincipalResolver governancePrincipalResolver;
 
     public ExtraordinaryBenefitRequestController(
             ExtraordinaryBenefitRequestQueryService queryService,
@@ -91,6 +101,8 @@ public class ExtraordinaryBenefitRequestController extends AbstractReadOnlyResou
             RuleLabHttpSimulationPolicy simulationPolicy,
             ObjectProvider<ExtraordinaryBenefitAuthoritativeEvaluationService> authoritativeEvaluationProvider,
             ObjectProvider<ExtraordinaryBenefitFactLookupFactory> factLookupFactoryProvider,
+            PolicyStudioOperationalTestRunCommandService operationalTestRunCommandService,
+            DomainRuleGovernancePrincipalResolver governancePrincipalResolver,
             @Qualifier("extraordinaryGrantRuleClock") Clock ruleClock) {
         this.queryService = queryService;
         this.workflowService = workflowService;
@@ -101,6 +113,8 @@ public class ExtraordinaryBenefitRequestController extends AbstractReadOnlyResou
         this.simulationPolicy = simulationPolicy;
         this.authoritativeEvaluationProvider = authoritativeEvaluationProvider;
         this.factLookupFactoryProvider = factLookupFactoryProvider;
+        this.operationalTestRunCommandService = operationalTestRunCommandService;
+        this.governancePrincipalResolver = governancePrincipalResolver;
         this.ruleClock = ruleClock;
     }
 
@@ -246,6 +260,52 @@ public class ExtraordinaryBenefitRequestController extends AbstractReadOnlyResou
         ExtraordinaryBenefitShadowObservation observation =
                 shadowComparisonService.compare(request, resolveActorPermissions());
         return ResponseEntity.ok(RestApiResponse.success(observation, null));
+    }
+
+    @PostMapping("/actions/run-policy-studio-operational-test")
+    @WorkflowAction(
+            id = "run-policy-studio-operational-test",
+            title = "Executar prova operacional governada",
+            description = "Executa cenários CREATE/UPDATE descartáveis, registra somente evidência sanitizada no Test Run e restaura as fixtures do host.",
+            scope = ActionScope.COLLECTION,
+            requiredAuthorities = {RuleGovernanceAuthorities.OPERATIONAL_TEST_OPERATOR},
+            order = 40,
+            successMessage = "Prova operacional registrada",
+            riskLevel = ActionRiskLevel.HIGH,
+            confirmationRequired = true,
+            idempotencyKey = ActionRequirement.REQUIRED,
+            correlationId = ActionRequirement.OPTIONAL,
+            tags = {"policy-studio", "operational-proof", "idempotent", "optimistic-concurrency"})
+    @Operation(
+            summary = "Executar Test Run operacional do Policy Studio",
+            description = "O caller seleciona cenários e modos CREATE/UPDATE. O host owns comandos, fixtures, DML, digests e cleanup; candidate e active devem satisfazer todas as asserções governadas antes de qualquer mutação.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Test Run persistido ou receipt idempotente devolvido."),
+            @ApiResponse(responseCode = "400", description = "Comando, cenário, operação ou header inválido."),
+            @ApiResponse(responseCode = "403", description = "Ator sem capability operacional dedicada."),
+            @ApiResponse(responseCode = "409", description = "Chave idempotente reutilizada para outro comando."),
+            @ApiResponse(responseCode = "412", description = "ETag do workspace obsoleto."),
+            @ApiResponse(responseCode = "422", description = "Cenário, fixture ou asserções candidate/active incompatíveis com a prova host-owned."),
+            @ApiResponse(responseCode = "428", description = "If-Match ausente.")
+    })
+    public ResponseEntity<RestApiResponse<DomainRuleTestRunResponse>> runPolicyStudioOperationalTest(
+            @RequestHeader(value = "If-Match", required = false) String ifMatch,
+            @RequestHeader("Idempotency-Key") String idempotencyKey,
+            @RequestHeader(value = "X-Correlation-ID", required = false) String correlationId,
+            @RequestHeader(value = "X-Tenant-ID", required = false) String tenant,
+            @RequestHeader(value = "X-Env", required = false) String environment,
+            @Valid @RequestBody PolicyStudioOperationalRunRequest request,
+            HttpServletRequest servletRequest) {
+        DomainRuleGovernancePrincipal principal = governancePrincipalResolver.resolve(
+                servletRequest, tenant, environment, "RULE_OPERATIONAL_TEST_OPERATOR");
+        String effectiveCorrelation = correlationId == null || correlationId.isBlank()
+                ? UUID.randomUUID().toString() : correlationId.trim();
+        var result = operationalTestRunCommandService.execute(
+                request, ifMatch, idempotencyKey, resolveActorPermissions(), actorSubject(),
+                effectiveCorrelation, principal);
+        return ResponseEntity.ok()
+                .eTag(result.workspaceEtag())
+                .body(RestApiResponse.success(result.run(), null));
     }
 
     @PostMapping("/{id}/actions/submit")

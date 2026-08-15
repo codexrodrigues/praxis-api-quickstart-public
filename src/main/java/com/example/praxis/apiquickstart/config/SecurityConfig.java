@@ -193,6 +193,10 @@ public class SecurityConfig {
                         "/api/praxis/policy-studio/sandbox/runs")
                     .hasAuthority(com.example.praxis.apiquickstart.security.RuleGovernanceAuthorities.DEFINITION_AUTHOR)
                 .requestMatchers(HttpMethod.POST,
+                        com.example.praxis.apiquickstart.constants.ApiPaths.HumanResources.EXTRAORDINARY_BENEFIT_REQUESTS
+                                + "/actions/run-policy-studio-operational-test")
+                    .hasAuthority(com.example.praxis.apiquickstart.security.RuleGovernanceAuthorities.OPERATIONAL_TEST_OPERATOR)
+                .requestMatchers(HttpMethod.POST,
                         "/api/praxis/policy-studio/rule-sets/*/candidate")
                     .hasAnyAuthority(
                             com.example.praxis.apiquickstart.security.RuleGovernanceAuthorities.SNAPSHOT_PUBLISHER,

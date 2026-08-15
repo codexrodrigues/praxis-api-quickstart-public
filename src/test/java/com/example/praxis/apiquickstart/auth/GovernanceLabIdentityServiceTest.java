@@ -10,6 +10,7 @@ import static com.example.praxis.apiquickstart.security.RuleGovernanceAuthoritie
 import static com.example.praxis.apiquickstart.security.RuleGovernanceAuthorities.SNAPSHOT_PUBLISHER;
 import static com.example.praxis.apiquickstart.security.RuleGovernanceAuthorities.SNAPSHOT_OPERATOR;
 import static com.example.praxis.apiquickstart.security.RuleGovernanceAuthorities.SNAPSHOT_READER;
+import static com.example.praxis.apiquickstart.security.RuleGovernanceAuthorities.OPERATIONAL_TEST_OPERATOR;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -30,7 +31,8 @@ class GovernanceLabIdentityServiceTest {
 
         assertEquals(java.util.Set.of(DEFINITION_READER, DEFINITION_APPROVER, COMPOSITION_APPROVER), approver.authorities());
         assertEquals(
-                java.util.Set.of(DEFINITION_READER, DEFINITION_AUTHOR, SNAPSHOT_PUBLISHER, SNAPSHOT_OPERATOR, SNAPSHOT_READER),
+                java.util.Set.of(DEFINITION_READER, DEFINITION_AUTHOR, SNAPSHOT_PUBLISHER,
+                        SNAPSHOT_OPERATOR, SNAPSHOT_READER, OPERATIONAL_TEST_OPERATOR),
                 publisher.authorities());
         assertTrue(service.authenticate("approver-a", "wrong").isEmpty());
         assertEquals("approver-b", service.switchIdentity("approver-b", "publisher").orElseThrow().subject());

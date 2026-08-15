@@ -1,14 +1,16 @@
 package com.example.praxis.apiquickstart.rulelab;
 
+import com.example.praxis.apiquickstart.rulelab.dto.PolicyStudioSandboxRunRequest;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
-import com.example.praxis.apiquickstart.rulelab.dto.PolicyStudioSandboxRunRequest;
 import org.praxisplatform.config.contract.DomainRuleOperationalTestEvidence;
 import org.praxisplatform.config.contract.DomainRuleTestRunRecordRequest;
 import org.praxisplatform.config.contract.DomainRuleTestRunResponse;
@@ -17,7 +19,7 @@ import org.springframework.stereotype.Service;
 
 /** Executa avaliacao e prova operacional numa unica chamada interna, sem alterar o sandbox read-only. */
 @Service
-final class PolicyStudioOperationalTestRunExecutor {
+final class PolicyStudioOperationalTestRunExecutor implements PolicyStudioOperationalTestRunPort {
     private final ExtraordinaryBenefitOperationalProofService proofService;
     private final PolicyStudioOperationalTestRunRecorder recorder;
     private final PolicyStudioSandboxService sandbox;
@@ -31,20 +33,32 @@ final class PolicyStudioOperationalTestRunExecutor {
         this.sandbox = sandbox;
     }
 
-    DomainRuleTestRunResponse executeSandbox(
+    @Override
+    public Optional<DomainRuleTestRunResponse> existingSandbox(
             PolicyStudioSandboxRunRequest request,
-            List<ExtraordinaryBenefitOperationalScenarioBinding> bindings,
+            DomainRuleGovernancePrincipal principal) {
+        return sandbox.existingRecord(request, principal);
+    }
+
+    @Override
+    public DomainRuleTestRunResponse executeSandbox(
+            PolicyStudioSandboxRunRequest request,
+            Function<PolicyStudioSandboxService.PolicyStudioSandboxPreparedRun,
+                    List<ExtraordinaryBenefitOperationalScenarioBinding>> bindingFactory,
             Set<String> permissions,
             String actorSubject,
             String correlationId,
             DomainRuleGovernancePrincipal principal) {
-        var replay = sandbox.existingRecord(request, principal);
+        var replay = existingSandbox(request, principal);
         if (replay.isPresent()) {
             return replay.get();
         }
         PolicyStudioSandboxService.PolicyStudioSandboxPreparedRun prepared = sandbox.prepare(request, principal);
+        if (bindingFactory == null) {
+            throw new IllegalArgumentException("bindingFactory is required");
+        }
         return execute(
-                prepared.workspaceId(), prepared::recordRequest, bindings,
+                prepared.workspaceId(), prepared::recordRequest, bindingFactory.apply(prepared),
                 permissions, actorSubject, correlationId, principal);
     }
 

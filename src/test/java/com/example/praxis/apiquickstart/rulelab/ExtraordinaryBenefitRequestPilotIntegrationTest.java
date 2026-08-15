@@ -418,6 +418,34 @@ class ExtraordinaryBenefitRequestPilotIntegrationTest {
         assertEquals("COLLECTION", evaluateAction.path("scope").asText());
         assertEquals("COLLECTION", findById(actions.path("actions"), "evaluate-batch").path("scope").asText());
         assertEquals("COLLECTION", findById(actions.path("actions"), "shadow-compare").path("scope").asText());
+        JsonNode operationalAction = findById(
+                actions.path("actions"), "run-policy-studio-operational-test");
+        assertNotNull(operationalAction);
+        assertEquals("COLLECTION", operationalAction.path("scope").asText());
+        assertEquals("authentication-required", operationalAction.path("availability").path("reason").asText());
+        HttpHeaders operatorHeaders = new HttpHeaders();
+        operatorHeaders.add(HttpHeaders.COOKIE, "SESSION=" + jwtTokenService.generate(
+                "policy-proof-operator", "HUMAN",
+                List.of(com.example.praxis.apiquickstart.security.RuleGovernanceAuthorities.OPERATIONAL_TEST_OPERATOR)));
+        JsonNode authenticatedActions = body(restTemplate.exchange(
+                "/api/human-resources/extraordinary-benefit-requests/actions",
+                HttpMethod.GET,
+                new HttpEntity<>(operatorHeaders),
+                String.class));
+        JsonNode authenticatedOperationalAction = findById(
+                authenticatedActions.path("actions"), "run-policy-studio-operational-test");
+        assertTrue(authenticatedOperationalAction.path("availability").path("allowed").asBoolean());
+        assertTrue(authenticatedOperationalAction.path("availability").path("metadata")
+                .path("requiredAuthorities").toString()
+                .contains("ROLE_RULE_OPERATIONAL_TEST_OPERATOR"));
+        assertEquals("HIGH", authenticatedOperationalAction.path("execution")
+                .path("interaction").path("riskLevel").asText());
+        assertTrue(authenticatedOperationalAction.path("execution")
+                .path("interaction").path("confirmationRequired").asBoolean());
+        assertEquals("REQUIRED", authenticatedOperationalAction.path("execution")
+                .path("preconditions").path("idempotencyKey").asText());
+        assertEquals("OPTIONAL", authenticatedOperationalAction.path("execution")
+                .path("preconditions").path("correlationId").asText());
 
         JsonNode capabilities = body(restTemplate.getForEntity(
                 "/api/human-resources/extraordinary-benefit-requests/capabilities", String.class));
@@ -460,10 +488,20 @@ class ExtraordinaryBenefitRequestPilotIntegrationTest {
                 String.class));
         assertNotNull(findById(globalActions.path("actions"), "evaluate"));
         assertNotNull(findById(globalActions.path("actions"), "shadow-compare"));
+        assertNotNull(findById(globalActions.path("actions"), "run-policy-studio-operational-test"));
         assertEquals("ITEM", findById(globalActions.path("actions"), "submit").path("scope").asText());
         assertEquals("ITEM", findById(globalActions.path("actions"), "re-evaluate").path("scope").asText());
         assertEquals("ITEM", findById(globalActions.path("actions"), "approve").path("scope").asText());
         assertEquals("ITEM", findById(globalActions.path("actions"), "apply").path("scope").asText());
+
+        JsonNode operationalSchema = body(restTemplate.getForEntity(
+                "/schemas/filtered?path=/api/human-resources/extraordinary-benefit-requests/actions/run-policy-studio-operational-test&operation=post&schemaType=request",
+                String.class));
+        assertTrue(operationalSchema.path("properties").has("workspaceId"));
+        assertTrue(operationalSchema.path("properties").has("scenarios"));
+        assertFalse(operationalSchema.path("properties").has("seed"));
+        assertFalse(operationalSchema.path("properties").has("update"));
+        assertFalse(operationalSchema.path("properties").has("sql"));
 
         ResponseEntity<String> surfaces = restTemplate.getForEntity(
                 "/schemas/surfaces?resource=human-resources.extraordinary-benefit-requests",

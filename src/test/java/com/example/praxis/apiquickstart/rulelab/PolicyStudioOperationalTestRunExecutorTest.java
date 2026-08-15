@@ -99,7 +99,7 @@ class PolicyStudioOperationalTestRunExecutorTest {
                         Instant.parse("2026-08-14T12:00:00Z"));
         when(sandbox.prepare(request, principal())).thenReturn(
                 new PolicyStudioSandboxService.PolicyStudioSandboxPreparedRun(
-                        workspaceId, evaluated, List.of()));
+                        workspaceId, evaluated, List.of(), List.of()));
         DomainRuleOperationalTestEvidence evidence = evidence("CREATE", true);
         when(proof.proveCreate(
                 seed("policy-studio-proof-sandbox"), true, Set.of("benefit:request"),
@@ -107,7 +107,7 @@ class PolicyStudioOperationalTestRunExecutorTest {
 
         executor.executeSandbox(
                 request,
-                List.of(new ExtraordinaryBenefitOperationalScenarioBinding(
+                ignored -> List.of(new ExtraordinaryBenefitOperationalScenarioBinding(
                         scenarioId, PolicyStudioOperationalEvidenceAdapter.OperationMode.CREATE,
                         seed("policy-studio-proof-sandbox"), null, true)),
                 Set.of("benefit:request"), "proof-agent", "run", principal());
@@ -131,7 +131,7 @@ class PolicyStudioOperationalTestRunExecutorTest {
         when(sandbox.existingRecord(request, principal())).thenReturn(Optional.of(receipt));
 
         var replay = executor.executeSandbox(
-                request, List.of(), Set.of(), "proof-agent", "run", principal());
+                request, ignored -> List.of(), Set.of(), "proof-agent", "run", principal());
 
         assertThat(replay).isSameAs(receipt);
         verify(sandbox, never()).prepare(

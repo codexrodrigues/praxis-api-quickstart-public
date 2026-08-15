@@ -17,6 +17,7 @@ import static com.example.praxis.apiquickstart.security.RuleGovernanceAuthoritie
 import static com.example.praxis.apiquickstart.security.RuleGovernanceAuthorities.SNAPSHOT_PUBLISHER;
 import static com.example.praxis.apiquickstart.security.RuleGovernanceAuthorities.SNAPSHOT_OPERATOR;
 import static com.example.praxis.apiquickstart.security.RuleGovernanceAuthorities.SNAPSHOT_READER;
+import static com.example.praxis.apiquickstart.security.RuleGovernanceAuthorities.OPERATIONAL_TEST_OPERATOR;
 
 /**
  * Opt-in local identities used only to prove maker-checker HTTP behavior in the public lab.
@@ -45,7 +46,8 @@ public class GovernanceLabIdentityService {
                 new ConfiguredIdentity("approver-b", approverBUsername, approverBPassword, "GOVERNANCE_APPROVER",
                         List.of(DEFINITION_READER, DEFINITION_APPROVER, COMPOSITION_APPROVER)),
                 new ConfiguredIdentity("publisher", publisherUsername, publisherPassword, "GOVERNANCE_PUBLISHER",
-                        List.of(DEFINITION_READER, DEFINITION_AUTHOR, SNAPSHOT_PUBLISHER, SNAPSHOT_OPERATOR, SNAPSHOT_READER)));
+                        List.of(DEFINITION_READER, DEFINITION_AUTHOR, SNAPSHOT_PUBLISHER, SNAPSHOT_OPERATOR,
+                                SNAPSHOT_READER, OPERATIONAL_TEST_OPERATOR)));
     }
 
     @PostConstruct
