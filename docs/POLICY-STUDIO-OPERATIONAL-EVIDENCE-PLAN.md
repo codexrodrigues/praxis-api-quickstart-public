@@ -27,7 +27,7 @@ Neon, mas mantêm schemas, migrations, credenciais e ownership independentes.
 | Evidência CREATE/UPDATE sanitizada | `suportado-parcialmente` | producer host-owned, before/after/effects/cleanup e contador medido |
 | Gate de evidência por lifecycle | `ja-suportado-mal-nomeado-ou-mal-materializado` | política server-owned por estágio; nenhuma exigência Oracle global |
 | Disparo remoto da prova operacional | `lacuna-real-de-contrato` | action collection host-owned V59, protegida por authority dedicada e descoberta semântica |
-| `If-Match` de workspace na metadata da action collection | `lacuna-real-de-contrato` | ainda não representável: o contrato atual proíbe precondition `IF_MATCH` em collection actions |
+| `If-Match` de workspace na metadata da action collection | `ja-suportado-mal-nomeado-ou-mal-materializado` | V61 publica o workspace externo e seu campo de identidade no contrato canônico da action |
 
 ## Fronteiras canônicas
 
@@ -95,11 +95,10 @@ genéricas de POST read-open. Sem autenticação a discovery informa `authentica
 autor de regra sem a authority operacional recebe `403`.
 
 O `If-Match` forte do workspace é obrigatório no endpoint (`428` ausente, `412` obsoleto ou
-wildcard). Entretanto, ele ainda não aparece em `ActionExecutionContract`: hoje a metadata canônica
-aceita `IF_MATCH` somente para item actions, enquanto esta é uma collection action que referencia um
-workspace externo. Isso é uma lacuna real do modelo de precondition cross-resource no owner
-Metadata Starter. Até esse contrato ser corrigido, OpenAPI e o endpoint são a fonte operacional do
-header; o Studio não deve hardcodar uma falsa capability nem omitir a revalidação.
+wildcard). Desde V61, `ActionExecutionContract` publica que a collection action referencia o recurso
+canônico `praxis.config.domain-rule-change-workspaces`, identificado pelo campo `workspaceId`, e que
+a versão deve ser transportada por `If-Match`. O Studio pode descobrir e materializar a precondição
+sem deduzir o alvo pelo path, pelo texto da ação ou por conhecimento local do Quickstart.
 
 Incompatibilidade dos facts com a fixture versionada ou divergência de decision, output, reason
 codes ou effect intents entre candidate/active e o cenário retorna `422`. O `412` fica reservado à
@@ -206,14 +205,13 @@ Comprovado localmente:
 
 Ainda necessário para handoff corporativo:
 
-1. publicar o corte Quickstart V60 que substitui o cleanup por rollback-only e fixar sua
-   coordenada/commit no handoff;
-2. concluir o smoke no Neon já configurado, com execução aceita, retry e ausência de fixture ativa;
-3. corrigir a representação metadata-driven de precondition cross-resource antes de o Studio
-   materializar o comando como jornada final;
-4. no Ergon, implementar somente o adapter Oracle/HADES, observer de chamadas, sanitização e
+1. publicar o corte Quickstart V61 com a precondição cross-resource e fixar sua coordenada/commit
+   no handoff;
+2. consumir a action e sua precondição pelo discovery canônico no Studio, sem endpoint ou headers
+   inferidos localmente;
+3. no Ergon, implementar somente o adapter Oracle/HADES, observer de chamadas, sanitização e
    cleanup/rollback específicos do host, sem enfraquecer auditoria imutável;
-5. executar quatro canários autorizados e depois expandir para a matriz RN-013, mantendo
+4. executar quatro canários autorizados e depois expandir para a matriz RN-013, mantendo
    `LEGACY_AUTHORITATIVE` até homologação.
 
 O Quickstart é laboratório estrutural compatível; não é evidência de paridade Ergon. Oracle, HADES,

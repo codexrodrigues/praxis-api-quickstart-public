@@ -446,10 +446,25 @@ class ExtraordinaryBenefitRequestPilotIntegrationTest {
                 .path("preconditions").path("idempotencyKey").asText());
         assertEquals("OPTIONAL", authenticatedOperationalAction.path("execution")
                 .path("preconditions").path("correlationId").asText());
+        assertEquals("REQUIRED", authenticatedOperationalAction.path("execution")
+                .path("preconditions").path("resourceVersion").asText());
+        assertEquals("IF_MATCH", authenticatedOperationalAction.path("execution")
+                .path("preconditions").path("resourceVersionTransport").asText());
+        assertEquals("praxis.config.domain-rule-change-workspaces", authenticatedOperationalAction.path("execution")
+                .path("preconditions").path("resourceVersionTargetResourceKey").asText());
+        assertEquals("workspaceId", authenticatedOperationalAction.path("execution")
+                .path("preconditions").path("resourceVersionTargetIdField").asText());
 
         JsonNode capabilities = body(restTemplate.getForEntity(
                 "/api/human-resources/extraordinary-benefit-requests/capabilities", String.class));
         assertNotNull(findById(capabilities.path("actions"), "evaluate"));
+        JsonNode operationalCapability = findById(
+                capabilities.path("actions"), "run-policy-studio-operational-test");
+        assertNotNull(operationalCapability);
+        assertEquals("praxis.config.domain-rule-change-workspaces", operationalCapability.path("execution")
+                .path("preconditions").path("resourceVersionTargetResourceKey").asText());
+        assertEquals("workspaceId", operationalCapability.path("execution")
+                .path("preconditions").path("resourceVersionTargetIdField").asText());
         assertFalse(capabilities.path("canonicalOperations").path("create").asBoolean());
 
         JsonNode schema = body(restTemplate.getForEntity(

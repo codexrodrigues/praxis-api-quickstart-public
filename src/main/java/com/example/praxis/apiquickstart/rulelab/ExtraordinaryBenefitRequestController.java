@@ -35,6 +35,7 @@ import java.util.UUID;
 import java.util.function.Supplier;
 import org.praxisplatform.uischema.action.ActionScope;
 import org.praxisplatform.uischema.action.ActionRequirement;
+import org.praxisplatform.uischema.action.ActionResourceVersionTransport;
 import org.praxisplatform.uischema.action.ActionRiskLevel;
 import org.praxisplatform.uischema.annotation.ApiGroup;
 import org.praxisplatform.uischema.annotation.ApiResource;
@@ -46,6 +47,7 @@ import org.praxisplatform.uischema.command.ResourceCommandResponsePolicy;
 import org.praxisplatform.uischema.controller.base.AbstractReadOnlyResourceController;
 import org.praxisplatform.uischema.rest.response.RestApiResponse;
 import org.praxisplatform.config.contract.DomainRuleTestRunResponse;
+import org.praxisplatform.config.contract.DomainRuleChangeWorkspaceContract;
 import org.praxisplatform.config.service.DomainRuleGovernancePrincipal;
 import org.praxisplatform.config.service.DomainRuleGovernancePrincipalResolver;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -275,6 +277,10 @@ public class ExtraordinaryBenefitRequestController extends AbstractReadOnlyResou
             confirmationRequired = true,
             idempotencyKey = ActionRequirement.REQUIRED,
             correlationId = ActionRequirement.OPTIONAL,
+            resourceVersion = ActionRequirement.REQUIRED,
+            resourceVersionTransport = ActionResourceVersionTransport.IF_MATCH,
+            resourceVersionTargetResourceKey = DomainRuleChangeWorkspaceContract.RESOURCE_KEY,
+            resourceVersionTargetIdField = "workspaceId",
             tags = {"policy-studio", "operational-proof", "idempotent", "optimistic-concurrency"})
     @Operation(
             summary = "Executar Test Run operacional do Policy Studio",
