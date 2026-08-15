@@ -68,6 +68,12 @@ receipt ainda visível, o Config também devolve o original quando chave e hash 
 com `409` quando a chave é reutilizada com outro payload. O Studio conserva chave e instante em
 falhas de transporte e os rotaciona juntos após sucesso ou mudança de workspace/cenários.
 
+A projeção publica `ruleSetRef.operationalResourceKey` como vínculo host-owned com o recurso
+`human-resources.extraordinary-benefit-requests`. Esse vínculo é a entrada da descoberta em
+`/schemas/actions`; ele não altera nem sobrecarrega o `resourceKey` das Definitions, usado pela
+composição governada do RuleSet. URL, método e preconditions continuam pertencendo ao catálogo
+Metadata e não são copiados para a projeção.
+
 ## Pré-requisitos da prova local
 
 O principal `admin` do Quickstart local possui leitura e autoria de definições, mas não aprovação,

@@ -35,6 +35,8 @@ class PolicyStudioProjectionContractTest {
                 .isEqualTo(definition.ref().boundedContextKey());
         assertThat(projection.path("ruleSetRef").path("ruleSetKey").asText())
                 .isEqualTo(definition.ref().ruleSetKey());
+        assertThat(projection.path("ruleSetRef").path("operationalResourceKey").asText())
+                .isEqualTo(ExtraordinaryBenefitRequestController.RESOURCE_KEY);
         assertThat(projection.path("ruleSetRef").path("operationKeys").get(0).asText())
                 .isEqualTo(definition.ref().operationKey());
 
