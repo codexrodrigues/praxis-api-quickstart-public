@@ -151,7 +151,7 @@ class RuleStagedRolloutPostgresIntegrationTest {
                 new DomainRuleRolloutCreateRequest(CANDIDATE_KEY, Instant.now().plusSeconds(300)),
                 operator, quote(headEtag));
 
-        var beforeProbe = rollouts.catalog(RULE_SET, reader).rollouts().getFirst();
+        var beforeProbe = rollouts.catalog(RULE_SET, reader, true).rollouts().getFirst();
         assertThat(beforeProbe.availableActions()).containsExactly("CANCEL");
         assertThat(beforeProbe.readiness().activationReady()).isFalse();
 
@@ -164,7 +164,7 @@ class RuleStagedRolloutPostgresIntegrationTest {
         assertThat(preload.preloadReady()).isTrue();
         assertThat(preload.probeUpdated()).isTrue();
 
-        var rediscovered = rollouts.catalog(RULE_SET, reader).rollouts().getFirst();
+        var rediscovered = rollouts.catalog(RULE_SET, reader, true).rollouts().getFirst();
         assertThat(rediscovered.readiness().activationReady()).isTrue();
         assertThat(rediscovered.availableActions())
                 .containsExactly("CANCEL", "ACTIVATE_CANDIDATE");
@@ -174,7 +174,7 @@ class RuleStagedRolloutPostgresIntegrationTest {
                 quote(headEtag), created.rolloutId());
 
         assertThat(activation.activationType()).isEqualTo("ACTIVATED");
-        assertThat(rollouts.catalog(RULE_SET, reader).rollouts()).isEmpty();
+        assertThat(rollouts.catalog(RULE_SET, reader, true).rollouts()).isEmpty();
         assertThat(config.queryForObject(
                 "select active_snapshot_id from domain_rule_snapshot_head where rule_set_key = ?",
                 UUID.class, RULE_SET)).isEqualTo(candidateId);
