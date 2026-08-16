@@ -39,12 +39,13 @@ if not APP_JAR.is_file():
     raise SystemExit("HOSTED_FIXTURE_APP_JAR must reference the packaged Quickstart jar")
 
 IDENTITIES = {
+    "author": (required("HOSTED_FIXTURE_AUTHOR_USERNAME"), required("HOSTED_FIXTURE_AUTHOR_PASSWORD")),
     "approverA": (required("HOSTED_FIXTURE_APPROVER_A_USERNAME"), required("HOSTED_FIXTURE_APPROVER_A_PASSWORD")),
     "approverB": (required("HOSTED_FIXTURE_APPROVER_B_USERNAME"), required("HOSTED_FIXTURE_APPROVER_B_PASSWORD")),
     "publisher": (required("HOSTED_FIXTURE_PUBLISHER_USERNAME"), required("HOSTED_FIXTURE_PUBLISHER_PASSWORD")),
 }
-if len({username for username, _ in IDENTITIES.values()}) != 3:
-    raise SystemExit("Publisher and both composition approvers must be distinct")
+if len({username for username, _ in IDENTITIES.values()}) != 4:
+    raise SystemExit("Author, publisher and both composition approvers must be distinct")
 
 COMMON_HEADERS = {
     "Accept": "application/json",
@@ -144,7 +145,7 @@ def approved_definition(rule_key: str, reviewer_key: str, operation: str, condit
             "auditReason": "Disposable payroll aggregate LKG proof",
         },
     }
-    created = clients["publisher"].request(
+    created = clients["author"].request(
         "POST", "/api/praxis/config/domain-rules/definitions", request, expected=(202,)
     ).body
     transition = {

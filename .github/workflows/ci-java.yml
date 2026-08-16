@@ -58,6 +58,12 @@ jobs:
           set -euo pipefail
           bash -n scripts/*.sh
 
+      - name: Validate public release snapshot
+        shell: pwsh
+        run: |
+          ./scripts/workspace/prepare-public-release.ps1 -SelfTest
+          ./scripts/workspace/prepare-public-release.ps1 public-release-ci
+
       - name: Wait for Praxis starter artifacts on Maven Central
         shell: bash
         run: |

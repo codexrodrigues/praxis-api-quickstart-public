@@ -63,11 +63,14 @@ jq -n --arg runId "$SMOKE_RUN_ID" --arg sourceCommit "$SOURCE_COMMIT" --arg bran
 random_secret() { openssl rand -base64 36 | tr -d '\n'; }
 jq -n \
   --arg businessA "$(random_secret)" --arg businessB "$(random_secret)" \
+  --arg authorA "$(random_secret)" --arg authorB "$(random_secret)" \
   --arg approverAA "$(random_secret)" --arg approverAB "$(random_secret)" \
   --arg approverBA "$(random_secret)" --arg approverBB "$(random_secret)" \
   --arg publisherA "$(random_secret)" --arg publisherB "$(random_secret)" \
+  --arg operatorA "$(random_secret)" --arg operatorB "$(random_secret)" \
+  --arg auditorA "$(random_secret)" --arg auditorB "$(random_secret)" \
   --arg jwtA "$(random_secret)" --arg jwtB "$(random_secret)" \
-  '{businessA:$businessA,businessB:$businessB,approverAA:$approverAA,approverAB:$approverAB,approverBA:$approverBA,approverBB:$approverBB,publisherA:$publisherA,publisherB:$publisherB,jwtA:$jwtA,jwtB:$jwtB}' > "$secrets"
+  '{businessA:$businessA,businessB:$businessB,authorA:$authorA,authorB:$authorB,approverAA:$approverAA,approverAB:$approverAB,approverBA:$approverBA,approverBB:$approverBB,publisherA:$publisherA,publisherB:$publisherB,operatorA:$operatorA,operatorB:$operatorB,auditorA:$auditorA,auditorB:$auditorB,jwtA:$jwtA,jwtB:$jwtB}' > "$secrets"
 
 resource_id() { jq -r '.id // .service.id // .data.id // .data.service.id // empty' "$1"; }
 append_resource() {
@@ -232,13 +235,16 @@ curl --fail --silent --show-error --max-time 20 -H 'Content-Type: application/js
   "$proxy_url/proxies" > "$artifact_dir/proxy-config.json"
 
 create_host() {
-  local side=$1 name=$2 side_lower tenant business approver_a approver_b publisher jwt output id
+  local side=$1 name=$2 side_lower tenant business author approver_a approver_b publisher operator auditor jwt output id
   side_lower=$(printf '%s' "$side" | tr '[:upper:]' '[:lower:]')
   tenant="corporate-$side_lower-$SMOKE_RUN_ID"
   business=$(jq -r ".business$side" "$secrets")
+  author=$(jq -r ".author$side" "$secrets")
   approver_a=$(jq -r ".approver${side}A" "$secrets")
   approver_b=$(jq -r ".approver${side}B" "$secrets")
   publisher=$(jq -r ".publisher$side" "$secrets")
+  operator=$(jq -r ".operator$side" "$secrets")
+  auditor=$(jq -r ".auditor$side" "$secrets")
   jwt=$(jq -r ".jwt$side" "$secrets")
   output="$artifact_dir/service-$side_lower-create.private.json"
   render services create --confirm --output json --name "$name" --type web_service \
@@ -260,12 +266,18 @@ create_host() {
     --env-var "APP_SECURITY_CONFIG_ORIGIN_RESTRICTION_ENABLED=true" \
     --env-var "APP_SECURITY_CONFIG_ORIGIN_RESTRICTION_ALLOWED_ORIGINS=$origin" \
     --env-var "CORS_ALLOWED_ORIGINS=$origin" --env-var "APP_AUTH_GOVERNANCE_LAB_ENABLED=true" \
+    --env-var "APP_AUTH_GOVERNANCE_AUTHOR_USERNAME=author-$side_lower" \
+    --env-var "APP_AUTH_GOVERNANCE_AUTHOR_PASSWORD=$author" \
     --env-var "APP_AUTH_GOVERNANCE_APPROVER_A_USERNAME=approver-a-$side_lower" \
     --env-var "APP_AUTH_GOVERNANCE_APPROVER_A_PASSWORD=$approver_a" \
     --env-var "APP_AUTH_GOVERNANCE_APPROVER_B_USERNAME=approver-b-$side_lower" \
     --env-var "APP_AUTH_GOVERNANCE_APPROVER_B_PASSWORD=$approver_b" \
     --env-var "APP_AUTH_GOVERNANCE_PUBLISHER_USERNAME=publisher-$side_lower" \
     --env-var "APP_AUTH_GOVERNANCE_PUBLISHER_PASSWORD=$publisher" \
+    --env-var "APP_AUTH_GOVERNANCE_OPERATOR_USERNAME=operator-$side_lower" \
+    --env-var "APP_AUTH_GOVERNANCE_OPERATOR_PASSWORD=$operator" \
+    --env-var "APP_AUTH_GOVERNANCE_AUDITOR_USERNAME=auditor-$side_lower" \
+    --env-var "APP_AUTH_GOVERNANCE_AUDITOR_PASSWORD=$auditor" \
     --env-var "PRAXIS_AI_SECURITY_CORPORATE_MODE=true" \
     --env-var "PRAXIS_AI_SECURITY_ALLOW_DEFAULT_TENANT_IN_CORPORATE=true" \
     --env-var "PRAXIS_AI_SECURITY_SERVER_DEFAULT_TENANT=$tenant" \
@@ -292,6 +304,8 @@ for side in A B; do
   HOSTED_FIXTURE_BASE_URL="$base" HOSTED_FIXTURE_ORIGIN="$origin" \
   HOSTED_FIXTURE_TENANT="corporate-$side_lower-$SMOKE_RUN_ID" HOSTED_FIXTURE_ENVIRONMENT=prod \
   HOSTED_FIXTURE_APP_JAR="$app_jar" HOSTED_FIXTURE_OUTPUT="$artifact_dir/fixture-$side_lower.json" \
+  HOSTED_FIXTURE_AUTHOR_USERNAME="author-$side_lower" \
+  HOSTED_FIXTURE_AUTHOR_PASSWORD="$(jq -r ".author$side" "$secrets")" \
   HOSTED_FIXTURE_APPROVER_A_USERNAME="approver-a-$side_lower" \
   HOSTED_FIXTURE_APPROVER_A_PASSWORD="$(jq -r ".approver${side}A" "$secrets")" \
   HOSTED_FIXTURE_APPROVER_B_USERNAME="approver-b-$side_lower" \

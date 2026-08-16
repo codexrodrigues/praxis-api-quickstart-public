@@ -38,9 +38,12 @@ Get-Content -LiteralPath $EnvFile -Encoding UTF8 | ForEach-Object {
     }
 }
 foreach ($required in @(
+    'APP_AUTH_GOVERNANCE_AUTHOR_USERNAME', 'APP_AUTH_GOVERNANCE_AUTHOR_PASSWORD',
     'APP_AUTH_GOVERNANCE_APPROVER_A_USERNAME', 'APP_AUTH_GOVERNANCE_APPROVER_A_PASSWORD',
     'APP_AUTH_GOVERNANCE_APPROVER_B_USERNAME', 'APP_AUTH_GOVERNANCE_APPROVER_B_PASSWORD',
-    'APP_AUTH_GOVERNANCE_PUBLISHER_USERNAME', 'APP_AUTH_GOVERNANCE_PUBLISHER_PASSWORD'
+    'APP_AUTH_GOVERNANCE_PUBLISHER_USERNAME', 'APP_AUTH_GOVERNANCE_PUBLISHER_PASSWORD',
+    'APP_AUTH_GOVERNANCE_OPERATOR_USERNAME', 'APP_AUTH_GOVERNANCE_OPERATOR_PASSWORD',
+    'APP_AUTH_GOVERNANCE_AUDITOR_USERNAME', 'APP_AUTH_GOVERNANCE_AUDITOR_PASSWORD'
 )) {
     if (-not (Test-Path "Env:$required") -or [string]::IsNullOrWhiteSpace((Get-Item "Env:$required").Value)) {
         throw "Required maker-checker identity variable is missing: $required"
@@ -55,9 +58,12 @@ function New-AuthenticatedSession {
     return $authenticatedSession
 }
 
+$authorSession = New-AuthenticatedSession $env:APP_AUTH_GOVERNANCE_AUTHOR_USERNAME $env:APP_AUTH_GOVERNANCE_AUTHOR_PASSWORD
 $approverASession = New-AuthenticatedSession $env:APP_AUTH_GOVERNANCE_APPROVER_A_USERNAME $env:APP_AUTH_GOVERNANCE_APPROVER_A_PASSWORD
 $approverBSession = New-AuthenticatedSession $env:APP_AUTH_GOVERNANCE_APPROVER_B_USERNAME $env:APP_AUTH_GOVERNANCE_APPROVER_B_PASSWORD
 $publisherSession = New-AuthenticatedSession $env:APP_AUTH_GOVERNANCE_PUBLISHER_USERNAME $env:APP_AUTH_GOVERNANCE_PUBLISHER_PASSWORD
+$operatorSession = New-AuthenticatedSession $env:APP_AUTH_GOVERNANCE_OPERATOR_USERNAME $env:APP_AUTH_GOVERNANCE_OPERATOR_PASSWORD
+$auditorSession = New-AuthenticatedSession $env:APP_AUTH_GOVERNANCE_AUDITOR_USERNAME $env:APP_AUTH_GOVERNANCE_AUDITOR_PASSWORD
 $headers = @{ Accept = 'application/json'; Origin = $AllowedOrigin; 'X-Tenant-ID' = 'desenv'; 'X-Env' = 'local' }
 $policyRuleKeys = @(
     'request.authorization-integrity',
@@ -150,7 +156,7 @@ function Ensure-ApprovedPolicyDefinition {
                 auditReason = 'QL-07 Policy Studio source review.'
             }
         }
-        $candidate = (Invoke-ConfigJson POST '/api/praxis/config/domain-rules/definitions' $publisherSession $create).Json
+        $candidate = (Invoke-ConfigJson POST '/api/praxis/config/domain-rules/definitions' $authorSession $create).Json
     } else {
         $candidate = $latest
     }
@@ -159,6 +165,7 @@ function Ensure-ApprovedPolicyDefinition {
             status = 'approved'
             validationResult = @{ valid = $true; approvalReason = 'Reviewed for the isolated QL-07 foundation snapshot.' }
         }
+        Assert-ConfigForbidden "/api/praxis/config/domain-rules/definitions/$($candidate.id)/status" $authorSession $approval 'PATCH'
         Assert-ConfigForbidden "/api/praxis/config/domain-rules/definitions/$($candidate.id)/status" $publisherSession $approval 'PATCH'
         $candidate = (Invoke-ConfigJson PATCH "/api/praxis/config/domain-rules/definitions/$($candidate.id)/status" $ReviewerSession $approval).Json
     }
@@ -245,6 +252,8 @@ $payload = $payloadJson | Select-Object -Last 1 | ConvertFrom-Json
 $manifest = Invoke-ConfigJson POST '/api/praxis/config/domain-rules/snapshots/composition-manifest' $publisherSession $payload
 Assert-ConfigForbidden '/api/praxis/config/domain-rules/snapshots/composition-approvals' $publisherSession $payload
 Assert-ConfigForbidden '/api/praxis/config/domain-rules/snapshots' $approverASession $payload
+Assert-ConfigForbidden '/api/praxis/config/domain-rules/snapshots' $operatorSession $payload
+Assert-ConfigForbidden '/api/praxis/config/domain-rules/snapshots/composition-manifest' $auditorSession $payload
 $approvalA = Invoke-ConfigJson POST '/api/praxis/config/domain-rules/snapshots/composition-approvals' $approverASession $payload
 $approvalB = Invoke-ConfigJson POST '/api/praxis/config/domain-rules/snapshots/composition-approvals' $approverBSession $payload
 if ($approvalA.Json.actorRef -eq $approvalB.Json.actorRef) {

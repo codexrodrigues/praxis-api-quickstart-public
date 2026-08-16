@@ -32,22 +32,34 @@ public class GovernanceLabIdentityService {
     public GovernanceLabIdentityService(
             @Value("${app.auth.governance-lab.enabled:false}") boolean enabled,
             @Value("${spring.security.user.name:admin}") String adminUsername,
+            @Value("${app.auth.governance-lab.author.username:}") String authorUsername,
+            @Value("${app.auth.governance-lab.author.password:}") String authorPassword,
             @Value("${app.auth.governance-lab.approver-a.username:}") String approverAUsername,
             @Value("${app.auth.governance-lab.approver-a.password:}") String approverAPassword,
             @Value("${app.auth.governance-lab.approver-b.username:}") String approverBUsername,
             @Value("${app.auth.governance-lab.approver-b.password:}") String approverBPassword,
             @Value("${app.auth.governance-lab.publisher.username:}") String publisherUsername,
-            @Value("${app.auth.governance-lab.publisher.password:}") String publisherPassword) {
+            @Value("${app.auth.governance-lab.publisher.password:}") String publisherPassword,
+            @Value("${app.auth.governance-lab.operator.username:}") String operatorUsername,
+            @Value("${app.auth.governance-lab.operator.password:}") String operatorPassword,
+            @Value("${app.auth.governance-lab.auditor.username:}") String auditorUsername,
+            @Value("${app.auth.governance-lab.auditor.password:}") String auditorPassword) {
         this.enabled = enabled;
         this.adminUsername = adminUsername;
         this.identities = List.of(
+                new ConfiguredIdentity("author", authorUsername, authorPassword, "GOVERNANCE_AUTHOR",
+                        List.of(DEFINITION_READER, DEFINITION_AUTHOR, SNAPSHOT_READER)),
                 new ConfiguredIdentity("approver-a", approverAUsername, approverAPassword, "GOVERNANCE_APPROVER",
-                        List.of(DEFINITION_READER, DEFINITION_APPROVER, COMPOSITION_APPROVER)),
+                        List.of(DEFINITION_READER, DEFINITION_APPROVER, COMPOSITION_APPROVER, SNAPSHOT_READER)),
                 new ConfiguredIdentity("approver-b", approverBUsername, approverBPassword, "GOVERNANCE_APPROVER",
-                        List.of(DEFINITION_READER, DEFINITION_APPROVER, COMPOSITION_APPROVER)),
+                        List.of(DEFINITION_READER, DEFINITION_APPROVER, COMPOSITION_APPROVER, SNAPSHOT_READER)),
                 new ConfiguredIdentity("publisher", publisherUsername, publisherPassword, "GOVERNANCE_PUBLISHER",
-                        List.of(DEFINITION_READER, DEFINITION_AUTHOR, SNAPSHOT_PUBLISHER, SNAPSHOT_OPERATOR,
-                                SNAPSHOT_READER, OPERATIONAL_TEST_OPERATOR)));
+                        List.of(DEFINITION_READER, SNAPSHOT_PUBLISHER, SNAPSHOT_READER)),
+                new ConfiguredIdentity("operator", operatorUsername, operatorPassword, "GOVERNANCE_OPERATOR",
+                        List.of(DEFINITION_READER, SNAPSHOT_OPERATOR, SNAPSHOT_READER,
+                                OPERATIONAL_TEST_OPERATOR)),
+                new ConfiguredIdentity("auditor", auditorUsername, auditorPassword, "GOVERNANCE_AUDITOR",
+                        List.of(DEFINITION_READER, SNAPSHOT_READER)));
     }
 
     @PostConstruct
@@ -61,7 +73,7 @@ public class GovernanceLabIdentityService {
         }
         if (identities.stream().map(ConfiguredIdentity::username).collect(java.util.stream.Collectors.toSet()).size()
                 != identities.size()) {
-            throw new IllegalStateException("Governance lab identities must use three distinct usernames");
+            throw new IllegalStateException("Governance lab identities must use six distinct usernames");
         }
         if (identities.stream().anyMatch(identity -> identity.username().equals(adminUsername))) {
             throw new IllegalStateException("Governance lab identities must be distinct from the quickstart administrator");
@@ -83,7 +95,7 @@ public class GovernanceLabIdentityService {
     }
 
     /**
-     * Switches among the three configured technical actors only inside the opt-in governance lab.
+     * Switches among the configured technical actors only inside the opt-in governance lab.
      *
      * <p>The current session must already belong to this exact lab. This is a development-host
      * convenience for demonstrating the real maker-checker HTTP lifecycle without exposing any

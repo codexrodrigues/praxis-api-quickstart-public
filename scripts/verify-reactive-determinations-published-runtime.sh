@@ -5,6 +5,8 @@ BACKEND_URL="${BACKEND_URL:-https://praxis-api-quickstart.onrender.com}"
 ORIGIN="${ORIGIN:-https://praxisui.dev}"
 ADMIN_USERNAME="${ADMIN_USERNAME:-admin}"
 ADMIN_PASSWORD="${ADMIN_PASSWORD:-${PRACTICE_TEMP_PASSWORD:-}}"
+AUTHOR_USERNAME="${AUTHOR_USERNAME:-${APP_AUTH_GOVERNANCE_AUTHOR_USERNAME:-}}"
+AUTHOR_PASSWORD="${AUTHOR_PASSWORD:-${APP_AUTH_GOVERNANCE_AUTHOR_PASSWORD:-}}"
 PUBLISHER_USERNAME="${PUBLISHER_USERNAME:-${APP_AUTH_GOVERNANCE_PUBLISHER_USERNAME:-}}"
 PUBLISHER_PASSWORD="${PUBLISHER_PASSWORD:-${APP_AUTH_GOVERNANCE_PUBLISHER_PASSWORD:-}}"
 APPROVER_USERNAME="${APPROVER_USERNAME:-praxis-governance-approver-a}"
@@ -17,8 +19,12 @@ if [[ -z "${ADMIN_PASSWORD}" ]]; then
   echo "ADMIN_PASSWORD or PRACTICE_TEMP_PASSWORD is required." >&2
   exit 1
 fi
-if [[ -z "${PUBLISHER_USERNAME}" || -z "${PUBLISHER_PASSWORD}" ]]; then
-  echo "A governed publisher identity is required through PUBLISHER_USERNAME/PUBLISHER_PASSWORD or the APP_AUTH_GOVERNANCE_PUBLISHER_* variables." >&2
+if [[ -z "${AUTHOR_USERNAME}" || -z "${AUTHOR_PASSWORD}" || -z "${PUBLISHER_USERNAME}" || -z "${PUBLISHER_PASSWORD}" ]]; then
+  echo "Distinct governed author and publisher identities are required through AUTHOR_*/PUBLISHER_* or the matching APP_AUTH_GOVERNANCE_* variables." >&2
+  exit 1
+fi
+if [[ "${AUTHOR_USERNAME}" == "${PUBLISHER_USERNAME}" ]]; then
+  echo "Author and publisher identities must be distinct." >&2
   exit 1
 fi
 if ! command -v jq >/dev/null 2>&1; then
@@ -29,6 +35,7 @@ fi
 run_dir="$(mktemp -d "${TMPDIR:-/tmp}/praxis-reactive-determinations.XXXXXX")"
 trap 'rm -rf "${run_dir}"' EXIT
 executor_cookie_jar="${run_dir}/executor-cookies.txt"
+author_cookie_jar="${run_dir}/author-cookies.txt"
 publisher_cookie_jar="${run_dir}/publisher-cookies.txt"
 approver_cookie_jar="${run_dir}/approver-cookies.txt"
 
@@ -56,6 +63,7 @@ authenticate() {
 }
 
 authenticate executor "${ADMIN_USERNAME}" "${ADMIN_PASSWORD}" "${executor_cookie_jar}"
+authenticate author "${AUTHOR_USERNAME}" "${AUTHOR_PASSWORD}" "${author_cookie_jar}"
 authenticate publisher "${PUBLISHER_USERNAME}" "${PUBLISHER_PASSWORD}" "${publisher_cookie_jar}"
 
 session_status="$(curl -sS "${BACKEND_URL%/}/auth/session" \
@@ -84,10 +92,11 @@ config_post() {
   local path="$1"
   local request_file="$2"
   local response_file="$3"
+  local session_cookie_jar="$4"
   local actual_status
   actual_status="$(curl -sS "${BACKEND_URL%/}${path}" \
-    -b "${publisher_cookie_jar}" \
-    -c "${publisher_cookie_jar}" \
+    -b "${session_cookie_jar}" \
+    -c "${session_cookie_jar}" \
     -H "Origin: ${ORIGIN}" \
     -H "X-Tenant-ID: ${TENANT_ID}" \
     -H "X-Env: ${ENVIRONMENT}" \
@@ -231,7 +240,7 @@ publish_reactive_determination() {
     }' > "${definition_request}"
 
   config_post '/api/praxis/config/domain-rules/definitions' \
-    "${definition_request}" "${definition_response}"
+    "${definition_request}" "${definition_response}" "${author_cookie_jar}"
   local definition_id
   definition_id="$(jq -r '.id // empty' "${definition_response}")"
   if [[ -z "${definition_id}" ]]; then
@@ -256,7 +265,7 @@ publish_reactive_determination() {
     '{ruleDefinitionId: $definitionId, applyEligibleMaterializations: true}' \
     > "${publication_request}"
   config_post '/api/praxis/config/domain-rules/publications' \
-    "${publication_request}" "${publication_response}"
+    "${publication_request}" "${publication_response}" "${publisher_cookie_jar}"
 
   jq -e \
     --arg targetKey "${determination_key}" \

@@ -124,13 +124,14 @@ snapshot e dados pessoais não são registrados.
 O snapshot legado ativo chegou ao gate com `executionReady=false`, `governanceState=INVALID` e foi
 rejeitado pelo catálogo Java atual. O host não o reescreve nem relaxa a admissão. O fluxo de
 recuperação publica uma versão imutável superior usando o ETag forte do head, o manifest canônico e
-duas aprovações persistidas de sujeitos autenticados distintos. Um terceiro sujeito publica o
-digest inalterado. O laboratório local oferece três identidades opt-in apenas para essa prova; em
-ambiente corporativo elas devem ser substituídas por IdP/IAM real.
+duas aprovações persistidas de sujeitos autenticados distintos. Outro sujeito publica o digest
+inalterado. O laboratório local oferece seis identidades opt-in — autor, dois aprovadores,
+publicador, operador e auditor — apenas para essa prova; em ambiente corporativo elas devem ser
+substituídas por IdP/IAM real.
 
-O gate inclui duas negativas obrigatórias: o publisher recebe `403` ao tentar aprovar a composição
-e um approver recebe `403` ao tentar publicar. Assim, `corporate-mode=false` não pode produzir uma
-evidência maker-checker válida por acidente.
+O gate inclui negativas cruzadas: publicador não aprova nem opera, aprovador não publica, autor não
+aprova, operador não publica e auditor não executa mutation. Assim, `corporate-mode=false` não pode
+produzir uma evidência maker-checker válida por acidente.
 
 ### Hardening do compositor para a próxima revalidação
 

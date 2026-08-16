@@ -83,8 +83,8 @@ ativar sua própria mudança.
 
 Para que a comparação candidate × active seja elegível à submissão, deve existir um snapshot ativo
 do RuleSet `extraordinary-grant-eligibility`. Ele é provisionado pelo fluxo maker-checker oficial
-`scripts/workspace/Initialize-RuleLabQl07Snapshot.ps1`, que exige duas identidades aprovadoras
-distintas e uma identidade publicadora configuradas no ambiente. Sem esse baseline, o sandbox
+`scripts/workspace/Initialize-RuleLabQl07Snapshot.ps1`, que exige autor, duas identidades
+aprovadoras, publicador, operador e auditor distintos configurados no ambiente. Sem esse baseline, o sandbox
 registra `TECHNICAL_ERROR` para active e o Config bloqueia a submissão; não se deve contornar esse
 gate ou converter a indisponibilidade em sucesso.
 

@@ -5,11 +5,13 @@ import java.util.Map;
 import org.praxisplatform.config.dto.DomainRuleDefinitionRequest;
 import org.praxisplatform.config.service.DomainRuleGovernancePrincipal;
 import org.praxisplatform.config.service.DomainRuleService;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.util.StringUtils;
 
 /** Publishes the real local Rule Lab JSON Logic conditions into the governed Config read plane. */
 @Configuration
@@ -20,18 +22,21 @@ import org.springframework.context.annotation.Configuration;
         havingValue = "true")
 class PolicyStudioRuleLabDefinitionSeed {
 
-    private static final DomainRuleGovernancePrincipal SEED_PRINCIPAL =
-            new DomainRuleGovernancePrincipal("desenv", "policy-studio-quickstart-seed", "local");
+    private static final String SEED_ACTOR = "policy-studio-quickstart-seed";
     private static final String SERVICE_KEY = "praxis-api-quickstart";
 
     @Bean
     ApplicationRunner policyStudioRuleLabDefinitionSeedRunner(
             DomainRuleService domainRuleService,
-            ObjectMapper objectMapper) {
-        return args -> seed(domainRuleService, objectMapper);
+            ObjectMapper objectMapper,
+            @Value("${praxis.rule-lab.snapshot.tenant-id:desenv}") String tenantId,
+            @Value("${praxis.rule-lab.snapshot.environment:local}") String environment) {
+        return args -> seed(domainRuleService, objectMapper, tenantId, environment);
     }
 
-    void seed(DomainRuleService service, ObjectMapper objectMapper) {
+    void seed(DomainRuleService service, ObjectMapper objectMapper, String tenantId, String environment) {
+        var seedPrincipal = new DomainRuleGovernancePrincipal(
+                requireScope(tenantId, "tenant-id"), SEED_ACTOR, requireScope(environment, "environment"));
         var ruleSet = ExtraordinaryGrantRuleSetFactory.definition();
         Map<String, org.praxisplatform.rules.contract.DecisionSlot> slots = ruleSet.slots().stream()
                 .collect(java.util.stream.Collectors.toMap(slot -> slot.slotKey(), slot -> slot));
@@ -39,8 +44,8 @@ class PolicyStudioRuleLabDefinitionSeed {
         ExtraordinaryGrantRuleSetComposer.governedBindings(ruleSet).stream()
                 .forEach(binding -> {
                     if (!service.definitions(
-                            SEED_PRINCIPAL.tenantId(),
-                            SEED_PRINCIPAL.environment(),
+                            seedPrincipal.tenantId(),
+                            seedPrincipal.environment(),
                             null,
                             null,
                             null,
@@ -86,7 +91,14 @@ class PolicyStudioRuleLabDefinitionSeed {
                             parameters,
                             binding.executor().expression(),
                             governance,
-                            null), SEED_PRINCIPAL);
+                            null), seedPrincipal);
                 });
+    }
+
+    private String requireScope(String value, String property) {
+        if (!StringUtils.hasText(value)) {
+            throw new IllegalStateException("Policy Studio seed requires " + property);
+        }
+        return value.trim();
     }
 }

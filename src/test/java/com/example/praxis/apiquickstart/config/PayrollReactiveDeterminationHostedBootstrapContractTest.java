@@ -48,7 +48,8 @@ class PayrollReactiveDeterminationHostedBootstrapContractTest {
                 .contains("versions != [1, 2]")
                 .contains("snapshot.get(\"ruleSet\") != expected.get(\"ruleSet\")")
                 .contains("Published payroll head escaped the requested tenant/environment scope")
-                .contains("Publisher and both composition approvers must be distinct")
+                .contains("Author, publisher and both composition approvers must be distinct")
+                .contains("clients[\"author\"].request")
                 .doesNotContain("PayrollReactiveDeterminationRuleSet =")
                 .doesNotContain("print(password)", "print(IDENTITIES)");
     }

@@ -54,8 +54,8 @@ completo ainda está bloqueado por um pré-requisito legítimo: não existe head
 para o RuleSet `extraordinary-grant-eligibility` nesse escopo.
 
 O próximo gate deve provisionar o baseline por
-`scripts/workspace/Initialize-RuleLabQl07Snapshot.ps1`, com duas identidades
-aprovadoras distintas e uma identidade publicadora. Depois disso, repetir
+`scripts/workspace/Initialize-RuleLabQl07Snapshot.ps1`, com autor, duas identidades
+aprovadoras, publicador, operador e auditor distintos. Depois disso, repetir
 candidate × active, submissão, review por ator diferente, promoção e publication
 readiness. Não substituir esse requisito por um snapshot sintético, por uma conta
 `admin` superprivilegiada ou pela conversão de `TECHNICAL_ERROR` em sucesso.

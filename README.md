@@ -104,6 +104,9 @@ Migrations operacionais da API:
   [`docs/POLICY-STUDIO-OPERATIONAL-EVIDENCE-PLAN.md`](docs/POLICY-STUDIO-OPERATIONAL-EVIDENCE-PLAN.md).
 - O handoff V57 anterior permanece preservado apenas como histórico em
   [`docs/POLICY-STUDIO-V57-OPERATIONAL-HANDOFF.md`](docs/POLICY-STUDIO-V57-OPERATIONAL-HANDOFF.md).
+- A segregação opt-in entre author, dois approvers, publisher, operator e auditor, incluindo a
+  matriz positiva/negativa executável, está em
+  [`docs/POLICY-STUDIO-MULTI-PERSONA-LAB.md`](docs/POLICY-STUDIO-MULTI-PERSONA-LAB.md).
 
 ## Ecossistema (pecas e papeis)
 
@@ -1002,22 +1005,19 @@ segura e delega approvals/publicação ao Config. Ele não expõe condições ou
 executores ao browser e não cria tabela nova: usa o mesmo PostgreSQL/Neon e o
 mesmo schema versionado do control plane.
 
-O provisionamento atual exige dois aprovadores e um publicador autenticados distintos. No
-laboratório local, `APP_AUTH_GOVERNANCE_LAB_ENABLED=true` habilita somente as três identidades
-configuradas por ambiente. O publicador acumula `RULE_DEFINITION_AUTHOR`,
-`RULE_SNAPSHOT_PUBLISHER`, `RULE_SNAPSHOT_OPERATOR`, `RULE_SNAPSHOT_READER` e
-`RULE_OPERATIONAL_TEST_OPERATOR` para a prova host-owned V59; cada checker acumula
-`RULE_DEFINITION_APPROVER` e
-`RULE_COMPOSITION_APPROVER`. Essa ponte é desabilitada por padrão e não é uma solução IAM de
-produção: hosts corporativos devem obter os mesmos roles do IdP e manter maker, checker e publisher
-segregados; o acúmulo publisher/operator existe somente para manter o laboratório local compacto. O script prova também que o publicador não pode aprovar e que um aprovador não pode
-publicar; o autor também não pode aprovar a própria definição. Se
+O provisionamento atual exige autor, dois aprovadores, publicador, operador e auditor autenticados
+e distintos. No laboratório local, `APP_AUTH_GOVERNANCE_LAB_ENABLED=true` habilita somente essas
+seis identidades configuradas por ambiente. Autor, checkers, publicador e operador recebem
+authorities mutuamente segregadas; o auditor recebe apenas as leituras de Definition e snapshot.
+Essa ponte é desabilitada por padrão e não é uma solução IAM de produção: hosts corporativos devem
+obter os mesmos roles do IdP. O script prova também que publicador não aprova nem opera, operador
+não publica, aprovador não publica e autor não aprova a própria definição. Se
 `praxis.ai.security.corporate-mode` estiver desabilitado, o gate falha.
 
 Quando o laboratório está habilitado, `POST /auth/governance-lab/session/{identityKey}` permite que
-uma UI local conduza o mesmo ciclo com `approver-a`, `approver-b` e `publisher` sem receber as
-senhas configuradas. A chamada só é aceita quando a sessão atual já pertence a uma das três
-identidades do laboratório, continua sujeita a CSRF e emite outro cookie HttpOnly. Trata-se de
+uma UI local conduza o mesmo ciclo com `author`, `approver-a`, `approver-b`, `publisher`, `operator`
+e `auditor` sem receber as senhas configuradas. A chamada só é aceita quando a sessão atual já
+pertence ao laboratório, continua sujeita a CSRF e emite outro cookie HttpOnly. Trata-se de
 orquestração técnica da POC, não de homologação humana nem de endpoint a ser habilitado em produção.
 
 ### Piloto Rule Lab QL-08 — stress report Ergon-like

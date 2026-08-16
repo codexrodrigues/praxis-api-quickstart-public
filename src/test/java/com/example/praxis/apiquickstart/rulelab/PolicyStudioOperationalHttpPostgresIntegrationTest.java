@@ -121,6 +121,7 @@ class PolicyStudioOperationalHttpPostgresIntegrationTest {
     @Autowired @Qualifier("extraordinaryGrantRuleExecutorRegistry")
     private RuleBindingExecutorRegistry registry;
     @Autowired @Qualifier("apiJdbcTemplate") private JdbcTemplate api;
+    @Autowired @Qualifier("configJdbcTemplate") private JdbcTemplate config;
     @MockBean(name = "ragVectorStore") private VectorStore ragVectorStore;
 
     private UUID workspaceId;
@@ -253,6 +254,50 @@ class PolicyStudioOperationalHttpPostgresIntegrationTest {
         assertOperationalTablesAreClean();
     }
 
+    @Test
+    void resolvesScopeFromTheServerPrincipalAndHidesForeignWorkspacesInTheSameDatabase()
+            throws Exception {
+        String request = requestBody("UPDATE");
+        HttpHeaders conflictingCallerScope = headers(
+                workspaceEtag.toString(), "quickstart:v59:scope-principal", true,
+                "tenant-from-header", "environment-from-header");
+
+        ResponseEntity<String> first = restTemplate.exchange(
+                ENDPOINT, HttpMethod.POST,
+                new HttpEntity<>(request, conflictingCallerScope), String.class);
+
+        assertEquals(HttpStatus.OK, first.getStatusCode(), first.getBody());
+        JsonNode firstData = responseData(first);
+        assertEquals(workspaceId.toString(), firstData.path("workspaceId").asText());
+        assertEquals(1, configTestRunCount("desenv", "local"));
+        assertEquals(0, configTestRunCountWithTenantOrEnvironment(
+                "tenant-from-header", "environment-from-header"));
+
+        HttpHeaders anotherConflictingScope = headers(
+                workspaceEtag.toString(), "quickstart:v59:scope-principal", true,
+                "another-tenant", "another-environment");
+        ResponseEntity<String> replay = restTemplate.exchange(
+                ENDPOINT, HttpMethod.POST,
+                new HttpEntity<>(request, anotherConflictingScope), String.class);
+        assertEquals(HttpStatus.OK, replay.getStatusCode(), replay.getBody());
+        assertEquals(firstData.path("runId").asText(), responseData(replay).path("runId").asText());
+        assertEquals(1, runs.count());
+        assertEquals(4, results.count());
+
+        UUID foreignWorkspaceId = saveWorkspace("tenant-b", "prod", "foreign-policy-operator");
+        ResponseEntity<String> foreignWorkspace = restTemplate.exchange(
+                ENDPOINT, HttpMethod.POST,
+                new HttpEntity<>(requestBody(foreignWorkspaceId, "UPDATE"), headers(
+                        workspaceEtag.toString(), "quickstart:v59:foreign-workspace", true,
+                        "tenant-b", "prod")),
+                String.class);
+        assertEquals(HttpStatus.NOT_FOUND, foreignWorkspace.getStatusCode());
+        assertEquals(1, runs.count());
+        assertEquals(4, results.count());
+        assertEquals(1, count("praxis_resource_action_execution"));
+        assertOperationalTablesAreClean();
+    }
+
     private UUID saveScenario(String key, String amount, String expectedDecision) throws Exception {
         UUID id = UUID.randomUUID();
         scenarios.saveAndFlush(DomainRuleTestScenario.builder()
@@ -292,8 +337,12 @@ class PolicyStudioOperationalHttpPostgresIntegrationTest {
     }
 
     private String requestBody(String updateDenyOperation) throws Exception {
+        return requestBody(workspaceId, updateDenyOperation);
+    }
+
+    private String requestBody(UUID targetWorkspaceId, String updateDenyOperation) throws Exception {
         return objectMapper.writeValueAsString(Map.of(
-                "workspaceId", workspaceId,
+                "workspaceId", targetWorkspaceId,
                 "scenarios", List.of(
                         Map.of("scenarioId", scenarioIds.get("create-allow"), "operationMode", "CREATE"),
                         Map.of("scenarioId", scenarioIds.get("create-deny"), "operationMode", "CREATE"),
@@ -305,19 +354,53 @@ class PolicyStudioOperationalHttpPostgresIntegrationTest {
     }
 
     private HttpHeaders headers(String etag, String idempotencyKey, boolean operationalAuthority) {
+        return headers(etag, idempotencyKey, operationalAuthority, "desenv", "local");
+    }
+
+    private HttpHeaders headers(
+            String etag,
+            String idempotencyKey,
+            boolean operationalAuthority,
+            String callerTenant,
+            String callerEnvironment) {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         if (etag != null) headers.set(HttpHeaders.IF_MATCH, '"' + etag + '"');
         headers.set("Idempotency-Key", idempotencyKey);
         headers.set("X-Correlation-ID", idempotencyKey);
-        headers.set("X-Tenant-ID", "desenv");
-        headers.set("X-Env", "local");
+        headers.set("X-Tenant-ID", callerTenant);
+        headers.set("X-Env", callerEnvironment);
         List<String> authorities = operationalAuthority
                 ? List.of(RuleGovernanceAuthorities.OPERATIONAL_TEST_OPERATOR)
                 : List.of(RuleGovernanceAuthorities.DEFINITION_AUTHOR);
         headers.add(HttpHeaders.COOKIE, "SESSION=" + jwtTokenService.generate(
                 "policy-proof-operator", "HUMAN", authorities));
         return headers;
+    }
+
+    private UUID saveWorkspace(String tenant, String environment, String actor) {
+        UUID id = UUID.randomUUID();
+        workspaces.saveAndFlush(DomainRuleChangeWorkspace.builder()
+                .id(id)
+                .tenantId(tenant)
+                .environment(environment)
+                .ruleKey("grant.amount-parameters")
+                .baseDefinitionId(UUID.randomUUID())
+                .baseDefinitionVersion(1)
+                .baseDefinitionHash("F".repeat(64))
+                .title("Foreign-scope workspace")
+                .status("OPEN")
+                .draftCondition("{}")
+                .draftParameters("{}")
+                .etag(UUID.randomUUID())
+                .revision(1L)
+                .createdBy(actor)
+                .updatedBy(actor)
+                .createdAt(EVALUATED_AT.minusSeconds(60))
+                .updatedAt(EVALUATED_AT.minusSeconds(60))
+                .rowVersion(0L)
+                .build());
+        return id;
     }
 
     private JsonNode responseData(ResponseEntity<String> response) throws Exception {
@@ -333,6 +416,22 @@ class PolicyStudioOperationalHttpPostgresIntegrationTest {
 
     private int count(String table) {
         return api.queryForObject("select count(*) from " + table, Integer.class);
+    }
+
+    private int configTestRunCount(String tenant, String environment) {
+        return config.queryForObject(
+                "select count(*) from domain_rule_test_run where tenant_id = ? and environment = ?",
+                Integer.class,
+                tenant,
+                environment);
+    }
+
+    private int configTestRunCountWithTenantOrEnvironment(String tenant, String environment) {
+        return config.queryForObject(
+                "select count(*) from domain_rule_test_run where tenant_id = ? or environment = ?",
+                Integer.class,
+                tenant,
+                environment);
     }
 
     private PublishedRuleSnapshot snapshot() {

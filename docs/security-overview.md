@@ -64,15 +64,17 @@ Maker-checker do Rule Lab
   opcionais como wildcard de escopo.
 - O admin demo recebe `RULE_DEFINITION_READER` e `RULE_SNAPSHOT_READER` entre os roles de
   governança. Para a prova local, `APP_AUTH_GOVERNANCE_LAB_ENABLED=true`
-  habilita dois aprovadores e um publisher configurados por variáveis de
-  ambiente; no laboratório, o publisher acumula `RULE_SNAPSHOT_OPERATOR` e a
-  leitura necessária para verificar o head que publicou. Hosts corporativos
-  podem separar publisher e operator em principals distintos.
+  habilita autor, dois aprovadores, publicador, operador e auditor configurados por variáveis de
+  ambiente. O laboratório não acumula authoring, approval, publication ou operation no mesmo
+  principal; somente as leituras necessárias são compartilhadas.
 - As duas capabilities reativas de folha (`net-salary` e `payment-date`) sao POSTs idempotentes do
   data plane e exigem `ROLE_ADMIN`, inclusive quando `write-disabled=true`.
   Esse matcher deliberadamente antecede o deny generico de persistencia: admin business pode
   avaliar sem habilitar CRUD, enquanto o publisher tecnico recebe `403` e nao consulta o snapshot.
-- O gate deve rodar com `PRAXIS_AI_SECURITY_CORPORATE_MODE=true` e prova negativas cruzadas (`publisher -> definition/composition approve = 403` e `approver -> publish = 403`). A identidade não é transportada no payload.
+- O gate deve rodar com `PRAXIS_AI_SECURITY_CORPORATE_MODE=true` e negativas cruzadas, incluindo
+  `publisher -> approve/operate = 403`, `operator -> publish = 403`, `approver -> publish = 403`,
+  `author -> approve = 403` e `auditor -> mutation = 403`. A identidade não é transportada no
+  payload.
 - Esse catálogo local permanece desabilitado em produção. Um host corporativo deve substituir `/auth/login` pelo IdP/BFF e mapear os roles no principal autenticado, sem transportar ator ou autorização em payload/headers do caller.
 - A troca de ator em `POST /auth/governance-lab/session/{identityKey}` existe apenas quando o catálogo
   local opt-in está habilitado. Ela não recebe senha, só parte de uma sessão já pertencente ao
