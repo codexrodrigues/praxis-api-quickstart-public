@@ -32,11 +32,7 @@ import org.praxisplatform.config.contract.DomainRuleTestBaselineEvidence;
 import org.praxisplatform.config.contract.DomainRuleTestBaselineResult;
 import org.praxisplatform.rules.contract.RuleDecision;
 import org.praxisplatform.rules.contract.RuleEvaluationResult;
-import org.praxisplatform.rules.contract.RuleSetDefinition;
-import org.praxisplatform.rules.plan.PraxisRulePlanCompiler;
 import org.praxisplatform.rules.plan.RuleDecisionPlan;
-import org.praxisplatform.rules.runtime.PraxisRuleSetEngine;
-import org.praxisplatform.rules.runtime.RuleBindingExecutorRegistry;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -44,25 +40,16 @@ import org.springframework.web.server.ResponseStatusException;
 public class PolicyStudioSandboxService {
     private static final ObjectMapper JSON = new ObjectMapper();
     private final DomainRuleChangeWorkspaceService workspaceService;
-    private final ExtraordinaryGrantRuleLabService activeService;
-    private final ExtraordinaryGrantRuleSnapshotRuntime activeRuntime;
     private final DomainRuleTestRunService testRunService;
-    private final PraxisRulePlanCompiler candidateCompiler;
-    private final PraxisRuleSetEngine candidateEngine;
+    private final PolicyStudioSandboxRuleSetRegistry ruleSets;
 
     public PolicyStudioSandboxService(
             DomainRuleChangeWorkspaceService workspaceService,
-            ExtraordinaryGrantRuleLabService activeService,
-            ExtraordinaryGrantRuleSnapshotRuntime activeRuntime,
             DomainRuleTestRunService testRunService,
-            RuleBindingExecutorRegistry registry) {
+            PolicyStudioSandboxRuleSetRegistry ruleSets) {
         this.workspaceService = Objects.requireNonNull(workspaceService, "workspaceService is required");
-        this.activeService = Objects.requireNonNull(activeService, "activeService is required");
-        this.activeRuntime = Objects.requireNonNull(activeRuntime, "activeRuntime is required");
         this.testRunService = Objects.requireNonNull(testRunService, "testRunService is required");
-        RuleBindingExecutorRegistry trustedRegistry = Objects.requireNonNull(registry, "registry is required");
-        this.candidateCompiler = new PraxisRulePlanCompiler(trustedRegistry);
-        this.candidateEngine = new PraxisRuleSetEngine(trustedRegistry);
+        this.ruleSets = Objects.requireNonNull(ruleSets, "ruleSets is required");
     }
 
     public PolicyStudioSandboxRunResponse run(
@@ -104,16 +91,14 @@ public class PolicyStudioSandboxService {
         if (selected.isEmpty()) {
             throw badRequest("At least one ACTIVE scenario is required");
         }
-        RuleDecisionPlan candidatePlan = compileCandidate(workspace);
         Instant frozenNow = command.evaluatedAtUtc();
-        ExtraordinaryGrantRuleSnapshotSession activeSession = captureActive(frozenNow);
+        var ruleSet = prepareRuleSet(workspace, frozenNow);
         List<PolicyStudioSandboxScenarioResult> results = selected.stream()
-                .map(scenario -> evaluate(scenario, candidatePlan, activeSession, frozenNow, timeZone))
+                .map(scenario -> evaluate(scenario, ruleSet, frozenNow, timeZone))
                 .toList();
-        ActiveEvidence activeEvidence = activeSession == null
-                ? new ActiveEvidence(null, null, 0)
-                : new ActiveEvidence(activeSession.snapshotKey(), activeSession.snapshotContentHash(),
-                        activeSession.activationRevision());
+        ActiveEvidence activeEvidence = new ActiveEvidence(
+                ruleSet.activeSnapshotKey(), ruleSet.activeSnapshotContentHash(),
+                ruleSet.activeActivationRevision());
         String expectationDigest = scenarioExpectationDigest(selected);
         Map<UUID, DomainRuleTestScenarioResponse> scenariosById = selected.stream()
                 .collect(Collectors.toMap(DomainRuleTestScenarioResponse::id, item -> item));
@@ -217,12 +202,11 @@ public class PolicyStudioSandboxService {
 
     private PolicyStudioSandboxScenarioResult evaluate(
             DomainRuleTestScenarioResponse scenario,
-            RuleDecisionPlan candidatePlan,
-            ExtraordinaryGrantRuleSnapshotSession activeSession,
+            PolicyStudioSandboxRuleSetProvider.PolicyStudioSandboxRuleSetSession ruleSet,
             Instant frozenNow,
             ZoneId timeZone) {
-        RuleEvaluationResult candidate = safeCandidate(candidatePlan, scenario.facts(), frozenNow, timeZone);
-        RuleEvaluationResult active = safeActive(activeSession, candidatePlan, scenario.facts(), frozenNow, timeZone);
+        RuleEvaluationResult candidate = safeCandidate(ruleSet, scenario.facts(), frozenNow, timeZone);
+        RuleEvaluationResult active = safeActive(ruleSet, scenario.facts(), frozenNow, timeZone);
         String expected = scenario.expectedDecision();
         String candidateDecision = candidate.decision().name();
         String activeDecision = active.decision().name();
@@ -280,63 +264,46 @@ public class PolicyStudioSandboxService {
         return candidate.equals(active) ? "MATCH" : "MISMATCH";
     }
 
-    private RuleDecisionPlan compileCandidate(DomainRuleChangeWorkspaceResponse workspace) {
+    private PolicyStudioSandboxRuleSetProvider.PolicyStudioSandboxRuleSetSession prepareRuleSet(
+            DomainRuleChangeWorkspaceResponse workspace, Instant nowUtc) {
         if (workspace.condition() == null || !workspace.condition().isObject()) {
             throw unprocessable("Workspace condition must be a JSON Logic object");
         }
-        RuleSetDefinition baseline = ExtraordinaryGrantRuleSetFactory.definition();
-        boolean replaceable = ExtraordinaryGrantRuleSetComposer.governedBindings(baseline).stream()
-                .anyMatch(binding -> binding.bindingKey().equals(workspace.ruleKey()));
-        if (!replaceable) {
-            throw unprocessable("Workspace ruleKey is not a replaceable binding in this host RuleSet");
-        }
         try {
-            RuleSetDefinition materialized = ExtraordinaryGrantRuleSetComposer.withCondition(
-                    baseline, workspace.ruleKey(), workspace.condition());
-            return candidateCompiler.compile(materialized);
+            return ruleSets.require(workspace.ruleKey())
+                    .prepare(workspace.ruleKey(), workspace.condition(), nowUtc);
+        } catch (ResponseStatusException exception) {
+            throw exception;
         } catch (RuntimeException exception) {
             throw unprocessable("Candidate RuleSet could not be compiled: " + safeCode(exception));
         }
     }
 
     private RuleEvaluationResult safeCandidate(
-            RuleDecisionPlan plan, JsonNode facts, Instant now, ZoneId timeZone) {
+            PolicyStudioSandboxRuleSetProvider.PolicyStudioSandboxRuleSetSession ruleSet,
+            JsonNode facts, Instant now, ZoneId timeZone) {
         try {
-            return candidateEngine.evaluate(plan, facts, now.toString(), timeZone.getId());
+            return ruleSet.evaluateCandidate(facts, now, timeZone);
         } catch (RuntimeException exception) {
-            return technicalResult(plan, facts, safeCode(exception));
+            return technicalResult(ruleSet.candidatePlan(), safeCode(exception));
         }
     }
 
     private RuleEvaluationResult safeActive(
-            ExtraordinaryGrantRuleSnapshotSession session,
-            RuleDecisionPlan candidatePlan,
-            JsonNode facts,
-            Instant now,
-            ZoneId timeZone) {
-        if (session == null) {
-            return technicalResult(candidatePlan, facts, "ACTIVE_SNAPSHOT_UNAVAILABLE");
-        }
+            PolicyStudioSandboxRuleSetProvider.PolicyStudioSandboxRuleSetSession ruleSet,
+            JsonNode facts, Instant now, ZoneId timeZone) {
         try {
-            return activeService.evaluateSandboxWithSnapshot(session, facts, now, timeZone).result();
+            return ruleSet.evaluateActive(facts, now, timeZone);
         } catch (RuntimeException exception) {
-            return technicalResult(candidatePlan, facts, safeCode(exception));
+            return technicalResult(ruleSet.activePlan(), safeCode(exception));
         }
     }
 
-    private RuleEvaluationResult technicalResult(RuleDecisionPlan plan, JsonNode facts, String code) {
+    private RuleEvaluationResult technicalResult(RuleDecisionPlan plan, String code) {
         return new RuleEvaluationResult(
                 RuleDecision.TECHNICAL_ERROR, plan.definition().ref(), plan.planDigest(),
                 List.of(), List.of(code), "0".repeat(64), plan.definition().compatibility(),
                 plan.implementationRefs(), plan.definition().failPolicy(), List.of());
-    }
-
-    private ExtraordinaryGrantRuleSnapshotSession captureActive(Instant now) {
-        try {
-            return activeRuntime.captureSnapshot(now);
-        } catch (RuntimeException exception) {
-            return null;
-        }
     }
 
     private List<DomainRuleTestScenarioResponse> selectScenarios(

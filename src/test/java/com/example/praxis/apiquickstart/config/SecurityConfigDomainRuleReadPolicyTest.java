@@ -47,6 +47,7 @@ import org.springframework.web.bind.annotation.RestController;
 class SecurityConfigDomainRuleReadPolicyTest {
 
     private static final String DEFINITIONS = "/api/praxis/config/domain-rules/definitions";
+    private static final String DEFINITION_CATALOG = DEFINITIONS + "/catalog";
     private static final String TIMELINE = DEFINITIONS + "/definition-a/timeline";
     private static final String SIMULATIONS = "/api/praxis/config/domain-rules/simulations";
     private static final String WORKSPACES = "/api/praxis/config/domain-rules/workspaces";
@@ -72,6 +73,7 @@ class SecurityConfigDomainRuleReadPolicyTest {
     @Test
     void readOpenDoesNotExposeGovernedDefinitionsOrTimeline() throws Exception {
         mockMvc.perform(get(DEFINITIONS)).andExpect(result -> assertDenied(result.getResponse().getStatus()));
+        mockMvc.perform(get(DEFINITION_CATALOG)).andExpect(result -> assertDenied(result.getResponse().getStatus()));
         mockMvc.perform(get(TIMELINE)).andExpect(result -> assertDenied(result.getResponse().getStatus()));
         mockMvc.perform(get(WORKSPACES)).andExpect(result -> assertDenied(result.getResponse().getStatus()));
     }
@@ -82,6 +84,8 @@ class SecurityConfigDomainRuleReadPolicyTest {
                 "auditor", "HUMAN", List.of(RuleGovernanceAuthorities.DEFINITION_READER)));
 
         mockMvc.perform(get(DEFINITIONS).header("Authorization", "Bearer reader"))
+                .andExpect(status().isOk());
+        mockMvc.perform(get(DEFINITION_CATALOG).header("Authorization", "Bearer reader"))
                 .andExpect(status().isOk());
         mockMvc.perform(get(TIMELINE).header("Authorization", "Bearer reader"))
                 .andExpect(status().isOk());
@@ -183,7 +187,7 @@ class SecurityConfigDomainRuleReadPolicyTest {
 
     @RestController
     static class DomainRuleProbeController {
-        @GetMapping({DEFINITIONS, TIMELINE, WORKSPACES})
+        @GetMapping({DEFINITIONS, DEFINITION_CATALOG, TIMELINE, WORKSPACES})
         String read() {
             return "governed";
         }

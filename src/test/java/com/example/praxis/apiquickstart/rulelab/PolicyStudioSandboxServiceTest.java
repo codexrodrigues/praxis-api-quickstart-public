@@ -24,7 +24,13 @@ import org.praxisplatform.config.service.DomainRuleGovernancePrincipal;
 import org.praxisplatform.config.service.DomainRuleTestRunService;
 import org.praxisplatform.config.contract.DomainRuleTestRunResponse;
 import org.praxisplatform.config.contract.DomainRuleTestRunResultResponse;
+import org.praxisplatform.config.contract.PublishedRuleSnapshotHead;
+import org.praxisplatform.config.contract.PublishedRuleSnapshotHeadActivationType;
+import org.praxisplatform.rules.contract.PublishedRuleSnapshot;
+import org.praxisplatform.rules.contract.RuleSnapshotApproval;
+import org.praxisplatform.rules.contract.RuleSnapshotSource;
 import org.praxisplatform.rules.runtime.RuleBindingExecutorRegistry;
+import org.praxisplatform.rules.snapshot.PraxisRuleSnapshotCompiler;
 import org.springframework.web.server.ResponseStatusException;
 
 class PolicyStudioSandboxServiceTest {
@@ -59,16 +65,16 @@ class PolicyStudioSandboxServiceTest {
                 registry,
                 new ExtraordinaryGrantRuleRuntimeTelemetry(
                         new io.micrometer.core.instrument.simple.SimpleMeterRegistry()));
+        runtime.activate(activation(registry), "desenv", "local", NOW);
         service = new PolicyStudioSandboxService(
                 workspaceService,
-                new ExtraordinaryGrantRuleLabService(runtime),
-                runtime,
                 testRunService,
-                registry);
+                new PolicyStudioSandboxRuleSetRegistry(List.of(
+                        new ExtraordinaryGrantPolicyStudioSandboxProvider(runtime, registry))));
     }
 
     @Test
-    void evaluatesCandidateButKeepsMissingActiveSnapshotAsTechnicalError() throws Exception {
+    void evaluatesCandidateAgainstTheCapturedActiveSnapshot() throws Exception {
         stub("grant.amount-parameters", json.readTree(
                 "{\"<=\":[{\"var\":\"request.requestedAmount\"},{\"var\":\"program.maxAmount\"}]}"),
                 "ALLOW", completeFacts());
@@ -78,13 +84,13 @@ class PolicyStudioSandboxServiceTest {
                         WORKSPACE_ID, List.of(), "America/Sao_Paulo", "sandbox:allow", NOW), PRINCIPAL);
 
         assertThat(response.evaluatedAtUtc()).isEqualTo(NOW);
-        assertThat(response.activeSnapshotKey()).isNull();
+        assertThat(response.activeSnapshotKey()).isEqualTo("sandbox-active-v1");
         assertThat(response.results()).singleElement().satisfies(result -> {
             assertThat(result.candidateDecision()).isEqualTo("ALLOW");
-            assertThat(result.activeDecision()).isEqualTo("TECHNICAL_ERROR");
-            assertThat(result.comparison()).isEqualTo("TECHNICAL_ERROR");
+            assertThat(result.activeDecision()).isEqualTo("ALLOW");
+            assertThat(result.comparison()).isEqualTo("MATCH");
             assertThat(result.candidateMatchesExpected()).isTrue();
-            assertThat(result.activeMatchesExpected()).isFalse();
+            assertThat(result.activeMatchesExpected()).isTrue();
         });
         var request = ArgumentCaptor.forClass(
                 org.praxisplatform.config.contract.DomainRuleTestRunRecordRequest.class);
@@ -152,7 +158,7 @@ class PolicyStudioSandboxServiceTest {
         assertThat(prepared.recordRequest().results()).singleElement().satisfies(result -> {
             assertThat(result.scenarioId()).isEqualTo(SCENARIO_ID);
             assertThat(result.candidateDecision()).isEqualTo("ALLOW");
-            assertThat(result.activeDecision()).isEqualTo("TECHNICAL_ERROR");
+            assertThat(result.activeDecision()).isEqualTo("ALLOW");
         });
         verify(testRunService, never()).record(
                 org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(),
@@ -203,7 +209,32 @@ class PolicyStudioSandboxServiceTest {
                 new PolicyStudioSandboxRunRequest(
                         WORKSPACE_ID, List.of(), "UTC", "sandbox:foreign", NOW), PRINCIPAL))
                 .isInstanceOf(ResponseStatusException.class)
-                .hasMessageContaining("not a replaceable binding");
+                .hasMessageContaining("No executable host RuleSet provider");
+    }
+
+    @Test
+    void refusesToCreateBusinessEvidenceWhenTheHostHasNoEffectiveActiveSnapshot() throws Exception {
+        stub("grant.amount-parameters", json.readTree("{\"===\":[true,true]}"),
+                "ALLOW", completeFacts());
+        RuleBindingExecutorRegistry registry =
+                new ExtraordinaryGrantRuleLabConfiguration().extraordinaryGrantRuleExecutorRegistry();
+        var unavailableRuntime = new ExtraordinaryGrantRuleSnapshotRuntime(
+                registry,
+                new ExtraordinaryGrantRuleRuntimeTelemetry(
+                        new io.micrometer.core.instrument.simple.SimpleMeterRegistry()));
+        var unavailableService = new PolicyStudioSandboxService(
+                workspaceService, testRunService,
+                new PolicyStudioSandboxRuleSetRegistry(List.of(
+                        new ExtraordinaryGrantPolicyStudioSandboxProvider(unavailableRuntime, registry))));
+
+        assertThatThrownBy(() -> unavailableService.run(
+                new PolicyStudioSandboxRunRequest(
+                        WORKSPACE_ID, List.of(), "UTC", "sandbox:unavailable", NOW), PRINCIPAL))
+                .isInstanceOf(ResponseStatusException.class)
+                .hasMessageContaining("No effective active snapshot");
+        verify(testRunService, never()).record(
+                org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any());
     }
 
     private void stub(String ruleKey, com.fasterxml.jackson.databind.JsonNode condition,
@@ -269,5 +300,31 @@ class PolicyStudioSandboxServiceTest {
                         item.candidatePlanDigest(), item.activePlanDigest(), item.factsDigest(),
                         recordedItem.baselineResult(), "MATCH", true, true, true, true, null)),
                 "policy-author", NOW.plusSeconds(1));
+    }
+
+    private PublishedRuleSnapshotHead activation(RuleBindingExecutorRegistry registry) {
+        var definition = ExtraordinaryGrantRuleSetFactory.definition();
+        var snapshot = new PublishedRuleSnapshot(
+                PublishedRuleSnapshot.SNAPSHOT_CONTRACT_VERSION,
+                "sandbox-active-v1", "desenv", "local",
+                ExtraordinaryGrantRuleSnapshotRuntime.OWNER_SERVICE_KEY, 1,
+                NOW.minusSeconds(3600).toString(), null,
+                ExtraordinaryGrantRuleSnapshotRuntime.HOST_CONTRACT_VERSION,
+                NOW.minusSeconds(3600).toString(), null,
+                List.of(
+                        new RuleSnapshotSource("sandbox-source-1", "grant:eligibility", 1, "A".repeat(64)),
+                        new RuleSnapshotSource("sandbox-source-2", "grant:amount", 1, "B".repeat(64))),
+                List.of(
+                        new RuleSnapshotApproval("sandbox-approval-1", "RULE_DEFINITION_APPROVER",
+                                "approver-a", NOW.minusSeconds(7200).toString(), "C".repeat(64)),
+                        new RuleSnapshotApproval("sandbox-approval-2", "RULE_DEFINITION_APPROVER",
+                                "approver-b", NOW.minusSeconds(7100).toString(), "D".repeat(64))),
+                definition);
+        String contentHash = new PraxisRuleSnapshotCompiler(registry)
+                .compile(snapshot, ExtraordinaryGrantRuleSnapshotRuntime.HOST_CONTRACT_VERSION)
+                .snapshotContentHash();
+        return new PublishedRuleSnapshotHead(
+                snapshot, contentHash, "sandbox-head-1", 1,
+                PublishedRuleSnapshotHeadActivationType.ACTIVE);
     }
 }

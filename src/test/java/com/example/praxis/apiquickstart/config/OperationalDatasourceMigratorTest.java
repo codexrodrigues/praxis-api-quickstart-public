@@ -11,15 +11,29 @@ class OperationalDatasourceMigratorTest {
     void refusesToRunWithoutAnExplicitOperationalIdentity() {
         assertThatThrownBy(() -> OperationalDatasourceMigrator.migrate(Map.of()))
                 .isInstanceOf(IllegalStateException.class)
-                .hasMessage("SPRING_DATASOURCE_URL is required for operational migration");
+                .hasMessage(
+                        "OPERATIONAL_MIGRATION_DATASOURCE_URL is required for operational migration");
+    }
+
+    @Test
+    void doesNotReuseTheRuntimeDatasourceAsTheMigrationIdentity() {
+        assertThatThrownBy(() -> OperationalDatasourceMigrator.migrate(Map.of(
+                "SPRING_DATASOURCE_URL", "jdbc:postgresql://runtime.invalid/runtime",
+                "SPRING_DATASOURCE_USERNAME", "runtime",
+                "SPRING_DATASOURCE_PASSWORD", "fixture",
+                OperationalDatasourceMigrator.RUNTIME_ROLE, "runtime")))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage(
+                        "OPERATIONAL_MIGRATION_DATASOURCE_URL is required for operational migration");
     }
 
     @Test
     void rejectsUnknownBootstrapPolicyBeforeConnecting() {
         assertThatThrownBy(() -> OperationalDatasourceMigrator.migrate(Map.of(
-                "SPRING_DATASOURCE_URL", "jdbc:postgresql://invalid-config-host.invalid/invalid",
-                "SPRING_DATASOURCE_USERNAME", "fixture",
-                "SPRING_DATASOURCE_PASSWORD", "fixture",
+                OperationalDatasourceMigrator.MIGRATION_URL,
+                "jdbc:postgresql://invalid-config-host.invalid/invalid",
+                OperationalDatasourceMigrator.MIGRATION_USERNAME, "fixture",
+                OperationalDatasourceMigrator.MIGRATION_PASSWORD, "fixture",
                 OperationalDatasourceMigrator.RUNTIME_ROLE, "fixture",
                 OperationalDatasourceMigrator.BOOTSTRAP_MODE, "automatic")))
                 .isInstanceOf(IllegalStateException.class)
@@ -29,9 +43,10 @@ class OperationalDatasourceMigratorTest {
     @Test
     void requiresTheRuntimeRoleBeforeConnecting() {
         assertThatThrownBy(() -> OperationalDatasourceMigrator.migrate(Map.of(
-                "SPRING_DATASOURCE_URL", "jdbc:postgresql://invalid-config-host.invalid/invalid",
-                "SPRING_DATASOURCE_USERNAME", "migration",
-                "SPRING_DATASOURCE_PASSWORD", "fixture")))
+                OperationalDatasourceMigrator.MIGRATION_URL,
+                "jdbc:postgresql://invalid-config-host.invalid/invalid",
+                OperationalDatasourceMigrator.MIGRATION_USERNAME, "migration",
+                OperationalDatasourceMigrator.MIGRATION_PASSWORD, "fixture")))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessage("OPERATIONAL_RUNTIME_ROLE is required for operational migration");
     }

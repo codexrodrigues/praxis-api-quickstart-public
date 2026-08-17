@@ -73,6 +73,22 @@ class AppliedReactiveDeterminationResolverTest {
     }
 
     @Test
+    void exposesTheSameVerifiedAggregateAsReadOnlyPolicyStudioSandboxEvidence() {
+        when(principalResolver.resolve(isNull(HttpServletRequest.class), isNull(), isNull(), isNull()))
+                .thenReturn(new AiPrincipalContext("tenant-a", "policy-author", "prod", true));
+        PublishedRuleSnapshotHead active = head("tenant-a", "prod", 1, 4, "head-payroll-4", 7, 9);
+        when(headReader.findActive(scope("tenant-a", "prod"))).thenReturn(Optional.of(active));
+
+        var sandbox = resolver().capturePolicyStudioSandboxSnapshot();
+
+        assertThat(sandbox.activePlan().definition().ref().ruleSetKey())
+                .isEqualTo(PayrollReactiveDeterminationRuleSet.RULE_SET_KEY);
+        assertThat(sandbox.snapshotKey()).isEqualTo(active.snapshot().snapshotKey());
+        assertThat(sandbox.snapshotContentHash()).isEqualTo(active.snapshotContentHash());
+        assertThat(sandbox.activationRevision()).isEqualTo(4);
+    }
+
+    @Test
     void keepsTenantHeadsIndependent() {
         when(principalResolver.resolve(isNull(HttpServletRequest.class), isNull(), isNull(), isNull()))
                 .thenReturn(

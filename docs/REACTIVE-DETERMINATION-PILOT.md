@@ -69,6 +69,19 @@ GET /schemas/filtered?path=/api/human-resources/enderecos&operation=post&schemaT
 
 ## Evidencia automatizada
 
+A projecao derivada para o Policy Studio fica em
+`src/test/resources/policy-studio/payroll-reactive-determinations-policy-studio-projection.v1.json`.
+Ela referencia o RuleSet, os bindings reativos e esta fronteira operacional por
+digest; nao replica conditions, IDs Config nem autoridade. O teste de contrato
+falha quando identidade, ordem, facts, bindings ou hashes deixam de representar
+a implementacao host-owned.
+
+O sandbox do Policy Studio resolve as duas `ruleKey` de folha por identidade canônica e captura o
+mesmo plano ativo já admitido por `AppliedReactiveDeterminationResolver`. O candidato troca apenas
+a condição do binding selecionado; o active, o head, o hash e a revisão permanecem imutáveis. Essa
+lane compara a decisão determinística e não executa os providers financeiros, persiste folha ou
+produz efeitos operacionais.
+
 Os testes unitarios cobrem lookup, as duas decisoes financeiras, a revalidacao integral da cadeia,
 tenant A/B, v1/v2, rollback anti-ABA, hash/provenance e pinagem do aggregate. O teste HTTP isolado
 cobre os dois bindings em create e edit, ausencia no response schema, projecao sem tenant/headers e
@@ -112,6 +125,20 @@ producao corporativa. Os hosts iniciam com `ddl-auto=validate`, nunca `update`.
 cada tenant. O payload vem diretamente de `PayrollReactiveDeterminationRuleSet`; o provisioner nao
 copia o grafo em Python. Em repeticao, ele verifica owner, tenant, environment, host contract, as
 duas definicoes aprovadas, o RuleSet completo e o catalogo imutavel `[1,2]`, sem republicar conteudo.
+No smoke de um laboratorio corporativo persistente, o modo opt-in
+`HOSTED_FIXTURE_GOVERNANCE_LAB_BOOTSTRAP=true` deriva sessoes independentes de author e dos dois
+composition approvers a partir da sessao publisher ja configurada no proprio laboratorio. O tenant
+e o environment continuam sendo resolvidos pelo servidor; o runner nao os inventa nem transforma
+headers de escopo em autoridade. Esse modo e exclusivo do governance lab e nao substitui IdP/IAM
+em hosts corporativos.
+Como esse laboratorio e persistente, um head cujo intervalo de validade terminou e renovado por uma
+nova versao monotônica e imutavel do mesmo RuleSet, novamente ligada ao manifest e as duas
+composition approvals. A prova descartavel preserva o contrato fechado `[1,2]`; somente o modo
+persistente aceita a sequencia historica crescente e comprova que o catalogo contem o novo head.
+Quando um head ja existe, o provisioner reutiliza somente os `definitionId` explicitamente ligados
+a suas sources imutaveis. Sem head, ele cria novas versoes por maker-checker; nao promove uma
+definition historica apenas porque seu status textual e `approved`, pois ela pode anteceder as
+evidencias autenticadas e hash-bound exigidas pelo compositor atual.
 
 Por fim, `Invoke-PayrollReactiveDeterminationHostedSmoke.sh` exige quatro sessoes
 independentes: publisher A/B para a prova negativa e business admin A/B para as avaliacoes. Nunca

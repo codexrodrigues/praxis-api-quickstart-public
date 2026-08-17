@@ -36,6 +36,13 @@ jobs:
         shell: bash
         run: bash -n scripts/verify-reactive-determinations-published-runtime.sh
 
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
       - name: Verify governed identity prerequisites
         shell: bash
         run: |
@@ -48,6 +55,29 @@ jobs:
             echo "APP_AUTH_GOVERNANCE_PUBLISHER_USERNAME and APP_AUTH_GOVERNANCE_PUBLISHER_PASSWORD must be provisioned as repository or environment secrets." >&2
             exit 1
           fi
+
+      - name: Package canonical payroll aggregate
+        shell: bash
+        run: mvn -B -DskipTests package
+
+      - name: Ensure governed payroll snapshot head
+        shell: bash
+        env:
+          HOSTED_FIXTURE_BASE_URL: ${{ inputs.backend_url }}
+          HOSTED_FIXTURE_ORIGIN: https://praxisui.dev
+          HOSTED_FIXTURE_GOVERNANCE_LAB_BOOTSTRAP: 'true'
+          HOSTED_FIXTURE_PUBLISHER_USERNAME: ${{ secrets.APP_AUTH_GOVERNANCE_PUBLISHER_USERNAME }}
+          HOSTED_FIXTURE_PUBLISHER_PASSWORD: ${{ secrets.APP_AUTH_GOVERNANCE_PUBLISHER_PASSWORD }}
+          HOSTED_FIXTURE_OUTPUT: ${{ runner.temp }}/payroll-snapshot-provision.json
+        run: |
+          set -euo pipefail
+          app_jar="$(find target -maxdepth 1 -type f -name '*.jar' ! -name '*.original' -print -quit)"
+          if [[ -z "${app_jar}" ]]; then
+            echo "Packaged Quickstart jar was not found." >&2
+            exit 1
+          fi
+          HOSTED_FIXTURE_APP_JAR="${app_jar}" \
+            python3 scripts/workspace/Provision-PayrollReactiveDeterminationHostedFixture.py
 
       - name: Run authenticated reactive-determination smoke
         shell: bash

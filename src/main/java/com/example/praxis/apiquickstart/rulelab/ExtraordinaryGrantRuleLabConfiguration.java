@@ -1,5 +1,6 @@
 package com.example.praxis.apiquickstart.rulelab;
 
+import com.example.praxis.apiquickstart.config.AppliedReactiveDeterminationResolver;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -218,12 +219,20 @@ public class ExtraordinaryGrantRuleLabConfiguration {
     @Bean
     PolicyStudioSandboxService policyStudioSandboxService(
             DomainRuleChangeWorkspaceService workspaceService,
-            ExtraordinaryGrantRuleLabService activeService,
-            ExtraordinaryGrantRuleSnapshotRuntime activeRuntime,
             DomainRuleTestRunService testRunService,
-            @Qualifier("extraordinaryGrantRuleExecutorRegistry") RuleBindingExecutorRegistry registry) {
-        return new PolicyStudioSandboxService(
-                workspaceService, activeService, activeRuntime, testRunService, registry);
+            PolicyStudioSandboxRuleSetRegistry ruleSets) {
+        return new PolicyStudioSandboxService(workspaceService, testRunService, ruleSets);
+    }
+
+    /** Resolves exact host-owned RuleSet families without inferring identity from labels or text. */
+    @Bean
+    PolicyStudioSandboxRuleSetRegistry policyStudioSandboxRuleSetRegistry(
+            ExtraordinaryGrantRuleSnapshotRuntime activeRuntime,
+            @Qualifier("extraordinaryGrantRuleExecutorRegistry") RuleBindingExecutorRegistry registry,
+            AppliedReactiveDeterminationResolver payrollResolver) {
+        return new PolicyStudioSandboxRuleSetRegistry(List.of(
+                new ExtraordinaryGrantPolicyStudioSandboxProvider(activeRuntime, registry),
+                new PayrollPolicyStudioSandboxProvider(payrollResolver)));
     }
 
     /** Keeps host composition separate from Config persistence and browser orchestration. */

@@ -43,11 +43,20 @@ independente; o Quickstart não inventa um oracle copiando a decisão candidata.
 cenários de um workspace. A operação exige `ROLE_RULE_DEFINITION_AUTHOR`, resolve o escopo pelo
 principal do servidor e nunca executa efeitos ou persiste recursos operacionais.
 
-O Quickstart substitui somente o binding cujo `ruleKey` existe no RuleSet neutro, compila o grafo
-completo com o registry executável do host e captura uma única sessão do snapshot ativo para toda a
-bateria. Facts, instante UTC e timezone são compartilhados entre candidato e ativo. O resultado
+O Quickstart resolve o `ruleKey` exato em um registry host-owned de famílias de RuleSet; não usa
+labels, palavras-chave nem inferência textual. Cada provider substitui somente o binding governado
+no grafo que o próprio host admitiu como ativo, compila o candidato com o registry executável da
+família e captura uma única sessão do snapshot ativo para toda a bateria. O Rule Lab de benefício
+extraordinário preserva seus executores Java; a folha usa o mesmo aggregate tenant-scoped e a mesma
+proteção fresh/LKG já consumidos pelas capabilities reativas. Facts, instante UTC e timezone são
+compartilhados entre candidato e ativo. O resultado
 preserva `MATCH`, `MISMATCH`, `INCONCLUSIVE` e `TECHNICAL_ERROR`; indisponibilidade do snapshot
 ativo jamais é convertida em `DENY`.
+
+Um `ruleKey` sem provider, duplicado entre providers ou incompatível com o snapshot ativo falha
+fechado antes da persistência do Test Run. Falhas durante a avaliação de um plano já capturado são
+registradas como `TECHNICAL_ERROR`. Essa distinção evita apresentar ausência de executor host-owned
+como evidência de negócio.
 
 O retorno inclui a revisão e fingerprint do workspace, identidade do snapshot ativo, decisões,
 outputs por binding, reason codes, intenções de efeito planejadas, plan digests e facts digest.
@@ -82,11 +91,13 @@ workspace, persistir o draft, manter cenários e executar o sandbox, mas não co
 ativar sua própria mudança.
 
 Para que a comparação candidate × active seja elegível à submissão, deve existir um snapshot ativo
-do RuleSet `extraordinary-grant-eligibility`. Ele é provisionado pelo fluxo maker-checker oficial
+da família correspondente. O RuleSet `extraordinary-grant-eligibility` é provisionado pelo fluxo maker-checker oficial
 `scripts/workspace/Initialize-RuleLabQl07Snapshot.ps1`, que exige autor, duas identidades
 aprovadoras, publicador, operador e auditor distintos configurados no ambiente. Sem esse baseline, o sandbox
-registra `TECHNICAL_ERROR` para active e o Config bloqueia a submissão; não se deve contornar esse
-gate ou converter a indisponibilidade em sucesso.
+recusa o comando antes de criar evidência; não se deve contornar esse gate ou converter a
+indisponibilidade em sucesso. Para folha, o provider captura o head
+`human-resources.payroll.reactive-determinations` já validado pelo resolver operacional, incluindo
+tenant, environment, hash, vigência, revisão monotônica e rollback anti-ABA.
 
 O provisionador não cita mais definições genéricas. Ele resolve exatamente os
 sete `ruleKey` do Policy Studio, garante aprovação autenticada, entrega esses

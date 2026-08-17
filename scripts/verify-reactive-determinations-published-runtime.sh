@@ -19,11 +19,15 @@ if [[ -z "${ADMIN_PASSWORD}" ]]; then
   echo "ADMIN_PASSWORD or PRACTICE_TEMP_PASSWORD is required." >&2
   exit 1
 fi
-if [[ -z "${AUTHOR_USERNAME}" || -z "${AUTHOR_PASSWORD}" || -z "${PUBLISHER_USERNAME}" || -z "${PUBLISHER_PASSWORD}" ]]; then
-  echo "Distinct governed author and publisher identities are required through AUTHOR_*/PUBLISHER_* or the matching APP_AUTH_GOVERNANCE_* variables." >&2
+if [[ -z "${PUBLISHER_USERNAME}" || -z "${PUBLISHER_PASSWORD}" ]]; then
+  echo "A governed publisher identity is required through PUBLISHER_* or the matching APP_AUTH_GOVERNANCE_* variables." >&2
   exit 1
 fi
-if [[ "${AUTHOR_USERNAME}" == "${PUBLISHER_USERNAME}" ]]; then
+if [[ -n "${AUTHOR_USERNAME}" && -z "${AUTHOR_PASSWORD}" ]] || [[ -z "${AUTHOR_USERNAME}" && -n "${AUTHOR_PASSWORD}" ]]; then
+  echo "AUTHOR_USERNAME and AUTHOR_PASSWORD must be provided together." >&2
+  exit 1
+fi
+if [[ -n "${AUTHOR_USERNAME}" && "${AUTHOR_USERNAME}" == "${PUBLISHER_USERNAME}" ]]; then
   echo "Author and publisher identities must be distinct." >&2
   exit 1
 fi
@@ -63,8 +67,23 @@ authenticate() {
 }
 
 authenticate executor "${ADMIN_USERNAME}" "${ADMIN_PASSWORD}" "${executor_cookie_jar}"
-authenticate author "${AUTHOR_USERNAME}" "${AUTHOR_PASSWORD}" "${author_cookie_jar}"
 authenticate publisher "${PUBLISHER_USERNAME}" "${PUBLISHER_PASSWORD}" "${publisher_cookie_jar}"
+
+if [[ -n "${AUTHOR_USERNAME}" ]]; then
+  authenticate author "${AUTHOR_USERNAME}" "${AUTHOR_PASSWORD}" "${author_cookie_jar}"
+else
+  cp "${publisher_cookie_jar}" "${author_cookie_jar}"
+  author_switch_status="$(curl -sS -X POST "${BACKEND_URL%/}/auth/governance-lab/session/author" \
+    -b "${author_cookie_jar}" \
+    -c "${author_cookie_jar}" \
+    -H "Origin: ${ORIGIN}" \
+    -o "${run_dir}/author-switch-response.json" \
+    -w '%{http_code}')"
+  if [[ "${author_switch_status}" != "200" && "${author_switch_status}" != "204" ]]; then
+    echo "Governance author session could not be established (HTTP ${author_switch_status}). Configure AUTHOR_* for hosts without the governance lab." >&2
+    exit 1
+  fi
+fi
 
 session_status="$(curl -sS "${BACKEND_URL%/}/auth/session" \
   -b "${publisher_cookie_jar}" \

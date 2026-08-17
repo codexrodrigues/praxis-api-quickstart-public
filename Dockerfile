@@ -10,5 +10,6 @@ WORKDIR /app
 ENV PORT=8088
 ENV JAVA_OPTS="-XX:+UseContainerSupport -XX:MaxRAMPercentage=60.0 -XX:InitialRAMPercentage=25.0 -XX:MaxMetaspaceSize=160m -Dfile.encoding=UTF-8"
 COPY --from=build /app/target/*.jar /app/app.jar
+COPY --chmod=0755 scripts/workspace/Invoke-OperationalDatasourceMigrations.sh /app/bin/praxis-operational-migrate
 EXPOSE 8088
 CMD ["sh","-c","java $JAVA_OPTS -jar /app/app.jar"]

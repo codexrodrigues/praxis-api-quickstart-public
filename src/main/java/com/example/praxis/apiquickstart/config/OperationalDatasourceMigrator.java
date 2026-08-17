@@ -20,6 +20,9 @@ public final class OperationalDatasourceMigrator {
     static final String HOSTED_FIXTURE_BASELINE_VERSION = "20260701";
     static final String BOOTSTRAP_MODE = "PRAXIS_OPERATIONAL_BOOTSTRAP_MODE";
     static final String RUNTIME_ROLE = "OPERATIONAL_RUNTIME_ROLE";
+    static final String MIGRATION_URL = "OPERATIONAL_MIGRATION_DATASOURCE_URL";
+    static final String MIGRATION_USERNAME = "OPERATIONAL_MIGRATION_DATASOURCE_USERNAME";
+    static final String MIGRATION_PASSWORD = "OPERATIONAL_MIGRATION_DATASOURCE_PASSWORD";
 
     private OperationalDatasourceMigrator() {}
 
@@ -34,9 +37,9 @@ public final class OperationalDatasourceMigrator {
 
     static MigrateResult migrate(Map<String, String> environment) {
         Objects.requireNonNull(environment, "environment");
-        String url = required(environment, "SPRING_DATASOURCE_URL");
-        String username = required(environment, "SPRING_DATASOURCE_USERNAME");
-        String password = required(environment, "SPRING_DATASOURCE_PASSWORD");
+        String url = required(environment, MIGRATION_URL);
+        String username = required(environment, MIGRATION_USERNAME);
+        String password = required(environment, MIGRATION_PASSWORD);
         OperationalDatasourceBootstrapMode mode = OperationalDatasourceBootstrapMode.parse(
                 environment.get(BOOTSTRAP_MODE));
         String runtimeRole = required(environment, RUNTIME_ROLE);

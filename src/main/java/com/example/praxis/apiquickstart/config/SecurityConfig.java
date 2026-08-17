@@ -209,6 +209,7 @@ public class SecurityConfig {
                     .hasAuthority(com.example.praxis.apiquickstart.security.RuleGovernanceAuthorities.SNAPSHOT_PUBLISHER)
                 .requestMatchers(HttpMethod.GET,
                         "/api/praxis/config/domain-rules/definitions",
+                        "/api/praxis/config/domain-rules/definitions/catalog",
                         "/api/praxis/config/domain-rules/definitions/*/timeline",
                         "/api/praxis/config/domain-rules/materializations",
                         "/api/praxis/config/domain-rules/workspaces/**")

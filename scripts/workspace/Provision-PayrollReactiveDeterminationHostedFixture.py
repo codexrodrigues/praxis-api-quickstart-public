@@ -14,6 +14,7 @@ import sys
 import urllib.error
 import urllib.parse
 import urllib.request
+from datetime import datetime, timezone
 
 RULE_SET_KEY = "human-resources.payroll.reactive-determinations"
 OWNER_SERVICE_KEY = "praxis-api-quickstart"
@@ -31,28 +32,54 @@ def required(name: str) -> str:
 
 BASE_URL = required("HOSTED_FIXTURE_BASE_URL").rstrip("/")
 ORIGIN = required("HOSTED_FIXTURE_ORIGIN")
-TENANT = required("HOSTED_FIXTURE_TENANT")
-ENVIRONMENT = required("HOSTED_FIXTURE_ENVIRONMENT")
+GOVERNANCE_LAB_BOOTSTRAP = os.environ.get(
+    "HOSTED_FIXTURE_GOVERNANCE_LAB_BOOTSTRAP", "false"
+).lower() == "true"
+TENANT = os.environ.get("HOSTED_FIXTURE_TENANT", "").strip()
+ENVIRONMENT = os.environ.get("HOSTED_FIXTURE_ENVIRONMENT", "").strip()
 APP_JAR = pathlib.Path(required("HOSTED_FIXTURE_APP_JAR"))
 OUTPUT = pathlib.Path(required("HOSTED_FIXTURE_OUTPUT"))
 if not APP_JAR.is_file():
     raise SystemExit("HOSTED_FIXTURE_APP_JAR must reference the packaged Quickstart jar")
 
-IDENTITIES = {
-    "author": (required("HOSTED_FIXTURE_AUTHOR_USERNAME"), required("HOSTED_FIXTURE_AUTHOR_PASSWORD")),
-    "approverA": (required("HOSTED_FIXTURE_APPROVER_A_USERNAME"), required("HOSTED_FIXTURE_APPROVER_A_PASSWORD")),
-    "approverB": (required("HOSTED_FIXTURE_APPROVER_B_USERNAME"), required("HOSTED_FIXTURE_APPROVER_B_PASSWORD")),
-    "publisher": (required("HOSTED_FIXTURE_PUBLISHER_USERNAME"), required("HOSTED_FIXTURE_PUBLISHER_PASSWORD")),
-}
-if len({username for username, _ in IDENTITIES.values()}) != 4:
-    raise SystemExit("Author, publisher and both composition approvers must be distinct")
+if GOVERNANCE_LAB_BOOTSTRAP:
+    publisher_credentials = (
+        required("HOSTED_FIXTURE_PUBLISHER_USERNAME"),
+        required("HOSTED_FIXTURE_PUBLISHER_PASSWORD"),
+    )
+    IDENTITIES = {key: publisher_credentials for key in ("author", "approverA", "approverB", "publisher")}
+    APPROVER_USERNAMES = {
+        "approverA": os.environ.get(
+            "HOSTED_FIXTURE_APPROVER_A_USERNAME", "praxis-governance-approver-a"
+        ).strip(),
+        "approverB": os.environ.get(
+            "HOSTED_FIXTURE_APPROVER_B_USERNAME", "praxis-governance-approver-b"
+        ).strip(),
+    }
+else:
+    if not TENANT or not ENVIRONMENT:
+        raise SystemExit("HOSTED_FIXTURE_TENANT and HOSTED_FIXTURE_ENVIRONMENT are required")
+    IDENTITIES = {
+        "author": (required("HOSTED_FIXTURE_AUTHOR_USERNAME"), required("HOSTED_FIXTURE_AUTHOR_PASSWORD")),
+        "approverA": (required("HOSTED_FIXTURE_APPROVER_A_USERNAME"), required("HOSTED_FIXTURE_APPROVER_A_PASSWORD")),
+        "approverB": (required("HOSTED_FIXTURE_APPROVER_B_USERNAME"), required("HOSTED_FIXTURE_APPROVER_B_PASSWORD")),
+        "publisher": (required("HOSTED_FIXTURE_PUBLISHER_USERNAME"), required("HOSTED_FIXTURE_PUBLISHER_PASSWORD")),
+    }
+    if len({username for username, _ in IDENTITIES.values()}) != 4:
+        raise SystemExit("Author, publisher and both composition approvers must be distinct")
+    APPROVER_USERNAMES = {
+        "approverA": IDENTITIES["approverA"][0],
+        "approverB": IDENTITIES["approverB"][0],
+    }
 
 COMMON_HEADERS = {
     "Accept": "application/json",
     "Origin": ORIGIN,
-    "X-Tenant-ID": TENANT,
-    "X-Env": ENVIRONMENT,
 }
+if TENANT:
+    COMMON_HEADERS["X-Tenant-ID"] = TENANT
+if ENVIRONMENT:
+    COMMON_HEADERS["X-Env"] = ENVIRONMENT
 
 
 class Response:
@@ -93,16 +120,43 @@ class Client:
             result = Response(error.code, parsed, dict(error.headers))
         if result.status not in expected:
             safe_code = result.body.get("code") if isinstance(result.body, dict) else None
-            raise RuntimeError(f"HTTP {result.status} for {method} {path}; code={safe_code}")
+            safe_message = result.body.get("message") if isinstance(result.body, dict) else None
+            raise RuntimeError(
+                f"HTTP {result.status} for {method} {path}; code={safe_code}; message={safe_message}"
+            )
         return result
 
     def login(self, username: str, password: str):
-        self.request("POST", "/auth/login", {"username": username, "password": password}, expected=(204,))
+        self.request("POST", "/auth/login", {"username": username, "password": password}, expected=(200, 204))
+
+    def switch_governance_identity(self, identity_key: str):
+        self.request(
+            "POST", f"/auth/governance-lab/session/{identity_key}", expected=(200, 204)
+        )
 
 
 clients = {key: Client() for key in IDENTITIES}
 for key, client in clients.items():
     client.login(*IDENTITIES[key])
+if GOVERNANCE_LAB_BOOTSTRAP:
+    for client_key, identity_key in (
+        ("author", "author"),
+        ("approverA", "approver-a"),
+        ("approverB", "approver-b"),
+    ):
+        clients[client_key].switch_governance_identity(identity_key)
+
+
+def read_head():
+    query = urllib.parse.quote(RULE_SET_KEY, safe="")
+    return clients["publisher"].request(
+        "GET",
+        f"/api/praxis/config/domain-rules/snapshots/head?ruleSetKey={query}",
+        expected=(200, 404),
+    )
+
+
+INITIAL_HEAD = read_head()
 
 
 def approved_definition(rule_key: str, reviewer_key: str, operation: str, condition) -> str:
@@ -110,18 +164,23 @@ def approved_definition(rule_key: str, reviewer_key: str, operation: str, condit
     definitions = clients["publisher"].request(
         "GET", f"/api/praxis/config/domain-rules/definitions?ruleKey={query}", expected=(200,)
     ).body
-    approved = [item for item in definitions if item.get("status") in ("approved", "active")]
-    if len(approved) > 1:
-        versions = {item.get("version") for item in approved}
-        if len(versions) != len(approved):
-            raise RuntimeError(f"Ambiguous approved definition history for {rule_key}")
-    if approved:
-        return max(approved, key=lambda item: item["version"])["id"]
+    if INITIAL_HEAD.status == 200:
+        bound_sources = [
+            source
+            for source in INITIAL_HEAD.body.get("snapshot", {}).get("sources", [])
+            if source.get("definitionKey") == rule_key
+        ]
+        if len(bound_sources) != 1 or not bound_sources[0].get("definitionId"):
+            raise RuntimeError(f"Published payroll head does not bind exactly one source for {rule_key}")
+        return bound_sources[0]["definitionId"]
 
-    reviewer = IDENTITIES[reviewer_key][0]
+    known_versions = [item.get("version") for item in definitions if isinstance(item.get("version"), int)]
+    next_version = max(known_versions, default=0) + 1
+
+    reviewer = APPROVER_USERNAMES[reviewer_key]
     request = {
         "ruleKey": rule_key,
-        "version": 1,
+        "version": next_version,
         "ruleType": "selection_eligibility",
         "status": "draft",
         "contextKey": "human-resources",
@@ -196,22 +255,17 @@ def payload(version: int):
     return json.loads(raw.strip().splitlines()[-1])
 
 
-def head():
-    query = urllib.parse.quote(RULE_SET_KEY, safe="")
-    return clients["publisher"].request(
-        "GET",
-        f"/api/praxis/config/domain-rules/snapshots/head?ruleSetKey={query}",
-        expected=(200, 404),
-    )
-
-
 def validate_head(response: Response, expected_version: int):
     if response.status != 200:
         raise RuntimeError("Expected a published payroll snapshot head")
     snapshot = response.body.get("snapshot", {})
     expected = payload(expected_version)
-    if snapshot.get("tenantId") != TENANT or snapshot.get("environment") != ENVIRONMENT:
+    if TENANT and snapshot.get("tenantId") != TENANT:
         raise RuntimeError("Published payroll head escaped the requested tenant/environment scope")
+    if ENVIRONMENT and snapshot.get("environment") != ENVIRONMENT:
+        raise RuntimeError("Published payroll head escaped the requested tenant/environment scope")
+    if not snapshot.get("tenantId") or not snapshot.get("environment"):
+        raise RuntimeError("Published payroll head did not resolve a server-owned scope")
     if snapshot.get("ownerServiceKey") != OWNER_SERVICE_KEY:
         raise RuntimeError("Published payroll head has an unexpected owner")
     if snapshot.get("requiredHostContractVersion") != HOST_CONTRACT_VERSION:
@@ -220,6 +274,14 @@ def validate_head(response: Response, expected_version: int):
         raise RuntimeError("Published payroll head differs from the canonical host RuleSet")
     if sorted(item.get("definitionId") for item in snapshot.get("sources", [])) != sorted((net_id, date_id)):
         raise RuntimeError("Published payroll head is not bound to the approved hosted definitions")
+
+
+def head_is_effective(response: Response) -> bool:
+    snapshot = response.body.get("snapshot", {})
+    valid_until = snapshot.get("validUntilUtc")
+    if not valid_until:
+        return True
+    return datetime.fromisoformat(valid_until.replace("Z", "+00:00")) > datetime.now(timezone.utc)
 
 
 def publish(version: int, current: Response | None):
@@ -237,13 +299,14 @@ def publish(version: int, current: Response | None):
     precondition = {"If-None-Match": "*"} if current is None else {
         "If-Match": current.headers.get("ETag", f'"{current.body["headEtag"]}"')
     }
-    return clients["publisher"].request(
+    clients["publisher"].request(
         "POST", "/api/praxis/config/domain-rules/snapshots", candidate,
         headers=precondition, expected=(201,)
     )
+    return read_head()
 
 
-current = head()
+current = INITIAL_HEAD
 status = "VERIFIED_EXISTING"
 if current.status == 404:
     v1 = publish(1, None)
@@ -255,35 +318,49 @@ else:
         validate_head(current, 1)
         current = publish(2, current)
         status = "RESUMED"
+    elif GOVERNANCE_LAB_BOOTSTRAP and isinstance(current_version, int) and current_version >= 2:
+        validate_head(current, current_version)
+        if not head_is_effective(current):
+            current = publish(current_version + 1, current)
+            status = "RENEWED"
     elif current_version != 2:
         raise RuntimeError("Hosted payroll fixture found an incompatible active RuleSet version")
 
-validate_head(current, 2)
+resolved_version = current.body["snapshot"]["ruleSet"]["ref"]["version"]
+validate_head(current, resolved_version)
+resolved_tenant = current.body["snapshot"]["tenantId"]
+resolved_environment = current.body["snapshot"]["environment"]
 catalog = clients["publisher"].request(
     "GET",
     "/api/praxis/config/domain-rules/snapshots?ruleSetKey=" + urllib.parse.quote(RULE_SET_KEY, safe="") + "&limit=10",
     expected=(200,),
 ).body
-versions = sorted(item.get("ruleSetVersion") for item in catalog if item.get("ruleSetVersion") in (1, 2))
-if versions != [1, 2]:
+catalog_versions = sorted({
+    item.get("ruleSetVersion")
+    for item in catalog
+    if isinstance(item.get("ruleSetVersion"), int)
+})
+if not GOVERNANCE_LAB_BOOTSTRAP and catalog_versions != [1, 2]:
     raise RuntimeError("Hosted payroll fixture requires exactly one immutable v1 and one immutable v2")
+if GOVERNANCE_LAB_BOOTSTRAP and resolved_version not in catalog_versions:
+    raise RuntimeError("Persistent payroll fixture catalog does not contain its active immutable version")
 
 safe = {
     "schemaVersion": "praxis-payroll-snapshot-provision/v2",
     "status": status,
     "serviceBaseUrlHash": hashlib.sha256(BASE_URL.encode()).hexdigest(),
-    "tenantHash": hashlib.sha256(TENANT.encode()).hexdigest(),
-    "environment": ENVIRONMENT,
+    "tenantHash": hashlib.sha256(resolved_tenant.encode()).hexdigest(),
+    "environment": resolved_environment,
     "ruleSetKey": RULE_SET_KEY,
-    "ruleSetVersion": 2,
+    "ruleSetVersion": resolved_version,
     "snapshotKey": current.body["snapshot"]["snapshotKey"],
     "snapshotContentHash": current.body["snapshotContentHash"],
     "activationRevision": current.body["activationRevision"],
     "headEtagHash": hashlib.sha256(current.body["headEtag"].encode()).hexdigest(),
     "distinctDefinitionApprovers": 2,
-    "verifiedImmutableVersions": versions,
+    "verifiedImmutableVersions": catalog_versions,
 }
 OUTPUT.parent.mkdir(parents=True, exist_ok=True)
 OUTPUT.write_text(json.dumps(safe, indent=2) + "\n")
 OUTPUT.chmod(0o600)
-print(json.dumps({"status": status, "ruleSetVersion": 2, "versions": versions}))
+print(json.dumps({"status": status, "ruleSetVersion": resolved_version, "versions": catalog_versions}))

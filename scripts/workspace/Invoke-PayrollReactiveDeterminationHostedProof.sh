@@ -250,12 +250,15 @@ create_host() {
   render services create --confirm --output json --name "$name" --type web_service \
     --repo https://github.com/codexrodrigues/praxis-api-quickstart --runtime docker --branch "$branch" \
     --plan standard --region oregon --health-check-path /actuator/health \
-    --pre-deploy-command 'java -Dloader.main=com.example.praxis.apiquickstart.config.OperationalDatasourceMigrator -cp /app/app.jar org.springframework.boot.loader.launch.PropertiesLauncher' \
+    --pre-deploy-command '/app/bin/praxis-operational-migrate' \
     --env-var "SPRING_PROFILES_ACTIVE=prod" \
     --env-var "SPRING_JPA_HIBERNATE_DDL_AUTO=validate" \
     --env-var "PRAXIS_OPERATIONAL_BOOTSTRAP_MODE=hosted-public-demo-fixture" \
     --env-var "SPRING_DATASOURCE_URL=jdbc:postgresql://$pg_host/$pg_database?sslmode=require" \
     --env-var "SPRING_DATASOURCE_USERNAME=$pg_user" --env-var "SPRING_DATASOURCE_PASSWORD=$pg_password" \
+    --env-var "OPERATIONAL_MIGRATION_DATASOURCE_URL=jdbc:postgresql://$pg_host/$pg_database?sslmode=require" \
+    --env-var "OPERATIONAL_MIGRATION_DATASOURCE_USERNAME=$pg_user" \
+    --env-var "OPERATIONAL_MIGRATION_DATASOURCE_PASSWORD=$pg_password" \
     --env-var "OPERATIONAL_RUNTIME_ROLE=$pg_user" \
     --env-var "CONFIG_DATASOURCE_URL=jdbc:postgresql://$proxy_id:8666/$pg_database?sslmode=require" \
     --env-var "CONFIG_DATASOURCE_USERNAME=$pg_user" --env-var "CONFIG_DATASOURCE_PASSWORD=$pg_password" \

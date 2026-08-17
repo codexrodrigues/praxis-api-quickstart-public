@@ -64,6 +64,43 @@ class OperationalDatasourceMigratorPostgresTest {
     }
 
     @Test
+    void acceptsAnEquivalentReevaluationConstraintFromAnExistingOperationalSchema() throws Exception {
+        resetSchema();
+        try (var connection = DriverManager.getConnection(
+                POSTGRES.getJdbcUrl(), POSTGRES.getUsername(), POSTGRES.getPassword());
+                var statement = connection.createStatement()) {
+            statement.execute("""
+                    create table public.extraordinary_benefit_transformation_audit (
+                        benefit_request_id bigint not null,
+                        proposal_identity_digest varchar(64) not null,
+                        facts_digest varchar(64) not null,
+                        constraint uq_extraordinary_benefit_transformation_audit_proposal_facts
+                            unique (benefit_request_id, proposal_identity_digest, facts_digest)
+                    )
+                    """);
+        }
+
+        var first = OperationalDatasourceMigrator.migrate(
+                POSTGRES.getJdbcUrl(), POSTGRES.getUsername(), POSTGRES.getPassword());
+        var second = OperationalDatasourceMigrator.migrate(
+                POSTGRES.getJdbcUrl(), POSTGRES.getUsername(), POSTGRES.getPassword());
+
+        assertThat(first.migrationsExecuted).isEqualTo(2);
+        assertThat(second.migrationsExecuted).isZero();
+        try (var connection = DriverManager.getConnection(
+                POSTGRES.getJdbcUrl(), POSTGRES.getUsername(), POSTGRES.getPassword());
+                var statement = connection.createStatement()) {
+            assertThat(count(statement, """
+                    select count(*)
+                      from pg_constraint
+                     where conrelid = 'public.extraordinary_benefit_transformation_audit'::regclass
+                       and conname = 'uq_extraordinary_benefit_transformation_audit_proposal_facts'
+                       and contype = 'u'
+                    """)).isEqualTo(1L);
+        }
+    }
+
+    @Test
     void bootstrapsTheVersionedHostedFixtureOnceAndMigratesItToTheCurrentSchema() throws Exception {
         resetSchema();
 

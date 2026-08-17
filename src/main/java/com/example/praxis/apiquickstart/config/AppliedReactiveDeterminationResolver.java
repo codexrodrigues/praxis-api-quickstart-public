@@ -14,6 +14,7 @@ import org.praxisplatform.config.service.AiPrincipalContext;
 import org.praxisplatform.config.service.AiPrincipalContextResolver;
 import org.praxisplatform.rules.contract.PublishedRuleSnapshot;
 import org.praxisplatform.rules.contract.RuleSnapshotSource;
+import org.praxisplatform.rules.plan.RuleDecisionPlan;
 import org.praxisplatform.rules.runtime.RuleBindingExecutorRegistry;
 import org.praxisplatform.rules.snapshot.PraxisRuleSnapshotCompiler;
 import org.springframework.http.HttpStatus;
@@ -80,6 +81,18 @@ public class AppliedReactiveDeterminationResolver {
     /** Resolves the governed provider selection for the downstream payroll calendar step. */
     public AppliedSelection requirePayrollPaymentDateSelection() {
         return requireAggregate().paymentDate();
+    }
+
+    /**
+     * Captures the exact payroll plan and activation evidence already admitted by the operational
+     * host. Policy Studio uses this read-only handle for candidate-versus-active comparison; it
+     * does not select providers, mutate the head, or execute payroll effects.
+     */
+    public PayrollSandboxSnapshot capturePolicyStudioSandboxSnapshot() {
+        PayrollAggregate aggregate = requireAggregate();
+        return new PayrollSandboxSnapshot(
+                aggregate.activePlan(), aggregate.snapshotKey(), aggregate.snapshotContentHash(),
+                aggregate.activationRevision());
     }
 
     private PayrollAggregate requireAggregate() {
@@ -195,6 +208,7 @@ public class AppliedReactiveDeterminationResolver {
                     head.snapshotContentHash(),
                     head.headEtag(),
                     head.activationRevision(),
+                    compiled.plan(),
                     selection(sources.get(PAYROLL_DETERMINATION_KEY),
                             PayrollReactiveDeterminationRuleSet.NET_SALARY_OPERATION),
                     selection(sources.get(PAYROLL_PAYMENT_DATE_DETERMINATION_KEY),
@@ -240,6 +254,13 @@ public class AppliedReactiveDeterminationResolver {
             String operationId
     ) {}
 
+    public record PayrollSandboxSnapshot(
+            RuleDecisionPlan activePlan,
+            String snapshotKey,
+            String snapshotContentHash,
+            long activationRevision
+    ) {}
+
     private record Scope(String tenantId, String environment) {}
 
     private record PayrollAggregate(
@@ -248,6 +269,7 @@ public class AppliedReactiveDeterminationResolver {
             String snapshotContentHash,
             String headEtag,
             long activationRevision,
+            RuleDecisionPlan activePlan,
             AppliedSelection netSalary,
             AppliedSelection paymentDate
     ) {}
