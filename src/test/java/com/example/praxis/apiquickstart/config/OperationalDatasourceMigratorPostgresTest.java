@@ -24,6 +24,7 @@ class OperationalDatasourceMigratorPostgresTest {
                 POSTGRES.getJdbcUrl(), POSTGRES.getUsername(), POSTGRES.getPassword());
                 var statement = connection.createStatement()) {
             statement.execute("create table existing_operational_fixture(id bigint primary key)");
+            createProcurementFunnelDependencies(statement);
         }
 
         var first = OperationalDatasourceMigrator.migrate(
@@ -31,14 +32,14 @@ class OperationalDatasourceMigratorPostgresTest {
         var second = OperationalDatasourceMigrator.migrate(
                 POSTGRES.getJdbcUrl(), POSTGRES.getUsername(), POSTGRES.getPassword());
 
-        assertThat(first.migrationsExecuted).isEqualTo(2);
+        assertThat(first.migrationsExecuted).isEqualTo(3);
         assertThat(second.migrationsExecuted).isZero();
         try (var connection = DriverManager.getConnection(
                 POSTGRES.getJdbcUrl(), POSTGRES.getUsername(), POSTGRES.getPassword());
                 var statement = connection.createStatement()) {
             assertThat(count(statement,
                     "select count(*) from public.praxis_api_schema_history where success"))
-                    .isEqualTo(3L); // baseline + V20260813_001 + V20260814_001
+                    .isEqualTo(4L); // baseline + V20260813_001 + V20260814_001 + V20260826_001
             assertThat(count(statement, """
                     select count(*) from pg_indexes
                     where schemaname='public'
@@ -78,6 +79,7 @@ class OperationalDatasourceMigratorPostgresTest {
                             unique (benefit_request_id, proposal_identity_digest, facts_digest)
                     )
                     """);
+            createProcurementFunnelDependencies(statement);
         }
 
         var first = OperationalDatasourceMigrator.migrate(
@@ -85,7 +87,7 @@ class OperationalDatasourceMigratorPostgresTest {
         var second = OperationalDatasourceMigrator.migrate(
                 POSTGRES.getJdbcUrl(), POSTGRES.getUsername(), POSTGRES.getPassword());
 
-        assertThat(first.migrationsExecuted).isEqualTo(2);
+        assertThat(first.migrationsExecuted).isEqualTo(3);
         assertThat(second.migrationsExecuted).isZero();
         try (var connection = DriverManager.getConnection(
                 POSTGRES.getJdbcUrl(), POSTGRES.getUsername(), POSTGRES.getPassword());
@@ -123,6 +125,21 @@ class OperationalDatasourceMigratorPostgresTest {
                     """)).isEqualTo(1L);
             assertThat(count(statement, "select count(*) from public.funcionarios")).isGreaterThan(0L);
             assertThat(count(statement, "select count(*) from public.enderecos")).isGreaterThan(0L);
+            assertThat(count(statement, "select count(*) from public.vw_supplier_procurement_funnel"))
+                    .isEqualTo(42L);
+            assertThat(count(statement, """
+                    select count(*)
+                    from public.vw_supplier_procurement_funnel current_stage
+                    join public.vw_supplier_procurement_funnel previous_stage
+                      on previous_stage.company_id = current_stage.company_id
+                     and previous_stage.stage_order = current_stage.stage_order - 1
+                    where current_stage.volume > previous_stage.volume
+                    """)).isZero();
+            assertThat(count(statement, """
+                    select count(distinct company_id)
+                    from public.vw_supplier_procurement_funnel
+                    where stage_key = 'received' and volume > 0
+                    """)).isGreaterThanOrEqualTo(2L);
             assertThat(count(statement, "select count(*) from public.praxis_api_schema_history where success"))
                     .isEqualTo(first.migrationsExecuted + 1L);
             assertThat(count(statement, """
@@ -189,6 +206,41 @@ class OperationalDatasourceMigratorPostgresTest {
             statement.execute("drop schema public cascade");
             statement.execute("create schema public authorization current_user");
         }
+    }
+
+    private static void createProcurementFunnelDependencies(java.sql.Statement statement) throws Exception {
+        statement.execute("""
+                create table public.procurement_companies (
+                    id integer primary key,
+                    legal_name varchar(255) not null
+                )
+                """);
+        statement.execute("""
+                create table public.procurement_suppliers (
+                    id integer primary key,
+                    company_id integer not null,
+                    homologation_status varchar(255),
+                    status varchar(255)
+                )
+                """);
+        statement.execute("""
+                create table public.procurement_contracts (
+                    id integer primary key,
+                    company_id integer not null,
+                    supplier_id integer not null,
+                    status varchar(255)
+                )
+                """);
+        statement.execute("""
+                create table public.procurement_purchase_orders (
+                    id integer primary key,
+                    company_id integer not null,
+                    supplier_id integer not null,
+                    contract_id integer,
+                    status varchar(40),
+                    received_at date
+                )
+                """);
     }
 
     private static long count(java.sql.Statement statement, String sql) throws Exception {

@@ -65,6 +65,8 @@ jobs:
       REQUIRE_APPROVAL_POLICY: ${{ inputs.require_approval_policy || 'auto' }}
       REQUIRE_TIMELINE: ${{ inputs.require_timeline || 'auto' }}
       PRACTICE_TEMP_PASSWORD: ${{ secrets.PRACTICE_TEMP_PASSWORD }}
+      PUBLISHER_USERNAME: ${{ secrets.APP_AUTH_GOVERNANCE_PUBLISHER_USERNAME }}
+      PUBLISHER_PASSWORD: ${{ secrets.APP_AUTH_GOVERNANCE_PUBLISHER_PASSWORD }}
       ORIGIN: https://praxisui-dev.web.app
     steps:
       - name: Checkout

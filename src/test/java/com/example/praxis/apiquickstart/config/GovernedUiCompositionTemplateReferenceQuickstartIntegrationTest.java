@@ -45,6 +45,7 @@ import org.springframework.http.ResponseEntity;
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
         properties = {
                 "app.rate-limit.enabled=false",
+                "app.cors.allowed-origins=http://localhost:4003",
                 "app.security.config-origin-restriction.enabled=true",
                 "app.security.config-origin-restriction.allowed-origins=http://localhost:4003",
                 "app.security.read-open=false",

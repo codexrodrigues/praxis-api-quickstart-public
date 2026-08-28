@@ -18,8 +18,12 @@ Flags principais (env → application.properties)
 - app.security.demo-allow-bulk-actions (APP_SECURITY_DEMO_ALLOW_BULK_ACTIONS)
   - true: libera POST em `/api/*/*/actions/**` (ex.: `/api/human-resources/eventos-folha/actions/bulk-approve`) mesmo quando `write-disabled=true` — útil para demonstração do fluxo de ações em lote.
 - app.cors.allowed-origins (CORS_ALLOWED_ORIGINS)
-  - CSV de origens da UI. Use origens explícitas para chamadas com cookies/credenciais; `*` permanece permitido apenas sem credenciais.
+  - CSV de origens adicionais da UI. O host preserva em código um baseline para `praxisui.dev`, os aliases oficiais do Firebase Hosting e o Policy Studio de homologação; a variável de deployment amplia esse conjunto, não o substitui por relaxed binding do Spring.
+  - Use origens explícitas para chamadas com cookies/credenciais; `*` permanece permitido apenas sem credenciais.
   - O host expõe por CORS os headers canônicos de contrato `ETag`, `X-Schema-Hash` e `X-Data-Version`, permitindo que UIs leiam cache/revalidação, hash de schema e versão lógica de dados sem duplicar a semântica dos starters.
+- app.security.config-origin-restriction.allowed-origins (APP_SECURITY_CONFIG_ORIGIN_RESTRICTION_ALLOWED_ORIGINS)
+  - Aplica o mesmo baseline oficial à fronteira adicional de `/api/praxis/config/**`; a variável adiciona consumidores governados específicos do deployment.
+  - Uma origem passar pelo preflight CORS não basta: ela também precisa pertencer a esta lista para alcançar a superfície de Config.
 - app.security.trusted-proxy.enabled / app.security.trusted-proxy.addresses (APP_SECURITY_TRUSTED_PROXY_ENABLED / APP_SECURITY_TRUSTED_PROXY_ADDRESSES)
   - Headers `X-Forwarded-*` só participam da decisão quando o peer imediato está em uma lista explícita de proxies confiáveis.
   - A mesma política governa reconstrução de origem para `/api/praxis/config/**` e identidade de cliente para rate limit.

@@ -28,6 +28,22 @@ class ConfigOriginRestrictionFilterTest {
     }
 
     @Test
+    void shouldPreserveOfficialOriginsWhenDeploymentConfigContainsOnlyAdditionalOrigins() throws Exception {
+        ConfigOriginRestrictionFilter filter = new ConfigOriginRestrictionFilter(
+                true,
+                "https://deployment-only.example",
+                untrustedProxyPolicy()
+        );
+        MockHttpServletRequest request = configRequest();
+        request.addHeader("Origin", "https://praxisui.dev");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        filter.doFilter(request, response, new MockFilterChain());
+
+        assertEquals(200, response.getStatus());
+    }
+
+    @Test
     void shouldAllowWhenOriginIsNullButRefererResolvesToAllowedOrigin() throws Exception {
         MockHttpServletResponse response = execute(request -> {
             request.addHeader("Origin", "null");
@@ -99,13 +115,8 @@ class ConfigOriginRestrictionFilterTest {
     private MockHttpServletResponse execute(TrustedProxyPolicy trustedProxyPolicy, RequestCustomizer customizer)
             throws ServletException, IOException {
         ConfigOriginRestrictionFilter filter = new ConfigOriginRestrictionFilter(true, ALLOWED, trustedProxyPolicy);
-        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/praxis/config/ui");
+        MockHttpServletRequest request = configRequest();
         request.setRemoteAddr("198.51.100.25");
-        request.setScheme("http");
-        request.setServerName("praxis-api-quickstart.onrender.com");
-        request.setServerPort(443);
-        request.addParameter("componentType", "praxis-filter");
-        request.addParameter("componentId", "filter-schema-meta:rk=funcionarios|ct=praxis-filter|id=funcionarios|ik=0");
         if (customizer != null) {
             customizer.customize(request);
         }
@@ -116,6 +127,17 @@ class ConfigOriginRestrictionFilterTest {
         MockHttpServletResponse response = new MockHttpServletResponse();
         filter.doFilter(request, response, new MockFilterChain());
         return response;
+    }
+
+    private MockHttpServletRequest configRequest() {
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/praxis/config/ui");
+        request.setRemoteAddr("198.51.100.25");
+        request.setScheme("http");
+        request.setServerName("praxis-api-quickstart.onrender.com");
+        request.setServerPort(443);
+        request.addParameter("componentType", "praxis-filter");
+        request.addParameter("componentId", "filter-schema-meta:rk=funcionarios|ct=praxis-filter|id=funcionarios|ik=0");
+        return request;
     }
 
     private TrustedProxyPolicy trustedProxyPolicy() {

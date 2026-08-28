@@ -21,6 +21,7 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import com.example.praxis.apiquickstart.security.CookieJwtAuthenticationFilter;
 import com.example.praxis.apiquickstart.security.ConfigScopedEncodedSlashHttpFirewall;
 import com.example.praxis.apiquickstart.security.ConfigOriginRestrictionFilter;
+import com.example.praxis.apiquickstart.security.OfficialBrowserOrigins;
 import com.example.praxis.apiquickstart.security.PublicApiRateLimitFilter;
 import com.example.praxis.apiquickstart.security.SpaCsrfTokenRequestHandler;
 import com.example.praxis.apiquickstart.hr.security.HrAnalyticsAuthorities;
@@ -410,9 +411,8 @@ public class SecurityConfig {
             config.setAllowCredentials(false);
             log.info("[CORS] AllowedOriginPattern='*' (credentials=false)");
         } else {
-            for (String origin : allowedOrigins.split(",")) {
-                String o = origin.trim();
-                if (!o.isEmpty()) config.addAllowedOrigin(o);
+            for (String origin : OfficialBrowserOrigins.mergeWith(allowedOrigins)) {
+                config.addAllowedOrigin(origin);
             }
             config.setAllowCredentials(true);
             log.info("[CORS] AllowedOrigins={} (credentials=true)", config.getAllowedOrigins());

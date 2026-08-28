@@ -21,6 +21,8 @@ REQUIRE_APPROVAL_POLICY="${REQUIRE_APPROVAL_POLICY:-auto}"
 REQUIRE_TIMELINE="${REQUIRE_TIMELINE:-auto}"
 ADMIN_USERNAME="${ADMIN_USERNAME:-admin}"
 ADMIN_PASSWORD="${ADMIN_PASSWORD:-${PRACTICE_TEMP_PASSWORD:-}}"
+PUBLISHER_USERNAME="${PUBLISHER_USERNAME:-${APP_AUTH_GOVERNANCE_PUBLISHER_USERNAME:-}}"
+PUBLISHER_PASSWORD="${PUBLISHER_PASSWORD:-${APP_AUTH_GOVERNANCE_PUBLISHER_PASSWORD:-}}"
 PUBLICATION_TENANT_ID="${PUBLICATION_TENANT_ID:-domain-rules-publication-smoke-${SMOKE_RUN_ID}}"
 PUBLICATION_ENVIRONMENT="${PUBLICATION_ENVIRONMENT:-${ENVIRONMENT}}"
 PUBLICATION_CONTEXT_KEY="${PUBLICATION_CONTEXT_KEY:-procurement}"
@@ -52,11 +54,16 @@ APPROVAL_POLICY_ACTION_ID="${APPROVAL_POLICY_ACTION_ID:-bulk-approve}"
 APPROVAL_POLICY_TARGET_KEY="${APPROVAL_POLICY_TARGET_KEY:-${APPROVAL_POLICY_RESOURCE_KEY}:${APPROVAL_POLICY_ACTION_ID}}"
 APPROVAL_POLICY_RULE_KEY="${APPROVAL_POLICY_RULE_KEY:-human-resources.eventos-folha.rule.bulk-approve-approval.${SMOKE_RUN_ID}}"
 APPROVAL_POLICY_EVENT_ID="${APPROVAL_POLICY_EVENT_ID:-1}"
-AUTHOR_USER_ID="${AUTHOR_USER_ID:-domain-rule-smoke-author}"
-REVIEWER_USER_ID="${REVIEWER_USER_ID:-domain-rule-smoke-reviewer}"
+AUTHOR_USER_ID="${AUTHOR_USER_ID:-${APP_AUTH_GOVERNANCE_AUTHOR_USERNAME:-praxis-governance-author}}"
+REVIEWER_USER_ID="${REVIEWER_USER_ID:-${APP_AUTH_GOVERNANCE_APPROVER_A_USERNAME:-praxis-governance-approver-a}}"
 
 if [[ "$AUTHOR_USER_ID" == "$REVIEWER_USER_ID" ]]; then
   echo "AUTHOR_USER_ID and REVIEWER_USER_ID must be distinct for maker-checker validation." >&2
+  exit 2
+fi
+
+if [[ -z "$PUBLISHER_USERNAME" || -z "$PUBLISHER_PASSWORD" ]]; then
+  echo "PUBLISHER_USERNAME and PUBLISHER_PASSWORD (or APP_AUTH_GOVERNANCE_PUBLISHER_*) are required for the governed multi-persona smoke." >&2
   exit 2
 fi
 
@@ -142,6 +149,11 @@ Authenticated command probe:
     REQUIRE_BACKEND_VALIDATION=true, REQUIRE_WORKFLOW_ACTION=true or
     REQUIRE_APPROVAL_POLICY=true reaches the mutable command probe, because
     these endpoints are protected.
+  - PUBLISHER_USERNAME/PUBLISHER_PASSWORD (or the matching
+    APP_AUTH_GOVERNANCE_PUBLISHER_* variables) authenticate the opt-in
+    Governance Lab. The script derives distinct author and approver sessions
+    through the host-owned session switch endpoint; it never treats
+    X-User-ID as authenticated identity.
 
 Use SMOKE_RUN_ID, RULE_KEY, MATERIALIZATION_KEY, PUBLICATION_TENANT_ID,
 PUBLICATION_RULE_KEY or PUBLICATION_OPTION_SOURCE_KEY to make repeated runs
@@ -157,6 +169,7 @@ post_json() {
   local output_file="$3"
 
   curl -fsS "${BACKEND_URL%/}${path}" \
+    -b "$author_cookie_jar" \
     -H "Origin: ${ORIGIN}" \
     -H "X-Tenant-ID: ${TENANT_ID}" \
     -H "X-Env: ${ENVIRONMENT}" \
@@ -172,15 +185,24 @@ post_json_scoped() {
   local output_file="$3"
   local tenant_id="$4"
   local environment="$5"
+  local http_status
 
-  curl -fsS "${BACKEND_URL%/}${path}" \
+  http_status="$(curl -sS "${BACKEND_URL%/}${path}" \
+    -b "$author_cookie_jar" \
     -H "Origin: ${ORIGIN}" \
     -H "X-Tenant-ID: ${tenant_id}" \
     -H "X-Env: ${environment}" \
     -H "X-User-ID: ${AUTHOR_USER_ID}" \
     -H "Content-Type: application/json" \
     --data-binary "@${input_file}" \
-    -o "$output_file"
+    -o "$output_file" \
+    -w '%{http_code}')"
+
+  if [[ "$http_status" -lt 200 || "$http_status" -ge 300 ]]; then
+    echo "Governed author request failed (HTTP ${http_status}) for ${path}." >&2
+    cat "$output_file" >&2
+    return 1
+  fi
 }
 
 patch_json() {
@@ -189,10 +211,29 @@ patch_json() {
   local output_file="$3"
 
   curl -fsS -X PATCH "${BACKEND_URL%/}${path}" \
+    -b "$reviewer_cookie_jar" \
     -H "Origin: ${ORIGIN}" \
     -H "X-Tenant-ID: ${TENANT_ID}" \
     -H "X-Env: ${ENVIRONMENT}" \
-    -H "X-User-ID: ${AUTHOR_USER_ID}" \
+    -H "X-User-ID: ${REVIEWER_USER_ID}" \
+    -H "Content-Type: application/json" \
+    --data-binary "@${input_file}" \
+    -o "$output_file"
+}
+
+post_json_scoped_as_executor() {
+  local path="$1"
+  local input_file="$2"
+  local output_file="$3"
+  local tenant_id="$4"
+  local environment="$5"
+
+  curl -fsS "${BACKEND_URL%/}${path}" \
+    -b "$auth_cookie_jar" \
+    -c "$auth_cookie_jar" \
+    -H "Origin: ${ORIGIN}" \
+    -H "X-Tenant-ID: ${tenant_id}" \
+    -H "X-Env: ${environment}" \
     -H "Content-Type: application/json" \
     --data-binary "@${input_file}" \
     -o "$output_file"
@@ -204,6 +245,7 @@ patch_json_as_reviewer() {
   local output_file="$3"
 
   curl -fsS -X PATCH "${BACKEND_URL%/}${path}" \
+    -b "$reviewer_cookie_jar" \
     -H "Origin: ${ORIGIN}" \
     -H "X-Tenant-ID: ${TENANT_ID}" \
     -H "X-Env: ${ENVIRONMENT}" \
@@ -213,6 +255,61 @@ patch_json_as_reviewer() {
     -o "$output_file"
 }
 
+patch_json_as_reviewer_scoped() {
+  local path="$1"
+  local input_file="$2"
+  local output_file="$3"
+  local tenant_id="$4"
+  local environment="$5"
+
+  curl -fsS -X PATCH "${BACKEND_URL%/}${path}" \
+    -b "$reviewer_cookie_jar" \
+    -H "Origin: ${ORIGIN}" \
+    -H "X-Tenant-ID: ${tenant_id}" \
+    -H "X-Env: ${environment}" \
+    -H "X-User-ID: ${REVIEWER_USER_ID}" \
+    -H "Content-Type: application/json" \
+    --data-binary "@${input_file}" \
+    -o "$output_file"
+}
+
+transition_definition_to_active_scoped() {
+  local definition_id="$1"
+  local label="$2"
+  local tenant_id="$3"
+  local environment="$4"
+  local target_status
+
+  for target_status in approved active; do
+    jq -n \
+      --arg status "$target_status" \
+      --arg label "$label" \
+      '{
+        status: $status,
+        validationResult: {
+          review: "approved",
+          checks: [("governed-runtime-smoke-" + $label + "-" + $status)]
+        }
+      }' > "$definition_transition_request"
+
+    if ! patch_json_as_reviewer_scoped \
+      "/api/praxis/config/domain-rules/definitions/${definition_id}/status" \
+      "$definition_transition_request" \
+      "$definition_transition_response" \
+      "$tenant_id" \
+      "$environment"; then
+      echo "Could not transition ${label} definition ${definition_id} to ${target_status}." >&2
+      return 1
+    fi
+
+    if [[ "$(jq -r '.status // empty' "$definition_transition_response")" != "$target_status" ]]; then
+      echo "Invalid ${label} definition transition to ${target_status}." >&2
+      jq '{id, ruleKey, status, approvedBy, approvedAt, activatedAt}' "$definition_transition_response" >&2
+      return 1
+    fi
+  done
+}
+
 post_json_allow_status() {
   local path="$1"
   local input_file="$2"
@@ -220,6 +317,7 @@ post_json_allow_status() {
   local status_file="$4"
 
   curl -sS "${BACKEND_URL%/}${path}" \
+    -b "$author_cookie_jar" \
     -H "Origin: ${ORIGIN}" \
     -H "X-Tenant-ID: ${TENANT_ID}" \
     -H "X-Env: ${ENVIRONMENT}" \
@@ -238,6 +336,7 @@ post_json_allow_status_scoped() {
   local environment="$6"
 
   curl -sS "${BACKEND_URL%/}${path}" \
+    -b "$publisher_cookie_jar" \
     -H "Origin: ${ORIGIN}" \
     -H "X-Tenant-ID: ${tenant_id}" \
     -H "X-Env: ${environment}" \
@@ -278,6 +377,7 @@ get_json() {
   local output_file="$2"
 
   curl -fsS "${BACKEND_URL%/}${path}" \
+    -b "$author_cookie_jar" \
     -H "Origin: ${ORIGIN}" \
     -H "X-Tenant-ID: ${TENANT_ID}" \
     -H "X-Env: ${ENVIRONMENT}" \
@@ -291,6 +391,7 @@ get_json_scoped() {
   local environment="$4"
 
   curl -fsS "${BACKEND_URL%/}${path}" \
+    -b "$author_cookie_jar" \
     -H "Origin: ${ORIGIN}" \
     -H "X-Tenant-ID: ${tenant_id}" \
     -H "X-Env: ${environment}" \
@@ -305,6 +406,7 @@ get_json_allow_status_scoped() {
   local environment="$5"
 
   curl -sS "${BACKEND_URL%/}${path}" \
+    -b "$author_cookie_jar" \
     -H "Origin: ${ORIGIN}" \
     -H "X-Tenant-ID: ${tenant_id}" \
     -H "X-Env: ${environment}" \
@@ -483,6 +585,53 @@ authenticate_command_probe() {
   return 0
 }
 
+authenticate_governance_principal() {
+  local label="$1"
+  local username="$2"
+  local password="$3"
+  local cookie_jar="$4"
+  local login_status
+
+  jq -n \
+    --arg username "$username" \
+    --arg password "$password" \
+    '{username: $username, password: $password}' > "$auth_login_request"
+
+  login_status="$(curl -sS "${BACKEND_URL%/}/auth/login" \
+    -c "$cookie_jar" \
+    -H "Origin: ${ORIGIN}" \
+    -H "Content-Type: application/json" \
+    --data-binary "@${auth_login_request}" \
+    -o /dev/null \
+    -w '%{http_code}')"
+
+  if [[ "$login_status" != "200" && "$login_status" != "204" ]]; then
+    echo "Governance ${label} principal could not authenticate (HTTP ${login_status})." >&2
+    return 1
+  fi
+}
+
+switch_governance_session() {
+  local identity_key="$1"
+  local source_cookie_jar="$2"
+  local target_cookie_jar="$3"
+  local switch_status
+
+  cp "$source_cookie_jar" "$target_cookie_jar"
+  switch_status="$(curl -sS -X POST \
+    "${BACKEND_URL%/}/auth/governance-lab/session/${identity_key}" \
+    -b "$target_cookie_jar" \
+    -c "$target_cookie_jar" \
+    -H "Origin: ${ORIGIN}" \
+    -o /dev/null \
+    -w '%{http_code}')"
+
+  if [[ "$switch_status" != "200" && "$switch_status" != "204" ]]; then
+    echo "Governance ${identity_key} session could not be established (HTTP ${switch_status})." >&2
+    return 1
+  fi
+}
+
 urlencode() {
   jq -nr --arg value "$1" '$value|@uri'
 }
@@ -555,6 +704,9 @@ approval_policy_command_request="$(mktemp "${TMPDIR:-/tmp}/praxis-rule-approval-
 approval_policy_command_response="$(mktemp "${TMPDIR:-/tmp}/praxis-rule-approval-policy-command-response.XXXXXX.json")"
 approval_policy_command_status_file="$(mktemp "${TMPDIR:-/tmp}/praxis-rule-approval-policy-command-status.XXXXXX.txt")"
 auth_cookie_jar="$(mktemp "${TMPDIR:-/tmp}/praxis-rule-auth-cookies.XXXXXX.txt")"
+publisher_cookie_jar="$(mktemp "${TMPDIR:-/tmp}/praxis-rule-publisher-cookies.XXXXXX.txt")"
+author_cookie_jar="$(mktemp "${TMPDIR:-/tmp}/praxis-rule-author-cookies.XXXXXX.txt")"
+reviewer_cookie_jar="$(mktemp "${TMPDIR:-/tmp}/praxis-rule-reviewer-cookies.XXXXXX.txt")"
 auth_login_request="$(mktemp "${TMPDIR:-/tmp}/praxis-rule-auth-login-request.XXXXXX.json")"
 auth_login_status_file="$(mktemp "${TMPDIR:-/tmp}/praxis-rule-auth-login-status.XXXXXX.txt")"
 auth_session_response="$(mktemp "${TMPDIR:-/tmp}/praxis-rule-auth-session-response.XXXXXX.txt")"
@@ -562,7 +714,23 @@ definitions_list="$(mktemp "${TMPDIR:-/tmp}/praxis-rule-definitions-list.XXXXXX.
 materializations_list="$(mktemp "${TMPDIR:-/tmp}/praxis-rule-materializations-list.XXXXXX.json")"
 timeline_response="$(mktemp "${TMPDIR:-/tmp}/praxis-rule-timeline-response.XXXXXX.json")"
 timeline_status_file="$(mktemp "${TMPDIR:-/tmp}/praxis-rule-timeline-status.XXXXXX.txt")"
-trap 'rm -f "$intake_request" "$intake_response" "$simulation_request" "$simulation_response" "$simulation_status_file" "$materialization_request" "$materialization_response" "$definition_transition_request" "$definition_transition_response" "$materialization_transition_request" "$materialization_transition_response" "$publication_definition_request" "$publication_definition_response" "$publication_request" "$publication_response" "$publication_status_file" "$publication_option_runtime_request" "$publication_option_runtime_response" "$backend_validation_definition_request" "$backend_validation_definition_response" "$backend_validation_publication_request" "$backend_validation_publication_response" "$backend_validation_publication_status_file" "$backend_validation_materializations_list" "$backend_validation_command_request" "$backend_validation_command_response" "$backend_validation_command_status_file" "$workflow_action_definition_request" "$workflow_action_definition_response" "$workflow_action_publication_request" "$workflow_action_publication_response" "$workflow_action_publication_status_file" "$workflow_action_materializations_list" "$workflow_action_command_request" "$workflow_action_command_response" "$workflow_action_command_status_file" "$approval_policy_definition_request" "$approval_policy_definition_response" "$approval_policy_publication_request" "$approval_policy_publication_response" "$approval_policy_publication_status_file" "$approval_policy_materializations_list" "$approval_policy_command_request" "$approval_policy_command_response" "$approval_policy_command_status_file" "$auth_cookie_jar" "$auth_login_request" "$auth_login_status_file" "$auth_session_response" "$definitions_list" "$materializations_list" "$timeline_response" "$timeline_status_file"' EXIT
+trap 'rm -f "$intake_request" "$intake_response" "$simulation_request" "$simulation_response" "$simulation_status_file" "$materialization_request" "$materialization_response" "$definition_transition_request" "$definition_transition_response" "$materialization_transition_request" "$materialization_transition_response" "$publication_definition_request" "$publication_definition_response" "$publication_request" "$publication_response" "$publication_status_file" "$publication_option_runtime_request" "$publication_option_runtime_response" "$backend_validation_definition_request" "$backend_validation_definition_response" "$backend_validation_publication_request" "$backend_validation_publication_response" "$backend_validation_publication_status_file" "$backend_validation_materializations_list" "$backend_validation_command_request" "$backend_validation_command_response" "$backend_validation_command_status_file" "$workflow_action_definition_request" "$workflow_action_definition_response" "$workflow_action_publication_request" "$workflow_action_publication_response" "$workflow_action_publication_status_file" "$workflow_action_materializations_list" "$workflow_action_command_request" "$workflow_action_command_response" "$workflow_action_command_status_file" "$approval_policy_definition_request" "$approval_policy_definition_response" "$approval_policy_publication_request" "$approval_policy_publication_response" "$approval_policy_publication_status_file" "$approval_policy_materializations_list" "$approval_policy_command_request" "$approval_policy_command_response" "$approval_policy_command_status_file" "$auth_cookie_jar" "$publisher_cookie_jar" "$author_cookie_jar" "$reviewer_cookie_jar" "$auth_login_request" "$auth_login_status_file" "$auth_session_response" "$definitions_list" "$materializations_list" "$timeline_response" "$timeline_status_file"' EXIT
+
+if ! authenticate_command_probe "$auth_login_request" "$auth_login_status_file" "$auth_session_response"; then
+  echo "Could not authenticate the governed rule smoke with /auth/login (${AUTH_FAILURE_REASON:-unknown-auth-failure}). Configure ADMIN_PASSWORD or PRACTICE_TEMP_PASSWORD with a principal authorized to author domain rules." >&2
+  exit 1
+fi
+
+if ! authenticate_governance_principal publisher "$PUBLISHER_USERNAME" "$PUBLISHER_PASSWORD" "$publisher_cookie_jar"; then
+  echo "Configure the opt-in Governance Lab publisher identity for the governed runtime smoke." >&2
+  exit 1
+fi
+if ! switch_governance_session author "$publisher_cookie_jar" "$author_cookie_jar"; then
+  exit 1
+fi
+if ! switch_governance_session approver-a "$publisher_cookie_jar" "$reviewer_cookie_jar"; then
+  exit 1
+fi
 
 echo "Verifying shared domain rule runtime APIs."
 echo "BACKEND_URL=${BACKEND_URL}"
@@ -631,11 +799,12 @@ jq -n \
   --arg resourceKey "$PUBLICATION_RESOURCE_KEY" \
   --arg serviceKey "$SERVICE_KEY" \
   --arg optionSourceKey "$PUBLICATION_OPTION_SOURCE_KEY" \
+  --arg reviewerUserId "$REVIEWER_USER_ID" \
   --argjson blockedStatuses "$PUBLICATION_RUNTIME_PROBE_BLOCKED_STATUSES_JSON" \
   '{
     ruleKey: $ruleKey,
     ruleType: "selection_eligibility",
-    status: "approved",
+    status: "draft",
     contextKey: $contextKey,
     resourceKey: $resourceKey,
     serviceKey: $serviceKey,
@@ -656,7 +825,8 @@ jq -n \
       ]
     },
     governance: {
-      requiredApprovals: []
+      requiredApprovals: [$reviewerUserId],
+      authorizedApprovers: [$reviewerUserId]
     }
   }' > "$publication_definition_request"
 
@@ -665,11 +835,12 @@ jq -n \
   --arg contextKey "$PUBLICATION_CONTEXT_KEY" \
   --arg resourceKey "$BACKEND_VALIDATION_RESOURCE_KEY" \
   --arg serviceKey "$SERVICE_KEY" \
+  --arg reviewerUserId "$REVIEWER_USER_ID" \
   --argjson blockedStatuses "$BACKEND_VALIDATION_BLOCKED_STATUSES_JSON" \
   '{
     ruleKey: $ruleKey,
     ruleType: "validation",
-    status: "approved",
+    status: "draft",
     contextKey: $contextKey,
     resourceKey: $resourceKey,
     serviceKey: $serviceKey,
@@ -693,7 +864,8 @@ jq -n \
       ]
     },
     governance: {
-      requiredApprovals: []
+      requiredApprovals: [$reviewerUserId],
+      authorizedApprovers: [$reviewerUserId]
     }
   }' > "$backend_validation_definition_request"
 
@@ -705,13 +877,14 @@ jq -n \
   --arg actionId "$WORKFLOW_ACTION_ID" \
   --arg semanticOwner "$WORKFLOW_ACTION_SEMANTIC_OWNER" \
   --arg steward "$WORKFLOW_ACTION_STEWARD" \
+  --arg reviewerUserId "$REVIEWER_USER_ID" \
   --arg summary "$WORKFLOW_ACTION_POLICY_SUMMARY" \
   --arg message "$WORKFLOW_ACTION_POLICY_MESSAGE" \
   --argjson blockedStates "$WORKFLOW_ACTION_BLOCKED_STATES_JSON" \
   '{
     ruleKey: $ruleKey,
     ruleType: "workflow_action_policy",
-    status: "approved",
+    status: "draft",
     contextKey: $contextKey,
     resourceKey: $resourceKey,
     serviceKey: $serviceKey,
@@ -736,7 +909,8 @@ jq -n \
       ]
     },
     governance: {
-      requiredApprovals: []
+      requiredApprovals: [$reviewerUserId],
+      authorizedApprovers: [$reviewerUserId]
     }
   }' > "$workflow_action_definition_request"
 
@@ -746,10 +920,11 @@ jq -n \
   --arg resourceKey "$APPROVAL_POLICY_RESOURCE_KEY" \
   --arg serviceKey "$SERVICE_KEY" \
   --arg actionId "$APPROVAL_POLICY_ACTION_ID" \
+  --arg reviewerUserId "$REVIEWER_USER_ID" \
   '{
     ruleKey: $ruleKey,
     ruleType: "approval_policy",
-    status: "approved",
+    status: "draft",
     contextKey: $contextKey,
     resourceKey: $resourceKey,
     serviceKey: $serviceKey,
@@ -776,7 +951,8 @@ jq -n \
       ]
     },
     governance: {
-      requiredApprovals: []
+      requiredApprovals: [$reviewerUserId],
+      authorizedApprovers: [$reviewerUserId]
     }
   }' > "$approval_policy_definition_request"
 
@@ -1031,6 +1207,7 @@ if [[ "$REQUIRE_PUBLICATION" != "false" ]]; then
     jq '{id, ruleKey, version, status}' "$publication_definition_response" >&2
     exit 1
   fi
+  transition_definition_to_active_scoped "$publication_definition_id" "option-source" "$PUBLICATION_TENANT_ID" "$PUBLICATION_ENVIRONMENT"
 
   jq -n \
     --arg ruleDefinitionId "$publication_definition_id" \
@@ -1067,7 +1244,7 @@ if [[ "$REQUIRE_PUBLICATION" != "false" ]]; then
 
     echo "Verifying published option_source policy against supplier lookup runtime."
     jq -n '{}' > "$publication_option_runtime_request"
-    post_json_scoped "/api/procurement/suppliers/option-sources/${PUBLICATION_OPTION_SOURCE_KEY}/options/filter?page=0&size=25" "$publication_option_runtime_request" "$publication_option_runtime_response" "$PUBLICATION_TENANT_ID" "$PUBLICATION_ENVIRONMENT"
+    post_json_scoped_as_executor "/api/procurement/suppliers/option-sources/${PUBLICATION_OPTION_SOURCE_KEY}/options/filter?page=0&size=25" "$publication_option_runtime_request" "$publication_option_runtime_response" "$PUBLICATION_TENANT_ID" "$PUBLICATION_ENVIRONMENT"
     runtime_blocked_option="$(jq --argjson blockedStatuses "$PUBLICATION_RUNTIME_PROBE_BLOCKED_STATUSES_JSON" '[.content[] | select((.extra.status // "") as $status | ($blockedStatuses | index($status)) != null)] | .[0] // null' "$publication_option_runtime_response")"
     runtime_option_selectable="$(jq -r 'if has("extra") and (.extra | has("selectable")) then (.extra.selectable | tostring) else "" end' <<<"$runtime_blocked_option")"
     runtime_option_status="$(jq -r '.extra.status // empty' <<<"$runtime_blocked_option")"
@@ -1100,6 +1277,7 @@ if [[ "$REQUIRE_PUBLICATION" != "false" ]]; then
         jq '{id, ruleKey, version, status}' "$backend_validation_definition_response" >&2
         exit 1
       fi
+      transition_definition_to_active_scoped "$backend_validation_definition_id" "backend-validation" "$PUBLICATION_TENANT_ID" "$PUBLICATION_ENVIRONMENT"
 
       jq -n \
         --arg ruleDefinitionId "$backend_validation_definition_id" \
@@ -1216,6 +1394,7 @@ if [[ "$REQUIRE_PUBLICATION" != "false" ]]; then
         jq '{id, ruleKey, version, status}' "$workflow_action_definition_response" >&2
         exit 1
       fi
+      transition_definition_to_active_scoped "$workflow_action_definition_id" "workflow-action" "$PUBLICATION_TENANT_ID" "$PUBLICATION_ENVIRONMENT"
 
       jq -n \
         --arg ruleDefinitionId "$workflow_action_definition_id" \
@@ -1328,6 +1507,7 @@ if [[ "$REQUIRE_PUBLICATION" != "false" ]]; then
         jq '{id, ruleKey, version, status}' "$approval_policy_definition_response" >&2
         exit 1
       fi
+      transition_definition_to_active_scoped "$approval_policy_definition_id" "approval-policy" "$PUBLICATION_TENANT_ID" "$PUBLICATION_ENVIRONMENT"
 
       jq -n \
         --arg ruleDefinitionId "$approval_policy_definition_id" \
@@ -1381,10 +1561,41 @@ if [[ "$REQUIRE_PUBLICATION" != "false" ]]; then
             fi
             echo "Warning: approval policy probe authentication failed (${AUTH_FAILURE_REASON:-unknown-auth-failure}); skipping payroll-events approval action probe." >&2
           else
+            curl -fsS \
+              "${BACKEND_URL%/}/api/human-resources/eventos-folha/${APPROVAL_POLICY_EVENT_ID}" \
+              -b "$auth_cookie_jar" \
+              -c "$auth_cookie_jar" \
+              -H "Origin: ${ORIGIN}" \
+              -H "X-Tenant-ID: ${PUBLICATION_TENANT_ID}" \
+              -H "X-Env: ${PUBLICATION_ENVIRONMENT}" \
+              -D "$approval_policy_command_status_file" \
+              -o /dev/null
+            approval_policy_event_etag="$(awk 'BEGIN {IGNORECASE=1} /^ETag:/ {sub(/^[^:]+:[[:space:]]*/, ""); sub(/\r$/, ""); print; exit}' "$approval_policy_command_status_file")"
+            if [[ -z "$approval_policy_event_etag" ]]; then
+              echo "Payroll-events runtime did not expose the strong ETag required by bulk-approve." >&2
+              exit 1
+            fi
+            # Render's CDN can weaken the response validator after transport
+            # encoding even though the origin emitted the resource's strong
+            # opaque tag. Commands must send the origin token, not the CDN's
+            # W/ transport marker.
+            if [[ "$approval_policy_event_etag" == W/\"* ]]; then
+              approval_policy_event_etag="${approval_policy_event_etag#W/}"
+            fi
+            if [[ ! "$approval_policy_event_etag" =~ ^\"[^\"]+\"$ ]]; then
+              echo "Payroll-events runtime did not expose exactly one usable strong ETag." >&2
+              exit 1
+            fi
+
             jq -n \
               --argjson eventId "$APPROVAL_POLICY_EVENT_ID" \
+              --arg eventEtag "$approval_policy_event_etag" \
               '{
-                ids: [$eventId]
+                ids: [$eventId],
+                effectiveAt: "2026-07-11",
+                reasonCode: "POLICY_STUDIO_SMOKE",
+                comment: "Governed approval policy runtime probe.",
+                expectedVersions: {($eventId | tostring): $eventEtag}
               }' > "$approval_policy_command_request"
 
             post_json_allow_status_scoped_authenticated "/api/human-resources/eventos-folha/actions/${APPROVAL_POLICY_ACTION_ID}" "$approval_policy_command_request" "$approval_policy_command_response" "$approval_policy_command_status_file" "$PUBLICATION_TENANT_ID" "$PUBLICATION_ENVIRONMENT"

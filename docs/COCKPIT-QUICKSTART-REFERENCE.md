@@ -343,6 +343,10 @@ Em `procurement`, as perguntas ja materializadas pelo host exemplar sao:
 - "Onde estao concentradas as empresas compradoras?" via
   `POST /api/procurement/companies/stats/group-by` com `field=state`, `field=city`
   ou `field=status`.
+- "Quantos fornecedores alcancaram cada etapa cumulativa, da identificacao ao recebimento?" via
+  `POST /api/procurement/vw-supplier-procurement-funnel/stats/group-by` com `field=stage`,
+  `metric.operation=SUM`, `metric.field=volume` e ordenacao `KEY_ASC`; a projection correspondente
+  pode ser materializada como `chart`, `analytic-table` ou `kpi` pelo runtime oficial.
 
 Em risco e incidentes, as perguntas ja materializadas pelo host exemplar sao:
 

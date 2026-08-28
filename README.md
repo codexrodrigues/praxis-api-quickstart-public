@@ -17,10 +17,11 @@
 
 O [Praxis Cockpit](https://praxis-api-quickstart.onrender.com/praxis/cockpit) e a forma mais rapida de entender este host sem clonar o projeto. Ele e servido automaticamente pelo `praxis-metadata-starter`, nao por HTML copiado no Quickstart, e mostra como o dominio publicado pelo backend vira inventario navegavel: areas de negocio, recursos, endpoints, filtros, tabelas, formularios, graficos, workflow actions, prontidao semantica e relacionamentos entre recursos.
 
-Como o cockpit consulta o catalogo logo na primeira jornada, este host ativa
-`praxis.openapi.prewarm.enabled=true`. A propriedade e fornecida pelo starter e aquece os grupos
-OpenAPI em segundo plano depois que a aplicacao fica pronta; ela nao muda endpoints, contrato de
-catalogo nem a governanca do dominio.
+Como o cockpit consulta o catalogo logo na primeira jornada, deployments com memória suficiente
+podem ativar `PRAXIS_OPENAPI_PREWARM_ENABLED=true`. A propriedade e fornecida pelo starter e
+aquece os grupos OpenAPI em segundo plano depois que a aplicacao fica pronta; ela nao muda
+endpoints, contrato de catalogo nem a governanca do dominio. O default permanece desativado para
+que hosts pequenos não compilem todo o catálogo durante o bootstrap.
 
 Compartilhe sempre a URL canonica `/praxis/cockpit`. Parametros como `release`, `published` e `qa` sao cache-busters temporarios para validacao; o topo do cockpit mostra o release solicitado e o `build.time` real de `/actuator/info` para confirmar se o Render ja serviu o build esperado.
 
@@ -308,7 +309,8 @@ Seguranca (sessao por cookie):
 - `APP_JWT_SECRET` - segredo forte (>=32 bytes) para assinar o JWT
 - `PRAXIS_RESOURCE_VERSION_ETAG_SECRET` - segredo independente usado para assinar ETags de registros versionados; obrigatório antes de habilitar actions com `If-Match`.
 - `APP_JWT_EXP_MIN` - expiracao em minutos (ex.: `60`)
-- `CORS_ALLOWED_ORIGINS` - origem da UI (ex.: `https://praxis-ui-4e602.web.app`)
+- `CORS_ALLOWED_ORIGINS` - origens adicionais da UI. A landing oficial e o Policy Studio publicado já pertencem ao baseline imutável do host.
+- `APP_SECURITY_CONFIG_ORIGIN_RESTRICTION_ALLOWED_ORIGINS` - origens adicionais autorizadas a alcançar `/api/praxis/config/**`; também preserva o baseline oficial.
 - `APP_SECURITY_TRUSTED_PROXY_ENABLED=true` - habilite somente atras de proxy/gateway conhecido
 - `APP_SECURITY_TRUSTED_PROXY_ADDRESSES` - IPs ou CIDRs dos proxies confiaveis para aceitar `X-Forwarded-*`
 - `APP_SESSION_SECURE=true` - obrigatorio em producao (HTTPS)
@@ -666,6 +668,11 @@ Exemplos de referencia no quickstart:
   status/estado/cidade, fornecedores por homologacao/risco/status, contratos por fornecedor,
   moeda, status e vencimento, produtos por categoria/status/estoque e pedidos por status,
   fornecedor, contrato, produto, datas de aprovacao/cancelamento/recebimento e quantidade.
+- `procurement.vw-supplier-procurement-funnel` publica seis etapas cumulativas por empresa em
+  `/stats/group-by`, com chave/label de etapa e `SUM(volume)`. A mesma projection anuncia
+  `chart`, `analytic-table` e `kpi`, sem duplicar os resultados remotos em payloads de UI. A etapa
+  de elegibilidade usa apenas homologacao e disponibilidade operacional persistidas; policies
+  dinamicas de selecao continuam pertencendo ao Config Starter e nao sao copiadas para a view.
 - O smoke `scripts/verify-procurement-analytics-runtime.sh` valida no host publicado que
   essa massa continua expressiva para o cockpit: pedidos em mais de um status, fornecedores
   bloqueados e de alto risco, contratos vencidos/assinados e produtos bloqueados.
@@ -995,6 +1002,10 @@ herança; tenant, ambiente e `hostActorRef` continuam sendo resolvidos pelo serv
   compositor Java do host; ele não publica mais um factory estático com duas
   referências genéricas. Um head antigo com esse provenance incompleto é
   supersedido automaticamente por uma nova versão imutável.
+  O seed dessas definições também inclui o catálogo canônico dos nove facts do
+  laboratório (tipos, nulabilidade, i18n, sensibilidade e redaction). O dado fica
+  no JSON versionado da definição no mesmo PostgreSQL/Neon; não cria banco nem
+  schema paralelo e só é projetado ao Studio pelo endpoint read-only do Config.
 - Prova HTTP: `scripts/workspace/Invoke-RuleLabQl07HttpProof.ps1`
 - Evidência QL-07: [docs/RULE-LAB-QL-07-PUBLIC-DOWNSTREAM-EVIDENCE.md](docs/RULE-LAB-QL-07-PUBLIC-DOWNSTREAM-EVIDENCE.md)
 
@@ -1104,7 +1115,9 @@ curl -s -X POST 'http://localhost:8088/api/human-resources/funcionarios/options/
 - Este quickstart deve consumir a versao mais recente do starter disponivel para o ciclo corrente para refletir no host operacional os contratos atuais de `ETag`, `If-None-Match`, `If-Match`, `412 Precondition Failed` e authoring AI em `/api/praxis/config/**`.
 - Com `praxis-config-starter:0.1.0-rc.71`, o quickstart tambem prova `GET /api/praxis/runtime/context`, `PUT /api/praxis/runtime/context`, `GET /api/praxis/runtime/tenants`, `GET /api/praxis/runtime/navigation` e `GET /api/praxis/runtime/security-events` com um provider demonstrativo nao-Ergon (`QuickstartEnterpriseRuntimeContextProvider`). Esse provider apenas projeta contexto publico seguro, uma lista de tenants demonstrativa, uma troca de contexto demo com headers de propagacao, uma arvore de navegacao com refs canonicas Praxis e eventos runtime sanitizados para shell/AI grounding; autenticacao, autorizacao privada, roles reais, tenant entitlement, menus corporativos e auditoria privada continuam sendo responsabilidade do host corporativo.
 - Este quickstart ativa explicitamente `praxis.ai.authoring.reference-ui-composition-provider-enabled=true` porque e o host de referencia que demonstra composicoes ricas de RH/folha. O `praxis-config-starter` generico nao registra esse provider por padrao; hosts reais devem alimentar authoring por catalogo, contexto semantico e providers proprios quando precisarem de planos especializados.
-- `APP_OPENAPI_INTERNAL_BASE_URL` alimenta tanto `praxis.ai.schemas.base-url` quanto `praxis.ai.capabilities.base-url`. Essa URL interna permite que o authoring valide schema e `GET /{resource}/capabilities` no proprio host; dashboards e graficos falham fechados quando os campos estatisticos nao podem ser verificados.
+- `APP_OPENAPI_INTERNAL_BASE_URL` alimenta `app.openapi.internal-base-url`, `praxis.ai.schemas.base-url` e `praxis.ai.capabilities.base-url`. Sem override, o host usa `http://127.0.0.1:${PORT}` para que o prewarm e os consumidores server-side consultem o SpringDoc pela porta interna do processo, sem depender de um request HTTP externo. Defina a variavel explicitamente apenas quando um sidecar, context path ou gateway interno for dono dessa fronteira. Essa URL permite que o authoring valide schema e `GET /{resource}/capabilities` no proprio host; dashboards e graficos falham fechados quando os campos estatisticos nao podem ser verificados.
+- `PRAXIS_OPENAPI_PREWARM_ENABLED` permanece `false` por padrão. No perfil `prod`, o listener interno já é resolvido por `${PORT}`; em outros perfis, habilite o prewarm somente junto com `APP_OPENAPI_INTERNAL_BASE_URL`. Assim o trabalho assíncrono iniciado após `ApplicationReadyEvent` não depende de contexto HTTP nem tenta uma porta presumida.
+- O host mantém em código as origens oficiais da landing e do Policy Studio como baseline aditivo de CORS e da proteção de `/api/praxis/config/**`. `CORS_ALLOWED_ORIGINS` e `APP_SECURITY_CONFIG_ORIGIN_RESTRICTION_ALLOWED_ORIGINS` continuam aceitando consumidores adicionais do deployment, mas não substituem esse baseline público, mesmo quando o ambiente usa relaxed binding do Spring.
 
 ### Validacao downstream do AI patch
 Para releases do `praxis-config-starter`, este quickstart agora possui dois niveis distintos de validacao para `/api/praxis/config/ai/patch`:

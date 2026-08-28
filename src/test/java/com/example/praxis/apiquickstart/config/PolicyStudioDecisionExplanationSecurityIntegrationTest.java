@@ -18,6 +18,7 @@ import org.junit.jupiter.api.Test;
 import org.praxisplatform.config.ai.authoring.AgenticAuthoringTurnStreamRequest;
 import org.praxisplatform.config.ai.authoring.AgenticAuthoringTurnStreamService;
 import org.praxisplatform.config.dto.AgenticAuthoringTurnStreamStartResponse;
+import org.praxisplatform.config.controller.DomainRuleCatalogController;
 import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -28,6 +29,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
 
 @SpringBootTest(
         classes = ApiQuickstartApplication.class,
@@ -71,6 +73,8 @@ class PolicyStudioDecisionExplanationSecurityIntegrationTest {
 
     @Autowired TestRestTemplate restTemplate;
     @Autowired JwtTokenService jwtTokenService;
+    @Autowired DomainRuleCatalogController domainRuleCatalogController;
+    @Autowired RequestMappingHandlerMapping requestMappingHandlerMapping;
 
     @MockBean AgenticAuthoringTurnStreamService turnStreamService;
     @MockBean(name = "ragVectorStore") VectorStore ragVectorStore;
@@ -101,6 +105,14 @@ class PolicyStudioDecisionExplanationSecurityIntegrationTest {
         assertThat(accepted.getStatusCode()).isEqualTo(HttpStatus.CREATED);
         assertThat(accepted.getBody()).isNotNull();
         verify(turnStreamService).start(any(AgenticAuthoringTurnStreamRequest.class), any(), any());
+    }
+
+    @Test
+    void decisionCatalogControllerIsMaterializedAsAnExactHostRoute() {
+        assertThat(domainRuleCatalogController).isNotNull();
+        assertThat(requestMappingHandlerMapping.getHandlerMethods().keySet())
+                .anySatisfy(mapping -> assertThat(mapping.getPatternValues())
+                        .contains("/api/praxis/config/domain-rules/definitions/catalog"));
     }
 
     private static HttpHeaders headers(String token) {

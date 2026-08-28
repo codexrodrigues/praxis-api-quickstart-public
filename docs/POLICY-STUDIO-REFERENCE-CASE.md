@@ -26,6 +26,18 @@ sete bindings JSON Logic editáveis pelo `DomainRuleService`, no escopo
 `desenv/local`. Não há SQL direto, promoção de status ou mudança de autoridade.
 O seed pode ser desativado por `PRAXIS_RULE_LAB_POLICY_STUDIO_SEED_ENABLED=false`.
 
+O mesmo seed publica `definition.factCatalog` para os nove facts usados pelo
+RuleSet. O catálogo carrega path estável, tipo, nulabilidade, labels e descrições
+localizadas, sensibilidade, política de redaction e referências de evidência. O
+Config continua sendo o owner: definições legadas sem catálogo recebem uma nova
+versão imutável, e o Studio deriva o formulário tipado do endpoint canônico em
+vez de reconstruir schema a partir da expressão JSON Logic.
+
+A versão publicada pelo bootstrap é sempre `maior versão existente + 1`. Assim,
+uma base Neon que já possua a versão 1 sem catálogo não sofre colisão na chave
+`tenant + environment + ruleKey + version`; após a primeira atualização, novas
+inicializações detectam o catálogo atual e não criam outra versão.
+
 ## Change workspace e cenários governados
 
 O Config Starter publica workspaces ancorados no fingerprint da definição e cenários reutilizáveis

@@ -35,13 +35,27 @@ class SecurityConfigCorsTest {
         CorsConfiguration configuration = source.getCorsConfigurations().get("/**");
 
         assertTrue(configuration.getAllowCredentials());
-        assertEquals(
-                java.util.List.of("http://localhost:4003", "http://127.0.0.1:4003"),
-                configuration.getAllowedOrigins());
+        assertTrue(configuration.getAllowedOrigins().contains("https://praxisui.dev"));
+        assertTrue(configuration.getAllowedOrigins().contains("https://praxis-policy-studio-homolog.onrender.com"));
+        assertTrue(configuration.getAllowedOrigins().contains("http://localhost:4003"));
+        assertTrue(configuration.getAllowedOrigins().contains("http://127.0.0.1:4003"));
         assertEquals(SecurityConfig.PRAXIS_EXPOSED_CORS_HEADERS, configuration.getExposedHeaders());
         assertTrue(configuration.getExposedHeaders().contains("ETag"));
         assertTrue(configuration.getExposedHeaders().contains("X-Schema-Hash"));
         assertTrue(configuration.getExposedHeaders().contains("X-Data-Version"));
+    }
+
+    @Test
+    void shouldPreserveOfficialCorsOriginsWhenDeploymentConfigContainsOnlyAdditionalOrigins() {
+        UrlBasedCorsConfigurationSource source =
+                (UrlBasedCorsConfigurationSource) new SecurityConfig().corsConfigurationSource(
+                        "https://deployment-only.example");
+
+        CorsConfiguration configuration = source.getCorsConfigurations().get("/**");
+
+        assertTrue(configuration.getAllowedOrigins().contains("https://praxisui.dev"));
+        assertTrue(configuration.getAllowedOrigins().contains("https://praxis-policy-studio-homolog.onrender.com"));
+        assertTrue(configuration.getAllowedOrigins().contains("https://deployment-only.example"));
     }
 
     @Test

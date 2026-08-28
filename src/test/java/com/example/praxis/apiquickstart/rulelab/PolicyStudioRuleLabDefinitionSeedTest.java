@@ -58,6 +58,24 @@ class PolicyStudioRuleLabDefinitionSeedTest {
             assertThat(request.governance().path("authorizedApprovers").get(0).asText())
                     .isEqualTo("policy-owner");
             assertThat(request.governance().path("authorityChangeAllowed").asBoolean()).isFalse();
+            assertThat(request.definition().path("factCatalog").path("schemaVersion").asText())
+                    .isEqualTo("praxis.domain-rule-fact-catalog.v1");
+            assertThat(request.definition().path("factCatalog").path("facts"))
+                    .allSatisfy(fact -> {
+                        assertThat(fact.path("path").asText()).isNotBlank();
+                        assertThat(fact.path("labels").path("pt-BR").asText()).isNotBlank();
+                        assertThat(fact.path("labels").path("en-US").asText()).isNotBlank();
+                        assertThat(fact.path("providerRef").asText()).isNotBlank();
+                        assertThat(fact.path("evidenceRefs")).isNotEmpty();
+                        assertThat(fact.path("sensitivity").asText()).isNotBlank();
+                        assertThat(fact.path("redaction").asText()).isNotBlank();
+                    });
+            assertThat(request.definition().path("factCatalog").path("facts"))
+                    .extracting(fact -> fact.path("path").asText())
+                    .containsExactlyElementsOf(java.util.stream.StreamSupport.stream(
+                                    request.definition().path("requiredFactPaths").spliterator(), false)
+                            .map(item -> item.asText())
+                            .toList());
         });
     }
 
@@ -71,6 +89,24 @@ class PolicyStudioRuleLabDefinitionSeedTest {
 
         verify(service, times(0)).createDefinition(
                 any(DomainRuleDefinitionRequest.class), any(DomainRuleGovernancePrincipal.class));
+    }
+
+    @Test
+    void createsANewImmutableVersionWhenExistingDefinitionsPredateTheFactCatalog() {
+        DomainRuleService service = mock(DomainRuleService.class);
+        when(service.definitions(anyString(), anyString(), any(), any(), any(), anyString()))
+                .thenReturn(List.of(existingLegacyDefinition()));
+
+        new PolicyStudioRuleLabDefinitionSeed().seed(service, new ObjectMapper(), "desenv", "local");
+
+        ArgumentCaptor<DomainRuleDefinitionRequest> requests =
+                ArgumentCaptor.forClass(DomainRuleDefinitionRequest.class);
+        verify(service, times(7)).createDefinition(requests.capture(), any(DomainRuleGovernancePrincipal.class));
+        assertThat(requests.getAllValues()).allSatisfy(request -> {
+            assertThat(request.version()).isEqualTo(2);
+            assertThat(request.definition().path("factCatalog").path("schemaVersion").asText())
+                    .isEqualTo("praxis.domain-rule-fact-catalog.v1");
+        });
     }
 
     @Test
@@ -91,7 +127,21 @@ class PolicyStudioRuleLabDefinitionSeedTest {
         return new DomainRuleDefinitionResponse(
                 null, "desenv", "local", "request.authorization-integrity", 1,
                 "JSON_LOGIC", "draft", null, null, null, null, null,
-                null, null, null, null, null, null, null,
+                null, null,
+                new ObjectMapper().createObjectNode().set("factCatalog",
+                        new ObjectMapper().createObjectNode()
+                                .put("schemaVersion", "praxis.domain-rule-fact-catalog.v1")
+                                .set("facts", new ObjectMapper().createArrayNode())),
+                null, null, null, null,
+                "SYSTEM", "policy-studio-quickstart-seed", null,
+                null, null, null, null);
+    }
+
+    private static DomainRuleDefinitionResponse existingLegacyDefinition() {
+        return new DomainRuleDefinitionResponse(
+                null, "desenv", "local", "request.authorization-integrity", 1,
+                "JSON_LOGIC", "draft", null, null, null, null, null,
+                null, null, new ObjectMapper().createObjectNode(), null, null, null, null,
                 "SYSTEM", "policy-studio-quickstart-seed", null,
                 null, null, null, null);
     }

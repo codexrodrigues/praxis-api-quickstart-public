@@ -176,6 +176,7 @@ public final class ApiPaths {
         public static final String PRODUCTS_PRODUCT_LOOKUP_OPTIONS =
                 PRODUCTS + "/option-sources/" + PRODUCTS_PRODUCT_LOOKUP_SOURCE + "/options/filter";
         public static final String PURCHASE_ORDERS = BASE_PATH + "/purchase-orders";
+        public static final String SUPPLIER_PROCUREMENT_FUNNEL = BASE_PATH + "/vw-supplier-procurement-funnel";
 
         private Procurement() {}
     }

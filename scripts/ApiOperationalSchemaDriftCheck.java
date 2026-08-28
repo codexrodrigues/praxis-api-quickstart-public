@@ -75,6 +75,16 @@ public final class ApiOperationalSchemaDriftCheck {
             checkColumn(connection, "public", "procurement_purchase_orders", "approved_at", failures);
             checkColumn(connection, "public", "procurement_purchase_orders", "cancelled_at", failures);
             checkColumn(connection, "public", "procurement_purchase_orders", "received_at", failures);
+            checkTable(connection, "public", "vw_supplier_procurement_funnel", failures);
+            checkColumn(connection, "public", "vw_supplier_procurement_funnel", "analytics_id", failures);
+            checkColumn(connection, "public", "vw_supplier_procurement_funnel", "company_id", failures);
+            checkColumn(connection, "public", "vw_supplier_procurement_funnel", "stage_order", failures);
+            checkColumn(connection, "public", "vw_supplier_procurement_funnel", "stage_key", failures);
+            checkColumn(connection, "public", "vw_supplier_procurement_funnel", "stage_label", failures);
+            checkColumn(connection, "public", "vw_supplier_procurement_funnel", "volume", failures);
+            checkColumn(connection, "public", "vw_supplier_procurement_funnel", "conversion_rate", failures);
+            checkColumn(connection, "public", "vw_supplier_procurement_funnel", "drop_off_count", failures);
+            checkColumn(connection, "public", "vw_supplier_procurement_funnel", "drop_off_rate", failures);
             checkTable(connection, "public", "extraordinary_benefit_request", failures);
             checkColumn(connection, "public", "extraordinary_benefit_request", "request_reference", failures);
             checkColumn(connection, "public", "extraordinary_benefit_request", "lifecycle_status", failures);

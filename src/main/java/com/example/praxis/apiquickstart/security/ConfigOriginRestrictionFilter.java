@@ -14,7 +14,6 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.net.URI;
-import java.util.Arrays;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -44,9 +43,8 @@ public class ConfigOriginRestrictionFilter extends OncePerRequestFilter {
     ) {
         this.enabled = enabled;
         this.trustedProxyPolicy = trustedProxyPolicy;
-        this.allowedOrigins = Arrays.stream(allowedOrigins.split(","))
+        this.allowedOrigins = OfficialBrowserOrigins.mergeWith(allowedOrigins).stream()
                 .map(String::trim)
-                .filter(s -> !s.isEmpty())
                 .map(this::normalizeOrigin)
                 .filter(StringUtils::hasText)
                 .collect(Collectors.toSet());
