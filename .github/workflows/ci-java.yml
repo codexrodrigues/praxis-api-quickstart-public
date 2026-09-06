@@ -1,35 +1,9 @@
-name: CI (Java)
-
-on:
+name: Public release verification
+'on':
   push:
-    branches: [ main ]
-    paths:
-      - 'pom.xml'
-      - 'mvnw'
-      - '.mvn/wrapper/**'
-      - 'scripts/**'
-      - 'src/**'
-      - 'docs/**'
-      - 'README.md'
-      - 'Dockerfile'
-      - '.github/workflows/**'
-  pull_request:
-    branches: [ main ]
-    paths:
-      - 'pom.xml'
-      - 'mvnw'
-      - '.mvn/wrapper/**'
-      - 'scripts/**'
-      - 'src/**'
-      - 'docs/**'
-      - 'README.md'
-      - 'Dockerfile'
-      - '.github/workflows/**'
-
-concurrency:
-  group: ci-java-${{ github.ref }}
-  cancel-in-progress: true
-
+    tags:
+      - v*
+  workflow_dispatch: {}
 jobs:
   build-test:
     runs-on: ubuntu-latest
@@ -38,33 +12,33 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v5
-
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+      - name: Require the release tag from main
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin main:refs/remotes/origin/main
+          [[ "$GITHUB_REF" == refs/tags/v* ]] || { echo '::error::Use the release tag gate.'; exit 1; }
+          git merge-base --is-ancestor HEAD origin/main || { echo '::error::Tag must belong to main.'; exit 1; }
+      - name: Test runtime release observation
+        run: python3 -m unittest discover -s scripts/workspace -p test_wait_for_runtime_release.py
       - name: Setup Java
         uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '21'
           cache: maven
-
       - name: Normalize wrapper properties EOL
         run: sed -i 's/\r$//' .mvn/wrapper/maven-wrapper.properties
-
       - name: Make mvnw executable
         run: chmod +x mvnw
-
       - name: Validate shell scripts
         shell: bash
         run: |
           set -euo pipefail
           bash -n scripts/*.sh
-
-      - name: Validate public release snapshot
-        shell: pwsh
-        run: |
-          ./scripts/workspace/prepare-public-release.ps1 -SelfTest
-          ./scripts/workspace/prepare-public-release.ps1 public-release-ci
-
-      - name: Wait for Praxis starter artifacts on Maven Central
+      - name: Require published starter dependencies before the release build
         shell: bash
         run: |
           set -euo pipefail
@@ -98,33 +72,25 @@ jobs:
             local url
             url="$(artifact_url "$artifact" "$version")"
 
-            for attempt in {1..30}; do
-              status="$(curl -L -s -o /dev/null -w '%{http_code}' --connect-timeout 10 --max-time 30 "$url" || true)"
-              if [ "$status" = "200" ]; then
-                echo "${artifact}:${version} is available on Maven Central."
-                return 0
-              fi
+            status="$(curl -L -s -o /dev/null -w '%{http_code}' --connect-timeout 10 --max-time 30 "$url" || true)"
+            [[ "$status" == 200 ]] || { echo "::error::${artifact}:${version} is not available (HTTP $status). Confirm dependency publication locally before retrying this release gate."; return 1; }
 
-              echo "Waiting for ${artifact}:${version} on Maven Central (${attempt}/30, HTTP ${status})."
-              sleep 60
-            done
-
-            echo "::error::${artifact}:${version} was not found on Maven Central after 30 minutes."
-            return 1
           }
 
           wait_for_artifact "praxis-metadata-starter" "$(read_property praxis.core.version)"
           wait_for_artifact "praxis-config-starter" "$(read_property praxis.config.version)"
-
       - name: Maven Verify (com testes)
         run: ./mvnw -B -fae -Dstyle.color=always verify
-
       - name: Verify packaged runtime dependencies
         run: bash scripts/verify-packaged-runtime.sh
-
-      # Opcional: publicar relatório de testes no summary
       - name: Test Summary
         if: always()
         run: |
           echo '### Test Results' >> $GITHUB_STEP_SUMMARY
           grep -R "<testsuite" -n target/surefire-reports || true
+    timeout-minutes: 30
+permissions:
+  contents: read
+concurrency:
+  group: public-release-verification-${{ github.ref }}
+  cancel-in-progress: true

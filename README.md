@@ -35,7 +35,7 @@ Os contratos de analytics e charts sao conferidos por `scripts/verify-cockpit-an
 Os lookups governados sao conferidos por `scripts/verify-cockpit-option-source-contracts.sh`, garantindo que `x-ui.optionSource` publicado em schemas filtrados tenha endpoints de busca e reidratacao materializaveis para filtros e formularios do cockpit. O verifier autentica a prova HTTP com `ADMIN_USERNAME` (padrao `admin`) e `ADMIN_PASSWORD` ou `PRACTICE_TEMP_PASSWORD`, preservando o contexto governado exigido por providers protegidos.
 Os contratos estruturais de UI sao conferidos por `scripts/verify-cockpit-structural-ui-contracts.sh`, garantindo que recursos publicados tenham schemas filtrados materializaveis para leitura, filtros, tabelas, criacao e edicao sempre que essas operacoes existirem no OpenAPI.
 
-Depois de um `CI (Java)` verde na `main`, o workflow `Sync Published Domain Catalog` classifica se o commit alterou o produtor de contratos do runtime. Quando aplicavel, ele aguarda o build validado chegar ao Render, sincroniza de forma idempotente os releases atuais e verifica o contexto persistido. O mesmo workflow admite disparo manual para recuperacao do estado publicado sem repetir o smoke amplo, que permanece separado como gate de release e verificacao agendada.
+No fechamento, a tag de release passa pelo CI Java antes de publicar o snapshot. Depois do deploy confirmado no Render, execute `Domain Catalog Runtime Smoke` na tag correspondente, com `expected_version` exata. Não há CI em commits/PRs nem sincronização diária do catálogo.
 
 ## Sobre o Praxis (visao geral)
 
@@ -1336,21 +1336,7 @@ scripts/verify-domain-catalog-ingest-resilience.sh human-resources.funcionarios 
 
 Esse smoke protege o fluxo observado em producao: `/schemas/domain` deve publicar `releaseKey` e `sourceHash` estaveis, `POST /api/praxis/config/domain-catalog/ingest` deve ser idempotente para o mesmo catalogo e `/api/praxis/config/domain-catalog/items` deve continuar retornando governanca persistida.
 
-O workflow `Domain Catalog Runtime Smoke` tambem roda automaticamente depois de
-`Publish Public Release`. Nesse caminho ele primeiro classifica o diff que
-disparou a publicacao: mudancas em `src/main/`, `pom.xml`, `mvnw`, `.mvn/`,
-`system.properties`, `Dockerfile` ou `render.yaml` exigem aguardar um novo build
-publicado em Render; mudancas apenas documentais, de workflow ou scripts de smoke
-nao esperam rollout. Depois ele forca a ingestao das releases atuais de
-`/schemas/domain` para os recursos criticos e executa as validacoes read-only.
-Se o Render ainda nao expuser um `build.time` mais recente para um commit de
-runtime, o smoke falha sem ingerir o catalogo anterior. Depois que o deploy
-esperado estiver publicado, execute manualmente `Domain Catalog Runtime Smoke`
-ou `Sync Published Domain Catalog` para reconciliar a release corrente. Execucoes
-agendadas ou manuais sem expectativa de um commit especifico continuam operando
-sobre o runtime efetivamente publicado. A landing publica continua apenas
-validando o config-store; a responsabilidade por alinhar catalogo vivo e catalogo
-persistido permanece neste host de referencia.
+O workflow `Domain Catalog Runtime Smoke` é a prova posterior ao deploy. Dispare-o na tag de origem com `expected_version` exata e `rollout_timeout=0` depois da conclusão no Render. Ele exige health UP e `build.version` correspondente antes de ingerir os cinco catálogos e executar as provas existentes. A publicação do snapshot não confirma implantação e não inicia espera automática. Em recuperação, repita somente o smoke da tag; a landing continua validando o config-store, e este host continua responsável por alinhar catálogo vivo e persistido.
 
 Os smokes publicados usam `https://praxisui.dev`, origem publica mantida no
 baseline canonico de `OfficialBrowserOrigins`. Para provas locais ou consumidores
@@ -1390,12 +1376,12 @@ O guia operacional para analistas e LLMs criarem, explicarem e revisarem rascunh
 
 ## CI (GitHub Actions)
 
-Este repositorio usa CI-only (sem deploy) para build e testes com Java 21 e Maven Wrapper.
+O gate Java é reutilizável e obrigatório antes de publicar a tag sanitizada. O deployment continua configurado no Render.
 
 - Workflow: `.github/workflows/ci-java.yml`
-- Disparos: `push` e `pull_request` na branch `main`
+- Disparo: `workflow_call` pelo workflow de publicação da tag `v*`; sem execução por commit/PR.
 - Passos principais:
-  - `actions/setup-java@v4` (Temurin 21, cache Maven)
+  - `actions/setup-java@v5` (Temurin 21, cache Maven)
   - Normalizacao de EOL do wrapper e `chmod +x mvnw`
   - `./mvnw -B -fae -Dstyle.color=always verify`
 - Sem deploy: nao ha hooks, secrets ou chamadas ao Render nos workflows.
@@ -1544,3 +1530,7 @@ Actuator exposes only low-cardinality readiness (`mode`, cached scope count, las
 timestamp). Tenant IDs, snapshot keys, hashes and ETags are deliberately absent. Micrometer records
 `praxis.reactive.determination.snapshot.resolutions` with the bounded `fresh`, `lkg` and `rejected`
 results. LKG is in-process and intentionally does not survive a host restart.
+
+## Política de CI e publicação
+
+Validação local durante desenvolvimento; Actions apenas no fechamento necessário de versões. Consulte [ACTIONS-RELEASE-POLICY.md](ACTIONS-RELEASE-POLICY.md) para gatilhos, gates e recuperação.

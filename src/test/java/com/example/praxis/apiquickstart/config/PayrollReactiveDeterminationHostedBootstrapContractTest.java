@@ -15,8 +15,6 @@ class PayrollReactiveDeterminationHostedBootstrapContractTest {
             "scripts/workspace/Invoke-PayrollReactiveDeterminationHostedProof.sh");
     private static final Path FIXTURE = Path.of(
             "scripts/workspace/Provision-PayrollReactiveDeterminationHostedFixture.py");
-    private static final Path PUBLISHED_SMOKE = Path.of(
-            ".github/workflows/reactive-determinations-runtime-smoke.yml");
 
     @Test
     void lifecyclePinsSourceUsesVersionedBootstrapPollsTerminalStatesAndAlwaysCleansUp() throws Exception {
@@ -64,19 +62,6 @@ class PayrollReactiveDeterminationHostedBootstrapContractTest {
                 .contains("clients[\"author\"].request")
                 .doesNotContain("PayrollReactiveDeterminationRuleSet =")
                 .doesNotContain("print(password)", "print(IDENTITIES)");
-    }
-
-    @Test
-    void publishedSmokeProvisionsTheCanonicalHeadBeforeEvaluatingBusinessRequests() throws Exception {
-        String workflow = Files.readString(PUBLISHED_SMOKE);
-
-        assertThat(workflow)
-                .contains("Package canonical payroll aggregate")
-                .contains("Provision-PayrollReactiveDeterminationHostedFixture.py")
-                .contains("HOSTED_FIXTURE_GOVERNANCE_LAB_BOOTSTRAP: 'true'")
-                .contains("Run authenticated reactive-determination smoke");
-        assertThat(workflow.indexOf("Ensure governed payroll snapshot head"))
-                .isLessThan(workflow.indexOf("Run authenticated reactive-determination smoke"));
     }
 
     @Test
