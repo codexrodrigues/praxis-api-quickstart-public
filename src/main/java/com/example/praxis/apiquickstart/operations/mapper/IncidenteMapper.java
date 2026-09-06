@@ -19,6 +19,7 @@ public interface IncidenteMapper {
     })
     Incidente toEntity(IncidenteDTO dto);
 
+    @org.mapstruct.Mapping(target = "id", ignore = true)
     void updateEntity(Incidente source, @MappingTarget Incidente target);
 
     default Missao missaoFromId(Integer id) {

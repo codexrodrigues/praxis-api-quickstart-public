@@ -43,7 +43,15 @@ public class FuncionarioFilterDTO implements GenericFilterDTO {
             description = "Trecho do nome civil usado em cracha, contrato e identificacao administrativa do colaborador.")
     private String nomeCompleto;
 
-    @UISchema(label = "CPF", controlType = FieldControlType.INPUT, maxLength = 20, order = 20, helpText = "Buscar por CPF.", icon = "fingerprint")
+    @UISchema(label = "CPF", controlType = FieldControlType.CPF_CNPJ_INPUT, maxLength = 14, order = 20,
+            helpText = "Buscar por CPF completo ou por parte dos digitos.", icon = "fingerprint",
+            mask = "000.000.000-00",
+            extraProperties = {
+                    @ExtensionProperty(name = "documentType", value = "cpf"),
+                    @ExtensionProperty(name = "version", value = "legacy"),
+                    @ExtensionProperty(name = "allowFormattedInput", value = "true"),
+                    @ExtensionProperty(name = "unmaskOnSubmit", value = "true")
+            })
     @Filterable(operation = Filterable.FilterOperation.LIKE)
     @Schema(
             description = "Documento fiscal brasileiro informado para localizar registros de colaborador por CPF com ou sem formatacao.")
@@ -149,7 +157,7 @@ public class FuncionarioFilterDTO implements GenericFilterDTO {
     public String getNomeCompleto() { return nomeCompleto; }
     public void setNomeCompleto(String nomeCompleto) { this.nomeCompleto = nomeCompleto; }
     public String getCpf() { return cpf; }
-    public void setCpf(String cpf) { this.cpf = cpf; }
+    public void setCpf(String cpf) { this.cpf = cpf == null ? null : cpf.replaceAll("\\D", ""); }
     public Boolean getAtivo() { return ativo; }
     public void setAtivo(Boolean ativo) { this.ativo = ativo; }
     public List<LocalDate> getDataNascimentoRange() { return dataNascimentoRange; }

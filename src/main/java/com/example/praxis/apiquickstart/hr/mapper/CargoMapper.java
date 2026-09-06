@@ -10,6 +10,7 @@ import org.praxisplatform.uischema.mapper.config.CorporateMapperConfig;
 public interface CargoMapper {
     CargoDTO toDto(Cargo entity);
     Cargo toEntity(CargoDTO dto);
+    @org.mapstruct.Mapping(target = "id", ignore = true)
     void updateEntity(Cargo source, @MappingTarget Cargo target);
 }
 

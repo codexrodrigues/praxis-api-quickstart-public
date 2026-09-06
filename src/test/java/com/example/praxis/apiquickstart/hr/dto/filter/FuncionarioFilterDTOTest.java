@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import org.junit.jupiter.api.Test;
+import org.praxisplatform.uischema.FieldControlType;
 import org.praxisplatform.uischema.extension.annotation.UISchema;
 import org.praxisplatform.uischema.filter.annotation.Filterable;
 
@@ -24,6 +25,26 @@ class FuncionarioFilterDTOTest {
         assertNotNull(uiSchema);
         assertEquals("Admitidos nos últimos (dias)", uiSchema.label());
         assertEquals("history", uiSchema.icon());
+    }
+
+    @Test
+    void publishesCanonicalCpfSemanticsAndNormalizesFormattedInput() throws Exception {
+        UISchema uiSchema = FuncionarioFilterDTO.class
+                .getDeclaredField("cpf")
+                .getAnnotation(UISchema.class);
+
+        assertNotNull(uiSchema);
+        assertEquals(FieldControlType.CPF_CNPJ_INPUT, uiSchema.controlType());
+        assertEquals("000.000.000-00", uiSchema.mask());
+        assertEquals(14, uiSchema.maxLength());
+        assertEquals("documentType", uiSchema.extraProperties()[0].name());
+        assertEquals("cpf", uiSchema.extraProperties()[0].value());
+
+        FuncionarioFilterDTO filter = new FuncionarioFilterDTO();
+        filter.setCpf("990.000.000-47");
+        assertEquals("99000000047", filter.getCpf());
+        filter.setCpf(null);
+        assertEquals(null, filter.getCpf());
     }
 
     private void assertFilterableRelationship(String fieldName, String relation) throws Exception {

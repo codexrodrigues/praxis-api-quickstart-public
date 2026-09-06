@@ -10,5 +10,6 @@ import org.praxisplatform.uischema.mapper.config.CorporateMapperConfig;
 public interface ProcurementSupplierMapper {
     ProcurementSupplierDTO toDto(ProcurementSupplier entity);
     ProcurementSupplier toEntity(ProcurementSupplierDTO dto);
+    @org.mapstruct.Mapping(target = "id", ignore = true)
     void updateEntity(ProcurementSupplier source, @MappingTarget ProcurementSupplier target);
 }

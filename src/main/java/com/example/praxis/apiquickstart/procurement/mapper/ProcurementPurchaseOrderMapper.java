@@ -10,5 +10,6 @@ import org.praxisplatform.uischema.mapper.config.CorporateMapperConfig;
 public interface ProcurementPurchaseOrderMapper {
     ProcurementPurchaseOrderDTO toDto(ProcurementPurchaseOrder entity);
     ProcurementPurchaseOrder toEntity(ProcurementPurchaseOrderDTO dto);
+    @org.mapstruct.Mapping(target = "id", ignore = true)
     void updateEntity(ProcurementPurchaseOrder source, @MappingTarget ProcurementPurchaseOrder target);
 }

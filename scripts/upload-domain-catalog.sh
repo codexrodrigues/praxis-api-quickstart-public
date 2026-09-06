@@ -5,7 +5,7 @@ BACKEND_URL="${BACKEND_URL:-http://localhost:8088}"
 RESOURCE_KEY="${1:-${RESOURCE_KEY:-}}"
 TENANT_ID="${TENANT_ID:-default}"
 ENVIRONMENT="${ENVIRONMENT:-dev}"
-ORIGIN="${ORIGIN:-https://praxisui-dev.web.app}"
+ORIGIN="${ORIGIN:-https://praxisui.dev}"
 REQUIRE_GOVERNANCE="${REQUIRE_GOVERNANCE:-true}"
 VERIFY_QUERY="${VERIFY_QUERY:-cpf}"
 

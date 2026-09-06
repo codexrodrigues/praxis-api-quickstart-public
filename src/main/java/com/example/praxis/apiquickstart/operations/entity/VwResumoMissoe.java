@@ -1,5 +1,7 @@
 package com.example.praxis.apiquickstart.operations.entity;
 
+import com.example.praxis.apiquickstart.operations.enums.MissaoPrioridade;
+import com.example.praxis.apiquickstart.operations.enums.MissaoStatus;
 import jakarta.persistence.*;
 import org.hibernate.annotations.Immutable;
 import org.hibernate.annotations.Formula;
@@ -26,8 +28,14 @@ public class VwResumoMissoe {
     @Column(name = "status", length = Integer.MAX_VALUE)
     private String status;
 
+    @Formula(MissaoStatus.SQL_LABEL_EXPRESSION)
+    private String statusLabel;
+
     @Column(name = "prioridade", length = Integer.MAX_VALUE)
     private String prioridade;
+
+    @Formula(MissaoPrioridade.SQL_LABEL_EXPRESSION)
+    private String prioridadeLabel;
 
     @Column(name = "local", length = Integer.MAX_VALUE)
     private String local;
@@ -53,4 +61,3 @@ public class VwResumoMissoe {
     private Integer prioridadeOrd;
 
 }
-

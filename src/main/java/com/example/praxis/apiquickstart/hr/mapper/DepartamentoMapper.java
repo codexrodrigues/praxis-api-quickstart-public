@@ -18,6 +18,7 @@ public interface DepartamentoMapper {
     })
     Departamento toEntity(DepartamentoDTO dto);
 
+    @org.mapstruct.Mapping(target = "id", ignore = true)
     void updateEntity(Departamento source, @MappingTarget Departamento target);
 
     default com.example.praxis.apiquickstart.hr.entity.Funcionario responsavelFromId(Integer id) {

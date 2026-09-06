@@ -4,7 +4,7 @@ set -euo pipefail
 BACKEND_URL="${BACKEND_URL:-http://localhost:8088}"
 TENANT_ID="${TENANT_ID:-desenv}"
 ENVIRONMENT="${ENVIRONMENT:-local}"
-ORIGIN="${ORIGIN:-https://praxisui-dev.web.app}"
+ORIGIN="${ORIGIN:-https://praxisui.dev}"
 RESOURCE_KEY="${RESOURCE_KEY:-human-resources.funcionarios}"
 VERIFY_QUERY="${VERIFY_QUERY:-cpf}"
 TARGET_CONCEPT_KEY="${TARGET_CONCEPT_KEY:-human-resources.funcionarios.field.cpf}"

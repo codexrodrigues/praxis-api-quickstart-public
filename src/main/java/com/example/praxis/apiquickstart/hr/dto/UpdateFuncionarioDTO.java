@@ -4,8 +4,9 @@ import io.swagger.v3.oas.annotations.media.Schema;
 /**
  * Payload de atualizacao completa de funcionario.
  *
- * <p>Herda as mesmas restricoes do create porque o quickstart trata o PUT
- * como substituicao integral do estado editavel do recurso.
+ * <p>Reutiliza o vocabulário explícito do comando de criação porque o quickstart trata o PUT
+ * como substituição integral do estado editável. Essa herança ocorre entre contratos de escrita;
+ * o DTO de leitura não participa da hierarquia.
  */
 @Schema(
     name = "UpdateFuncionarioDTO",

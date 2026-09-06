@@ -26735,7 +26735,7 @@ SELECT pg_catalog.setval('public.ameacas_id_seq', 16, true);
 -- Name: base_acessos_id_seq; Type: SEQUENCE SET; Schema: public; Owner: praxis_demo_owner
 --
 
-SELECT pg_catalog.setval('public.base_acessos_id_seq', 6, true);
+SELECT pg_catalog.setval('public.base_acessos_id_seq', 56, true);
 
 
 --
@@ -26826,7 +26826,7 @@ SELECT pg_catalog.setval('public.folhas_pagamento_id_seq', 3246, true);
 -- Name: funcionario_habilidades_id_seq; Type: SEQUENCE SET; Schema: public; Owner: praxis_demo_owner
 --
 
-SELECT pg_catalog.setval('public.funcionario_habilidades_id_seq', 387, true);
+SELECT pg_catalog.setval('public.funcionario_habilidades_id_seq', 507, true);
 
 
 --
@@ -26882,7 +26882,7 @@ SELECT pg_catalog.setval('public.indenizacoes_id_seq', 218, true);
 -- Name: licencas_operacao_id_seq; Type: SEQUENCE SET; Schema: public; Owner: praxis_demo_owner
 --
 
-SELECT pg_catalog.setval('public.licencas_operacao_id_seq', 19, true);
+SELECT pg_catalog.setval('public.licencas_operacao_id_seq', 69, true);
 
 
 --
@@ -26896,21 +26896,21 @@ SELECT pg_catalog.setval('public.legacy_pay_codes_id_seq', 3, true);
 -- Name: mencoes_midia_id_seq; Type: SEQUENCE SET; Schema: public; Owner: praxis_demo_owner
 --
 
-SELECT pg_catalog.setval('public.mencoes_midia_id_seq', 4, true);
+SELECT pg_catalog.setval('public.mencoes_midia_id_seq', 204, true);
 
 
 --
 -- Name: missao_eventos_id_seq; Type: SEQUENCE SET; Schema: public; Owner: praxis_demo_owner
 --
 
-SELECT pg_catalog.setval('public.missao_eventos_id_seq', 18, true);
+SELECT pg_catalog.setval('public.missao_eventos_id_seq', 96, true);
 
 
 --
 -- Name: missao_participantes_id_seq; Type: SEQUENCE SET; Schema: public; Owner: praxis_demo_owner
 --
 
-SELECT pg_catalog.setval('public.missao_participantes_id_seq', 26, true);
+SELECT pg_catalog.setval('public.missao_participantes_id_seq', 166, true);
 
 
 --

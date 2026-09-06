@@ -20,7 +20,7 @@ jobs:
       BACKEND_URL: https://praxis-api-quickstart.onrender.com
       TENANT_ID: default
       ENVIRONMENT: dev
-      ORIGIN: https://praxisui-dev.web.app
+      ORIGIN: https://praxisui.dev
       RESOURCE_KEYS: human-resources.funcionarios human-resources.folhas-pagamento operations.missoes operations.acordos-regulatorios procurement.suppliers
       EXPECTED_BUILD_AFTER: ${{ github.event.workflow_run.created_at }}
       RUNTIME_ROLLOUT_WAIT_SECONDS: '900'

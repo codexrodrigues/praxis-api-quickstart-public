@@ -10,6 +10,7 @@ import org.praxisplatform.uischema.mapper.config.CorporateMapperConfig;
 public interface SinaisSocorroMapper {
     SinaisSocorroDTO toDto(SinaisSocorro entity);
     SinaisSocorro toEntity(SinaisSocorroDTO dto);
+    @org.mapstruct.Mapping(target = "id", ignore = true)
     void updateEntity(SinaisSocorro source, @MappingTarget SinaisSocorro target);
 }
 

@@ -10,5 +10,6 @@ import org.praxisplatform.uischema.mapper.config.CorporateMapperConfig;
 public interface LegacyPayCodeMapper {
     LegacyPayCodeDTO toDto(LegacyPayCode entity);
     LegacyPayCode toEntity(LegacyPayCodeDTO dto);
+    @org.mapstruct.Mapping(target = "id", ignore = true)
     void updateEntity(LegacyPayCode source, @MappingTarget LegacyPayCode target);
 }

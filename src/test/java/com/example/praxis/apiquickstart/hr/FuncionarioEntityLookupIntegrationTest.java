@@ -484,6 +484,25 @@ class FuncionarioEntityLookupIntegrationTest {
             String selectionKeyField = relatedResource.path("selectionKeyField").asText();
             assertTrue(properties.has(selectionKeyField), surface.path("id").asText() + " selectionKeyField");
         }
+
+        if (containsText(relatedResource.path("childOperations"), "FILTER")) {
+            JsonNode filterProperties = body(restTemplate.getForEntity(
+                    "/schemas/filtered?path={path}&operation=post&schemaType=request",
+                    String.class,
+                    relatedResource.path("childResourcePath").asText() + "/filter"
+            )).path("properties");
+            assertTrue(filterProperties.has(childParentField),
+                    surface.path("id").asText() + " childParentField must constrain the child FILTER operation");
+        }
+    }
+
+    private boolean containsText(JsonNode nodes, String expected) {
+        for (JsonNode node : nodes) {
+            if (expected.equals(node.asText())) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private void assertEmployeeLookup(String path, String fieldName, String expectedControlType) throws Exception {

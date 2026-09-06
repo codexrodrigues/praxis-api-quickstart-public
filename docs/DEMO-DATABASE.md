@@ -53,6 +53,8 @@ Endpoints utilitarios fornecidos pelo starter integram com o Praxis UI para gera
 
 O banco de demonstracao tem duas fronteiras: o datasource operacional da API (`spring.datasource.*`) e o datasource do Praxis Config Starter (`config.datasource.*`). O Flyway do host aponta para o config/RAG store; mudancas do schema operacional da API sao versionadas separadamente em `db/operational-migrations`.
 
+O dump deterministico mantem cada sequence de identidade no maior `id` explicitamente semeado. Essa invariavel e validada por teste para que o primeiro CRUD executado depois de uma restauracao nao colida com a massa de demonstracao.
+
 Consulte [`OPERATIONAL-DATASOURCE-MIGRATIONS.md`](OPERATIONAL-DATASOURCE-MIGRATIONS.md) para aplicar a trilha e rodar o drift check antes de usar o cockpit publicado como evidencia final.
 
 Correções estritamente editoriais da massa fictícia ficam fora da trilha estrutural. Os patches

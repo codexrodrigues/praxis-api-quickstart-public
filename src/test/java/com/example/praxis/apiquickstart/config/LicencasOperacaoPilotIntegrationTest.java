@@ -94,7 +94,8 @@ class LicencasOperacaoPilotIntegrationTest {
                     nome varchar(200) not null,
                     jurisdicao varchar(200) not null,
                     status varchar(20) not null,
-                    descricao varchar(4000)
+                    descricao varchar(4000),
+                    version bigint not null default 0
                 )
                 """);
 

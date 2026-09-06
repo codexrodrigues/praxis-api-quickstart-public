@@ -23,7 +23,7 @@ class IntegrationTestIsolationPolicyTest {
         }
 
         assertThat(violations)
-                .as("Spring integration tests must use local H2 datasources or be explicitly marked as external smoke tests")
+                .as("Spring integration tests must use local H2/embedded PostgreSQL datasources or be explicitly marked as external smoke tests")
                 .isEmpty();
     }
 
@@ -56,15 +56,19 @@ class IntegrationTestIsolationPolicyTest {
         boolean disablesFlyway = source.contains("spring.flyway.enabled=false");
 
         boolean usesEmbeddedPostgres = source.contains("EmbeddedPostgres")
-                && source.contains("@DynamicPropertySource")
-                && source.contains("properties.add(\"spring.datasource.url\"")
+                && source.contains("@DynamicPropertySource");
+        boolean usesEmbeddedPostgresApiDatasource = usesEmbeddedPostgres
+                && source.contains("properties.add(\"spring.datasource.url\"");
+        boolean usesEmbeddedPostgresConfigDatasource = usesEmbeddedPostgres
                 && source.contains("properties.add(\"config.datasource.url\"");
-        if (usesEmbeddedPostgres && disablesFlyway) {
+        boolean usesLocalApiDatasource = usesH2ApiDatasource || usesEmbeddedPostgresApiDatasource;
+        boolean usesLocalConfigDatasource = usesH2ConfigDatasource || usesEmbeddedPostgresConfigDatasource;
+        if (usesLocalApiDatasource && usesLocalConfigDatasource && disablesFlyway) {
             return;
         }
 
-        if (!usesH2ApiDatasource || !usesH2ConfigDatasource || !disablesFlyway) {
-            violations.add(path + " must configure H2 api/config datasources and disable Flyway");
+        if (!usesLocalApiDatasource || !usesLocalConfigDatasource || !disablesFlyway) {
+            violations.add(path + " must configure local H2 or embedded PostgreSQL api/config datasources and disable Flyway");
         }
     }
 }

@@ -33,6 +33,10 @@ public class AcordosRegulatorio {
     @Column(name = "descricao", length = Integer.MAX_VALUE)
     private String descricao;
 
-}
+    /** Versao persistida usada para impedir transicoes concorrentes sobre estado obsoleto. */
+    @Version
+    @Column(name = "version", nullable = false)
+    private Long version;
 
+}
 

@@ -176,6 +176,13 @@ fronteira. O quickstart pode provar que uma materializacao aplicada bloqueia uma
 action ou um comando mutavel, mas a decisao canonica deve nascer no fluxo
 governado de `domain-rules`.
 
+Para uma requisicao classificada como `RESOURCE_ACTION_CATALOG`, o host delega a identidade
+autenticada somente ao path canonico same-origin `/schemas/actions`, com principal resolvido. Essa
+permissao especifica nao pode trocar o alvo para `/schemas/surfaces` nem para outra origin. O catalogo
+de surfaces continua permitido separadamente quando a requisicao usa sua surface canonica
+`RESOURCE_SURFACE_CATALOG`. O Quickstart prova a integracao de seguranca dessas fronteiras; a
+semantica dos catalogos permanece no Metadata Starter.
+
 Exemplos do quickstart que servem como prova downstream:
 
 - `selection_eligibility -> option_source` para fornecedores em procurement;
@@ -213,6 +220,7 @@ prova operacional. No minimo, revise estes vinculos:
 | Authoring com grounding | `scripts/verify-domain-catalog-authoring-runtime.sh` e contrato `contextHints.domainCatalog`. |
 | Regras governadas | `scripts/verify-domain-rules-runtime.sh` cobrindo intake, simulation, publication e materializations quando o runtime expuser essas surfaces. |
 | Materializacoes consumidas pelo host | Smokes focados de `option_source`, `backend_validation`, `workflow_action` e `approval_policy`. |
+| Catalogo de actions para authoring | Autorizacao `RESOURCE_ACTION_CATALOG` same-origin focal de `/schemas/actions` com principal resolvido; troca de path para surfaces e origins divergentes permanece bloqueada, sem afetar a autorizacao propria de `RESOURCE_SURFACE_CATALOG`. |
 | Conhecimento governado adicional | `scripts/verify-domain-knowledge-change-set-runtime.sh` para criar, validar, aprovar, aplicar, auditar e reverter evidencias. |
 
 Se um README, guia ou runbook disser que o quickstart "demonstra IA" sem apontar

@@ -1,14 +1,14 @@
 package com.example.praxis.apiquickstart.operationalassets.mapper;
 
 import com.example.praxis.apiquickstart.operationalassets.dto.VeiculoMissaoUsoDTO;
-import com.example.praxis.apiquickstart.hr.entity.Funcionario;
+import com.example.praxis.apiquickstart.core.mapper.ManagedEntityReferenceResolver;
 import com.example.praxis.apiquickstart.operationalassets.entity.Veiculo;
 import com.example.praxis.apiquickstart.operationalassets.entity.VeiculoMissaoUso;
 import com.example.praxis.apiquickstart.operations.entity.Missao;
 import org.mapstruct.*;
 import org.praxisplatform.uischema.mapper.config.CorporateMapperConfig;
 
-@Mapper(componentModel = "spring", config = CorporateMapperConfig.class)
+@Mapper(componentModel = "spring", config = CorporateMapperConfig.class, uses = ManagedEntityReferenceResolver.class)
 public interface VeiculoMissaoUsoMapper {
 
     @Mappings({
@@ -24,10 +24,11 @@ public interface VeiculoMissaoUsoMapper {
     @Mappings({
             @Mapping(target = "veiculo", expression = "java(veiculoFromId(dto.getVeiculoId()))"),
             @Mapping(target = "missao", expression = "java(missaoFromId(dto.getMissaoId()))"),
-            @Mapping(target = "piloto", expression = "java(funcionarioFromId(dto.getPilotoId()))")
+            @Mapping(target = "piloto", source = "pilotoId", qualifiedByName = "funcionarioReference")
     })
     VeiculoMissaoUso toEntity(VeiculoMissaoUsoDTO dto);
 
+    @org.mapstruct.Mapping(target = "id", ignore = true)
     void updateEntity(VeiculoMissaoUso source, @MappingTarget VeiculoMissaoUso target);
 
     default Veiculo veiculoFromId(Integer id) {
@@ -44,12 +45,6 @@ public interface VeiculoMissaoUsoMapper {
         return m;
     }
 
-    default Funcionario funcionarioFromId(Integer id) {
-        if (id == null) return null;
-        Funcionario f = new Funcionario();
-        f.setId(id);
-        return f;
-    }
 }
 
 

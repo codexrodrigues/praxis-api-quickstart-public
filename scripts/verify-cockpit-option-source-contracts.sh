@@ -2,7 +2,7 @@
 set -euo pipefail
 
 BACKEND_URL="${BACKEND_URL:-https://praxis-api-quickstart.onrender.com}"
-ORIGIN="${ORIGIN:-https://praxisui-dev.web.app}"
+ORIGIN="${ORIGIN:-https://praxisui.dev}"
 ADMIN_USERNAME="${ADMIN_USERNAME:-admin}"
 ADMIN_PASSWORD="${ADMIN_PASSWORD:-${PRACTICE_TEMP_PASSWORD:-changeMe!}}"
 export BACKEND_URL

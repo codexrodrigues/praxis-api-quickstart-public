@@ -1,12 +1,12 @@
 package com.example.praxis.apiquickstart.operationalassets.mapper;
 
 import com.example.praxis.apiquickstart.operationalassets.dto.VeiculoDTO;
-import com.example.praxis.apiquickstart.hr.entity.Funcionario;
+import com.example.praxis.apiquickstart.core.mapper.ManagedEntityReferenceResolver;
 import com.example.praxis.apiquickstart.operationalassets.entity.Veiculo;
 import org.mapstruct.*;
 import org.praxisplatform.uischema.mapper.config.CorporateMapperConfig;
 
-@Mapper(componentModel = "spring", config = CorporateMapperConfig.class)
+@Mapper(componentModel = "spring", config = CorporateMapperConfig.class, uses = ManagedEntityReferenceResolver.class)
 public interface VeiculoMapper {
 
     @Mappings({
@@ -16,18 +16,13 @@ public interface VeiculoMapper {
     VeiculoDTO toDto(Veiculo entity);
 
     @Mappings({
-            @Mapping(target = "proprietario", expression = "java(funcionarioFromId(dto.getProprietarioId()))")
+            @Mapping(target = "proprietario", source = "proprietarioId", qualifiedByName = "funcionarioReference")
     })
     Veiculo toEntity(VeiculoDTO dto);
 
+    @org.mapstruct.Mapping(target = "id", ignore = true)
     void updateEntity(Veiculo source, @MappingTarget Veiculo target);
 
-    default Funcionario funcionarioFromId(Integer id) {
-        if (id == null) return null;
-        Funcionario f = new Funcionario();
-        f.setId(id);
-        return f;
-    }
 }
 
 

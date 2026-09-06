@@ -21,11 +21,15 @@ import org.praxisplatform.uischema.options.OptionSourceDescriptor;
 import org.praxisplatform.uischema.options.OptionSourcePolicy;
 import org.praxisplatform.uischema.options.OptionSourceRegistry;
 import org.praxisplatform.uischema.options.OptionSourceType;
+import org.praxisplatform.uischema.concurrency.ResourceVersionUpdatePrecondition;
+import org.praxisplatform.uischema.service.base.VersionedCreateUpdateResourceService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
+import java.util.OptionalLong;
+import java.util.Set;
 
 import static org.springframework.http.HttpStatus.CONFLICT;
 
@@ -37,7 +41,7 @@ import static org.springframework.http.HttpStatus.CONFLICT;
  * vigencia do acordo.</p>
  */
 @Service
-public class AcordosRegulatorioService extends AbstractQuickstartCrudService<AcordosRegulatorio, AcordosRegulatorioDTO, Integer, AcordosRegulatorioFilterDTO, CreateAcordosRegulatorioDTO, UpdateAcordosRegulatorioDTO> {
+public class AcordosRegulatorioService extends AbstractQuickstartCrudService<AcordosRegulatorio, AcordosRegulatorioDTO, Integer, AcordosRegulatorioFilterDTO, CreateAcordosRegulatorioDTO, UpdateAcordosRegulatorioDTO> implements VersionedCreateUpdateResourceService<AcordosRegulatorioDTO, Integer, AcordosRegulatorioFilterDTO, CreateAcordosRegulatorioDTO, UpdateAcordosRegulatorioDTO> {
     private static final OptionSourceRegistry OPTION_SOURCES = OptionSourceRegistry.builder()
             .add(AcordosRegulatorio.class, new OptionSourceDescriptor(
                     ApiPaths.Operations.ACORDOS_REGULATORIOS_AGREEMENT_LOOKUP_SOURCE,
@@ -98,52 +102,92 @@ public class AcordosRegulatorioService extends AbstractQuickstartCrudService<Aco
         return existing;
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public OptionalLong getResourceVersion(Integer id) {
+        return repository.findById(id)
+                .map(AcordosRegulatorio::getVersion)
+                .map(OptionalLong::of)
+                .orElseGet(OptionalLong::empty);
+    }
+
+    @Override
     @Transactional
-    public AcordosRegulatorioDTO review(Integer id, ReviewAcordosRegulatorioDTO dto) {
+    public AcordosRegulatorioDTO update(
+            Integer id,
+            UpdateAcordosRegulatorioDTO dto,
+            ResourceVersionUpdatePrecondition<Integer> precondition
+    ) {
         AcordosRegulatorio existing = findEntityById(id);
+        precondition.requireMatch(existing.getVersion() == null ? 0L : existing.getVersion());
+        beforeUpdate(id, existing, dto);
+        getResourceMapper().applyUpdate(existing, dto);
+        AcordosRegulatorio saved = repository.saveAndFlush(existing);
+        afterUpdate(id, saved, dto);
+        return mapper.toDto(saved);
+    }
+
+    @Transactional
+    public AcordosRegulatorioDTO review(
+            Integer id,
+            ReviewAcordosRegulatorioDTO dto,
+            ResourceVersionUpdatePrecondition<Integer> precondition
+    ) {
+        AcordosRegulatorio existing = findEntityById(id);
+        precondition.requireMatch(existing.getVersion() == null ? 0L : existing.getVersion());
         mapper.updateReview(dto, existing);
         AcordosRegulatorio saved = refreshManaged(getRepository().save(existing));
         return mapper.toDto(saved);
     }
 
     @Transactional
-    public AcordoRegulatorioWorkflowResultDTO suspend(Integer id, AcordoRegulatorioWorkflowRequestDTO dto) {
-        return transitionStatus(id, AcordoStatus.VIGENTE, AcordoStatus.SUSPENSO, dto, "Acordo suspenso");
+    public AcordoRegulatorioWorkflowResultDTO suspend(
+            Integer id,
+            AcordoRegulatorioWorkflowRequestDTO dto,
+            ResourceVersionUpdatePrecondition<Integer> precondition
+    ) {
+        return transitionStatus(id, Set.of(AcordoStatus.VIGENTE), AcordoStatus.SUSPENSO, dto, precondition,
+                "Acordo suspenso");
     }
 
     @Transactional
-    public AcordoRegulatorioWorkflowResultDTO reinstate(Integer id, AcordoRegulatorioWorkflowRequestDTO dto) {
-        return transitionStatus(id, AcordoStatus.SUSPENSO, AcordoStatus.VIGENTE, dto, "Acordo reativado");
+    public AcordoRegulatorioWorkflowResultDTO reinstate(
+            Integer id,
+            AcordoRegulatorioWorkflowRequestDTO dto,
+            ResourceVersionUpdatePrecondition<Integer> precondition
+    ) {
+        return transitionStatus(id, Set.of(AcordoStatus.SUSPENSO), AcordoStatus.VIGENTE, dto, precondition,
+                "Acordo reativado");
     }
 
     @Transactional
-    public AcordoRegulatorioWorkflowResultDTO revoke(Integer id, AcordoRegulatorioWorkflowRequestDTO dto) {
-        AcordoStatus currentStatus = repository.findStatusById(id)
-                .orElseThrow(this::getNotFoundException);
-        if (currentStatus == AcordoStatus.REVOGADO) {
-            throw new ResponseStatusException(CONFLICT, "State not allowed: " + currentStatus.name());
-        }
-        int updated = repository.transitionStatus(id, currentStatus, AcordoStatus.REVOGADO);
-        if (updated == 0) {
-            throw new ResponseStatusException(CONFLICT, "State not allowed: " + currentStatus.name());
-        }
-        return buildWorkflowResult(id, currentStatus, AcordoStatus.REVOGADO, dto, "Acordo revogado");
+    public AcordoRegulatorioWorkflowResultDTO revoke(
+            Integer id,
+            AcordoRegulatorioWorkflowRequestDTO dto,
+            ResourceVersionUpdatePrecondition<Integer> precondition
+    ) {
+        return transitionStatus(id, Set.of(AcordoStatus.VIGENTE, AcordoStatus.SUSPENSO),
+                AcordoStatus.REVOGADO, dto, precondition, "Acordo revogado");
     }
 
     private AcordoRegulatorioWorkflowResultDTO transitionStatus(
             Integer id,
-            AcordoStatus expectedStatus,
+            Set<AcordoStatus> allowedStatuses,
             AcordoStatus targetStatus,
             AcordoRegulatorioWorkflowRequestDTO dto,
+            ResourceVersionUpdatePrecondition<Integer> precondition,
             String message
     ) {
-        int updated = repository.transitionStatus(id, expectedStatus, targetStatus);
-        if (updated == 0) {
-            AcordoStatus currentStatus = repository.findStatusById(id)
-                    .orElseThrow(this::getNotFoundException);
+        AcordosRegulatorio agreement = findEntityById(id);
+        long currentVersion = agreement.getVersion() == null ? 0L : agreement.getVersion();
+        precondition.requireMatch(currentVersion);
+        AcordoStatus currentStatus = agreement.getStatus();
+        if (!allowedStatuses.contains(currentStatus)) {
             throw new ResponseStatusException(CONFLICT, "State not allowed: " + currentStatus.name());
         }
-        return buildWorkflowResult(id, expectedStatus, targetStatus, dto, message);
+        agreement.setStatus(targetStatus);
+        repository.saveAndFlush(agreement);
+        return buildWorkflowResult(id, currentStatus, targetStatus, dto, message);
     }
 
     private AcordoRegulatorioWorkflowResultDTO buildWorkflowResult(
@@ -186,8 +230,6 @@ public class AcordosRegulatorioService extends AbstractQuickstartCrudService<Aco
         );
     }
 }
-
-
 
 
 

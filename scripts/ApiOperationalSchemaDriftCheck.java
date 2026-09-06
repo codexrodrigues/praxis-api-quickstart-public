@@ -34,10 +34,15 @@ public final class ApiOperationalSchemaDriftCheck {
                 assertNoFailures(failures, "Policy Studio operational datasource");
                 return;
             }
+            if (args.length == 1 && "--scope=acordos-regulatorios".equals(args[0])) {
+                checkAcordosRegulatorios(connection, failures);
+                assertNoFailures(failures, "Regulatory agreements operational datasource");
+                return;
+            }
             if (args.length > 0) {
                 throw new IllegalArgumentException(
                         "Usage: ApiOperationalSchemaDriftCheck "
-                                + "[--scope=authoritative-facts|--scope=policy-studio]");
+                                + "[--scope=authoritative-facts|--scope=policy-studio|--scope=acordos-regulatorios]");
             }
             checkTable(connection, "public", "legacy_pay_codes", failures);
             checkColumn(connection, "public", "legacy_pay_codes", "code", failures);
@@ -48,6 +53,7 @@ public final class ApiOperationalSchemaDriftCheck {
             checkColumn(connection, "public", "eventos_folha", "status", failures);
             checkColumn(connection, "public", "eventos_folha", "version", failures);
             checkColumn(connection, "public", "funcionarios", "version", failures);
+            checkColumn(connection, "public", "acordos_regulatorios", "version", failures);
             checkTable(connection, "public", "praxis_resource_action_transition", failures);
             checkColumn(connection, "public", "praxis_resource_action_transition", "transition_id", failures);
             checkColumn(connection, "public", "praxis_resource_action_transition", "resource_key", failures);
@@ -304,6 +310,23 @@ public final class ApiOperationalSchemaDriftCheck {
                 "delivered_at",
                 "last_failure_code")) {
             checkColumn(connection, "public", "rule_execution_observation_outbox", column, failures);
+        }
+    }
+
+    private static void checkAcordosRegulatorios(Connection connection, List<String> failures) throws SQLException {
+        checkTable(connection, "public", "acordos_regulatorios", failures);
+        checkColumn(connection, "public", "acordos_regulatorios", "version", failures);
+        checkTable(connection, "public", "praxis_resource_action_execution", failures);
+        for (String column : List.of(
+                "resource_key",
+                "resource_id",
+                "action_id",
+                "idempotency_key",
+                "request_hash",
+                "execution_status",
+                "response_payload",
+                "actor_subject")) {
+            checkColumn(connection, "public", "praxis_resource_action_execution", column, failures);
         }
     }
 

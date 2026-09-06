@@ -3,6 +3,7 @@ package com.example.praxis.apiquickstart.operations.service;
 import com.example.praxis.apiquickstart.config.DomainRuleWorkflowActionPolicyResolver;
 import com.example.praxis.apiquickstart.constants.ApiPaths;
 import com.example.praxis.apiquickstart.operations.entity.Missao;
+import com.example.praxis.apiquickstart.operations.enums.MissaoStatus;
 import com.example.praxis.apiquickstart.operations.mapper.MissaoMapper;
 import com.example.praxis.apiquickstart.operations.repository.MissaoParticipanteRepository;
 import com.example.praxis.apiquickstart.operations.repository.MissaoRepository;
@@ -51,5 +52,6 @@ class MissaoServiceOptionSourceTest {
         assertNull(detail.hrefTemplate());
         assertNull(detail.routeTemplate());
         assertNull(detail.openDetailMode());
+        assertEquals(MissaoStatus.labels(), descriptor.entityLookup().display().statusLabelMap());
     }
 }

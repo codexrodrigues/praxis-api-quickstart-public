@@ -44,6 +44,7 @@ import org.praxisplatform.uischema.command.ResourceCommandExecutionRequest;
 import org.praxisplatform.uischema.command.ResourceCommandExecutionResult;
 import org.praxisplatform.uischema.command.ResourceCommandOutcome;
 import org.praxisplatform.uischema.command.ResourceCommandResponsePolicy;
+import org.praxisplatform.uischema.concurrency.ResourceVersionPreconditions;
 import org.praxisplatform.uischema.controller.base.AbstractReadOnlyResourceController;
 import org.praxisplatform.uischema.rest.response.RestApiResponse;
 import org.praxisplatform.config.contract.DomainRuleTestRunResponse;
@@ -364,6 +365,7 @@ public class ExtraordinaryBenefitRequestController extends AbstractReadOnlyResou
         requireAdmin();
         simulationPolicy.requireAvailable();
         validateIdempotencyKey(idempotencyKey);
+        ResourceVersionPreconditions.requireStrongEtag(ifMatch);
         var replay = actionExecutionService.findCompletedReplay(
                 RESOURCE_KEY, id, "re-evaluate", idempotencyKey, request);
         if (replay.isPresent()) {
@@ -440,6 +442,7 @@ public class ExtraordinaryBenefitRequestController extends AbstractReadOnlyResou
         requireAdmin();
         simulationPolicy.requireAvailable();
         validateIdempotencyKey(idempotencyKey);
+        ResourceVersionPreconditions.requireStrongEtag(ifMatch);
         var replay = actionExecutionService.findCompletedReplay(RESOURCE_KEY, id, actionId, idempotencyKey, request);
         if (replay.isPresent()) {
             ExtraordinaryBenefitTransitionResponse restored = restore(replay.get(), ExtraordinaryBenefitTransitionResponse.class);

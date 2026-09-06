@@ -27,11 +27,13 @@ import org.praxisplatform.uischema.annotation.WorkflowAction;
 import org.praxisplatform.uischema.action.ActionScope;
 import org.praxisplatform.uischema.command.ResourceCommandExecutionResult;
 import org.praxisplatform.uischema.command.ResourceCommandResponsePolicy;
+import org.praxisplatform.uischema.controller.base.ResourceRepresentationMaterializer;
 import org.springframework.beans.factory.annotation.Autowired;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import org.praxisplatform.uischema.rest.response.RestApiResponse;
+import org.praxisplatform.uischema.rest.response.RestApiResource;
 import org.springframework.hateoas.EntityModel;
 import org.springframework.hateoas.Links;
 import org.springframework.http.ResponseEntity;
@@ -69,10 +71,13 @@ import java.util.Map;
 @ApiGroup("operations")
 public class MissaoController extends AbstractQuickstartCrudController<Missao, MissaoDTO, Integer, MissaoFilterDTO, CreateMissaoDTO, UpdateMissaoDTO> {
 
+    private static final String PARTICIPANT_RESOURCE_KEY = "operations.missao-participantes";
+
     private final MissaoService service;
     private final MissaoMapper mapper;
     private final VwResumoMissoeService resumoMissoeService;
     private final MissaoParticipanteService participanteService;
+    private final ResourceRepresentationMaterializer representationMaterializer;
     private final MissaoEventoService eventoService;
 
     @Autowired
@@ -81,12 +86,14 @@ public class MissaoController extends AbstractQuickstartCrudController<Missao, M
             MissaoMapper mapper,
             VwResumoMissoeService resumoMissoeService,
             MissaoParticipanteService participanteService,
+            ResourceRepresentationMaterializer representationMaterializer,
             MissaoEventoService eventoService
     ) {
         this.service = service;
         this.mapper = mapper;
         this.resumoMissoeService = resumoMissoeService;
         this.participanteService = participanteService;
+        this.representationMaterializer = representationMaterializer;
         this.eventoService = eventoService;
     }
 
@@ -331,7 +338,7 @@ public class MissaoController extends AbstractQuickstartCrudController<Missao, M
             intent = "mission-command-center",
             order = 50,
             tags = {"mission", "team", "read-projection", "related-resource"},
-            relatedChildResourceKey = "operations.missao-participantes",
+            relatedChildResourceKey = PARTICIPANT_RESOURCE_KEY,
             relatedChildResourcePath = ApiPaths.Operations.MISSAO_PARTICIPANTES,
             relatedChildParentField = "missaoId",
             relatedSelectable = true,
@@ -348,8 +355,11 @@ public class MissaoController extends AbstractQuickstartCrudController<Missao, M
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Equipe retornada com sucesso.")
     })
-    public ResponseEntity<RestApiResponse<List<MissaoParticipanteDTO>>> getTeam(@PathVariable Integer id) {
-        List<MissaoParticipanteDTO> team = participanteService.findByMissaoIdForCommandCenter(id);
+    public ResponseEntity<RestApiResponse<List<RestApiResource<MissaoParticipanteDTO>>>> getTeam(@PathVariable Integer id) {
+        List<RestApiResource<MissaoParticipanteDTO>> team = representationMaterializer.materializeAll(
+                PARTICIPANT_RESOURCE_KEY,
+                participanteService.findByMissaoIdForCommandCenter(id)
+        );
         Links links = Links.of(
                 linkToSelf(id),
                 linkToAll(),

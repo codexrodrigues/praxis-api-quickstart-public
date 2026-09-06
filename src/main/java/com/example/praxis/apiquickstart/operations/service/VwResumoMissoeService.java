@@ -26,8 +26,8 @@ import java.util.Set;
 public class VwResumoMissoeService extends AbstractQuickstartReadOnlyService<VwResumoMissoe, VwResumoMissoeDTO, Integer, VwResumoMissoeFilterDTO> {
 
     private static final StatsFieldRegistry STATS_FIELDS = StatsFieldRegistry.builder()
-            .groupByBucket("status", "status", Set.of(StatsMetric.COUNT))
-            .groupByBucket("prioridade", "prioridade", Set.of(StatsMetric.COUNT))
+            .labeledGroupByBucket("status", "status", "statusLabel", Set.of(StatsMetric.COUNT))
+            .labeledGroupByBucket("prioridade", "prioridade", "prioridadeLabel", Set.of(StatsMetric.COUNT))
             .groupByBucket("local", "local", Set.of(StatsMetric.COUNT))
             .groupByBucket("ameaca", "ameaca", Set.of(StatsMetric.COUNT))
             .numericHistogramMeasureField("qtdHerois", "qtdHerois")
@@ -63,7 +63,6 @@ public class VwResumoMissoeService extends AbstractQuickstartReadOnlyService<VwR
         return STATS_FIELDS;
     }
 }
-
 
 
 

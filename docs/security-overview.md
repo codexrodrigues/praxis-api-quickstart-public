@@ -29,6 +29,12 @@ Flags principais (env → application.properties)
   - A mesma política governa reconstrução de origem para `/api/praxis/config/**` e identidade de cliente para rate limit.
   - Requests diretos precisam enviar `Origin` permitido ou `Referer` válido; `Host`, `X-Forwarded-Host`, `X-Forwarded-Proto` e `X-Forwarded-For` forjados não autorizam origem nem criam buckets de rate limit.
 
+Rate limit da superfície de IA
+- `app.rate-limit.ai.limit` / `app.rate-limit.ai.window-ms` (`APP_RATE_LIMIT_AI_LIMIT` / `APP_RATE_LIMIT_AI_WINDOW_MS`)
+  - O bucket `ai` é aplicado primeiro a `/api/praxis/config/ai/**`, antes do bucket geral de Config.
+  - O default do host de referência é 30 requisições por cliente a cada 60 segundos.
+  - Respostas bloqueadas retornam `429` e `Retry-After`. Em produção, complemente esse baseline em memória com gateway/WAF e orçamento do projeto do provedor.
+
 Política de URL encoding
 - O firewall HTTP do quickstart permanece estrito para o host inteiro.
 - A única exceção de path encoding é `%2F` em rotas `/api/praxis/config/**`, porque alguns endpoints do `praxis-config-starter` ainda recebem `componentId` por `@PathVariable` e refs canônicas de componente podem conter `/`.
@@ -63,7 +69,9 @@ Maker-checker do Rule Lab
   aprovação exige outro ator com `RULE_DEFINITION_APPROVER`, ativação condicional exige
   `RULE_SNAPSHOT_OPERATOR` e catálogo/timeline exigem `RULE_SNAPSHOT_READER`.
 - Reads de definitions, timelines e materializations exigem
-  `RULE_DEFINITION_READER`; simulation exige `RULE_DEFINITION_AUTHOR`.
+  `RULE_DEFINITION_READER`; simulation, por ser avaliação sem efeito colateral, aceita
+  `RULE_DEFINITION_AUTHOR` ou `RULE_DEFINITION_APPROVER`. Isso permite que o aprovador independente
+  recompute a readiness canônica sem receber autoridade de autoria.
   O Config usa tenant/environment resolvidos do principal, nunca headers
   opcionais como wildcard de escopo.
 - O admin demo recebe `RULE_DEFINITION_READER` e `RULE_SNAPSHOT_READER` entre os roles de

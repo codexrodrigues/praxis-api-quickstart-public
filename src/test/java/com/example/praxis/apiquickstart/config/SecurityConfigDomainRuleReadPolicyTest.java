@@ -138,10 +138,12 @@ class SecurityConfigDomainRuleReadPolicyTest {
     }
 
     @Test
-    void definitionApproverCanReviewButCannotCreateWorkspace() throws Exception {
+    void definitionApproverCanRecomputeReadinessAndReviewButCannotCreateWorkspace() throws Exception {
         when(jwtTokenService.validate("approver")).thenReturn(JwtTokenService.JwtValidationResult.valid(
                 "policy-reviewer", "HUMAN", List.of(RuleGovernanceAuthorities.DEFINITION_APPROVER)));
 
+        mockMvc.perform(post(SIMULATIONS).header("Authorization", "Bearer approver"))
+                .andExpect(status().isOk());
         mockMvc.perform(post(WORKSPACE_REVIEW).header("Authorization", "Bearer approver"))
                 .andExpect(status().isOk());
         mockMvc.perform(post(WORKSPACES).header("Authorization", "Bearer approver"))

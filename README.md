@@ -346,6 +346,7 @@ Opcionalmente, se o provedor expoe `DATABASE_URL` (DSN), mantenha tambem `SPRING
 - Rate limit padrao do host:
   - `APP_RATE_LIMIT_PUBLIC_READ_LIMIT=600`
   - `APP_RATE_LIMIT_PUBLIC_QUERY_LIMIT=240`
+  - `APP_RATE_LIMIT_AI_LIMIT=30` para `/api/praxis/config/ai/**`
   - `APP_RATE_LIMIT_CONFIG_LIMIT=240`
   - `APP_RATE_LIMIT_LOGIN_LIMIT=10`
   - `APP_RATE_LIMIT_BULK_ACTION_LIMIT=5`
@@ -398,9 +399,10 @@ curl -i -b cookies.txt -c cookies.txt \
 ## Rodar local
 Este quickstart usa os starters alinhados ao ciclo corrente:
 
-- Metadata: `io.github.codexrodrigues:praxis-metadata-starter:8.0.0-rc.104`
-- Config: `io.github.codexrodrigues:praxis-config-starter:0.1.0-rc.100`
-- UI Angular: `@praxisui/*:9.0.5-rc.4`
+- Metadata: `io.github.codexrodrigues:praxis-metadata-starter:8.0.0-rc.127`
+- Config: `io.github.codexrodrigues:praxis-config-starter:0.1.0-rc.149`
+- Prova de integração: [política de provider e jornada first-pass](docs/CONFIG-149-AUTHORING-PROVIDER-PROOF.md).
+- UI Angular: `@praxisui/*:9.0.63`
 
 1) Build (repo standalone)
 ```
@@ -507,6 +509,26 @@ Boas praticas
 - Entidades de negocio selecionaveis: use uma source governada em `/option-sources/{sourceKey}/options/filter`.
 - Pre-selecao: reidrate com `/options/by-ids` ou `/option-sources/{sourceKey}/options/by-ids` conforme a fonte.
 - Mantenha `size` moderado; utilize `X-Data-Version` para cache de listas.
+
+### Leitura completa e comando parcial de funcionario
+
+O recurso `human-resources.funcionarios` mantém contratos distintos para ler um registro e para
+comandar uma alteração. `FuncionarioDTO` é o read model: ele inclui identidade técnica, versão e
+projeções resolvidas pelo backend. `CreateFuncionarioDTO` e `UpdateFuncionarioDTO` declaram apenas
+valores aceitos pelas operações de escrita e não herdam o DTO de leitura.
+
+A surface de manutenção de contato ancora uma intenção ainda menor:
+
+- leitura para hidratação: `GET /api/human-resources/funcionarios/{id}`;
+- contrato estrutural: `GET /schemas/filtered?path=/api/human-resources/funcionarios/{id}/profile&operation=patch&schemaType=request`;
+- execução: `PATCH /api/human-resources/funcionarios/{id}/profile`;
+- propriedades aceitas: `nomeCompleto`, `email`, `telefone` e `fotoPerfilUrl`.
+
+Receber salário, lotação, documento, estado civil ou versão na leitura não promove esses valores a
+campos do comando. O runtime pode usá-los como contexto, mas o request schema delimita os controles
+editáveis e o payload; o backend continua responsável por validação, autorização e efeito. O teste
+`QuickstartMetadataMigrationIntegrationTest` verifica o conjunto exato de propriedades das
+operações para impedir que herança ou projeções de leitura ampliem o contrato silenciosamente.
 
 ### Lookup de entidade governada (`RESOURCE_ENTITY`)
 
@@ -616,6 +638,20 @@ Exemplos de referencia no quickstart:
   status/prioridade/primeira acao, eventos por tipo/periodo e composicao de equipe por papel.
 - `operations.base-acessos` e `operations.acordos-regulatorios` completam a vitrine de
   governanca com surfaces de revisao e actions de ativacao, suspensao, reintegracao ou revogacao.
+- As actions ITEM `suspend`, `reinstate` e `revoke` de acordos regulatorios publicam no discovery
+  risco, confirmacao, reversibilidade, idempotencia e versao obrigatorias. O cliente envia um unico
+  `If-Match` forte e uma `Idempotency-Key`; replay do mesmo command exige novamente o header, aceita
+  o ETag original que ficou obsoleto apos o sucesso e nao repete a transicao.
+- A versao e persistida por `@Version`. A validacao acontece antes de reservar a chave e novamente
+  na transacao que altera o agregado; ausencia retorna 428, formato invalido retorna 400 e versao
+  obsoleta ou colisao concorrente retorna 412. Falhas persistidas no ledger usam mensagem
+  sanitizada, sem propagar detalhe de entidade ou banco.
+- O `PUT` e a surface parcial de review tambem exigem `If-Match`. O request de update comum nao
+  publica `status`: o ciclo de vida permanece exclusivo das actions `suspend`, `reinstate` e
+  `revoke`, impedindo que uma tela generica contorne a governanca do workflow.
+- O recurso herda a base canônica de create/update sem delete. Acordos são preservados para
+  auditoria e deixam de ser elegíveis exclusivamente pela action `revoke`; por isso OpenAPI,
+  capabilities e links HATEOAS não publicam exclusão unitária nem em lote.
 - O smoke `scripts/verify-operations-runtime.sh` valida essa vitrine no host publicado:
   surfaces de missao, acesso e acordo; actions de ciclo operacional; stats de missoes, eventos
   e participantes; e series temporais que alimentam charts e diagramas navegaveis do cockpit.
@@ -901,6 +937,14 @@ filtradas contra capabilities canonicas dos recursos filhos. Esse e o exemplo re
 clientes que precisam abrir uma tabela filha pronta a partir do item pai sem codificar filtro manual
 no host Angular.
 
+O contrato operacional de uma related resource exige que todo `childParentField` publicado exista
+no schema de resposta do recurso filho e, quando `childOperations` contiver `FILTER`, também no
+schema de request de `POST {childResourcePath}/filter`. O filtro deve restringir efetivamente o
+resultado ao item pai; campos escalares contextuais podem permanecer `formHidden=true` quando a
+mesma tela também oferecer um seletor plural para pesquisa manual. O gate de integração das surfaces
+de funcionários verifica essa invariância para impedir metadata estruturalmente válida, porém sem
+efeito no runtime.
+
 Seguranca (POST):
 - Em ambientes com `app.security.write-disabled=true`, POST e negado por padrao.
 - Para fins de demonstracao/local, habilite somente esse caminho definindo: `app.security.demo-allow-bulk-actions=true`.
@@ -1110,8 +1154,9 @@ curl -s -X POST 'http://localhost:8088/api/human-resources/funcionarios/options/
   exclusivo da fixture hospedada e nao substitui o provisioning operacional de uma empresa.
 - Se um provedor fornecer apenas `DATABASE_URL` no formato DSN, converta para JDBC antes de setar `SPRING_DATASOURCE_URL`.
 - Dependencia no Maven Central: `io.github.codexrodrigues:praxis-metadata-starter` (nenhuma etapa previa de build local e necessaria).
-- O alvo coordenado deste corte é `io.github.codexrodrigues:praxis-config-starter:0.1.0-rc.114` e `io.github.codexrodrigues:praxis-metadata-starter:8.0.0-rc.127`. Além da evidência operacional V58/V60, o corte V61 publica no discovery da action host-owned a precondição cross-resource: o `If-Match` obrigatório pertence ao recurso canônico `praxis.config.domain-rule-change-workspaces`, identificado por `workspaceId`. Assim, consumidores como o Policy Studio descobrem o alvo da concorrência otimista sem hardcode de endpoint ou header. A action continua executando quatro cenários descartáveis `CREATE`/`UPDATE` × `ALLOW`/`DENY`, exige authority dedicada e idempotência, persiste somente evidência sanitizada no Config e faz rollback da mutação operacional sem apagar auditoria append-only. O Policy Studio envia somente `selectedDomainDecisionRef` ao assistente; o Config relê a versão exata, aplica `governance.aiUsage`, projeta evidência sanitizada e encerra a explicação com `canApply=false`. O roteamento permanece semântico e authorado pela LLM. O Quickstart continua sendo apenas o host de referência e não redefine essa semântica.
+- O alvo coordenado deste corte é `io.github.codexrodrigues:praxis-config-starter:0.1.0-rc.148` e `io.github.codexrodrigues:praxis-metadata-starter:8.0.0-rc.127`. Além da evidência operacional V58/V60, o corte V61 publica no discovery da action host-owned a precondição cross-resource: o `If-Match` obrigatório pertence ao recurso canônico `praxis.config.domain-rule-change-workspaces`, identificado por `workspaceId`. Assim, consumidores como o Policy Studio descobrem o alvo da concorrência otimista sem hardcode de endpoint ou header. A action continua executando quatro cenários descartáveis `CREATE`/`UPDATE` × `ALLOW`/`DENY`, exige authority dedicada e idempotência, persiste somente evidência sanitizada no Config e faz rollback da mutação operacional sem apagar auditoria append-only. O Policy Studio envia somente `selectedDomainDecisionRef` ao assistente; o Config relê a versão exata, aplica `governance.aiUsage`, projeta evidência sanitizada e encerra a explicação com `canApply=false`. O roteamento permanece semântico e authorado pela LLM. O Quickstart continua sendo apenas o host de referência e não redefine essa semântica.
 - `GovernedUiCompositionTemplateReferenceQuickstartIntegrationTest` sobe o host HTTP em porta aleatoria, publica e le um template pelos endpoints canonicos e prova `page-preview` para referencia valida, stale, ausente e inativa. O teste mantem seguranca de `Origin` habilitada e usa repositorio deterministico em memoria; portanto ele comprova a integracao HTTP/servico/resolver/compilador, mas nao substitui um smoke de persistencia PostgreSQL ou do host publicado.
+- `UiCompositionReopenPostgresHttpIntegrationTest` fecha essa lacuna de persistencia para uma composicao rica: prova por HTTP real e PostgreSQL o ciclo criar, aplicar, reler, refinar por manifesto e reaplicar, com fonte authoring atestada pelo servidor, isolamento por usuario e concorrencia por ETag. A matriz, os limites e os comandos estao em [`docs/UI-COMPOSITION-REOPEN-CORPORATE-GATE.md`](docs/UI-COMPOSITION-REOPEN-CORPORATE-GATE.md).
 - Este quickstart deve consumir a versao mais recente do starter disponivel para o ciclo corrente para refletir no host operacional os contratos atuais de `ETag`, `If-None-Match`, `If-Match`, `412 Precondition Failed` e authoring AI em `/api/praxis/config/**`.
 - Com `praxis-config-starter:0.1.0-rc.71`, o quickstart tambem prova `GET /api/praxis/runtime/context`, `PUT /api/praxis/runtime/context`, `GET /api/praxis/runtime/tenants`, `GET /api/praxis/runtime/navigation` e `GET /api/praxis/runtime/security-events` com um provider demonstrativo nao-Ergon (`QuickstartEnterpriseRuntimeContextProvider`). Esse provider apenas projeta contexto publico seguro, uma lista de tenants demonstrativa, uma troca de contexto demo com headers de propagacao, uma arvore de navegacao com refs canonicas Praxis e eventos runtime sanitizados para shell/AI grounding; autenticacao, autorizacao privada, roles reais, tenant entitlement, menus corporativos e auditoria privada continuam sendo responsabilidade do host corporativo.
 - Este quickstart ativa explicitamente `praxis.ai.authoring.reference-ui-composition-provider-enabled=true` porque e o host de referencia que demonstra composicoes ricas de RH/folha. O `praxis-config-starter` generico nao registra esse provider por padrao; hosts reais devem alimentar authoring por catalogo, contexto semantico e providers proprios quando precisarem de planos especializados.
@@ -1128,7 +1173,7 @@ Para releases do `praxis-config-starter`, este quickstart agora possui dois nive
 - O envelope `contextHints.domainCatalog` possui contrato em [`docs/contracts/domain-authoring-context-hints.schema.json`](docs/contracts/domain-authoring-context-hints.schema.json), exemplo em [`payloads/domain_authoring_context_hints.example.json`](payloads/domain_authoring_context_hints.example.json), gate estrutural em `DomainAuthoringContextHintsContractTest` e smoke runtime em `scripts/verify-domain-catalog-authoring-runtime.sh`. Esse contrato do quickstart deve espelhar o `AiDomainCatalogContextHint` canonico do `praxis-config-starter`; campos como `artifactKind`, `targetLayer` e `governance` sao extensoes opcionais para chamadas diretas de autoria. O smoke runtime cobre dois caminhos: descoberta para dashboard de folha de pagamento e autoria de regra de formulario/LGPD, exigindo `intent=authoring`, `itemTypes`, `recommendedAuthoringFlow=shared_rule_authoring` e, quando disponivel, `recommendedRuleType` para semear a trilha de `domain-rules/simulations`. O mesmo smoke tambem pode provar o primeiro corte de governanca de contexto semantico para LLM authoring: com `REQUIRE_GOVERNED_CONTEXT=true` e uma chave LLM configurada, ele chama `/api/praxis/config/ai/authoring/intent-resolution` com `includeLlmDiagnostics=true` e exige `llmDiagnostics.request.contextBundle.governedDomainContext.resolutionStatus=resolved`, emitindo `domainContextGovernanceAuthoringSeen=true`. Enquanto o host publicado ainda estiver em rollout, o smoke aceita em modo `REQUIRE_AUTHORING_FLOW=auto` o hint legado `recommendedOperation=rule.visualBlockGuidance.add` apenas como evidencia temporaria de materializacao visual antiga, nao como fluxo canonico de autoria.
 - A persistencia da regra compartilhavel fica separada da materializacao em `FormConfig`. O fluxo canonico de `domain-rules` passa a admitir `POST /api/praxis/config/domain-rules/intake` para abrir um draft governado antes de `simulation/definition/materialization/publication`. A resposta de `simulation` deve trazer `explainability` estruturada junto de grounding, cobertura existente, materializacoes previstas, aprovacoes requeridas e warnings, para que a explicacao oficial venha do backend. Quando `publicationReadiness=ready_to_publish`, a trilha canonica de governanca avanca por `POST /api/praxis/config/domain-rules/publications`, que ativa a definicao persistida e aplica materializacoes elegiveis sem exigir que o host remonte a policy de publicacao. O smoke runtime `scripts/verify-domain-rules-runtime.sh` abre primeiro um intake real em `POST /api/praxis/config/domain-rules/intake`, valida que o grounding aponta para uma definicao persistida e entao simula usando `ruleDefinitionId`; quando `/simulations` estiver disponivel, ele exige `explainability.summary`, `recommendedAction`, `publicationReadiness` e `nextSteps` antes de seguir para aprovacao e materializacao. Em seguida, ele continua com a definicao LGPD versionada e a materializacao `form_config`, e tambem prova um segundo caminho canonico de procurement com `selection_eligibility -> publications -> option_source`, exigindo `targetLayer=option_source`, `targetArtifactType=resource-option-source`, `targetArtifactKey=supplier` e `materializedPayload.kind=lookup_selection_policy`. Depois da publicacao, o smoke consulta o endpoint real de lookup de fornecedores com o tenant isolado da publicacao para provar que a materializacao aplicada governa o runtime de `option_source`, retornando `selectable=false` para um status bloqueado pela decisao publicada. O host tambem possui o hook runtime para consumir materializacoes aplicadas de `backend_validation` com `targetArtifactType=resource-validation` e `targetArtifactKey=procurement.purchase-orders`: `ProcurementPurchaseOrderService` consulta a decisao aplicada e bloqueia comandos que usem `supplierId` com status proibido. Para actions operacionais, `FolhasPagamentoService` tambem consome materializacoes aplicadas de `workflow_action` com `targetArtifactType=resource-workflow-action` e `targetArtifactKey=human-resources.folhas-pagamento:mark-paid`, provando que uma decisao governada pode bloquear uma action existente sem transformar o quickstart em fonte primaria da regra. A proxima expansao canonica e `approval_policy`: `EventosFolhaService` consome materializacoes de `targetArtifactType=resource-action-approval` para decidir se `human-resources.eventos-folha:bulk-approve` exige aprovacao, sem transformar o quickstart em fonte primaria da regra, inbox generico ou motor BPM. O smoke agora cobre `workflow_action` em `REQUIRE_WORKFLOW_ACTION=auto|true|false`, prepara `approval_policy` em `REQUIRE_APPROVAL_POLICY=auto|true|false` e valida timeline governada em `REQUIRE_TIMELINE=auto|true|false` quando o runtime expuser `GET /api/praxis/config/domain-rules/definitions/{definitionId}/timeline`: ele cria/publica as regras governadas, exige `sourceHash` derivado, valida eventos `safe` sem vazamento de prompt/condicao/payload materializado e, quando `REQUIRE_TIMELINE=true`, exige `intake.received`, `simulation.requested`, `simulation.completed`, `approval.requested` e `approval.completed` no caminho governado de `form_config`, exige `publication.requested` e `publication.completed` no caminho publicado e, quando autenticado, chama a action esperando `409 Conflict`. Com `praxis-config-starter:0.1.0-rc.36`, o smoke pode ser endurecido para `REQUIRE_BACKEND_VALIDATION=true` e `REQUIRE_TIMELINE=true`: ele cria/publica regras governadas, exige derivacao `resource_validation_policy` com `source_hash` derivado limitado por digest estavel, autentica em `/auth/login` com `PRACTICE_TEMP_PASSWORD`, prova que o comando mutavel de pedido rejeita fornecedor bloqueado com `409 Conflict` e valida a timeline canonica publicada no starter. Ele exige um runtime com as migrations `V20__create_domain_shared_rule_layer.sql`, `V22__expand_domain_rule_constraints_for_selection_eligibility.sql`, `V23__expand_domain_rule_constraints_for_workflow_action.sql` e, para `REQUIRE_APPROVAL_POLICY=true`, `V24__expand_domain_rule_constraints_for_approval_policy.sql` aplicadas; o script nao executa Flyway nem altera schema. Enquanto um host publicado especifico ainda estiver em rollout dos endpoints novos, os modos padrao `REQUIRE_SIMULATION=auto`, `REQUIRE_PUBLICATION=auto`, `REQUIRE_BACKEND_VALIDATION=auto`, `REQUIRE_WORKFLOW_ACTION=auto`, `REQUIRE_APPROVAL_POLICY=auto` e `REQUIRE_TIMELINE=auto` registram warning para gaps esperados e continuam no fluxo baseline. O workflow manual `Domain Rules Runtime Smoke` expoe os seis gates como inputs `require_simulation`, `require_publication`, `require_backend_validation`, `require_workflow_action`, `require_approval_policy` e `require_timeline`, para permitir endurecer o rollout publicado sem alterar o script. Como esse smoke escreve registros persistidos, ele usa `SMOKE_RUN_ID` com timestamp UTC por padrao e isola o caminho de `publications` em um tenant derivado desse identificador.
 - Para provar somente enforcement nao visual, use `scripts/verify-domain-rules-backend-validation-runtime.sh`. Esse smoke focado cria uma decisao governada `validation`, publica a materializacao aplicada `backend_validation`/`resource_validation_policy`, autentica no host e exige que `POST /api/procurement/purchase-orders` rejeite um `supplierId` bloqueado com `409 Conflict`. Antes de executar contra um host local, empacote o quickstart atual com `./mvnw -q -DskipTests package` e confirme que o jar embute o `praxis-config-starter` esperado; um processo local antigo pode carregar starter stale e gerar falsos negativos em endpoints de procurement. Exemplo: `BACKEND_URL=http://localhost:8091 ORIGIN=http://localhost:4003 scripts/verify-domain-rules-backend-validation-runtime.sh`. Quando o host usar protecao de origem para `/api/praxis/config/**`, inicie-o com `APP_SECURITY_CONFIG_ORIGIN_RESTRICTION_ALLOWED_ORIGINS` alinhado ao `ORIGIN` do smoke.
-- Para provar somente enforcement de action operacional, use `scripts/verify-domain-rules-workflow-action-runtime.sh`. Esse smoke focado cria uma decisao governada `workflow_action_policy`, publica a materializacao aplicada `workflow_action`/`workflow_action_policy`, autentica no host e exige que `POST /api/human-resources/folhas-pagamento/2/actions/mark-paid` seja bloqueado com `409 Conflict` pela policy publicada em `domain-rules`, nao por regra copiada para a UI.
+- Para provar o enforcement de action operacional, use `scripts/verify-domain-rules-workflow-action-runtime.sh`. O entrypoint focado delega ao smoke governado canonico, em vez de manter uma segunda implementacao: autentica as personas distintas, percorre maker-checker, publica `workflow_action`/`workflow_action_policy` e exerce `POST /api/procurement/purchase-orders/43/actions/approve` sobre o pedido `CANCELLED` do dataset de referencia. O gate exige `409 Conflict` **e a mensagem exata da policy publicada**; um conflito nativo de estado nao e aceito como evidencia.
 - Para provar somente enforcement de aprovacao operacional, use `scripts/verify-domain-rules-approval-policy-runtime.sh`. Esse smoke focado cria uma decisao governada `approval_policy`, publica a materializacao aplicada `approval_policy`/`resource-action-approval`, autentica no host e exige que `POST /api/human-resources/eventos-folha/actions/bulk-approve` seja bloqueado com `409 Conflict`, mostrando que a exigencia de aprovacao vem da decisao publicada e nao de um inbox ou motor BPM local.
 - O corte coordenado `praxis-config-starter:0.1.0-rc.36` esta documentado em [`docs/DOMAIN-RULE-TIMELINE-RC36-ROLLOUT.md`](docs/DOMAIN-RULE-TIMELINE-RC36-ROLLOUT.md). O artefato ja resolve no Maven Central, e este quickstart passa a consumi-lo como host operacional de referencia para provar timeline governada e authoring por path explicito.
 - A federacao de dominio fica separada do catalogo isolado de cada servico. O smoke runtime `scripts/verify-domain-federation-runtime.sh` grava uma release candidata em `/api/praxis/config/domain-federation/ingest?dryRun=false`, consulta auditoria e validacao persistida, e ativa a release em `/api/praxis/config/domain-federation/releases/{releaseKey}/activate`. Ele exige um runtime com a migration `V21__create_domain_federation_read_model.sql` aplicada e `praxis.domain-federation.persistence.enabled=true`; o script nao executa Flyway nem altera schema.
@@ -1306,6 +1351,11 @@ agendadas ou manuais sem expectativa de um commit especifico continuam operando
 sobre o runtime efetivamente publicado. A landing publica continua apenas
 validando o config-store; a responsabilidade por alinhar catalogo vivo e catalogo
 persistido permanece neste host de referencia.
+
+Os smokes publicados usam `https://praxisui.dev`, origem publica mantida no
+baseline canonico de `OfficialBrowserOrigins`. Para provas locais ou consumidores
+adicionais do deployment, sobrescreva `ORIGIN` com uma origem explicitamente
+autorizada; os scripts nao relaxam a protecao de origem do host.
 
 Depois de habilitar `praxis.domain-knowledge.projection.enabled=true` e executar uma ingestao controlada, valide a materializacao read-only na camada `domain_knowledge_*`:
 

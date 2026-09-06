@@ -22,7 +22,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.net.URI;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -615,7 +617,7 @@ class QuickstartMetadataMigrationIntegrationTest {
         assertEquals("Novo endereço de e-mail operacional.",
                 patchSchema.path("properties").path("email").path("x-ui").path("helpText").asText());
         assertTrue(patchSchema.path("properties").has("telefone"));
-        assertEquals("Novo telefone de contato de emergência.",
+        assertEquals("Novo telefone de contato operacional.",
                 patchSchema.path("properties").path("telefone").path("x-ui").path("helpText").asText());
         assertFalse(patchSchema.path("properties").has("salario"));
     }
@@ -670,23 +672,28 @@ class QuickstartMetadataMigrationIntegrationTest {
                 String.class,
                 "/api/human-resources/funcionarios"
         ));
-        assertFalse(funcionarioCreateSchema.path("properties").has("id"));
-        assertFalse(funcionarioCreateSchema.path("properties").has("avatarUrl"));
-        assertFalse(funcionarioCreateSchema.path("properties").has("cargoNome"));
-        assertFalse(funcionarioCreateSchema.path("properties").has("departamentoNome"));
-        assertTrue(funcionarioCreateSchema.path("properties").has("cargoId"));
-        assertTrue(funcionarioCreateSchema.path("properties").has("departamentoId"));
+        Set<String> funcionarioWriteProperties = Set.of(
+                "nomeCompleto",
+                "cpf",
+                "dataNascimento",
+                "email",
+                "telefone",
+                "salario",
+                "dataAdmissao",
+                "ativo",
+                "cargoId",
+                "departamentoId",
+                "fotoPerfilUrl",
+                "estadoCivil"
+        );
+        assertEquals(funcionarioWriteProperties, propertyNames(funcionarioCreateSchema));
 
         JsonNode funcionarioUpdateSchema = body(restTemplate.getForEntity(
                 "/schemas/filtered?path={path}&operation=put&schemaType=request",
                 String.class,
                 "/api/human-resources/funcionarios/{id}"
         ));
-        assertFalse(funcionarioUpdateSchema.path("properties").has("id"));
-        assertFalse(funcionarioUpdateSchema.path("properties").has("avatarUrl"));
-        assertFalse(funcionarioUpdateSchema.path("properties").has("cargoNome"));
-        assertFalse(funcionarioUpdateSchema.path("properties").has("departamentoNome"));
-        assertTrue(funcionarioUpdateSchema.path("properties").has("salario"));
+        assertEquals(funcionarioWriteProperties, propertyNames(funcionarioUpdateSchema));
 
         JsonNode funcionarioViewSchema = body(restTemplate.getForEntity(
                 "/schemas/filtered?path=/api/human-resources/funcionarios/%7Bid%7D&operation=get&schemaType=response",
@@ -718,6 +725,44 @@ class QuickstartMetadataMigrationIntegrationTest {
     }
 
     @Test
+    void shouldUpdateDepartamentoWithoutChangingRouteIdentity() throws Exception {
+        ResponseEntity<String> response = restTemplate.exchange(
+                "/api/human-resources/departamentos/1",
+                HttpMethod.PUT,
+                authorizedJson("""
+                        {
+                          "id": 999,
+                          "nome": "Finanças Estratégicas",
+                          "codigo": "FIN-EST",
+                          "responsavelId": null
+                        }
+                        """),
+                String.class
+        );
+
+        JsonNode updated = body(response).path("data");
+        assertEquals(1, updated.path("id").asInt());
+        assertEquals("Finanças Estratégicas", updated.path("nome").asText());
+        assertEquals("FIN-EST", updated.path("codigo").asText());
+
+        JsonNode reloaded = body(restTemplate.getForEntity(
+                "/api/human-resources/departamentos/1",
+                String.class
+        )).path("data");
+        assertEquals(1, reloaded.path("id").asInt());
+        assertEquals("Finanças Estratégicas", reloaded.path("nome").asText());
+        assertEquals("FIN-EST", reloaded.path("codigo").asText());
+        assertEquals(1, jdbcTemplate.queryForObject(
+                "select count(*) from public.departamentos where id = 1",
+                Integer.class
+        ));
+        assertEquals(0, jdbcTemplate.queryForObject(
+                "select count(*) from public.departamentos where id = 999",
+                Integer.class
+        ));
+    }
+
+    @Test
     void shouldPatchFuncionarioProfileWithoutIntroducingWorkflowSecurity() throws Exception {
         ResponseEntity<String> response = restTemplate.exchange(
                 "/api/human-resources/funcionarios/1/profile",
@@ -727,8 +772,7 @@ class QuickstartMetadataMigrationIntegrationTest {
                           "nomeCompleto": "Bruce Thomas Wayne",
                           "email": "batman@wayne.com",
                           "telefone": "+5511988887777",
-                          "fotoPerfilUrl": "https://img.example/batman.png",
-                          "estadoCivil": "CASADO"
+                          "fotoPerfilUrl": "https://img.example/batman.png"
                         }
                         """),
                 String.class
@@ -737,7 +781,7 @@ class QuickstartMetadataMigrationIntegrationTest {
         JsonNode body = body(response);
         assertEquals("Bruce Thomas Wayne", body.path("data").path("nomeCompleto").asText());
         assertEquals("batman@wayne.com", body.path("data").path("email").asText());
-        assertEquals("CASADO", body.path("data").path("estadoCivil").asText());
+        assertEquals("SOLTEIRO", body.path("data").path("estadoCivil").asText());
 
         assertEquals("Bruce Thomas Wayne", jdbcTemplate.queryForObject(
                 "select nome_completo from public.funcionarios where id = 1",
@@ -856,6 +900,15 @@ class QuickstartMetadataMigrationIntegrationTest {
                 endpoint, HttpMethod.POST, new HttpEntity<>(command, headers), String.class);
         ResponseEntity<String> replay = restTemplate.exchange(
                 endpoint, HttpMethod.POST, new HttpEntity<>(command, headers), String.class);
+        HttpHeaders replayWithoutVersionHeaders = new HttpHeaders();
+        replayWithoutVersionHeaders.putAll(headers);
+        replayWithoutVersionHeaders.remove(HttpHeaders.IF_MATCH);
+        ResponseEntity<String> replayWithoutVersion = restTemplate.exchange(
+                endpoint,
+                HttpMethod.POST,
+                new HttpEntity<>(command, replayWithoutVersionHeaders),
+                String.class
+        );
         ResponseEntity<String> conflictingReplay = restTemplate.exchange(
                 endpoint,
                 HttpMethod.POST,
@@ -866,6 +919,7 @@ class QuickstartMetadataMigrationIntegrationTest {
 
         assertEquals(HttpStatus.OK, first.getStatusCode());
         assertEquals(HttpStatus.OK, replay.getStatusCode());
+        assertEquals(HttpStatus.PRECONDITION_REQUIRED, replayWithoutVersion.getStatusCode());
         assertEquals(HttpStatus.CONFLICT, conflictingReplay.getStatusCode());
         assertEquals(body(first).path("data").path("transitionId").asText(),
                 body(replay).path("data").path("transitionId").asText());
@@ -893,7 +947,7 @@ class QuickstartMetadataMigrationIntegrationTest {
     void shouldRejectStaleEtagForFuncionarioDeactivation() {
         String staleEtag = restTemplate.getForEntity("/api/human-resources/funcionarios/1", String.class).getHeaders().getETag();
         ResponseEntity<String> profile = restTemplate.exchange("/api/human-resources/funcionarios/1/profile", HttpMethod.PATCH,
-                authorizedJson("{\"nomeCompleto\":\"Bruce Wayne\",\"email\":\"bruce@wayne.com\",\"telefone\":\"+5511999999999\",\"estadoCivil\":\"SOLTEIRO\"}"), String.class);
+                authorizedJson("{\"nomeCompleto\":\"Bruce Wayne\",\"email\":\"bruce@wayne.com\",\"telefone\":\"+5511999999999\"}"), String.class);
         assertEquals(HttpStatus.OK, profile.getStatusCode());
         HttpHeaders headers = new HttpHeaders(); headers.setContentType(MediaType.APPLICATION_JSON); headers.setIfMatch(staleEtag);
         headers.add(HttpHeaders.COOKIE, "SESSION=" + jwtTokenService.generate("admin", "ADMIN"));
@@ -955,6 +1009,29 @@ class QuickstartMetadataMigrationIntegrationTest {
                 String.class,
                 "/api/human-resources/vw-analytics-folha-pagamento/filter"
         ));
+        assertTrue(filterSchema.path("properties").has("funcionarioId"));
+        assertTrue(filterSchema.path("properties").path("funcionarioId")
+                .path("x-ui").path("formHidden").asBoolean());
+
+        ResponseEntity<String> selectedEmployee = restTemplate.exchange(
+                "/api/human-resources/vw-analytics-folha-pagamento/filter?page=0&size=10",
+                HttpMethod.POST,
+                authorizedAnalyticsJson("{\"funcionarioId\":1}"),
+                String.class
+        );
+        assertEquals(HttpStatus.OK, selectedEmployee.getStatusCode());
+        JsonNode selectedEmployeeContent = body(selectedEmployee).path("data").path("content");
+        assertEquals(1, selectedEmployeeContent.size());
+        assertEquals(1, selectedEmployeeContent.path(0).path("funcionarioId").asInt());
+
+        ResponseEntity<String> unrelatedEmployee = restTemplate.exchange(
+                "/api/human-resources/vw-analytics-folha-pagamento/filter?page=0&size=10",
+                HttpMethod.POST,
+                authorizedAnalyticsJson("{\"funcionarioId\":999999}"),
+                String.class
+        );
+        assertEquals(HttpStatus.OK, unrelatedEmployee.getStatusCode());
+        assertTrue(body(unrelatedEmployee).path("data").path("content").isEmpty());
         JsonNode schemaCapabilities = filterSchema.path("x-ui").path("resource").path("capabilities");
         JsonNode canonicalOperations = readOnlyCapabilities.path("canonicalOperations");
 
@@ -1051,9 +1128,10 @@ class QuickstartMetadataMigrationIntegrationTest {
         assertTrue(profileSurface.path("availability").path("allowed").asBoolean());
 
         JsonNode profileSchema = body(getHref(profileSurface.path("schemaUrl").asText()));
-        assertTrue(profileSchema.path("properties").has("nomeCompleto"));
-        assertTrue(profileSchema.path("properties").has("email"));
-        assertFalse(profileSchema.path("properties").has("salario"));
+        assertEquals(
+                Set.of("nomeCompleto", "email", "telefone", "fotoPerfilUrl"),
+                propertyNames(profileSchema)
+        );
 
         JsonNode itemCapabilities = body(getHref(itemCapabilitiesHref));
         assertTrue(itemCapabilities.path("operations").path("view").path("supported").asBoolean());
@@ -1136,6 +1214,12 @@ class QuickstartMetadataMigrationIntegrationTest {
         return objectMapper.readTree(response.getBody());
     }
 
+    private Set<String> propertyNames(JsonNode schema) {
+        Set<String> names = new HashSet<>();
+        schema.path("properties").fieldNames().forEachRemaining(names::add);
+        return names;
+    }
+
     private HttpEntity<String> authorizedJson(String json) {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
@@ -1150,6 +1234,16 @@ class QuickstartMetadataMigrationIntegrationTest {
                 "ADMIN",
                 List.of(HrAnalyticsAuthorities.AGGREGATE_READ, HrAnalyticsAuthorities.NOMINAL_READ)));
         return restTemplate.exchange(path, HttpMethod.GET, new HttpEntity<>(headers), String.class);
+    }
+
+    private HttpEntity<String> authorizedAnalyticsJson(String json) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.add(HttpHeaders.COOKIE, "SESSION=" + jwtTokenService.generate(
+                "admin",
+                "ADMIN",
+                List.of(HrAnalyticsAuthorities.AGGREGATE_READ, HrAnalyticsAuthorities.NOMINAL_READ)));
+        return new HttpEntity<>(json, headers);
     }
 
     private JsonNode findById(JsonNode items, String id) {

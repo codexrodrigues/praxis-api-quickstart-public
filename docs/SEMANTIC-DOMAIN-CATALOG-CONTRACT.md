@@ -63,7 +63,7 @@ A redação de **definições de negócio** em DTOs (`@Schema`) no host — em p
 - `PATCH /api/praxis/config/domain-rules/definitions/{definitionId}/status`: promove ou rejeita uma definicao pela trilha governada, sem executar regra no host.
 - `POST /api/praxis/config/domain-rules/simulations`: simula uma decisao compartilhavel antes da persistencia, retornando grounding, cobertura existente, materializacoes previstas, aprovacoes requeridas, warnings e `explainability` estruturada.
 - `POST /api/praxis/config/domain-rules/publications`: promove uma definicao persistida quando `publicationReadiness=ready_to_publish`, ativando a regra e aplicando materializacoes elegiveis de forma governada.
-- `POST /api/praxis/config/domain-rules/materializations`: cria uma materializacao de regra para um alvo concreto, como `FormConfig.formRules[]`.
+- `POST /api/praxis/config/domain-rules/materializations`: cria uma materializacao de regra para um alvo concreto, como `FormConfig.formRules[]`; para `visual_guidance` com alvo explícito `form_config/praxis-dynamic-form`, a publicação canônica já pode compilar e aplicar essa projeção sem payload manual do host.
 - `GET /api/praxis/config/domain-rules/materializations`: consulta materializacoes por alvo, status e definicao.
 - `PATCH /api/praxis/config/domain-rules/materializations/{materializationId}/status`: governa o ciclo de vida da projecao derivada, como `pending_review -> applied`.
 - `POST /api/praxis/config/domain-federation/ingest?dryRun=true|false`: valida e, quando habilitado, persiste uma release federada candidata.

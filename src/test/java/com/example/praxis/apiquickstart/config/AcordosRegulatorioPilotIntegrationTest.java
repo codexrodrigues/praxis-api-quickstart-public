@@ -45,6 +45,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
                 "praxis.ai.rag.vector-store.enabled=false",
                 "praxis.ai.registry.bootstrap.enabled=false",
                 "praxis.ai.registry.health.enabled=false",
+                "praxis.resource-version.etag.secret=test-secret-resource-version",
                 "spring.ai.vectorstore.pgvector.initialize-schema=false",
                 "spring.ai.vectorstore.pgvector.vector-table-validations-enabled=false",
                 "spring.flyway.enabled=false",
@@ -80,13 +81,37 @@ class AcordosRegulatorioPilotIntegrationTest {
     @BeforeEach
     void seedTables() {
         jdbcTemplate.execute("drop table if exists public.acordos_regulatorios");
+        jdbcTemplate.execute("drop table if exists public.praxis_resource_action_execution");
         jdbcTemplate.execute("""
                 create table public.acordos_regulatorios (
                     id integer primary key,
                     nome varchar(200) not null,
                     jurisdicao varchar(200) not null,
                     status varchar(20) not null,
-                    descricao varchar(4000)
+                    descricao varchar(4000),
+                    version bigint not null default 0
+                )
+                """);
+        jdbcTemplate.execute("""
+                create table public.praxis_resource_action_execution (
+                    execution_id uuid primary key,
+                    resource_key varchar(200) not null,
+                    resource_id varchar(128) not null,
+                    action_id varchar(120) not null,
+                    action_scope varchar(32) not null,
+                    idempotency_key varchar(255) not null,
+                    request_hash varchar(128) not null,
+                    execution_status varchar(32) not null,
+                    response_payload json,
+                    correlation_id varchar(255) not null,
+                    request_id varchar(255),
+                    actor_subject varchar(255) not null,
+                    actor_authorities varchar(1000),
+                    started_at timestamp with time zone not null,
+                    completed_at timestamp with time zone,
+                    failure_code varchar(120),
+                    failure_message varchar(1000),
+                    unique(resource_key, resource_id, action_id, actor_subject, idempotency_key)
                 )
                 """);
         jdbcTemplate.execute("""
@@ -142,6 +167,13 @@ class AcordosRegulatorioPilotIntegrationTest {
         JsonNode reinstate = findById(vigenteActions.path("actions"), "reinstate");
         JsonNode revoke = findById(vigenteActions.path("actions"), "revoke");
         assertTrue(suspend.path("availability").path("allowed").asBoolean());
+        assertEquals("HIGH", suspend.path("execution").path("interaction").path("riskLevel").asText());
+        assertTrue(suspend.path("execution").path("interaction").path("confirmationRequired").asBoolean());
+        assertTrue(suspend.path("execution").path("interaction").path("reversible").asBoolean());
+        assertEquals("REQUIRED", suspend.path("execution").path("preconditions").path("idempotencyKey").asText());
+        assertEquals("REQUIRED", suspend.path("execution").path("preconditions").path("resourceVersion").asText());
+        assertEquals("IF_MATCH", suspend.path("execution").path("preconditions").path("resourceVersionTransport").asText());
+        assertEquals("resourceVersion", suspend.path("execution").path("preconditions").path("resourceVersionField").asText());
         assertFalse(reinstate.path("availability").path("allowed").asBoolean());
         assertEquals("resource-state-blocked", reinstate.path("availability").path("reason").asText());
         assertTrue(revoke.path("availability").path("allowed").asBoolean());
@@ -169,41 +201,69 @@ class AcordosRegulatorioPilotIntegrationTest {
         ));
         assertNotNull(findById(itemCapabilities.path("surfaces"), "review"));
         assertEquals(3, itemCapabilities.path("actions").size());
+        assertFalse(itemCapabilities.path("capabilities").path("operations").path("delete").asBoolean());
+
+        JsonNode openApi = objectMapper.readTree(restTemplate.getForObject(
+                "/v3/api-docs/api-operations-acordos-regulatorios",
+                String.class
+        ));
+        JsonNode itemPath = openApi.path("paths").path("/api/operations/acordos-regulatorios/{id}");
+        assertTrue(itemPath.has("put"));
+        assertFalse(itemPath.has("delete"));
+        assertFalse(openApi.path("paths").has("/api/operations/acordos-regulatorios/batch"));
 
         JsonNode itemEnvelope = body(restTemplate.getForEntity(
                 "/api/operations/acordos-regulatorios/1",
                 String.class
         ));
+        assertTrue(itemEnvelope.path("data").path("resourceVersion").asText().startsWith("\""));
         assertNotNull(findLinkHref(itemEnvelope, "surfaces"));
         assertNotNull(findLinkHref(itemEnvelope, "actions"));
         assertNotNull(findLinkHref(itemEnvelope, "capabilities"));
+
+        JsonNode updateSchema = body(restTemplate.getForEntity(
+                "/schemas/filtered?path={path}&operation=put&schemaType=request",
+                String.class,
+                "/api/operations/acordos-regulatorios/{id}"
+        ));
+        assertTrue(updateSchema.path("properties").has("nome"));
+        assertTrue(updateSchema.path("properties").has("jurisdicao"));
+        assertTrue(updateSchema.path("properties").has("descricao"));
+        assertFalse(updateSchema.path("properties").has("status"));
+        assertFalse(updateSchema.path("properties").has("resourceVersion"));
     }
 
     @Test
     void shouldExecuteReviewAndWorkflowTransitionsForAcordosRegulatorios() throws Exception {
+        String reviewEtag = currentEtag(1);
         ResponseEntity<String> reviewResponse = restTemplate.exchange(
                 "/api/operations/acordos-regulatorios/1/review",
                 HttpMethod.PATCH,
-                authorizedJson("""
+                authorizedVersionedJson("""
                         {
                           "jurisdicao": "Uniao Europeia",
                           "descricao": "Acordo revisado para operacao internacional"
                         }
-                        """),
+                        """, reviewEtag),
                 String.class
         );
         JsonNode reviewBody = body(reviewResponse);
         assertEquals("Uniao Europeia", reviewBody.path("data").path("jurisdicao").asText());
         assertEquals("Acordo revisado para operacao internacional", reviewBody.path("data").path("descricao").asText());
+        assertNotNull(reviewResponse.getHeaders().getETag());
+        assertFalse(reviewEtag.equals(reviewResponse.getHeaders().getETag()));
+
+        String vigenteEtag = currentEtag(1);
+        String suspendCommand = """
+                {
+                  "justificativa": "Auditoria operacional em curso"
+                }
+                """;
 
         ResponseEntity<String> suspendResponse = restTemplate.exchange(
                 "/api/operations/acordos-regulatorios/1/actions/suspend",
                 HttpMethod.POST,
-                authorizedJson("""
-                        {
-                          "justificativa": "Auditoria operacional em curso"
-                        }
-                        """),
+                authorizedCommand(suspendCommand, vigenteEtag, "agreement-suspend-success"),
                 String.class
         );
         JsonNode suspendBody = body(suspendResponse);
@@ -214,15 +274,48 @@ class AcordosRegulatorioPilotIntegrationTest {
                 "select status from public.acordos_regulatorios where id = 1",
                 String.class
         ));
+        String suspendedEtag = suspendResponse.getHeaders().getETag();
+        assertNotNull(suspendedEtag);
+        assertFalse(vigenteEtag.equals(suspendedEtag));
+
+        ResponseEntity<String> replayResponse = restTemplate.exchange(
+                "/api/operations/acordos-regulatorios/1/actions/suspend",
+                HttpMethod.POST,
+                authorizedCommand(suspendCommand, vigenteEtag, "agreement-suspend-success"),
+                String.class
+        );
+        assertEquals(HttpStatus.OK, replayResponse.getStatusCode());
+        assertEquals(suspendBody.path("data"), body(replayResponse).path("data"));
+        assertEquals(1, jdbcTemplate.queryForObject(
+                "select count(*) from public.praxis_resource_action_execution where action_id = 'suspend' and idempotency_key = 'agreement-suspend-success'",
+                Integer.class
+        ));
+
+        ResponseEntity<String> replayWithoutEtag = restTemplate.exchange(
+                "/api/operations/acordos-regulatorios/1/actions/suspend",
+                HttpMethod.POST,
+                authorizedCommand(suspendCommand, null, "agreement-suspend-success"),
+                String.class
+        );
+        assertEquals(HttpStatus.PRECONDITION_REQUIRED, replayWithoutEtag.getStatusCode());
+
+        ResponseEntity<String> conflictingReplay = restTemplate.exchange(
+                "/api/operations/acordos-regulatorios/1/actions/suspend",
+                HttpMethod.POST,
+                authorizedCommand("{\"justificativa\":\"Outro command\"}", vigenteEtag,
+                        "agreement-suspend-success"),
+                String.class
+        );
+        assertEquals(HttpStatus.CONFLICT, conflictingReplay.getStatusCode());
 
         ResponseEntity<String> conflictResponse = restTemplate.exchange(
                 "/api/operations/acordos-regulatorios/1/actions/suspend",
                 HttpMethod.POST,
-                authorizedJson("""
+                authorizedCommand("""
                         {
                           "justificativa": "Tentativa duplicada"
                         }
-                        """),
+                        """, suspendedEtag, "agreement-suspend-invalid-state"),
                 String.class
         );
         assertEquals(HttpStatus.CONFLICT, conflictResponse.getStatusCode());
@@ -233,11 +326,11 @@ class AcordosRegulatorioPilotIntegrationTest {
         ResponseEntity<String> reinstateResponse = restTemplate.exchange(
                 "/api/operations/acordos-regulatorios/1/actions/reinstate",
                 HttpMethod.POST,
-                authorizedJson("""
+                authorizedCommand("""
                         {
                           "justificativa": "Auditoria concluida"
                         }
-                        """),
+                        """, suspendedEtag, "agreement-reinstate-success"),
                 String.class
         );
         JsonNode reinstateBody = body(reinstateResponse);
@@ -245,14 +338,15 @@ class AcordosRegulatorioPilotIntegrationTest {
         assertEquals("VIGENTE", reinstateBody.path("data").path("statusAtual").asText());
         assertFalse(reinstateBody.path("_links").path("schema").isMissingNode(), reinstateBody.toPrettyString());
 
+        String revokeEtag = currentEtag(2);
         ResponseEntity<String> revokeResponse = restTemplate.exchange(
                 "/api/operations/acordos-regulatorios/2/actions/revoke",
                 HttpMethod.POST,
-                authorizedJson("""
+                authorizedCommand("""
                         {
                           "justificativa": "Descumprimento regulatorio grave"
                         }
-                        """),
+                        """, revokeEtag, "agreement-revoke-success"),
                 String.class
         );
         JsonNode revokeBody = body(revokeResponse);
@@ -263,6 +357,93 @@ class AcordosRegulatorioPilotIntegrationTest {
                 "select status from public.acordos_regulatorios where id = 2",
                 String.class
         ));
+    }
+
+    @Test
+    void shouldRejectInvalidOrStaleEtagWithoutConsumingIdempotencyKey() {
+        String command = "{\"justificativa\":\"Teste de precondicao\"}";
+
+        ResponseEntity<String> missing = restTemplate.exchange(
+                "/api/operations/acordos-regulatorios/1/actions/suspend",
+                HttpMethod.POST,
+                authorizedCommand(command, null, "agreement-missing-etag"),
+                String.class
+        );
+        assertEquals(HttpStatus.PRECONDITION_REQUIRED, missing.getStatusCode());
+
+        String currentEtag = currentEtag(1);
+        ResponseEntity<String> weak = restTemplate.exchange(
+                "/api/operations/acordos-regulatorios/1/actions/suspend",
+                HttpMethod.POST,
+                authorizedCommand(command, "W/" + currentEtag, "agreement-weak-etag"),
+                String.class
+        );
+        assertEquals(HttpStatus.BAD_REQUEST, weak.getStatusCode());
+
+        jdbcTemplate.update("update public.acordos_regulatorios set version = version + 1 where id = 1");
+        ResponseEntity<String> stale = restTemplate.exchange(
+                "/api/operations/acordos-regulatorios/1/actions/suspend",
+                HttpMethod.POST,
+                authorizedCommand(command, currentEtag, "agreement-stale-etag"),
+                String.class
+        );
+        assertEquals(HttpStatus.PRECONDITION_FAILED, stale.getStatusCode());
+        assertEquals(0, jdbcTemplate.queryForObject(
+                "select count(*) from public.praxis_resource_action_execution where idempotency_key in ('agreement-missing-etag', 'agreement-weak-etag', 'agreement-stale-etag')",
+                Integer.class
+        ));
+    }
+
+    @Test
+    void shouldProtectOrdinaryAndPartialUpdatesWithoutLettingThemBypassWorkflowStatus() throws Exception {
+        String currentEtag = currentEtag(3);
+
+        ResponseEntity<String> missingPutPrecondition = restTemplate.exchange(
+                "/api/operations/acordos-regulatorios/3",
+                HttpMethod.PUT,
+                authorizedJson("""
+                        {
+                          "nome": "Acordo Artico revisado",
+                          "jurisdicao": "Canada",
+                          "status": "VIGENTE",
+                          "descricao": "Metadados atualizados"
+                        }
+                        """),
+                String.class
+        );
+        assertEquals(HttpStatus.PRECONDITION_REQUIRED, missingPutPrecondition.getStatusCode());
+
+        ResponseEntity<String> missingReviewPrecondition = restTemplate.exchange(
+                "/api/operations/acordos-regulatorios/3/review",
+                HttpMethod.PATCH,
+                authorizedJson("""
+                        {
+                          "jurisdicao": "Canada",
+                          "descricao": "Revisao sem versao"
+                        }
+                        """),
+                String.class
+        );
+        assertEquals(HttpStatus.PRECONDITION_REQUIRED, missingReviewPrecondition.getStatusCode());
+
+        ResponseEntity<String> updateResponse = restTemplate.exchange(
+                "/api/operations/acordos-regulatorios/3",
+                HttpMethod.PUT,
+                authorizedVersionedJson("""
+                        {
+                          "nome": "Acordo Artico revisado",
+                          "jurisdicao": "Canada",
+                          "status": "VIGENTE",
+                          "descricao": "Metadados atualizados"
+                        }
+                        """, currentEtag),
+                String.class
+        );
+        JsonNode updated = body(updateResponse).path("data");
+        assertEquals("Acordo Artico revisado", updated.path("nome").asText());
+        assertEquals("REVOGADO", updated.path("status").asText());
+        assertNotNull(updateResponse.getHeaders().getETag());
+        assertFalse(currentEtag.equals(updateResponse.getHeaders().getETag()));
     }
 
     private JsonNode body(ResponseEntity<String> response) throws Exception {
@@ -276,6 +457,38 @@ class AcordosRegulatorioPilotIntegrationTest {
         headers.setContentType(MediaType.APPLICATION_JSON);
         headers.add(HttpHeaders.COOKIE, "SESSION=" + jwtTokenService.generate("admin", "ADMIN"));
         return new HttpEntity<>(json, headers);
+    }
+
+    private HttpEntity<String> authorizedCommand(String json, String etag, String idempotencyKey) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.add(HttpHeaders.COOKIE, "SESSION=" + jwtTokenService.generate("admin", "ADMIN"));
+        if (etag != null) {
+            headers.setIfMatch(etag);
+        }
+        headers.set("Idempotency-Key", idempotencyKey);
+        headers.set("X-Correlation-ID", "acordos-pilot-" + idempotencyKey);
+        return new HttpEntity<>(json, headers);
+    }
+
+    private HttpEntity<String> authorizedVersionedJson(String json, String etag) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.add(HttpHeaders.COOKIE, "SESSION=" + jwtTokenService.generate("admin", "ADMIN"));
+        if (etag != null) {
+            headers.setIfMatch(etag);
+        }
+        return new HttpEntity<>(json, headers);
+    }
+
+    private String currentEtag(Integer id) {
+        ResponseEntity<String> response = restTemplate.getForEntity(
+                "/api/operations/acordos-regulatorios/" + id,
+                String.class
+        );
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNotNull(response.getHeaders().getETag());
+        return response.getHeaders().getETag();
     }
 
     private JsonNode findById(JsonNode items, String id) {

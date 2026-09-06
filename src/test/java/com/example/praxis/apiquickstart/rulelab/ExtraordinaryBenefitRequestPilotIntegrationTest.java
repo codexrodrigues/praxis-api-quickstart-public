@@ -384,6 +384,12 @@ class ExtraordinaryBenefitRequestPilotIntegrationTest {
         assertEquals(updatedEtag, replay.getHeaders().getETag());
         assertEquals(2, tableCount("extraordinary_benefit_transformation_audit"));
 
+        ResponseEntity<String> replayWithoutVersion = restTemplate.postForEntity(
+                "/api/human-resources/extraordinary-benefit-requests/" + id + "/actions/re-evaluate",
+                authorizedJson(allowedUpdate, "reevaluate-allow", null), String.class);
+        assertEquals(HttpStatus.PRECONDITION_REQUIRED,
+                replayWithoutVersion.getStatusCode(), replayWithoutVersion.getBody());
+
         ResponseEntity<String> conflictingReplay = restTemplate.postForEntity(
                 "/api/human-resources/extraordinary-benefit-requests/" + id + "/actions/re-evaluate",
                 authorizedJson(reevaluationPayload("1800.00"), "reevaluate-allow", updatedEtag), String.class);
@@ -663,6 +669,11 @@ class ExtraordinaryBenefitRequestPilotIntegrationTest {
                 "/api/human-resources/extraordinary-benefit-requests/" + id + "/actions/apply",
                 applyCommand, String.class);
         assertEquals(HttpStatus.OK, replay.getStatusCode(), replay.getBody());
+        ResponseEntity<String> replayWithoutVersion = restTemplate.postForEntity(
+                "/api/human-resources/extraordinary-benefit-requests/" + id + "/actions/apply",
+                authorizedJson(transition, "apply-1", null), String.class);
+        assertEquals(HttpStatus.PRECONDITION_REQUIRED,
+                replayWithoutVersion.getStatusCode(), replayWithoutVersion.getBody());
         assertEquals(1, jdbcTemplate.queryForObject(
                 "select count(*) from public.extraordinary_benefit_grant_effect where benefit_request_id = ?",
                 Integer.class, id));

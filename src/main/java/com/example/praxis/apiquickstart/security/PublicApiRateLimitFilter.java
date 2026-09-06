@@ -23,7 +23,7 @@ import java.io.IOException;
  * <p>O objetivo aqui nao e implementar a solucao definitiva de producao, mas explicitar uma
  * politica minima de protecao para o host publico de referencia. O filtro cobre categorias
  * diferentes de trafego exposto pelo quickstart, como login, leitura publica, queries metadata-
- * driven, bulk actions e chamadas do config-starter.</p>
+ * driven, bulk actions, chamadas de alto custo de IA e demais chamadas do config-starter.</p>
  *
  * <p>Ele tambem serve como exemplo de onde colocar governanca operacional do host sem contaminar a
  * semantica canonica dos starters.</p>
@@ -42,6 +42,8 @@ public class PublicApiRateLimitFilter extends OncePerRequestFilter {
     private final long publicQueryWindowMs;
     private final int bulkActionLimit;
     private final long bulkActionWindowMs;
+    private final int aiLimit;
+    private final long aiWindowMs;
     private final int configLimit;
     private final long configWindowMs;
     private final TrustedProxyPolicy trustedProxyPolicy;
@@ -58,6 +60,8 @@ public class PublicApiRateLimitFilter extends OncePerRequestFilter {
             @Value("${app.rate-limit.public-query.window-ms:60000}") long publicQueryWindowMs,
             @Value("${app.rate-limit.bulk-action.limit:5}") int bulkActionLimit,
             @Value("${app.rate-limit.bulk-action.window-ms:60000}") long bulkActionWindowMs,
+            @Value("${app.rate-limit.ai.limit:30}") int aiLimit,
+            @Value("${app.rate-limit.ai.window-ms:60000}") long aiWindowMs,
             @Value("${app.rate-limit.config.limit:120}") int configLimit,
             @Value("${app.rate-limit.config.window-ms:60000}") long configWindowMs
     ) {
@@ -72,6 +76,8 @@ public class PublicApiRateLimitFilter extends OncePerRequestFilter {
         this.publicQueryWindowMs = publicQueryWindowMs;
         this.bulkActionLimit = bulkActionLimit;
         this.bulkActionWindowMs = bulkActionWindowMs;
+        this.aiLimit = aiLimit;
+        this.aiWindowMs = aiWindowMs;
         this.configLimit = configLimit;
         this.configWindowMs = configWindowMs;
     }
@@ -116,6 +122,9 @@ public class PublicApiRateLimitFilter extends OncePerRequestFilter {
         }
         if (HttpMethod.POST.matches(method) && PATH_MATCHER.match("/api/*/*/actions/**", path)) {
             return new RateLimitRule("bulk-action", bulkActionLimit, bulkActionWindowMs);
+        }
+        if (PATH_MATCHER.match("/api/praxis/config/ai/**", path)) {
+            return new RateLimitRule("ai", aiLimit, aiWindowMs);
         }
         if (PATH_MATCHER.match("/api/praxis/config/**", path)) {
             return new RateLimitRule("config", configLimit, configWindowMs);

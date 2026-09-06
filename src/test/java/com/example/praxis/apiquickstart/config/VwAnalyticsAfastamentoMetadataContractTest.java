@@ -3,6 +3,8 @@ package com.example.praxis.apiquickstart.config;
 import com.example.praxis.apiquickstart.ApiQuickstartApplication;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.time.Duration;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -11,6 +13,7 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -56,6 +59,14 @@ class VwAnalyticsAfastamentoMetadataContractTest {
 
     @MockBean(name = "ragVectorStore")
     private VectorStore ragVectorStore;
+
+    @BeforeEach
+    void configureSchemaProjectionTimeout() {
+        SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
+        requestFactory.setConnectTimeout(Duration.ofSeconds(10));
+        requestFactory.setReadTimeout(Duration.ofSeconds(60));
+        restTemplate.getRestTemplate().setRequestFactory(requestFactory);
+    }
 
     @Test
     void shouldPublishComparisonProjectionWithCanonicalRecordOpenTarget() throws Exception {

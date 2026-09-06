@@ -23,6 +23,14 @@ public class AcordosRegulatorioDTO {
     @Schema(description = "Identificador do acordo no cadastro de operacoes.", example = "1")
     private Integer id;
 
+    @Schema(
+        description = "ETag opaco da versao persistida usado por commands governados.",
+        example = "\"eyJ...\"",
+        accessMode = Schema.AccessMode.READ_ONLY
+    )
+    @UISchema(label = "Token de versao", readOnly = true, formHidden = true, tableHidden = true)
+    private String resourceVersion;
+
     @NotBlank
     @Size(max = 200)
     @Schema(description = "Designacao publica do acordo ou programa de atendimento a norma.", example = "Convenio ANPD — dados pessoais")
@@ -67,6 +75,8 @@ public class AcordosRegulatorioDTO {
 
     public Integer getId() { return id; }
     public void setId(Integer id) { this.id = id; }
+    public String getResourceVersion() { return resourceVersion; }
+    public void setResourceVersion(String resourceVersion) { this.resourceVersion = resourceVersion; }
     public String getNome() { return nome; }
     public void setNome(String nome) { this.nome = nome; }
     public String getJurisdicao() { return jurisdicao; }

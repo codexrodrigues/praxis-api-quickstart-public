@@ -2,7 +2,15 @@
 set -euo pipefail
 
 BACKEND_URL="${BACKEND_URL:-https://praxis-api-quickstart.onrender.com}"
+ORIGIN="${ORIGIN:-https://praxisui.dev}"
+ADMIN_USERNAME="${ADMIN_USERNAME:-admin}"
+ADMIN_PASSWORD="${ADMIN_PASSWORD:-${PRACTICE_TEMP_PASSWORD:-}}"
 export BACKEND_URL
+
+if [[ -z "$ADMIN_PASSWORD" ]]; then
+  echo "ADMIN_PASSWORD or PRACTICE_TEMP_PASSWORD is required to verify contextual human-resources actions." >&2
+  exit 1
+fi
 
 TMPDIR_RUN="$(mktemp -d)"
 cleanup() {
@@ -15,6 +23,40 @@ get_json() {
   local output_file="$2"
 
   curl -fsS "${BACKEND_URL%/}${resource_path}" \
+    -H "Accept: application/json" \
+    -o "$output_file"
+}
+
+auth_cookie_jar="$TMPDIR_RUN/auth-cookies.txt"
+
+authenticate_context_principal() {
+  local login_request="$TMPDIR_RUN/auth-login-request.json"
+  local login_response="$TMPDIR_RUN/auth-login-response.json"
+  local login_status
+
+  jq -n --arg username "$ADMIN_USERNAME" --arg password "$ADMIN_PASSWORD" \
+    '{username: $username, password: $password}' > "$login_request"
+  login_status="$(curl -sS "${BACKEND_URL%/}/auth/login" \
+    -c "$auth_cookie_jar" \
+    -H "Origin: ${ORIGIN}" \
+    -H "Content-Type: application/json" \
+    --data-binary "@$login_request" \
+    -o "$login_response" \
+    -w '%{http_code}')"
+
+  if [[ "$login_status" != "200" && "$login_status" != "204" ]]; then
+    echo "Could not authenticate the human-resources contextual action probe with /auth/login (HTTP ${login_status}). Configure ADMIN_PASSWORD or PRACTICE_TEMP_PASSWORD with the runtime admin password." >&2
+    return 1
+  fi
+  chmod 600 "$auth_cookie_jar"
+}
+
+get_authenticated_json() {
+  local resource_path="$1"
+  local output_file="$2"
+
+  curl -fsS "${BACKEND_URL%/}${resource_path}" \
+    -b "$auth_cookie_jar" \
     -H "Accept: application/json" \
     -o "$output_file"
 }
@@ -265,7 +307,8 @@ employee_record="$TMPDIR_RUN/employee-record.json"
 get_json "/api/human-resources/funcionarios/1" "$employee_record"
 
 employee_item_actions="$TMPDIR_RUN/employee-item-actions.json"
-get_json "/api/human-resources/funcionarios/1/actions" "$employee_item_actions"
+authenticate_context_principal
+get_authenticated_json "/api/human-resources/funcionarios/1/actions" "$employee_item_actions"
 if jq -e '.data.ativo == true' "$employee_record" >/dev/null; then
   assert_action_availability "$employee_item_actions" "deactivate" "true"
   assert_action_availability "$employee_item_actions" "reactivate" "false"

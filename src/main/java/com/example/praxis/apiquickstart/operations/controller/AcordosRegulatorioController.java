@@ -1,6 +1,9 @@
 package com.example.praxis.apiquickstart.operations.controller;
 
 import com.example.praxis.apiquickstart.constants.ApiPaths;
+import com.example.praxis.apiquickstart.core.entity.ResourceActionExecution;
+import com.example.praxis.apiquickstart.core.service.ResourceActionExecutionService;
+import com.example.praxis.apiquickstart.core.service.ResourceActionTransactionCoordinator;
 import com.example.praxis.apiquickstart.operations.dto.AcordosRegulatorioDTO;
 import com.example.praxis.apiquickstart.operations.dto.CreateAcordosRegulatorioDTO;
 import com.example.praxis.apiquickstart.operations.dto.ReviewAcordosRegulatorioDTO;
@@ -8,39 +11,46 @@ import com.example.praxis.apiquickstart.operations.dto.UpdateAcordosRegulatorioD
 import com.example.praxis.apiquickstart.operations.dto.actions.AcordoRegulatorioWorkflowRequestDTO;
 import com.example.praxis.apiquickstart.operations.dto.actions.AcordoRegulatorioWorkflowResultDTO;
 import com.example.praxis.apiquickstart.operations.dto.filter.AcordosRegulatorioFilterDTO;
-import com.example.praxis.apiquickstart.operations.entity.AcordosRegulatorio;
-import com.example.praxis.apiquickstart.operations.mapper.AcordosRegulatorioMapper;
 import com.example.praxis.apiquickstart.operations.service.AcordosRegulatorioService;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.praxisplatform.uischema.annotation.ApiGroup;
 import org.praxisplatform.uischema.annotation.ApiResource;
 import org.praxisplatform.uischema.annotation.ResourceIntent;
 import org.praxisplatform.uischema.annotation.UiSurface;
 import org.praxisplatform.uischema.annotation.WorkflowAction;
 import org.praxisplatform.uischema.action.ActionScope;
-import com.example.praxis.apiquickstart.core.controller.base.AbstractQuickstartCrudController;
+import org.praxisplatform.uischema.action.ActionInteractionMode;
+import org.praxisplatform.uischema.action.ActionRequirement;
+import org.praxisplatform.uischema.action.ActionResourceVersionTransport;
+import org.praxisplatform.uischema.action.ActionRiskLevel;
+import org.praxisplatform.uischema.command.ResourceCommandExecutionRequest;
 import org.praxisplatform.uischema.command.ResourceCommandExecutionResult;
 import org.praxisplatform.uischema.command.ResourceCommandResponsePolicy;
+import org.praxisplatform.uischema.concurrency.ResourceVersionPreconditions;
+import org.praxisplatform.uischema.concurrency.ResourceVersionUpdatePrecondition;
+import org.praxisplatform.uischema.controller.base.AbstractCreateUpdateResourceController;
 import org.springframework.beans.factory.annotation.Autowired;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import org.praxisplatform.uischema.rest.response.RestApiResponse;
-import org.springframework.data.domain.Page;
 import org.springframework.hateoas.EntityModel;
 import org.springframework.hateoas.Links;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.MultiValueMap;
-import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.praxisplatform.uischema.surface.SurfaceKind;
 import org.praxisplatform.uischema.surface.SurfaceScope;
 import java.util.List;
+import java.util.UUID;
 
 /**
  * Recurso de acordos regulatorios usado para demonstrar workflow e review de compliance.
@@ -51,31 +61,32 @@ import java.util.List;
  */
 @ApiResource(value = ApiPaths.Operations.ACORDOS_REGULATORIOS, resourceKey = "operations.acordos-regulatorios")
 @ApiGroup("operations")
-public class AcordosRegulatorioController extends AbstractQuickstartCrudController<AcordosRegulatorio, AcordosRegulatorioDTO, Integer, AcordosRegulatorioFilterDTO, CreateAcordosRegulatorioDTO, UpdateAcordosRegulatorioDTO> {
+public class AcordosRegulatorioController extends AbstractCreateUpdateResourceController<AcordosRegulatorioDTO, Integer, AcordosRegulatorioFilterDTO, CreateAcordosRegulatorioDTO, UpdateAcordosRegulatorioDTO> {
+    private static final String RESOURCE_KEY = "operations.acordos-regulatorios";
 
     private final AcordosRegulatorioService service;
-    private final AcordosRegulatorioMapper mapper;
+    private final ResourceActionExecutionService actionExecutionService;
+    private final ResourceActionTransactionCoordinator transactionCoordinator;
+    private final ObjectMapper objectMapper;
 
     @Autowired
-    public AcordosRegulatorioController(AcordosRegulatorioService service, AcordosRegulatorioMapper mapper) {
+    public AcordosRegulatorioController(
+            AcordosRegulatorioService service,
+            ResourceActionExecutionService actionExecutionService,
+            ResourceActionTransactionCoordinator transactionCoordinator,
+            ObjectMapper objectMapper
+    ) {
         this.service = service;
-        this.mapper = mapper;
+        this.actionExecutionService = actionExecutionService;
+        this.transactionCoordinator = transactionCoordinator;
+        this.objectMapper = objectMapper;
     }
 
     @Override
     protected AcordosRegulatorioService getService() { return service; }
 
     @Override
-    protected AcordosRegulatorioDTO toDto(AcordosRegulatorio entity) { return mapper.toDto(entity); }
-
-    @Override
-    protected AcordosRegulatorio toEntity(AcordosRegulatorioDTO dto) { return mapper.toEntity(dto); }
-
-    @Override
-    protected Integer getEntityId(AcordosRegulatorio entity) { return entity.getId(); }
-
-    @Override
-    protected Integer getDtoId(AcordosRegulatorioDTO dto) { return dto.getId(); }
+    protected Integer getResponseId(AcordosRegulatorioDTO dto) { return dto.getId(); }
 
     @PostMapping("/filter")
     @Operation(summary = "Filtrar acordos regulatórios de operação", description = "Lista acordos por jurisdição, status, vigência e vínculo regulatório para identificar quais regras condicionam missões, licenças e atividades operacionais.")
@@ -202,13 +213,20 @@ public class AcordosRegulatorioController extends AbstractQuickstartCrudControll
             @ApiResponse(responseCode = "200", description = "Metadados regulatórios revisados com sucesso."),
             @ApiResponse(responseCode = "400", description = "Requisição inválida ou dados inconsistentes."),
             @ApiResponse(responseCode = "404", description = "Registro não encontrado."),
-            @ApiResponse(responseCode = "409", description = "Estado atual não permite revisão.")
+            @ApiResponse(responseCode = "409", description = "Estado atual não permite revisão."),
+            @ApiResponse(responseCode = "412", description = "ETag nao corresponde a versao persistida."),
+            @ApiResponse(responseCode = "428", description = "If-Match nao informado.")
     })
     public ResponseEntity<RestApiResponse<AcordosRegulatorioDTO>> review(
             @PathVariable Integer id,
+            @RequestHeader(value = "If-Match", required = false) String ifMatch,
             @jakarta.validation.Valid @RequestBody ReviewAcordosRegulatorioDTO dto
     ) {
-        AcordosRegulatorioDTO reviewed = service.review(id, dto);
+        AcordosRegulatorioDTO reviewed = service.review(
+                id,
+                dto,
+                resourceVersionUpdatePrecondition(id, ifMatch)
+        );
         // Mantem o contrato da surface parcial redescobrivel via schema publicado.
         Links links = Links.of(
                 linkToSelf(id),
@@ -217,7 +235,11 @@ public class AcordosRegulatorioController extends AbstractQuickstartCrudControll
                 linkToFilterCursor(),
                 linkToUiSchema("/{id}/review", "patch", "request")
         );
-        return withVersion(ResponseEntity.ok(), RestApiResponse.success(reviewed, hateoasOrNull(links)));
+        return withResourceVersion(
+                ResponseEntity.ok(),
+                id,
+                RestApiResponse.success(reviewed, hateoasOrNull(links))
+        );
     }
 
     @PostMapping("/{id}/actions/suspend")
@@ -230,13 +252,33 @@ public class AcordosRegulatorioController extends AbstractQuickstartCrudControll
             order = 100,
             successMessage = "Acordo suspenso",
             allowedStates = {"VIGENTE"},
+            interactionMode = ActionInteractionMode.FORM,
+            riskLevel = ActionRiskLevel.HIGH,
+            confirmationRequired = true,
+            reversible = true,
+            idempotencyKey = ActionRequirement.REQUIRED,
+            correlationId = ActionRequirement.OPTIONAL,
+            resourceVersion = ActionRequirement.REQUIRED,
+            resourceVersionTransport = ActionResourceVersionTransport.IF_MATCH,
+            resourceVersionField = "resourceVersion",
+            refreshItem = true,
             tags = {"workflow", "status"}
     )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Acordo suspenso ou replay idempotente retornado."),
+            @ApiResponse(responseCode = "400", description = "Command ou Idempotency-Key invalido."),
+            @ApiResponse(responseCode = "409", description = "Estado ou chave idempotente conflitante."),
+            @ApiResponse(responseCode = "412", description = "ETag nao corresponde a versao persistida."),
+            @ApiResponse(responseCode = "428", description = "If-Match nao informado.")
+    })
     public ResponseEntity<RestApiResponse<AcordoRegulatorioWorkflowResultDTO>> suspend(
             @PathVariable Integer id,
+            @RequestHeader(value = "If-Match", required = false) String ifMatch,
+            @RequestHeader("Idempotency-Key") String idempotencyKey,
+            @RequestHeader(value = "X-Correlation-ID", required = false) String correlationId,
             @jakarta.validation.Valid @RequestBody AcordoRegulatorioWorkflowRequestDTO dto
     ) {
-        return governedSuspend(id, dto);
+        return executeWorkflowAction("suspend", id, ifMatch, idempotencyKey, correlationId, dto);
     }
 
     @PostMapping("/{id}/actions/reinstate")
@@ -249,13 +291,33 @@ public class AcordosRegulatorioController extends AbstractQuickstartCrudControll
             order = 110,
             successMessage = "Acordo reativado",
             allowedStates = {"SUSPENSO"},
+            interactionMode = ActionInteractionMode.FORM,
+            riskLevel = ActionRiskLevel.HIGH,
+            confirmationRequired = true,
+            reversible = true,
+            idempotencyKey = ActionRequirement.REQUIRED,
+            correlationId = ActionRequirement.OPTIONAL,
+            resourceVersion = ActionRequirement.REQUIRED,
+            resourceVersionTransport = ActionResourceVersionTransport.IF_MATCH,
+            resourceVersionField = "resourceVersion",
+            refreshItem = true,
             tags = {"workflow", "status"}
     )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Acordo reativado ou replay idempotente retornado."),
+            @ApiResponse(responseCode = "400", description = "Command ou Idempotency-Key invalido."),
+            @ApiResponse(responseCode = "409", description = "Estado ou chave idempotente conflitante."),
+            @ApiResponse(responseCode = "412", description = "ETag nao corresponde a versao persistida."),
+            @ApiResponse(responseCode = "428", description = "If-Match nao informado.")
+    })
     public ResponseEntity<RestApiResponse<AcordoRegulatorioWorkflowResultDTO>> reinstate(
             @PathVariable Integer id,
+            @RequestHeader(value = "If-Match", required = false) String ifMatch,
+            @RequestHeader("Idempotency-Key") String idempotencyKey,
+            @RequestHeader(value = "X-Correlation-ID", required = false) String correlationId,
             @jakarta.validation.Valid @RequestBody AcordoRegulatorioWorkflowRequestDTO dto
     ) {
-        return governedReinstate(id, dto);
+        return executeWorkflowAction("reinstate", id, ifMatch, idempotencyKey, correlationId, dto);
     }
 
     @PostMapping("/{id}/actions/revoke")
@@ -268,100 +330,177 @@ public class AcordosRegulatorioController extends AbstractQuickstartCrudControll
             order = 120,
             successMessage = "Acordo revogado",
             allowedStates = {"VIGENTE", "SUSPENSO"},
+            interactionMode = ActionInteractionMode.FORM,
+            riskLevel = ActionRiskLevel.CRITICAL,
+            confirmationRequired = true,
+            idempotencyKey = ActionRequirement.REQUIRED,
+            correlationId = ActionRequirement.OPTIONAL,
+            resourceVersion = ActionRequirement.REQUIRED,
+            resourceVersionTransport = ActionResourceVersionTransport.IF_MATCH,
+            resourceVersionField = "resourceVersion",
+            refreshItem = true,
             tags = {"workflow", "status"}
     )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Acordo revogado ou replay idempotente retornado."),
+            @ApiResponse(responseCode = "400", description = "Command ou Idempotency-Key invalido."),
+            @ApiResponse(responseCode = "409", description = "Estado ou chave idempotente conflitante."),
+            @ApiResponse(responseCode = "412", description = "ETag nao corresponde a versao persistida."),
+            @ApiResponse(responseCode = "428", description = "If-Match nao informado.")
+    })
     public ResponseEntity<RestApiResponse<AcordoRegulatorioWorkflowResultDTO>> revoke(
             @PathVariable Integer id,
+            @RequestHeader(value = "If-Match", required = false) String ifMatch,
+            @RequestHeader("Idempotency-Key") String idempotencyKey,
+            @RequestHeader(value = "X-Correlation-ID", required = false) String correlationId,
             @jakarta.validation.Valid @RequestBody AcordoRegulatorioWorkflowRequestDTO dto
     ) {
-        return governedRevoke(id, dto);
-    }
-
-    @DeleteMapping("/{id}")
-    @Operation(summary = "Remover acordo regulatório de operação", description = "Exclui um acordo quando ele deixa de compor o catálogo regulatório disponível para operações e licenças novas.")
-    @ApiResponses({
-            @ApiResponse(responseCode = "204", description = "Registro removido com sucesso."),
-            @ApiResponse(responseCode = "404", description = "Registro não encontrado.")
-    })
-    public ResponseEntity<Void> delete(@PathVariable Integer id) {
-        return super.delete(id);
-    }
-
-    @DeleteMapping("/batch")
-    @Operation(summary = "Remover acordos regulatórios de operação em lote", description = "Exclui múltiplos acordos em uma única chamada para saneamento administrativo ou limpeza de dados de demonstração.")
-    @ApiResponses({
-            @ApiResponse(responseCode = "204", description = "Registros removidos com sucesso."),
-            @ApiResponse(responseCode = "400", description = "Lista de IDs inválida.")
-    })
-    public ResponseEntity<Void> deleteBatch(@RequestBody List<Integer> ids) {
-        return super.deleteBatch(ids);
+        return executeWorkflowAction("revoke", id, ifMatch, idempotencyKey, correlationId, dto);
     }
 
     @SuppressWarnings("unchecked")
-    private ResponseEntity<RestApiResponse<AcordoRegulatorioWorkflowResultDTO>> governedSuspend(
+    private ResponseEntity<RestApiResponse<AcordoRegulatorioWorkflowResultDTO>> executeWorkflowAction(
+            String actionId,
             Integer id,
+            String ifMatch,
+            String idempotencyKey,
+            String correlationId,
             AcordoRegulatorioWorkflowRequestDTO dto
     ) {
-        return (ResponseEntity<RestApiResponse<AcordoRegulatorioWorkflowResultDTO>>) (ResponseEntity<?>) executeItemCommand(
-                "suspend",
+        validateIdempotencyKey(idempotencyKey);
+        ResourceVersionPreconditions.requireStrongEtag(ifMatch);
+
+        var replay = actionExecutionService.findCompletedReplay(
+                RESOURCE_KEY, id, actionId, idempotencyKey, dto);
+        if (replay.isPresent()) {
+            return workflowSuccess(id, actionId, restoreWorkflowResult(replay.get()));
+        }
+
+        // Rejeita cedo sem consumir a chave; a precondicao e validada novamente na transacao.
+        requireMatchingResourceVersion(id, ifMatch);
+        ResourceVersionUpdatePrecondition<Integer> precondition = resourceVersionUpdatePrecondition(id, ifMatch);
+        String actor = SecurityContextHolder.getContext().getAuthentication() == null
+                ? "anonymous"
+                : SecurityContextHolder.getContext().getAuthentication().getName();
+        String correlation = correlationId == null || correlationId.isBlank()
+                ? UUID.randomUUID().toString()
+                : correlationId.trim();
+
+        ResponseEntity<?> governedResponse = executeItemCommand(
+                actionId,
                 id,
                 dto,
                 ResourceCommandResponsePolicy.RETURN_COMMAND_RESULT,
-                request -> ResourceCommandExecutionResult.success(
-                        request,
-                        id,
-                        service.suspend(id, dto),
-                        java.util.Map.of("resourceKey", "operations.acordos-regulatorios")
-                )
+                request -> executeNewWorkflowAction(
+                        request, actionId, id, idempotencyKey, dto, correlation, actor, precondition)
+        );
+        if (!governedResponse.getStatusCode().is2xxSuccessful()) {
+            return (ResponseEntity<RestApiResponse<AcordoRegulatorioWorkflowResultDTO>>) (ResponseEntity<?>) governedResponse;
+        }
+
+        ResponseEntity.BodyBuilder responseBuilder = ResponseEntity.status(governedResponse.getStatusCode());
+        governedResponse.getHeaders().forEach(
+                (name, values) -> values.forEach(value -> responseBuilder.header(name, value))
+        );
+        return withResourceVersion(
+                responseBuilder,
+                id,
+                (RestApiResponse<AcordoRegulatorioWorkflowResultDTO>) governedResponse.getBody()
         );
     }
 
-    @SuppressWarnings("unchecked")
-    private ResponseEntity<RestApiResponse<AcordoRegulatorioWorkflowResultDTO>> governedReinstate(
+    private ResourceCommandExecutionResult executeNewWorkflowAction(
+            ResourceCommandExecutionRequest request,
+            String actionId,
             Integer id,
-            AcordoRegulatorioWorkflowRequestDTO dto
+            String idempotencyKey,
+            AcordoRegulatorioWorkflowRequestDTO dto,
+            String correlation,
+            String actor,
+            ResourceVersionUpdatePrecondition<Integer> precondition
     ) {
-        return (ResponseEntity<RestApiResponse<AcordoRegulatorioWorkflowResultDTO>>) (ResponseEntity<?>) executeItemCommand(
-                "reinstate",
+        var execution = actionExecutionService.reserve(
+                RESOURCE_KEY, id, actionId, ActionScope.ITEM, idempotencyKey, dto, correlation, actor);
+        if (execution.isPresent() && "COMPLETED".equals(execution.get().getExecutionStatus())) {
+            return ResourceCommandExecutionResult.success(
+                    request,
+                    id,
+                    restoreWorkflowResult(execution.get()),
+                    java.util.Map.of("resourceKey", RESOURCE_KEY)
+            );
+        }
+
+        try {
+            AcordoRegulatorioWorkflowResultDTO result = transactionCoordinator.execute(
+                    execution.orElseThrow(),
+                    () -> switch (actionId) {
+                        case "suspend" -> service.suspend(id, dto, precondition);
+                        case "reinstate" -> service.reinstate(id, dto, precondition);
+                        case "revoke" -> service.revoke(id, dto, precondition);
+                        default -> throw new IllegalArgumentException(
+                                "Unsupported agreement workflow action: " + actionId);
+                    }
+            );
+            return ResourceCommandExecutionResult.success(
+                    request, id, result, java.util.Map.of("resourceKey", RESOURCE_KEY));
+        } catch (RuntimeException failure) {
+            execution.ifPresent(value -> actionExecutionService.fail(
+                    value,
+                    "AGREEMENT_WORKFLOW_EXECUTION_FAILED",
+                    "The regulatory agreement workflow command failed."
+            ));
+            throw failure;
+        }
+    }
+
+    private ResponseEntity<RestApiResponse<AcordoRegulatorioWorkflowResultDTO>> workflowSuccess(
+            Integer id,
+            String actionId,
+            AcordoRegulatorioWorkflowResultDTO result
+    ) {
+        String operationPath = "/{id}/actions/" + actionId;
+        Links links = Links.of(
+                linkToSelf(id),
+                linkToAll(),
+                linkToFilter(),
+                linkToFilterCursor(),
+                linkToUiSchema(operationPath, "post", "request"),
+                linkToUiSchema(operationPath, "post", "response")
+        );
+        return withResourceVersion(
+                ResponseEntity.ok(),
                 id,
-                dto,
-                ResourceCommandResponsePolicy.RETURN_COMMAND_RESULT,
-                request -> ResourceCommandExecutionResult.success(
-                        request,
-                        id,
-                        service.reinstate(id, dto),
-                        java.util.Map.of("resourceKey", "operations.acordos-regulatorios")
-                )
+                RestApiResponse.success(result, hateoasOrNull(links))
         );
     }
 
-    @SuppressWarnings("unchecked")
-    private ResponseEntity<RestApiResponse<AcordoRegulatorioWorkflowResultDTO>> governedRevoke(
-            Integer id,
-            AcordoRegulatorioWorkflowRequestDTO dto
-    ) {
-        return (ResponseEntity<RestApiResponse<AcordoRegulatorioWorkflowResultDTO>>) (ResponseEntity<?>) executeItemCommand(
-                "revoke",
-                id,
-                dto,
-                ResourceCommandResponsePolicy.RETURN_COMMAND_RESULT,
-                request -> ResourceCommandExecutionResult.success(
-                        request,
-                        id,
-                        service.revoke(id, dto),
-                        java.util.Map.of("resourceKey", "operations.acordos-regulatorios")
-                )
-        );
+    private AcordoRegulatorioWorkflowResultDTO restoreWorkflowResult(ResourceActionExecution execution) {
+        try {
+            return objectMapper.treeToValue(
+                    execution.getResponsePayload(), AcordoRegulatorioWorkflowResultDTO.class);
+        } catch (Exception invalidStoredResult) {
+            throw new IllegalStateException(
+                    "Unable to restore the idempotent regulatory agreement workflow result.",
+                    invalidStoredResult
+            );
+        }
+    }
+
+    private void validateIdempotencyKey(String idempotencyKey) {
+        if (idempotencyKey == null || idempotencyKey.isBlank()) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.BAD_REQUEST,
+                    "Idempotency-Key must not be blank."
+            );
+        }
+        if (idempotencyKey.trim().length() > 255) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.BAD_REQUEST,
+                    "Idempotency-Key must have at most 255 characters."
+            );
+        }
     }
 }
-
-
-
-
-
-
-
-
 
 
 

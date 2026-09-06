@@ -3,11 +3,11 @@ package com.example.praxis.apiquickstart.operationalassets.mapper;
 import com.example.praxis.apiquickstart.operationalassets.dto.EquipamentoAlocacaoDTO;
 import com.example.praxis.apiquickstart.operationalassets.entity.Equipamento;
 import com.example.praxis.apiquickstart.operationalassets.entity.EquipamentoAlocacao;
-import com.example.praxis.apiquickstart.hr.entity.Funcionario;
+import com.example.praxis.apiquickstart.core.mapper.ManagedEntityReferenceResolver;
 import org.mapstruct.*;
 import org.praxisplatform.uischema.mapper.config.CorporateMapperConfig;
 
-@Mapper(componentModel = "spring", config = CorporateMapperConfig.class)
+@Mapper(componentModel = "spring", config = CorporateMapperConfig.class, uses = ManagedEntityReferenceResolver.class)
 public interface EquipamentoAlocacaoMapper {
 
     @Mappings({
@@ -18,10 +18,11 @@ public interface EquipamentoAlocacaoMapper {
 
     @Mappings({
             @Mapping(target = "equipamento", expression = "java(equipamentoFromId(dto.getEquipamentoId()))"),
-            @Mapping(target = "funcionario", expression = "java(funcionarioFromId(dto.getFuncionarioId()))")
+            @Mapping(target = "funcionario", source = "funcionarioId", qualifiedByName = "funcionarioReference")
     })
     EquipamentoAlocacao toEntity(EquipamentoAlocacaoDTO dto);
 
+    @org.mapstruct.Mapping(target = "id", ignore = true)
     void updateEntity(EquipamentoAlocacao source, @MappingTarget EquipamentoAlocacao target);
 
     default Equipamento equipamentoFromId(Integer id) {
@@ -31,12 +32,6 @@ public interface EquipamentoAlocacaoMapper {
         return e;
     }
 
-    default Funcionario funcionarioFromId(Integer id) {
-        if (id == null) return null;
-        Funcionario f = new Funcionario();
-        f.setId(id);
-        return f;
-    }
 }
 
 

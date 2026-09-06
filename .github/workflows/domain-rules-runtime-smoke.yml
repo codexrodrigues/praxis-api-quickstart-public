@@ -67,7 +67,7 @@ jobs:
       PRACTICE_TEMP_PASSWORD: ${{ secrets.PRACTICE_TEMP_PASSWORD }}
       PUBLISHER_USERNAME: ${{ secrets.APP_AUTH_GOVERNANCE_PUBLISHER_USERNAME }}
       PUBLISHER_PASSWORD: ${{ secrets.APP_AUTH_GOVERNANCE_PUBLISHER_PASSWORD }}
-      ORIGIN: https://praxisui-dev.web.app
+      ORIGIN: https://praxisui.dev
     steps:
       - name: Checkout
         uses: actions/checkout@v5

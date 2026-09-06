@@ -47,10 +47,10 @@ producao.
 
 | Dominio no cockpit | Grupo OpenAPI | Recursos | Surfaces explicitas | Workflow actions explicitas | Leitura de aderencia |
 | --- | --- | ---: | ---: | ---: | --- |
-| Pessoas e RH | `human-resources` | 22 | 13 | 15 | `ja-suportado-mal-nomeado-ou-mal-materializado`: perfil 360, folha, participacoes em missoes, dependentes, endereco cadastral, matriz de competencias, historico de cargos, custodia de equipamentos, disponibilidade por afastamentos, analytics de afastamentos por lotacao historica, actions de ciclo do funcionario, actions de folha/eventos, action de cobertura, lifecycle persistente e shadow sanitizado de beneficio extraordinario, ranking reputacional e governanca de codigos legados de folha ja existem; a proxima melhoria deve aprofundar operacao sem criar surface decorativa. |
+| Pessoas e RH | `human-resources` | 22 | 13 | 17 | `ja-suportado-mal-nomeado-ou-mal-materializado`: perfil 360, folha, participacoes em missoes, dependentes, endereco cadastral, matriz de competencias, historico de cargos, custodia de equipamentos, disponibilidade por afastamentos, analytics de afastamentos por lotacao historica, actions de ciclo do funcionario, actions de folha/eventos, action de cobertura, lifecycle persistente, reavaliacao governada, prova operacional do Policy Studio e shadow sanitizado de beneficio extraordinario, ranking reputacional e governanca de codigos legados de folha ja existem; a proxima melhoria deve aprofundar operacao sem criar surface decorativa. |
 | Operacoes | `operations` | 12 | 12 | 10 | `ja-suportado-mal-nomeado-ou-mal-materializado`: e o melhor dominio para demonstrar actions/surfaces; cockpit deve usar esse dominio como referencia visual de workflows, composicao de equipes, capacidade operacional e ponte transacional para leituras analiticas derivadas. |
-| Suprimentos | `procurement` | 5 | 10 | 8 | `ja-suportado-mal-nomeado-ou-mal-materializado`: recursos, schemas, option sources, surfaces e actions de fornecedor, contrato e pedido existem; o cockpit deve materializar a jornada fornecedor -> contrato -> catalogo -> pedido -> recebimento como fluxo navegavel. |
-| Ativos Operacionais | `assets` | 4 | 6 | 7 | `ja-suportado-mal-nomeado-ou-mal-materializado`: recursos, lookups, surfaces, actions de disponibilidade e actions de custodia existem; o cockpit deve materializar inventario -> custodia -> frota -> missao -> devolucao/perda/dano como fluxo navegavel. |
+| Suprimentos | `procurement` | 6 | 11 | 8 | `ja-suportado-mal-nomeado-ou-mal-materializado`: recursos, schemas, option sources, surfaces e actions de fornecedor, contrato e pedido, alem da projection analitica do funil de procurement, existem; o cockpit deve materializar a jornada fornecedor -> contrato -> catalogo -> pedido -> recebimento como fluxo navegavel. |
+| Ativos Operacionais | `assets` | 4 | 7 | 7 | `ja-suportado-mal-nomeado-ou-mal-materializado`: recursos, lookups, surfaces, actions de disponibilidade e actions de custodia existem, incluindo a navegacao contextual de veiculo para usos em missoes; o cockpit deve materializar inventario -> custodia -> frota -> missao -> devolucao/perda/dano como fluxo navegavel. |
 | Inteligencia de Risco | `risk-intelligence` | 2 | 3 | 2 | `suportado-parcialmente`: ameacas publicam surface, actions reais de triagem e stats; incidentes ja existem como recurso transacional em `operations.incidentes`, agora com surface item-level para abrir `risk-intelligence.vw-indicadores-incidentes` como leitura analitica derivada e chart de tendencia. |
 
 Nenhum item acima exige contrato novo neste momento. A plataforma ja sabe expor
@@ -164,7 +164,8 @@ Exemplos atuais mais fortes:
 - codigos legados de folha: duplicar rascunho para migracao e saneamento controlado;
 - missoes: transicoes operacionais de ciclo;
 - acessos a bases: ativar/desativar autorizacao;
-- acordos regulatorios: revisar/ativar/suspender compromissos.
+- acordos regulatorios: revisar e executar `suspend`, `reinstate` e `revoke` com risco,
+  confirmacao, `If-Match`, idempotencia e refresh de item descobertos pelo contrato.
 - suprimentos: bloquear/reintegrar fornecedor, assinar/suspender contrato e aprovar/cancelar/receber pedido.
 - ativos: enviar equipamento ou veiculo para manutencao, devolver ao estoque/operação e encerrar custodia como devolvida, perdida ou danificada.
 
@@ -244,6 +245,14 @@ Em `human-resources`, as perguntas ja materializadas pelo host exemplar sao:
   `POST /api/human-resources/extraordinary-benefit-requests/actions/shadow-compare`. A action QL-06
   é administrativa, não usa ledger idempotente e devolve somente observação sanitizada com
   `MATCH`, `MISMATCH`, `INCONCLUSIVE` ou `TECHNICAL_ERROR`;
+- "Uma solicitacao ainda editavel pode ser reavaliada com fatos autoritativos atuais?" via
+  `POST /api/human-resources/extraordinary-benefit-requests/{id}/actions/re-evaluate`. A action
+  readquire os fatos, exige ETag e chave de idempotencia, persiste somente decisoes `ALLOW` e nao
+  executa efeitos;
+- "A decisao candidata funciona contra o datasource operacional sem deixar fixtures?" via
+  `POST /api/human-resources/extraordinary-benefit-requests/actions/run-policy-studio-operational-test`.
+  A action governada executa cenarios descartaveis, registra somente evidencia sanitizada no Test Run
+  e restaura as fixtures do host;
 - "Esse contrato continua íntegro quando consumido apenas dos registries públicos?" O QL-07 prova
   build Maven isolado e o fluxo HTTP autenticado completo, incluindo snapshot governado,
   invariância dos quatro ledgers no shadow, ETag/If-Match no lifecycle, registro idempotente no ledger local e
@@ -321,7 +330,8 @@ Em `assets`, as perguntas ja materializadas pelo host exemplar sao:
 O smoke `scripts/verify-assets-runtime.sh` protege essas evidencias no host
 publicado e confirma as surfaces `equipment-inventory-board`,
 `equipment-custody-board`, `fleet-readiness-board` e
-`mission-fleet-usage-board`.
+`mission-fleet-usage-board`, alem das projections relacionadas de historico de
+custodia e `vehicle-mission-usages` para navegacao contextual da frota.
 
 Em `procurement`, as perguntas ja materializadas pelo host exemplar sao:
 

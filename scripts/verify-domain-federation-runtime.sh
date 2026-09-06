@@ -4,7 +4,7 @@ set -euo pipefail
 BACKEND_URL="${BACKEND_URL:-http://localhost:8088}"
 TENANT_ID="${TENANT_ID:-tenant-federation-smoke}"
 ENVIRONMENT="${ENVIRONMENT:-local-e2e}"
-ORIGIN="${ORIGIN:-https://praxisui-dev.web.app}"
+ORIGIN="${ORIGIN:-https://praxisui.dev}"
 SMOKE_RUN_ID="${SMOKE_RUN_ID:-$(date -u +%Y%m%d%H%M%S)}"
 
 usage() {

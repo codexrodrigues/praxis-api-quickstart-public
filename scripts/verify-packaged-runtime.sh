@@ -14,4 +14,16 @@ if ! jar tf "${artifacts[0]}" | grep -Eq '^BOOT-INF/lib/commons-lang3-[^/]+\.jar
   exit 1
 fi
 
-echo "Packaged runtime contract is valid: commons-lang3 is present."
+operational_migration='BOOT-INF/classes/db/operational-runtime-migrations/V20260905_001__acordos_regulatorios_resource_version.sql'
+if ! jar tf "${artifacts[0]}" | grep -Fxq "$operational_migration"; then
+  echo "Packaged Quickstart JAR is missing the Acordos Regulatorios operational migration." >&2
+  exit 1
+fi
+
+operational_entrypoint='scripts/workspace/Invoke-OperationalDatasourceMigrations.sh'
+if ! sh -n "$operational_entrypoint"; then
+  echo "Operational datasource migration entrypoint has invalid POSIX shell syntax." >&2
+  exit 1
+fi
+
+echo "Packaged runtime contract is valid: runtime dependency and operational migration are present."

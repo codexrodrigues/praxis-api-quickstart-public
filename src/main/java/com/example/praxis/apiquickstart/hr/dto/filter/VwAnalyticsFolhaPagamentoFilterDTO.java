@@ -26,6 +26,16 @@ import java.util.List;
         description = "Criterios de busca sobre a projecao VwAnalyticsFolhaPagamento (vista, nao entidade a persistir). "
                 + "Filtra linhas agregadas de folha com contexto de colaborador, organograma, operacoes e buckets de remuneracao, sem substituir o contrato transacional de FolhaPagamento.")
 public class VwAnalyticsFolhaPagamentoFilterDTO implements GenericFilterDTO, HrDepartmentScopedFilter {
+    @UISchema(label = "Colaborador contextual", type = FieldDataType.NUMBER, controlType = FieldControlType.INPUT,
+            order = 14, formHidden = true,
+            helpText = "Vínculo escalar usado por surfaces relacionadas para restringir a folha ao colaborador selecionado.",
+            icon = "badge")
+    @Filterable(operation = Filterable.FilterOperation.EQUAL, relation = "funcionarioId")
+    @Schema(
+            description = "Colaborador único que delimita uma surface relacionada de folha. Este campo é a contraparte "
+                    + "escalar de funcionarioIdsIn e materializa o relatedChildParentField publicado pelo recurso de funcionários.")
+    private Integer funcionarioId;
+
     @UISchema(label = "Mostrar colaboradores", type = FieldDataType.NUMBER, controlType = FieldControlType.INLINE_ENTITY_LOOKUP, order = 15,
             multiple = true,
             valueField = "id", displayField = "label",
@@ -225,6 +235,8 @@ public class VwAnalyticsFolhaPagamentoFilterDTO implements GenericFilterDTO, HrD
             description = "Faixa de quantidade de eventos ou rubricas que compoem a folha, usada como sinal de complexidade do contracheque.")
     private List<Long> qtdEventosBetween;
 
+    public Integer getFuncionarioId() { return funcionarioId; }
+    public void setFuncionarioId(Integer funcionarioId) { this.funcionarioId = funcionarioId; }
     public List<Integer> getFuncionarioIdsIn() { return funcionarioIdsIn; }
     public void setFuncionarioIdsIn(List<Integer> funcionarioIdsIn) { this.funcionarioIdsIn = funcionarioIdsIn; }
     public String getUniverso() { return universo; }

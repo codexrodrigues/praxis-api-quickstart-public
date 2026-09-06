@@ -98,6 +98,27 @@ class QuickstartGovernedPlatformRequestAuthorizationProviderTest {
     }
 
     @Test
+    void delegatesOnlyTheCanonicalSameOriginActionCatalog() {
+        String authorization = provider.authorizationHeader(request(
+                GovernedPlatformRequest.Surface.RESOURCE_ACTION_CATALOG,
+                "http://localhost:8088",
+                "http://localhost:8088/schemas/actions?resource=operations.missoes",
+                "admin")).orElseThrow();
+
+        assertThat(tokenService.validate(bearerToken(authorization)).valid()).isTrue();
+        assertThat(provider.authorizationHeader(request(
+                GovernedPlatformRequest.Surface.RESOURCE_ACTION_CATALOG,
+                "http://localhost:8088",
+                "http://localhost:8088/schemas/surfaces?resource=operations.missoes",
+                "admin"))).isEmpty();
+        assertThat(provider.authorizationHeader(request(
+                GovernedPlatformRequest.Surface.RESOURCE_ACTION_CATALOG,
+                "http://metadata.example",
+                "http://localhost:8088/schemas/actions?resource=operations.missoes",
+                "admin"))).isEmpty();
+    }
+
+    @Test
     void doesNotPromoteTheLocalReferencePrincipalInCorporateMode() {
         QuickstartGovernedPlatformRequestAuthorizationProvider corporateProvider =
                 new QuickstartGovernedPlatformRequestAuthorizationProvider(

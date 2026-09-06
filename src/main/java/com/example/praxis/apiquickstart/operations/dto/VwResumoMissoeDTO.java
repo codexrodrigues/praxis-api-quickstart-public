@@ -29,10 +29,22 @@ public class VwResumoMissoeDTO {
             description = "Estado de workflow da missao projetado na vista de resumo.")
     private String status;
 
+    @UISchema(label = "Status (rótulo)", readOnly = true, icon = "toggle_on")
+    @Schema(
+            description = "Rotulo humano do estado de workflow; preserva status como codigo canonico para filtros e interacoes.",
+            example = "Em andamento")
+    private String statusLabel;
+
     @UISchema(label = "Prioridade", icon = "priority_high")
     @Schema(
             description = "Nivel de escalacao ou urgencia atribuido a missao.")
     private String prioridade;
+
+    @UISchema(label = "Prioridade (rótulo)", readOnly = true, icon = "priority_high")
+    @Schema(
+            description = "Rotulo humano da prioridade; preserva prioridade como codigo canonico para filtros e ordenacao.",
+            example = "Crítica")
+    private String prioridadeLabel;
 
     @UISchema(label = "Local", icon = "location_on")
     @Schema(
@@ -72,8 +84,12 @@ public class VwResumoMissoeDTO {
     public void setTitulo(String titulo) { this.titulo = titulo; }
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
+    public String getStatusLabel() { return statusLabel; }
+    public void setStatusLabel(String statusLabel) { this.statusLabel = statusLabel; }
     public String getPrioridade() { return prioridade; }
     public void setPrioridade(String prioridade) { this.prioridade = prioridade; }
+    public String getPrioridadeLabel() { return prioridadeLabel; }
+    public void setPrioridadeLabel(String prioridadeLabel) { this.prioridadeLabel = prioridadeLabel; }
     public String getLocal() { return local; }
     public void setLocal(String local) { this.local = local; }
     public String getAmeaca() { return ameaca; }

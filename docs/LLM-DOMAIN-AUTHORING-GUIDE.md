@@ -322,9 +322,9 @@ Resposta esperada:
 - simular primeiro o rascunho em `/api/praxis/config/domain-rules/simulations` para validar grounding, aprovacoes e materializacoes previstas;
 - usar `/api/praxis/config/domain-rules/publications` quando a definicao persistida ja estiver com `publicationReadiness=ready_to_publish`, em vez de remontar localmente a policy de ativacao/aplicacao;
 - criar primeiro uma definicao compartilhavel em `/api/praxis/config/domain-rules/definitions`;
-- criar depois a materializacao `form_config` em `/api/praxis/config/domain-rules/materializations`;
-- exigir `metadata.origin="llm"` e `metadata.reviewStatus="pending"`;
-- lembrar que `formRulesState` e materializado apenas pelo editor apos revisao humana.
+- declarar em `definition.materializationTargets[]` o `targetArtifactKey` exato do `praxis-dynamic-form` quando a projeção visual já estiver semanticamente resolvida; nesse caso a publicação compila e aplica `form_config` sem o host fabricar `materializedPayload`;
+- usar `/api/praxis/config/domain-rules/materializations` separadamente somente quando o alvo não estava resolvido na definição ou quando a projeção exigir revisão editorial própria;
+- lembrar que `formRulesState` continua sendo uma projeção derivada consumida pelo runtime, nunca a fonte primária da decisão.
 
 ## Regras de seguranca para a LLM
 

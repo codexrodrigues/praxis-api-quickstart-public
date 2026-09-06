@@ -10,6 +10,7 @@ import org.praxisplatform.uischema.mapper.config.CorporateMapperConfig;
 public interface BaseMapper {
     BaseDTO toDto(Base entity);
     Base toEntity(BaseDTO dto);
+    @org.mapstruct.Mapping(target = "id", ignore = true)
     void updateEntity(Base source, @MappingTarget Base target);
 }
 

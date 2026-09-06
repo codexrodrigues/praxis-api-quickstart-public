@@ -1,7 +1,9 @@
 package com.example.praxis.apiquickstart.security;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -14,9 +16,9 @@ import org.springframework.mock.web.MockHttpServletResponse;
 class PublicApiRateLimitFilterTest {
 
     @Test
-    void shouldApplyConfigRuleToAiPatchEndpoint() throws Exception {
+    void shouldApplyDedicatedAiRuleToAiPatchEndpoint() throws Exception {
         RateLimiterService rateLimiterService = mock(RateLimiterService.class);
-        when(rateLimiterService.allow(eq("config:127.0.0.1"), eq(120), eq(60_000L))).thenReturn(true);
+        when(rateLimiterService.allow(eq("ai:127.0.0.1"), eq(30), eq(60_000L))).thenReturn(true);
         PublicApiRateLimitFilter filter = new PublicApiRateLimitFilter(
                 rateLimiterService,
                 untrustedProxyPolicy(),
@@ -29,6 +31,8 @@ class PublicApiRateLimitFilterTest {
                 60_000L,
                 5,
                 60_000L,
+                30,
+                60_000L,
                 120,
                 60_000L);
 
@@ -39,7 +43,27 @@ class PublicApiRateLimitFilterTest {
 
         filter.doFilter(request, response, chain);
 
-        verify(rateLimiterService).allow("config:127.0.0.1", 120, 60_000L);
+        verify(rateLimiterService).allow("ai:127.0.0.1", 30, 60_000L);
+    }
+
+    @Test
+    void shouldRejectAiRequestWhenDedicatedBudgetIsExhausted() throws Exception {
+        RateLimiterService rateLimiterService = mock(RateLimiterService.class);
+        PublicApiRateLimitFilter filter = filter(rateLimiterService, untrustedProxyPolicy());
+
+        MockHttpServletRequest request = new MockHttpServletRequest(
+                "POST",
+                "/api/praxis/config/ai/authoring/turn/stream/start");
+        request.setRemoteAddr("127.0.0.1");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        FilterChain chain = mock(FilterChain.class);
+
+        filter.doFilter(request, response, chain);
+
+        assertEquals(429, response.getStatus());
+        assertEquals("60", response.getHeader("Retry-After"));
+        verify(rateLimiterService).allow("ai:127.0.0.1", 30, 60_000L);
+        verify(chain, never()).doFilter(request, response);
     }
 
     @Test
@@ -58,6 +82,8 @@ class PublicApiRateLimitFilterTest {
                 60_000L,
                 5,
                 60_000L,
+                30,
+                60_000L,
                 120,
                 60_000L);
 
@@ -74,7 +100,7 @@ class PublicApiRateLimitFilterTest {
     @Test
     void shouldIgnoreForgedForwardedForWhenPeerIsNotTrustedProxy() throws Exception {
         RateLimiterService rateLimiterService = mock(RateLimiterService.class);
-        when(rateLimiterService.allow(eq("config:198.51.100.25"), eq(120), eq(60_000L))).thenReturn(true);
+        when(rateLimiterService.allow(eq("ai:198.51.100.25"), eq(30), eq(60_000L))).thenReturn(true);
         PublicApiRateLimitFilter filter = filter(rateLimiterService, untrustedProxyPolicy());
 
         MockHttpServletRequest request = new MockHttpServletRequest("POST", "/api/praxis/config/ai/patch");
@@ -85,13 +111,13 @@ class PublicApiRateLimitFilterTest {
 
         filter.doFilter(request, response, chain);
 
-        verify(rateLimiterService).allow("config:198.51.100.25", 120, 60_000L);
+        verify(rateLimiterService).allow("ai:198.51.100.25", 30, 60_000L);
     }
 
     @Test
     void shouldUseForwardedForWhenImmediatePeerIsTrustedProxy() throws Exception {
         RateLimiterService rateLimiterService = mock(RateLimiterService.class);
-        when(rateLimiterService.allow(eq("config:203.0.113.77"), eq(120), eq(60_000L))).thenReturn(true);
+        when(rateLimiterService.allow(eq("ai:203.0.113.77"), eq(30), eq(60_000L))).thenReturn(true);
         PublicApiRateLimitFilter filter = filter(rateLimiterService, trustedProxyPolicy());
 
         MockHttpServletRequest request = new MockHttpServletRequest("POST", "/api/praxis/config/ai/patch");
@@ -102,7 +128,7 @@ class PublicApiRateLimitFilterTest {
 
         filter.doFilter(request, response, chain);
 
-        verify(rateLimiterService).allow("config:203.0.113.77", 120, 60_000L);
+        verify(rateLimiterService).allow("ai:203.0.113.77", 30, 60_000L);
     }
 
     private PublicApiRateLimitFilter filter(RateLimiterService rateLimiterService, TrustedProxyPolicy trustedProxyPolicy) {
@@ -117,6 +143,8 @@ class PublicApiRateLimitFilterTest {
                 60,
                 60_000L,
                 5,
+                60_000L,
+                30,
                 60_000L,
                 120,
                 60_000L);

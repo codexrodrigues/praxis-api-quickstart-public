@@ -114,13 +114,7 @@ public class MissaoService extends AbstractQuickstartCrudService<Missao, MissaoD
                                     true,
                                     false,
                                     true,
-                                    Map.of(
-                                            "PLANEJADA", "Planejada",
-                                            "EM_ANDAMENTO", "Em andamento",
-                                            "PAUSADA", "Pausada",
-                                            "CONCLUIDA", "Concluída",
-                                            "FALHOU", "Falhou"
-                                    ),
+                                    MissaoStatus.labels(),
                                     0
                             ),
                             null
@@ -427,6 +421,3 @@ public class MissaoService extends AbstractQuickstartCrudService<Missao, MissaoD
         );
     }
 }
-
-
-

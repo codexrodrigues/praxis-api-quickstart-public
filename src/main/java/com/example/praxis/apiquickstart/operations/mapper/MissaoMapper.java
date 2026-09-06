@@ -20,6 +20,7 @@ public interface MissaoMapper {
     })
     Missao toEntity(MissaoDTO dto);
 
+    @org.mapstruct.Mapping(target = "id", ignore = true)
     void updateEntity(Missao source, @MappingTarget Missao target);
 
     default Ameaca ameacaFromId(Integer id) {

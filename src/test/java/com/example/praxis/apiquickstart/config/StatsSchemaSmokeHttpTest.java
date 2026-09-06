@@ -94,6 +94,9 @@ class StatsSchemaSmokeHttpTest {
         assertHasProperty(payrollTimeSeriesRequestSchemaResponse.getBody(), "granularity");
         assertHasProperty(payrollTimeSeriesRequestSchemaResponse.getBody(), "metric");
         assertHasProperty(payrollTimeSeriesRequestSchemaResponse.getBody(), "metrics");
+        assertHasNestedProperty(payrollTimeSeriesRequestSchemaResponse.getBody(), "filter", "departamentoId");
+        assertHasNestedProperty(payrollTimeSeriesRequestSchemaResponse.getBody(), "filter", "competenciaBetween");
+        assertHasNestedProperty(payrollTimeSeriesRequestSchemaResponse.getBody(), "filter", "payrollProfile");
         assertHasOperationExamples(payrollTimeSeriesRequestSchemaResponse.getBody(), "request");
 
         ResponseEntity<Map> groupByResponse = restTemplate.getForEntity(
@@ -260,6 +263,18 @@ class StatsSchemaSmokeHttpTest {
         Object properties = body.get("properties");
         assertTrue(properties instanceof Map<?, ?>);
         assertTrue(((Map<String, Object>) properties).containsKey(propertyName));
+    }
+
+    @SuppressWarnings("unchecked")
+    private void assertHasNestedProperty(Map body, String objectProperty, String nestedProperty) {
+        assertNotNull(body);
+        Object properties = body.get("properties");
+        assertTrue(properties instanceof Map<?, ?>);
+        Object nestedSchema = ((Map<String, Object>) properties).get(objectProperty);
+        assertTrue(nestedSchema instanceof Map<?, ?>);
+        Object nestedProperties = ((Map<String, Object>) nestedSchema).get("properties");
+        assertTrue(nestedProperties instanceof Map<?, ?>);
+        assertTrue(((Map<String, Object>) nestedProperties).containsKey(nestedProperty));
     }
 
     @SuppressWarnings("unchecked")

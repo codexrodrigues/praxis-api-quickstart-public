@@ -10,6 +10,7 @@ import org.praxisplatform.uischema.mapper.config.CorporateMapperConfig;
 public interface AmeacaMapper {
     AmeacaDTO toDto(Ameaca entity);
     Ameaca toEntity(AmeacaDTO dto);
+    @org.mapstruct.Mapping(target = "id", ignore = true)
     void updateEntity(Ameaca source, @MappingTarget Ameaca target);
 }
 

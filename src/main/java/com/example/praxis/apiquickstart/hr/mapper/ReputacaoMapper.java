@@ -1,12 +1,12 @@
 package com.example.praxis.apiquickstart.hr.mapper;
 
 import com.example.praxis.apiquickstart.hr.dto.ReputacaoDTO;
-import com.example.praxis.apiquickstart.hr.entity.Funcionario;
+import com.example.praxis.apiquickstart.core.mapper.ManagedEntityReferenceResolver;
 import com.example.praxis.apiquickstart.hr.entity.Reputacao;
 import org.mapstruct.*;
 import org.praxisplatform.uischema.mapper.config.CorporateMapperConfig;
 
-@Mapper(componentModel = "spring", config = CorporateMapperConfig.class)
+@Mapper(componentModel = "spring", config = CorporateMapperConfig.class, uses = ManagedEntityReferenceResolver.class)
 public interface ReputacaoMapper {
 
     @Mappings({
@@ -16,16 +16,11 @@ public interface ReputacaoMapper {
     ReputacaoDTO toDto(Reputacao entity);
 
     @Mappings({
-            @Mapping(target = "funcionario", expression = "java(funcionarioFromId(dto.getFuncionarioId()))")
+            @Mapping(target = "funcionario", source = "funcionarioId", qualifiedByName = "funcionarioReference")
     })
     Reputacao toEntity(ReputacaoDTO dto);
 
+    @org.mapstruct.Mapping(target = "id", ignore = true)
     void updateEntity(Reputacao source, @MappingTarget Reputacao target);
 
-    default Funcionario funcionarioFromId(Integer id) {
-        if (id == null) return null;
-        Funcionario f = new Funcionario();
-        f.setId(id);
-        return f;
-    }
 }

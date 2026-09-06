@@ -20,6 +20,7 @@ public interface MissaoEventoMapper {
     })
     MissaoEvento toEntity(MissaoEventoDTO dto);
 
+    @org.mapstruct.Mapping(target = "id", ignore = true)
     void updateEntity(MissaoEvento source, @MappingTarget MissaoEvento target);
 
     default Missao missaoFromId(Integer id) {

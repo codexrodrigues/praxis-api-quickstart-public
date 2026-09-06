@@ -20,6 +20,7 @@ public interface IndenizacaoMapper {
     })
     Indenizacao toEntity(IndenizacaoDTO dto);
 
+    @org.mapstruct.Mapping(target = "id", ignore = true)
     void updateEntity(Indenizacao source, @MappingTarget Indenizacao target);
 
     default Incidente incidenteFromId(Integer id) {

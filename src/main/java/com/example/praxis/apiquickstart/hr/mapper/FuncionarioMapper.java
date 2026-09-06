@@ -1,6 +1,8 @@
 package com.example.praxis.apiquickstart.hr.mapper;
 
+import com.example.praxis.apiquickstart.hr.dto.CreateFuncionarioDTO;
 import com.example.praxis.apiquickstart.hr.dto.FuncionarioDTO;
+import com.example.praxis.apiquickstart.hr.dto.UpdateFuncionarioDTO;
 import com.example.praxis.apiquickstart.hr.dto.UpdateFuncionarioProfileDTO;
 import com.example.praxis.apiquickstart.hr.entity.Cargo;
 import com.example.praxis.apiquickstart.hr.entity.Departamento;
@@ -41,6 +43,27 @@ public abstract class FuncionarioMapper {
     })
     public abstract Funcionario toEntity(FuncionarioDTO dto);
 
+    @Mappings({
+            @Mapping(target = "id", ignore = true),
+            @Mapping(target = "cargo", expression = "java(cargoFromId(dto.getCargoId()))"),
+            @Mapping(target = "departamento", expression = "java(departamentoFromId(dto.getDepartamentoId()))"),
+            @Mapping(target = "paisNascimento", ignore = true),
+            @Mapping(target = "cidadeNascimento", ignore = true),
+            @Mapping(target = "version", ignore = true)
+    })
+    public abstract Funcionario toEntity(CreateFuncionarioDTO dto);
+
+    @Mappings({
+            @Mapping(target = "id", ignore = true),
+            @Mapping(target = "cargo", expression = "java(cargoFromId(dto.getCargoId()))"),
+            @Mapping(target = "departamento", expression = "java(departamentoFromId(dto.getDepartamentoId()))"),
+            @Mapping(target = "paisNascimento", ignore = true),
+            @Mapping(target = "cidadeNascimento", ignore = true),
+            @Mapping(target = "version", ignore = true)
+    })
+    public abstract Funcionario toEntity(UpdateFuncionarioDTO dto);
+
+    @org.mapstruct.Mapping(target = "id", ignore = true)
     public abstract void updateEntity(Funcionario source, @MappingTarget Funcionario target);
 
     @BeanMapping(ignoreByDefault = true)
@@ -48,8 +71,7 @@ public abstract class FuncionarioMapper {
             @Mapping(target = "nomeCompleto", source = "nomeCompleto"),
             @Mapping(target = "email", source = "email"),
             @Mapping(target = "telefone", source = "telefone"),
-            @Mapping(target = "fotoPerfilUrl", source = "fotoPerfilUrl"),
-            @Mapping(target = "estadoCivil", source = "estadoCivil")
+            @Mapping(target = "fotoPerfilUrl", source = "fotoPerfilUrl")
     })
     public abstract void updateProfile(UpdateFuncionarioProfileDTO source, @MappingTarget Funcionario target);
 

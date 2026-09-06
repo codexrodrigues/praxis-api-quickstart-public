@@ -70,6 +70,7 @@ import org.praxisplatform.uischema.action.ActionInteractionMode;
 import org.praxisplatform.uischema.action.ActionRequirement;
 import org.praxisplatform.uischema.action.ActionResourceVersionTransport;
 import org.praxisplatform.uischema.action.ActionRiskLevel;
+import org.praxisplatform.uischema.concurrency.ResourceVersionPreconditions;
 import com.example.praxis.apiquickstart.hr.dto.actions.FuncionarioLifecycleTransitionRequestDTO;
 import com.example.praxis.apiquickstart.hr.dto.actions.FuncionarioWorkflowResultDTO;
 import java.util.UUID;
@@ -398,6 +399,7 @@ public class FuncionarioController extends AbstractQuickstartCrudController<Func
             FuncionarioLifecycleTransitionRequestDTO command,
             boolean targetActive
     ) {
+        ResourceVersionPreconditions.requireStrongEtag(ifMatch);
         var replay = actionExecutionService.findCompletedReplay(RESOURCE_KEY, id, actionId, idempotencyKey, command);
         if (replay.isPresent()) {
             return withResourceVersion(ResponseEntity.ok(), id,

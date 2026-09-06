@@ -243,7 +243,14 @@ public class FuncionarioService extends AbstractQuickstartCrudService<Funcionari
             CollectionExportExecutor collectionExportExecutor,
             ResourceActionTransitionService transitionService
     ) {
-        super(repository, Funcionario.class, mapper::toDto, mapper::toEntity, mapper::toEntity, Funcionario::getId);
+        super(
+                repository,
+                Funcionario.class,
+                mapper::toDto,
+                (CreateFuncionarioDTO dto) -> mapper.toEntity(dto),
+                (UpdateFuncionarioDTO dto) -> mapper.toEntity(dto),
+                Funcionario::getId
+        );
         this.mapper = mapper;
         this.collectionExportExecutor = collectionExportExecutor;
         this.transitionService = transitionService;

@@ -4,7 +4,7 @@ set -euo pipefail
 BACKEND_URL="${BACKEND_URL:-http://localhost:8088}"
 TENANT_ID="${TENANT_ID:-default}"
 ENVIRONMENT="${ENVIRONMENT:-dev}"
-ORIGIN="${ORIGIN:-https://praxisui-dev.web.app}"
+ORIGIN="${ORIGIN:-https://praxisui.dev}"
 SERVICE_KEY="${SERVICE_KEY:-praxis-service}"
 RESOURCE_KEYS_INPUT="${RESOURCE_KEYS:-}"
 REQUIRE_GOVERNANCE="${REQUIRE_GOVERNANCE:-true}"

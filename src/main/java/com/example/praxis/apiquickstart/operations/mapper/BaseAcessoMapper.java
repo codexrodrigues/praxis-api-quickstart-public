@@ -3,11 +3,11 @@ package com.example.praxis.apiquickstart.operations.mapper;
 import com.example.praxis.apiquickstart.operations.dto.BaseAcessoDTO;
 import com.example.praxis.apiquickstart.operations.entity.Base;
 import com.example.praxis.apiquickstart.operations.entity.BaseAcesso;
-import com.example.praxis.apiquickstart.hr.entity.Funcionario;
+import com.example.praxis.apiquickstart.core.mapper.ManagedEntityReferenceResolver;
 import org.mapstruct.*;
 import org.praxisplatform.uischema.mapper.config.CorporateMapperConfig;
 
-@Mapper(componentModel = "spring", config = CorporateMapperConfig.class)
+@Mapper(componentModel = "spring", config = CorporateMapperConfig.class, uses = ManagedEntityReferenceResolver.class)
 public interface BaseAcessoMapper {
 
     @Mappings({
@@ -20,10 +20,11 @@ public interface BaseAcessoMapper {
 
     @Mappings({
             @Mapping(target = "base", expression = "java(baseFromId(dto.getBaseId()))"),
-            @Mapping(target = "funcionario", expression = "java(funcionarioFromId(dto.getFuncionarioId()))")
+            @Mapping(target = "funcionario", source = "funcionarioId", qualifiedByName = "funcionarioReference")
     })
     BaseAcesso toEntity(BaseAcessoDTO dto);
 
+    @org.mapstruct.Mapping(target = "id", ignore = true)
     void updateEntity(BaseAcesso source, @MappingTarget BaseAcesso target);
 
     default Base baseFromId(Integer id) {
@@ -33,12 +34,6 @@ public interface BaseAcessoMapper {
         return b;
     }
 
-    default Funcionario funcionarioFromId(Integer id) {
-        if (id == null) return null;
-        Funcionario f = new Funcionario();
-        f.setId(id);
-        return f;
-    }
 }
 
 

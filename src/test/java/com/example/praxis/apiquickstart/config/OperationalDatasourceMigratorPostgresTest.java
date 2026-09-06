@@ -25,6 +25,7 @@ class OperationalDatasourceMigratorPostgresTest {
                 var statement = connection.createStatement()) {
             statement.execute("create table existing_operational_fixture(id bigint primary key)");
             createProcurementFunnelDependencies(statement);
+            createAcordosRegulatoriosDependency(statement);
         }
 
         var first = OperationalDatasourceMigrator.migrate(
@@ -32,14 +33,23 @@ class OperationalDatasourceMigratorPostgresTest {
         var second = OperationalDatasourceMigrator.migrate(
                 POSTGRES.getJdbcUrl(), POSTGRES.getUsername(), POSTGRES.getPassword());
 
-        assertThat(first.migrationsExecuted).isEqualTo(3);
+        assertThat(first.migrationsExecuted).isEqualTo(4);
         assertThat(second.migrationsExecuted).isZero();
         try (var connection = DriverManager.getConnection(
                 POSTGRES.getJdbcUrl(), POSTGRES.getUsername(), POSTGRES.getPassword());
                 var statement = connection.createStatement()) {
             assertThat(count(statement,
                     "select count(*) from public.praxis_api_schema_history where success"))
-                    .isEqualTo(4L); // baseline + V20260813_001 + V20260814_001 + V20260826_001
+                    .isEqualTo(5L); // baseline + V20260813_001 + V20260814_001 + V20260826_001 + V20260905_001
+            assertThat(count(statement, """
+                    select count(*) from information_schema.columns
+                    where table_schema='public'
+                      and table_name='acordos_regulatorios'
+                      and column_name='version'
+                      and data_type='bigint'
+                      and is_nullable='NO'
+                      and column_default like '0%'
+                    """)).isEqualTo(1L);
             assertThat(count(statement, """
                     select count(*) from pg_indexes
                     where schemaname='public'
@@ -80,6 +90,7 @@ class OperationalDatasourceMigratorPostgresTest {
                     )
                     """);
             createProcurementFunnelDependencies(statement);
+            createAcordosRegulatoriosDependency(statement);
         }
 
         var first = OperationalDatasourceMigrator.migrate(
@@ -87,7 +98,7 @@ class OperationalDatasourceMigratorPostgresTest {
         var second = OperationalDatasourceMigrator.migrate(
                 POSTGRES.getJdbcUrl(), POSTGRES.getUsername(), POSTGRES.getPassword());
 
-        assertThat(first.migrationsExecuted).isEqualTo(3);
+        assertThat(first.migrationsExecuted).isEqualTo(4);
         assertThat(second.migrationsExecuted).isZero();
         try (var connection = DriverManager.getConnection(
                 POSTGRES.getJdbcUrl(), POSTGRES.getUsername(), POSTGRES.getPassword());
@@ -239,6 +250,18 @@ class OperationalDatasourceMigratorPostgresTest {
                     contract_id integer,
                     status varchar(40),
                     received_at date
+                )
+                """);
+    }
+
+    private static void createAcordosRegulatoriosDependency(java.sql.Statement statement) throws Exception {
+        statement.execute("""
+                create table public.acordos_regulatorios (
+                    id bigint primary key,
+                    nome varchar(255) not null,
+                    jurisdicao varchar(120) not null,
+                    status varchar(40) not null,
+                    descricao text
                 )
                 """);
     }

@@ -10,6 +10,7 @@ import org.praxisplatform.uischema.mapper.config.CorporateMapperConfig;
 public interface HabilidadeMapper {
     HabilidadeDTO toDto(Habilidade entity);
     Habilidade toEntity(HabilidadeDTO dto);
+    @org.mapstruct.Mapping(target = "id", ignore = true)
     void updateEntity(Habilidade source, @MappingTarget Habilidade target);
 }
 

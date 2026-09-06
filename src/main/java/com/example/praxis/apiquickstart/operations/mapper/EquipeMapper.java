@@ -20,6 +20,7 @@ public interface EquipeMapper {
     })
     Equipe toEntity(EquipeDTO dto);
 
+    @org.mapstruct.Mapping(target = "id", ignore = true)
     void updateEntity(Equipe source, @MappingTarget Equipe target);
 
     default Base baseFromId(Integer id) {

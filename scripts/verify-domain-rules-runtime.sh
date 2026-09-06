@@ -4,7 +4,7 @@ set -euo pipefail
 BACKEND_URL="${BACKEND_URL:-http://localhost:8088}"
 TENANT_ID="${TENANT_ID:-default}"
 ENVIRONMENT="${ENVIRONMENT:-dev}"
-ORIGIN="${ORIGIN:-https://praxisui-dev.web.app}"
+ORIGIN="${ORIGIN:-https://praxisui.dev}"
 SERVICE_KEY="${SERVICE_KEY:-praxis-api-quickstart}"
 CONTEXT_KEY="${CONTEXT_KEY:-human-resources}"
 RESOURCE_KEY="${RESOURCE_KEY:-human-resources.funcionarios}"
@@ -33,39 +33,31 @@ PUBLICATION_RUNTIME_PROBE_BLOCKED_STATUSES_JSON="${PUBLICATION_RUNTIME_PROBE_BLO
 BACKEND_VALIDATION_RESOURCE_KEY="${BACKEND_VALIDATION_RESOURCE_KEY:-procurement.purchase-orders}"
 BACKEND_VALIDATION_RULE_KEY="${BACKEND_VALIDATION_RULE_KEY:-procurement.purchase-orders.rule.supplier-backend-validation.${SMOKE_RUN_ID}}"
 BACKEND_VALIDATION_BLOCKED_STATUSES_JSON="${BACKEND_VALIDATION_BLOCKED_STATUSES_JSON:-[\"BLOCKED\"]}"
+BACKEND_VALIDATION_POLICY_MESSAGE="${BACKEND_VALIDATION_POLICY_MESSAGE:-Fornecedor indisponivel para pedidos de compra}"
 BACKEND_VALIDATION_SUPPLIER_ID="${BACKEND_VALIDATION_SUPPLIER_ID:-11}"
 BACKEND_VALIDATION_COMPANY_ID="${BACKEND_VALIDATION_COMPANY_ID:-1}"
 BACKEND_VALIDATION_PRODUCT_ID="${BACKEND_VALIDATION_PRODUCT_ID:-30}"
-WORKFLOW_ACTION_RESOURCE_KEY="${WORKFLOW_ACTION_RESOURCE_KEY:-human-resources.folhas-pagamento}"
-WORKFLOW_ACTION_CONTEXT_KEY="${WORKFLOW_ACTION_CONTEXT_KEY:-human-resources}"
-WORKFLOW_ACTION_ID="${WORKFLOW_ACTION_ID:-mark-paid}"
+WORKFLOW_ACTION_RESOURCE_KEY="${WORKFLOW_ACTION_RESOURCE_KEY:-procurement.purchase-orders}"
+WORKFLOW_ACTION_CONTEXT_KEY="${WORKFLOW_ACTION_CONTEXT_KEY:-procurement}"
+WORKFLOW_ACTION_ID="${WORKFLOW_ACTION_ID:-approve}"
 WORKFLOW_ACTION_TARGET_KEY="${WORKFLOW_ACTION_TARGET_KEY:-${WORKFLOW_ACTION_RESOURCE_KEY}:${WORKFLOW_ACTION_ID}}"
-WORKFLOW_ACTION_RULE_KEY="${WORKFLOW_ACTION_RULE_KEY:-human-resources.folhas-pagamento.rule.mark-paid-compliance.${SMOKE_RUN_ID}}"
-WORKFLOW_ACTION_RESOURCE_ID="${WORKFLOW_ACTION_RESOURCE_ID:-${WORKFLOW_ACTION_FOLHA_ID:-2}}"
+WORKFLOW_ACTION_RULE_KEY="${WORKFLOW_ACTION_RULE_KEY:-procurement.purchase-orders.rule.approve-governed.${SMOKE_RUN_ID}}"
+WORKFLOW_ACTION_RESOURCE_ID="${WORKFLOW_ACTION_RESOURCE_ID:-${WORKFLOW_ACTION_PURCHASE_ORDER_ID:-43}}"
 WORKFLOW_ACTION_RESOURCE_ID_LABEL="${WORKFLOW_ACTION_RESOURCE_ID_LABEL:-resourceId}"
-WORKFLOW_ACTION_COMMAND_PATH="${WORKFLOW_ACTION_COMMAND_PATH:-/api/human-resources/folhas-pagamento/${WORKFLOW_ACTION_RESOURCE_ID}/actions/${WORKFLOW_ACTION_ID}}"
-WORKFLOW_ACTION_BLOCKED_STATES_JSON="${WORKFLOW_ACTION_BLOCKED_STATES_JSON:-[\"PROGRAMADA\"]}"
-WORKFLOW_ACTION_POLICY_SUMMARY="${WORKFLOW_ACTION_POLICY_SUMMARY:-Bloquear a action mark-paid enquanto a folha programada aguarda revisao governada de compliance.}"
-WORKFLOW_ACTION_POLICY_MESSAGE="${WORKFLOW_ACTION_POLICY_MESSAGE:-Pagamento bloqueado por decisao governada ate revisao de compliance.}"
-WORKFLOW_ACTION_SEMANTIC_OWNER="${WORKFLOW_ACTION_SEMANTIC_OWNER:-hr-operations-owner}"
-WORKFLOW_ACTION_STEWARD="${WORKFLOW_ACTION_STEWARD:-payroll-compliance}"
+WORKFLOW_ACTION_COMMAND_PATH="${WORKFLOW_ACTION_COMMAND_PATH:-/api/procurement/purchase-orders/${WORKFLOW_ACTION_RESOURCE_ID}/actions/${WORKFLOW_ACTION_ID}}"
+WORKFLOW_ACTION_BLOCKED_STATES_JSON="${WORKFLOW_ACTION_BLOCKED_STATES_JSON:-[\"CANCELLED\"]}"
+WORKFLOW_ACTION_POLICY_SUMMARY="${WORKFLOW_ACTION_POLICY_SUMMARY:-Bloquear aprovacao de pedido cancelado durante revisao governada.}"
+WORKFLOW_ACTION_POLICY_MESSAGE="${WORKFLOW_ACTION_POLICY_MESSAGE:-Aprovacao bloqueada por decisao governada no smoke operacional.}"
+WORKFLOW_ACTION_SEMANTIC_OWNER="${WORKFLOW_ACTION_SEMANTIC_OWNER:-procurement-owner}"
+WORKFLOW_ACTION_STEWARD="${WORKFLOW_ACTION_STEWARD:-procurement-operations}"
 APPROVAL_POLICY_RESOURCE_KEY="${APPROVAL_POLICY_RESOURCE_KEY:-human-resources.eventos-folha}"
 APPROVAL_POLICY_ACTION_ID="${APPROVAL_POLICY_ACTION_ID:-bulk-approve}"
 APPROVAL_POLICY_TARGET_KEY="${APPROVAL_POLICY_TARGET_KEY:-${APPROVAL_POLICY_RESOURCE_KEY}:${APPROVAL_POLICY_ACTION_ID}}"
 APPROVAL_POLICY_RULE_KEY="${APPROVAL_POLICY_RULE_KEY:-human-resources.eventos-folha.rule.bulk-approve-approval.${SMOKE_RUN_ID}}"
 APPROVAL_POLICY_EVENT_ID="${APPROVAL_POLICY_EVENT_ID:-1}"
+APPROVAL_POLICY_MESSAGE="${APPROVAL_POLICY_MESSAGE:-Aprovacao em massa exige decisao gerencial governada.}"
 AUTHOR_USER_ID="${AUTHOR_USER_ID:-${APP_AUTH_GOVERNANCE_AUTHOR_USERNAME:-praxis-governance-author}}"
 REVIEWER_USER_ID="${REVIEWER_USER_ID:-${APP_AUTH_GOVERNANCE_APPROVER_A_USERNAME:-praxis-governance-approver-a}}"
-
-if [[ "$AUTHOR_USER_ID" == "$REVIEWER_USER_ID" ]]; then
-  echo "AUTHOR_USER_ID and REVIEWER_USER_ID must be distinct for maker-checker validation." >&2
-  exit 2
-fi
-
-if [[ -z "$PUBLISHER_USERNAME" || -z "$PUBLISHER_PASSWORD" ]]; then
-  echo "PUBLISHER_USERNAME and PUBLISHER_PASSWORD (or APP_AUTH_GOVERNANCE_PUBLISHER_*) are required for the governed multi-persona smoke." >&2
-  exit 2
-fi
 
 usage() {
   cat >&2 <<'USAGE'
@@ -162,6 +154,21 @@ also isolates the publication flow in a tenant derived from SMOKE_RUN_ID to
 avoid colliding with previous persisted smoke records.
 USAGE
 }
+
+if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
+  usage
+  exit 0
+fi
+
+if [[ "$AUTHOR_USER_ID" == "$REVIEWER_USER_ID" ]]; then
+  echo "AUTHOR_USER_ID and REVIEWER_USER_ID must be distinct for maker-checker validation." >&2
+  exit 2
+fi
+
+if [[ -z "$PUBLISHER_USERNAME" || -z "$PUBLISHER_PASSWORD" ]]; then
+  echo "PUBLISHER_USERNAME and PUBLISHER_PASSWORD (or APP_AUTH_GOVERNANCE_PUBLISHER_*) are required for the governed multi-persona smoke." >&2
+  exit 2
+fi
 
 post_json() {
   local path="$1"
@@ -636,11 +643,6 @@ urlencode() {
   jq -nr --arg value "$1" '$value|@uri'
 }
 
-if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
-  usage
-  exit 0
-fi
-
 if [[ "$REQUIRE_WORKFLOW_ACTION" == "true" && "$REQUIRE_PUBLICATION" == "false" ]]; then
   echo "REQUIRE_WORKFLOW_ACTION=true requires REQUIRE_PUBLICATION=auto or true because workflow_action is derived by /domain-rules/publications." >&2
   exit 2
@@ -836,6 +838,7 @@ jq -n \
   --arg resourceKey "$BACKEND_VALIDATION_RESOURCE_KEY" \
   --arg serviceKey "$SERVICE_KEY" \
   --arg reviewerUserId "$REVIEWER_USER_ID" \
+  --arg message "$BACKEND_VALIDATION_POLICY_MESSAGE" \
   --argjson blockedStatuses "$BACKEND_VALIDATION_BLOCKED_STATUSES_JSON" \
   '{
     ruleKey: $ruleKey,
@@ -855,7 +858,7 @@ jq -n \
       referenceField: "supplierId",
       statusPropertyPath: "status",
       blockedStatuses: $blockedStatuses,
-      validationMessageTemplate: "Fornecedor indisponivel para pedidos de compra"
+      validationMessageTemplate: $message
     },
     condition: {
       in: [
@@ -921,6 +924,7 @@ jq -n \
   --arg serviceKey "$SERVICE_KEY" \
   --arg actionId "$APPROVAL_POLICY_ACTION_ID" \
   --arg reviewerUserId "$REVIEWER_USER_ID" \
+  --arg message "$APPROVAL_POLICY_MESSAGE" \
   '{
     ruleKey: $ruleKey,
     ruleType: "approval_policy",
@@ -942,7 +946,7 @@ jq -n \
       requiredApprovals: ["payroll-manager"],
       approvalGroups: ["hr-payroll"],
       approverContext: "payroll-events",
-      message: "Aprovacao em massa exige decisao gerencial governada."
+      message: $message
     },
     condition: {
       ">": [
@@ -1345,6 +1349,12 @@ if [[ "$REQUIRE_PUBLICATION" != "false" ]]; then
             post_json_allow_status_scoped_authenticated "/api/procurement/purchase-orders" "$backend_validation_command_request" "$backend_validation_command_response" "$backend_validation_command_status_file" "$PUBLICATION_TENANT_ID" "$PUBLICATION_ENVIRONMENT"
             backend_validation_command_status="$(cat "$backend_validation_command_status_file")"
             if [[ "$backend_validation_command_status" == "409" ]]; then
+              if ! grep -Fq -- "$BACKEND_VALIDATION_POLICY_MESSAGE" "$backend_validation_command_response"; then
+                echo "Purchase-order command returned HTTP 409, but not from the published backend_validation policy." >&2
+                echo "Expected policy message: ${BACKEND_VALIDATION_POLICY_MESSAGE}" >&2
+                cat "$backend_validation_command_response" >&2
+                exit 1
+              fi
               validate_definition_timeline "$backend_validation_definition_id" "$PUBLICATION_TENANT_ID" "$PUBLICATION_ENVIRONMENT" "backend_validation" "backend_validation" "$BACKEND_VALIDATION_RESOURCE_KEY"
               jq -n \
                 --arg status "publication-backend-validation-runtime-ready" \
@@ -1456,6 +1466,12 @@ if [[ "$REQUIRE_PUBLICATION" != "false" ]]; then
             post_json_allow_status_scoped_authenticated "$WORKFLOW_ACTION_COMMAND_PATH" "$workflow_action_command_request" "$workflow_action_command_response" "$workflow_action_command_status_file" "$PUBLICATION_TENANT_ID" "$PUBLICATION_ENVIRONMENT"
             workflow_action_command_status="$(cat "$workflow_action_command_status_file")"
             if [[ "$workflow_action_command_status" == "409" ]]; then
+              if ! grep -Fq -- "$WORKFLOW_ACTION_POLICY_MESSAGE" "$workflow_action_command_response"; then
+                echo "Workflow action returned HTTP 409, but not from the published workflow_action policy." >&2
+                echo "Expected policy message: ${WORKFLOW_ACTION_POLICY_MESSAGE}" >&2
+                cat "$workflow_action_command_response" >&2
+                exit 1
+              fi
               validate_definition_timeline "$workflow_action_definition_id" "$PUBLICATION_TENANT_ID" "$PUBLICATION_ENVIRONMENT" "workflow_action" "workflow_action" "$WORKFLOW_ACTION_TARGET_KEY"
               jq -n \
                 --arg status "publication-workflow-action-runtime-ready" \
@@ -1601,6 +1617,12 @@ if [[ "$REQUIRE_PUBLICATION" != "false" ]]; then
             post_json_allow_status_scoped_authenticated "/api/human-resources/eventos-folha/actions/${APPROVAL_POLICY_ACTION_ID}" "$approval_policy_command_request" "$approval_policy_command_response" "$approval_policy_command_status_file" "$PUBLICATION_TENANT_ID" "$PUBLICATION_ENVIRONMENT"
             approval_policy_command_status="$(cat "$approval_policy_command_status_file")"
             if [[ "$approval_policy_command_status" == "409" ]]; then
+              if ! grep -Fq -- "$APPROVAL_POLICY_MESSAGE" "$approval_policy_command_response"; then
+                echo "Payroll-events command returned HTTP 409, but not from the published approval_policy." >&2
+                echo "Expected policy message: ${APPROVAL_POLICY_MESSAGE}" >&2
+                cat "$approval_policy_command_response" >&2
+                exit 1
+              fi
               validate_definition_timeline "$approval_policy_definition_id" "$PUBLICATION_TENANT_ID" "$PUBLICATION_ENVIRONMENT" "approval_policy" "approval_policy" "$APPROVAL_POLICY_TARGET_KEY"
               jq -n \
                 --arg status "publication-approval-policy-runtime-ready" \

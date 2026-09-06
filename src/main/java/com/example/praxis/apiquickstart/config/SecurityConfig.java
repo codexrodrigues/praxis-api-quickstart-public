@@ -218,10 +218,17 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.POST,
                         "/api/praxis/config/domain-rules/workspaces/*/reviews")
                     .hasAuthority(com.example.praxis.apiquickstart.security.RuleGovernanceAuthorities.DEFINITION_APPROVER)
+                // Simulation is a side-effect-free governance evaluation. Authors use it before
+                // persistence and independent approvers recompute canonical readiness before
+                // approving; neither role gains the other's mutation privileges.
+                .requestMatchers(HttpMethod.POST,
+                        "/api/praxis/config/domain-rules/simulations")
+                    .hasAnyAuthority(
+                            com.example.praxis.apiquickstart.security.RuleGovernanceAuthorities.DEFINITION_AUTHOR,
+                            com.example.praxis.apiquickstart.security.RuleGovernanceAuthorities.DEFINITION_APPROVER)
                 .requestMatchers(HttpMethod.POST,
                         "/api/praxis/config/domain-rules/intake",
                         "/api/praxis/config/domain-rules/definitions",
-                        "/api/praxis/config/domain-rules/simulations",
                         "/api/praxis/config/domain-rules/materializations",
                         "/api/praxis/config/domain-rules/workspaces/**")
                     .hasAuthority(com.example.praxis.apiquickstart.security.RuleGovernanceAuthorities.DEFINITION_AUTHOR)
