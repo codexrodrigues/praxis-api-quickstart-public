@@ -29,6 +29,10 @@ Flags principais (env → application.properties)
   - A mesma política governa reconstrução de origem para `/api/praxis/config/**` e identidade de cliente para rate limit.
   - Requests diretos precisam enviar `Origin` permitido ou `Referer` válido; `Host`, `X-Forwarded-Host`, `X-Forwarded-Proto` e `X-Forwarded-For` forjados não autorizam origem nem criam buckets de rate limit.
 
+Cookie CSRF para clientes SPA
+- `CsrfCookieFilter` é registrado exclusivamente em `SecurityConfig`, após `CsrfFilter`. Não adicionar `@Component` nem outro registro servlet: a execução duplicada pode impedir a materialização do token no ponto correto da cadeia.
+- A [prova browser de paletas governadas](governed-color-palette-browser-proof.md) exercita login, emissão do cookie XSRF e troca autenticada de identidade com CSRF habilitado, CORS e Origin reais. Ela não desativa rate limiting nem acrescenta exceções de CSRF às rotas Config.
+
 Rate limit da superfície de IA
 - `app.rate-limit.ai.limit` / `app.rate-limit.ai.window-ms` (`APP_RATE_LIMIT_AI_LIMIT` / `APP_RATE_LIMIT_AI_WINDOW_MS`)
   - O bucket `ai` é aplicado primeiro a `/api/praxis/config/ai/**`, antes do bucket geral de Config.

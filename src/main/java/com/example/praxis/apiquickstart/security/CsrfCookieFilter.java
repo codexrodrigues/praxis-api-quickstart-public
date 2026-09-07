@@ -5,7 +5,6 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.security.web.csrf.CsrfToken;
-import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
@@ -16,8 +15,12 @@ import java.io.IOException;
  * <p>O filtro nao decide autorizacao nem valida o token. Ele apenas força a resolucao do
  * {@link CsrfToken} para que o repositorio baseado em cookie tenha um valor disponivel para SPAs e
  * clientes browser-based que consomem o quickstart.</p>
+ *
+ * <p>Registrado exclusivamente por {@code SecurityConfig}, após {@code CsrfFilter}.
+ * Não registrar como servlet filter via {@code @Component}: a execução anterior à
+ * security chain pode marcar o OncePerRequestFilter como já executado sem que o token
+ * exista, impedindo sua materialização na resposta HTTP real.</p>
  */
-@Component
 public class CsrfCookieFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
