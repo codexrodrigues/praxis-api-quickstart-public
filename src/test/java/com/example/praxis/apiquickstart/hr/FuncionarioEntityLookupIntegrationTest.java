@@ -24,8 +24,10 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.jdbc.core.JdbcTemplate;
 
+import java.time.Duration;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -97,6 +99,13 @@ class FuncionarioEntityLookupIntegrationTest {
 
     @BeforeEach
     void seedEmployeeTables() {
+        // Cold capability discovery materializes multiple OpenAPI groups on the CI runner.
+        // Use the same bounded schema timeout as the other HTTP projection tests.
+        SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
+        requestFactory.setConnectTimeout(Duration.ofSeconds(10));
+        requestFactory.setReadTimeout(Duration.ofSeconds(60));
+        restTemplate.getRestTemplate().setRequestFactory(requestFactory);
+
         jdbcTemplate.execute("drop table if exists public.funcionarios");
         jdbcTemplate.execute("drop table if exists public.departamentos");
         jdbcTemplate.execute("drop table if exists public.cargos");
@@ -255,7 +264,22 @@ class FuncionarioEntityLookupIntegrationTest {
     }
 
     @Test
-    void shouldRejectAmbiguousInvalidAndUnauthorizedSearchesBeforeDataLeaks() throws Exception {
+    void shouldLoadInitialAnonymousOptionsAndPublishReadAvailabilityWithoutGrantingCreation() throws Exception {
+        JsonNode options = body(restTemplate.postForEntity(
+                "/api/human-resources/funcionarios/option-sources/employee/options/filter?page=0&size=50",
+                new HttpEntity<>("{}", jsonHeaders()), String.class));
+        assertTrue(options.path("content").size() > 0);
+
+        JsonNode capabilities = body(restTemplate.getForEntity(
+                "/api/human-resources/funcionarios/capabilities", String.class));
+        assertTrue(capabilities.path("operations").path("filter").path("availability").path("allowed").asBoolean());
+        assertFalse(capabilities.path("operations").path("create").path("availability").path("allowed").asBoolean());
+        assertEquals("authentication-required", capabilities.path("operations").path("create")
+                .path("availability").path("reason").asText());
+    }
+
+    @Test
+    void shouldRejectInvalidSearchesAndPreserveAuthenticatedScopesInPublicDemo() throws Exception {
         reset(employeeOptionSourceProvider);
         ResponseEntity<String> invalidCode = restTemplate.postForEntity(
                 "/api/human-resources/funcionarios/option-sources/employee/options/filter?search=EMP-1&searchStrategy=employee-code&page=0&size=5",
@@ -272,7 +296,8 @@ class FuncionarioEntityLookupIntegrationTest {
         ResponseEntity<String> anonymous = restTemplate.postForEntity(
                 "/api/human-resources/funcionarios/option-sources/employee/options/filter?search=Ana&searchStrategy=name&page=0&size=5",
                 new HttpEntity<>("{}", jsonHeaders()), String.class);
-        assertEquals(HttpStatus.FORBIDDEN, anonymous.getStatusCode());
+        assertEquals(HttpStatus.OK, anonymous.getStatusCode());
+        assertTrue(body(anonymous).path("content").size() > 0);
         assertFalse(String.valueOf(anonymous.getBody()).contains("departmentScope"));
 
         ResponseEntity<String> anonymousEmptyReload = restTemplate.exchange(
@@ -281,8 +306,15 @@ class FuncionarioEntityLookupIntegrationTest {
                 new HttpEntity<>(jsonHeaders()),
                 String.class
         );
-        assertEquals(HttpStatus.FORBIDDEN, anonymousEmptyReload.getStatusCode());
+        assertEquals(HttpStatus.OK, anonymousEmptyReload.getStatusCode());
         assertFalse(String.valueOf(anonymousEmptyReload.getBody()).contains("departmentScope"));
+
+        JsonNode anonymousReload = body(restTemplate.exchange(
+                "/api/human-resources/funcionarios/option-sources/employee/options/by-ids?ids=4,1",
+                HttpMethod.GET, new HttpEntity<>(jsonHeaders()), String.class));
+        assertEquals(2, anonymousReload.size());
+        assertEquals(4, anonymousReload.get(0).path("id").asInt());
+        assertEquals(1, anonymousReload.get(1).path("id").asInt());
 
         JsonNode scoped = body(restTemplate.postForEntity(
                 "/api/human-resources/funcionarios/option-sources/employee/options/filter?searchStrategy=name&page=0&size=5",

@@ -2,6 +2,8 @@ package com.example.praxis.apiquickstart.security;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.praxisplatform.uischema.capability.ResourceOperationAvailabilityContext;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -55,11 +57,31 @@ class QuickstartResourceOperationAvailabilityProviderTest {
         assertTrue(provider.evaluate(context).allowed());
     }
 
+    @ParameterizedTest
+    @ValueSource(strings = {"filter", "cursor", "locate", "options", "optionSources", "export",
+            "statsGroupBy", "statsTimeSeries", "statsDistribution", "statsComparison"})
+    void shouldPublishPostQueriesOnlyWhenPublicReadsAreEnabled(String operationId) {
+        var context = new ResourceOperationAvailabilityContext(
+                "operations.missoes", "/api/operations/missoes", operationId,
+                "COLLECTION", null, null, Map.of("preferredMethod", "POST"));
+        assertTrue(new QuickstartResourceOperationAvailabilityProvider(true).evaluate(context).allowed());
+        assertFalse(new QuickstartResourceOperationAvailabilityProvider(false).evaluate(context).allowed());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"create", "update", "delete", "unknown-command"})
+    void shouldNotGrantCommandsInThePublicDemo(String operationId) {
+        var context = new ResourceOperationAvailabilityContext(
+                "operations.missoes", "/api/operations/missoes", operationId,
+                "COLLECTION", null, null, Map.of("preferredMethod", "POST"));
+        assertFalse(new QuickstartResourceOperationAvailabilityProvider(true).evaluate(context).allowed());
+    }
+
     private ResourceOperationAvailabilityContext analyticsContext(String operationId) {
-        return ResourceOperationAvailabilityContext.collection(
+        return new ResourceOperationAvailabilityContext(
                 "human-resources.vw-analytics-folha-pagamento",
                 "/api/human-resources/vw-analytics-folha-pagamento",
-                operationId
+                operationId, "COLLECTION", null, null, Map.of("preferredMethod", "POST")
         );
     }
 }

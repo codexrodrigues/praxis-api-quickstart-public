@@ -13,6 +13,7 @@ import org.praxisplatform.uischema.options.service.OptionSourceExecutionRequest;
 import org.praxisplatform.uischema.options.service.OptionSourceOperation;
 import org.praxisplatform.uischema.options.service.OptionSourceProvider;
 import org.springframework.core.Ordered;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -43,9 +44,13 @@ public class EmployeeOptionSourceProvider implements OptionSourceProvider, Order
     private static final String DOCUMENT = "document";
 
     private final FuncionarioRepository repository;
+    private final boolean readOpen;
 
-    public EmployeeOptionSourceProvider(FuncionarioRepository repository) {
+    public EmployeeOptionSourceProvider(
+            FuncionarioRepository repository,
+            @Value("${app.security.read-open:false}") boolean readOpen) {
         this.repository = repository;
+        this.readOpen = readOpen;
     }
 
     @Override
@@ -94,6 +99,11 @@ public class EmployeeOptionSourceProvider implements OptionSourceProvider, Order
         Map<String, Object> attributes = context.attributes();
         Object subject = attributes.get(QuickstartOptionSourceContextResolver.AUTHENTICATED_SUBJECT);
         if (!(subject instanceof String value) || value.isBlank()) {
+            // The host's public demo contains fictitious data. Do not manufacture a principal:
+            // authenticated callers still retain their server-resolved department scope below.
+            if (readOpen) {
+                return (root, query, criteriaBuilder) -> criteriaBuilder.conjunction();
+            }
             throw new AccessDeniedException("Employee option source requires an authenticated context.");
         }
         if (Boolean.TRUE.equals(attributes.get(QuickstartOptionSourceContextResolver.DEPARTMENT_SCOPE_UNBOUNDED))) {

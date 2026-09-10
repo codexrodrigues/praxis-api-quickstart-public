@@ -29,3 +29,13 @@ Observações
   granularidade da operação.
 - Ajuste CORS via `app.cors.allowed-origins` conforme necessidade.
 - Consulte também: `docs/security-overview.md` (resumo do fluxo e armadilhas de patterns).
+
+Lookup de funcionário e discovery
+- A fonte `employee` obedece à mesma política `read-open` para `options/filter` e
+  `options/by-ids`: acesso anônimo permitido somente no demo público de dados fictícios.
+- Um usuário autenticado continua limitado ao escopo departamental resolvido pelo servidor,
+  inclusive no demo. Headers de identidade enviados pelo cliente não criam esse principal.
+- Capabilities reconhecem os IDs canônicos de consultas via POST (filter, cursor, locate,
+  options, optionSources, export e stats). O verbo POST sozinho não caracteriza mutação.
+- Criação, alteração e exclusão continuam protegidas; a autorização do sandbox da UI é
+  independente da disponibilidade de leitura do backend.

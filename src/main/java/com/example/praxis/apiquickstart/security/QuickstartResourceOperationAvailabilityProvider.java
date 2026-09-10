@@ -33,6 +33,12 @@ public final class QuickstartResourceOperationAvailabilityProvider
             "human-resources.vw-analytics-folha-pagamento"
     );
     private static final Set<String> MUTATING_METHODS = Set.of("POST", "PUT", "PATCH", "DELETE");
+    // Canonical discovery operation IDs, not a classification inferred from the HTTP verb.
+    // These reads use POST in SecurityConfig's read-open query allowlist.
+    private static final Set<String> PUBLIC_POST_READ_OPERATIONS = Set.of(
+            "filter", "cursor", "locate", "options", "optionSources", "export",
+            "statsGroupBy", "statsTimeSeries", "statsDistribution", "statsComparison"
+    );
     private static final Set<String> NOMINAL_ANALYTICS_OPERATIONS = Set.of(
             "view",
             "byId",
@@ -73,6 +79,10 @@ public final class QuickstartResourceOperationAvailabilityProvider
             ResourceOperationAvailabilityContext context
     ) {
         Object preferredMethod = context.metadata().get("preferredMethod");
+        if (readOpen && "POST".equalsIgnoreCase(String.valueOf(preferredMethod))
+                && PUBLIC_POST_READ_OPERATIONS.contains(context.operationId())) {
+            return AvailabilityDecision.allowAll();
+        }
         boolean mutating = preferredMethod != null
                 && MUTATING_METHODS.contains(String.valueOf(preferredMethod).trim().toUpperCase());
         if (!mutating || hasAuthenticatedPrincipal()) {

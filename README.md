@@ -551,10 +551,11 @@ Exemplos de referencia no quickstart:
   presente sem estrategia, estrategia desconhecida, codigo nao numerico e documento incompleto
   falham com `422`, antes de consultar o provider.
 - O contrato publico nao revela CPF, o binding persistente do documento, predicados nem escopo de
-  departamentos. O provider privado normaliza e vincula cada estrategia, aplica autenticacao e
-  escopo antes da consulta e retorna somente o sufixo mascarado do documento no label. Consultas
-  e reidratacoes sem contexto autorizado falham fechadas com `403`, inclusive quando `ids` esta
-  vazio; a ordem solicitada em `/options/by-ids` continua deterministica.
+  departamentos. O provider privado normaliza e vincula cada estrategia e retorna somente o sufixo mascarado
+  do documento no label. Com `app.security.read-open=true`, consultas e reidratacoes anonimas
+  usam os dados ficticios do demo. Usuarios autenticados preservam seu escopo departamental.
+  Com `read-open=false`, a fonte exige contexto autenticado e autorizado, inclusive quando
+  `ids` esta vazio; a ordem solicitada em `/options/by-ids` continua deterministica.
 - Em `operations`, relacionamentos operacionais com colaboradores, como
   `operations.base-acessos.funcionarioId`, `operations.equipe-membros.funcionarioId` e
   `operations.licencas-operacao.funcionarioId`, consomem a fonte governada `employee`.
